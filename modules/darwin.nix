@@ -1,5 +1,5 @@
 # Shared by every Mac. Host-specific bits live in hosts/<name>/default.nix.
-{ lib, inputs, ... }:
+{ lib, ... }:
 
 let
   caches = import ../lib/caches.nix;
@@ -32,11 +32,6 @@ in
   environment.etc."nix/nix.custom.conf".knownSha256Hashes = [
     "3bd68ef979a42070a44f8d82c205cfd8e8cca425d91253ec2c10a88179bb34aa"
   ];
-
-  # Darwin only, and it has to stay that way: besides firefox-bin, this overlay
-  # defines `librewolf`, `floorp-bin` and `zen-browser-bin`, which on Linux
-  # would shadow the perfectly good nixpkgs packages of the same names.
-  nixpkgs.overlays = [ inputs.nixpkgs-firefox-darwin.overlay ];
 
   system.primaryUser = "bhyoo";
 

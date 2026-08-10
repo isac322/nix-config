@@ -7,8 +7,4 @@
 
 {
   nixpkgs.hostPlatform = "aarch64-darwin";
-
-  # A machine that stays plugged in and on a desk does not want the Dock to
-  # hide; override the shared default from modules/darwin.nix.
-  system.defaults.dock.autohide = false;
 }

@@ -38,15 +38,17 @@
     let
       user = "bhyoo";
 
-      # The two axes are machine and purpose, and they are composed rather than
-      # inherited: every configuration is `common + platform + host + roles`.
-      # `extraModules` / `extraHomeModules` are where a role plugs in — e.g. a
-      # Mac mini doing double duty would pass a shared ./modules/media-server.nix
-      # without any of the other hosts noticing.
-
+      # Three axes, composed rather than inherited: every configuration is
+      # `common + platform + role + host`. A Mac is the same Mac in either role
+      # — same keyboard, Finder, Dock and trackpad — so the role files carry
+      # only what genuinely differs: desktop applications on a laptop, staying
+      # awake on a server. `extraModules` / `extraHomeModules` remain for
+      # anything that fits none of the three, such as one machine also serving
+      # media.
       mkDarwin =
         {
           hostname,
+          role,
           extraModules ? [ ],
           extraHomeModules ? [ ],
         }:
@@ -55,6 +57,7 @@
           modules = [
             ./modules/common.nix
             ./modules/darwin.nix
+            ./modules/roles/darwin-${role}.nix
             ./hosts/${hostname}
 
             inputs.determinate.darwinModules.default
@@ -76,6 +79,7 @@
               home-manager.users.${user}.imports = [
                 ./home/common.nix
                 ./home/darwin.nix
+                ./home/roles/darwin-${role}.nix
               ]
               ++ extraHomeModules;
             }
@@ -117,8 +121,14 @@
       # there is no sensible `default`; name the target explicitly when the
       # machine is called something else.
       darwinConfigurations = {
-        "bhyoo-macbook-air" = mkDarwin { hostname = "bhyoo-macbook-air"; };
-        "bhyoo-mac-mini" = mkDarwin { hostname = "bhyoo-mac-mini"; };
+        "bhyoo-macbook-air" = mkDarwin {
+          hostname = "bhyoo-macbook-air";
+          role = "laptop";
+        };
+        "bhyoo-mac-mini" = mkDarwin {
+          hostname = "bhyoo-mac-mini";
+          role = "server";
+        };
       };
 
       nixosConfigurations = {
