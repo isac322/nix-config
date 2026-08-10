@@ -113,7 +113,7 @@ in
     echo "configuring Finder view defaults..." >&2
     (
       PB=/usr/libexec/PlistBuddy
-      tmp=$(mktemp -t finder-view-settings)
+      tmp=$(mktemp)
       trap 'rm -f "$tmp"' EXIT
 
       if runFinderCfgAsUser /usr/bin/defaults export com.apple.finder "$tmp"; then
