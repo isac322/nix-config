@@ -176,38 +176,41 @@ Linux 데스크톱이 생기면 같은 `policies`를 `pkgs.firefox`에 그냥 �
 
 ### 맥 키보드 · 트랙패드
 
-모디파이어 회전은 `home/keyboard.nix`의 Karabiner 프로파일에 있다.
+모디파이어 회전은 `modules/keyboard.nix`에 hidutil로 들어 있다.
 
 ```
 fn → left command → left option → left control → fn
 right command → lang1 (한/영)
 ```
 
-프로파일 레벨 `simple_modifications`라 내장 키보드를 포함한 모든 키보드에 적용된다
-(장치별 설정은 `devices` 배열에 들어가는데, 여기서는 비워 둔다).
+**Karabiner-Elements를 쓰지 않는다.** 콘솔에 사람이 없으면 올릴 수 없기 때문이다.
+DriverKit 확장을 시스템 설정에서 승인해야 하고, grabber에 입력 모니터링 권한이
+필요한데 그 권한을 기록하는 TCC 데이터베이스는 SIP로 보호된다 — CLI도, defaults 키도
+없다. MDM 프로파일만이 미리 허가할 수 있다.
 
-주의할 점 세 가지.
+hidutil은 그런 게 하나도 필요 없다. root로 IOKit 안에서 remap하고, 내장 키보드를
+포함한 모든 키보드에 적용되며, `org.nixos.activate-system` LaunchDaemon이 부팅마다
+다시 실행하므로 로그인 항목 없이 재부팅을 견딘다. 대가는 1:1 리매핑만 된다는 것 —
+조건부·코드 규칙은 못 한다. 여기서 필요한 건 그 이상이 아니다.
 
-- **`fn`은 철자가 둘이고 서로 다른 키다.** Karabiner 16의 `simple_modifications.json`은
-  모디파이어 그룹에서 `apple_vendor_top_case_key_code: keyboard_fn`을 "fn (globe)"로
-  올려두고, 일반 `key_code: fn`은 한참 아래 원시 목록에 따로 둔다. 앞의 것이 애플
-  내장 키보드의 fn이다. 양쪽 모두를 `from`으로 잡아 두고, 되돌려 보낼 때는 애플
-  철자를 쓴다.
-- **fn이 command가 되면서 F1–F12의 미디어 기능은 물리적 왼쪽 control로 옮겨간다.**
-  회전 후 그 키가 fn을 보내기 때문이다. `com.apple.keyboard.fnState = true`와 짝이다.
-- **Karabiner는 cask로 설치한다.** DriverKit 시스템 확장과 입력 모니터링 권한이
-  필요한데, nix-darwin의 `services.karabiner-elements`는 그 데몬을 `/nix/store`에서
-  실행해서 버전이 오를 때마다 경로가 바뀌고 권한을 다시 줘야 한다. cask는 상위
-  버전(16.1.0)도 따라간다 — nixpkgs는 15.7.0이다.
+UserKeyMapping 값은 64비트다. 상위 32비트가 HID usage page, 하위가 usage다.
+키보드/키패드는 page 0x07이고, **fn만 애플 벤더 top case page 0xFF에 있다**
+(`0xFF00000003`). `lang1`은 0x90으로, 애플 한국어 키보드의 한/영 키가 보내는 코드다.
 
-`karabiner.json`은 심볼릭 링크가 아니라 **복사**한다. Karabiner가 실행 시 이 파일을
-정규화해 다시 쓰는데 읽기 전용 스토어로는 쓸 수 없다. 대신 UI에서 바꾼 설정은 다음
-activation까지만 살아남는다.
+**fn이 command가 되면서 F1–F12의 미디어 기능은 물리적 왼쪽 control로 옮겨간다.**
+회전 후 그 키가 fn을 보내기 때문이다. `com.apple.keyboard.fnState = true`와 짝이다.
 
 트랙패드는 `modules/darwin.nix`에서 세 손가락 끌기를 켜고, 충돌하는 세 손가락
 스와이프 제스처를 네 손가락으로 옮긴다. nix-darwin이 `com.apple.AppleMultitouchTrackpad`와
 `com.apple.driver.AppleBluetoothMultitouch.trackpad` 양쪽에 쓰므로 내장 트랙패드와
 Magic Trackpad가 모두 적용된다.
+
+### `activateSettings` 를 직접 부르는 이유
+
+nix-darwin은 `system.defaults`의 plist를 쓰기만 하고 macOS에 다시 읽으라고 말하지
+않는다. 그래서 키보드·트랙패드 설정이 파일에는 들어갔는데 다음 로그인까지 반영되지
+않는다. `modules/keyboard.nix`가 activation 끝에 시스템 설정 앱이 하는 것과 같은
+새로고침을 부른다. 사용자 도메인의 defaults라 사용자 권한으로 실행한다.
 
 ### Esc 아래 키의 ₩ 문제
 
@@ -219,9 +222,10 @@ Magic Trackpad가 모두 적용된다.
 }
 ```
 
-Karabiner로는 풀 수 없다. ₩는 2벌식 레이아웃이 그렇게 정한 결과이고 그 레이아웃은
-Karabiner보다 하류에 있어서, 키를 어떻게 바꿔 보내도 레이아웃이 다시 ₩로 만든다.
-입력 소스를 잠깐 빠져나갔다 돌아오는 우회가 있지만 upstream이 그걸 막는다 —
+키 리매핑으로는 풀 수 없다. ₩는 2벌식 레이아웃이 그렇게 정한 결과이고 그 레이아웃은
+hidutil이나 Karabiner보다 하류에 있어서, 어떤 키가 도착하는지는 바꿀 수 있어도
+레이아웃이 무엇을 만들지는 못 바꾼다. 입력 소스를 잠깐 빠져나갔다 돌아오는 우회가
+있지만 upstream이 그걸 막는다 —
 "switching to input sources which have input_mode_id (Chinese, Japanese, **Korean**,
 Vietnamese) may be failed due to an macOS issue."
 

@@ -5,6 +5,8 @@ let
   caches = import ../lib/caches.nix;
 in
 {
+  imports = [ ./keyboard.nix ];
+
   # Determinate Nix owns the Nix install, the nix-daemon and /etc/nix/nix.conf,
   # so nix-darwin must not manage them; this module sets `nix.enable = false`
   # for us and renders /etc/nix/nix.custom.conf from `customSettings`.
@@ -46,14 +48,9 @@ in
     # `upgrade` only sees the formula index as of the last manual `brew update`.
     onActivation.autoUpdate = true;
     casks = [
-      # Not from nixpkgs: Karabiner ships a DriverKit system extension and
-      # privileged daemons that need Input Monitoring permission. The cask keeps
-      # them at a stable /Applications path, so the permission is granted once;
-      # nix-darwin's services.karabiner-elements runs them from /nix/store,
-      # where every version bump changes the path and voids the grant. The cask
-      # also tracks upstream (16.1.0) while nixpkgs sits on 15.7.0.
-      # Its configuration is in home/keyboard.nix.
-      "karabiner-elements"
+      # Karabiner-Elements deliberately absent: it cannot be brought up without
+      # a console session approving its driver extension and Input Monitoring.
+      # The remapping it would have done is in modules/keyboard.nix via hidutil.
     ];
   };
 
