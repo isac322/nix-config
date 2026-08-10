@@ -64,8 +64,8 @@ in
     NSGlobalDomain.KeyRepeat = lib.mkDefault 2;
 
     # F1-F12 act as function keys; the media functions move behind fn. After the
-    # Karabiner rotation in home/karabiner.nix, fn is the physical left control
-    # key, so that is what reaches brightness and volume.
+    # rotation in modules/keyboard.nix, fn is the physical left control key, so
+    # that is what reaches brightness and volume.
     NSGlobalDomain."com.apple.keyboard.fnState" = lib.mkDefault true;
 
     # Three-finger drag, which is what moves a window by its title bar. It is an
