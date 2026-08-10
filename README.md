@@ -174,6 +174,64 @@ NixOS에는 이 문제가 없다. Nix가 시스템 클로저의 일부라서 `ni
 Linux 데스크톱이 생기면 같은 `policies`를 `pkgs.firefox`에 그냥 넘기면 된다 —
 "같은 옵션, 다른 구현"의 전형적인 사례다.
 
+### 맥 키보드 · 트랙패드
+
+모디파이어 회전은 `home/keyboard.nix`의 Karabiner 프로파일에 있다.
+
+```
+fn → left command → left option → left control → fn
+right command → lang1 (한/영)
+```
+
+프로파일 레벨 `simple_modifications`라 내장 키보드를 포함한 모든 키보드에 적용된다
+(장치별 설정은 `devices` 배열에 들어가는데, 여기서는 비워 둔다).
+
+주의할 점 세 가지.
+
+- **`fn`은 철자가 둘이고 서로 다른 키다.** Karabiner 16의 `simple_modifications.json`은
+  모디파이어 그룹에서 `apple_vendor_top_case_key_code: keyboard_fn`을 "fn (globe)"로
+  올려두고, 일반 `key_code: fn`은 한참 아래 원시 목록에 따로 둔다. 앞의 것이 애플
+  내장 키보드의 fn이다. 양쪽 모두를 `from`으로 잡아 두고, 되돌려 보낼 때는 애플
+  철자를 쓴다.
+- **fn이 command가 되면서 F1–F12의 미디어 기능은 물리적 왼쪽 control로 옮겨간다.**
+  회전 후 그 키가 fn을 보내기 때문이다. `com.apple.keyboard.fnState = true`와 짝이다.
+- **Karabiner는 cask로 설치한다.** DriverKit 시스템 확장과 입력 모니터링 권한이
+  필요한데, nix-darwin의 `services.karabiner-elements`는 그 데몬을 `/nix/store`에서
+  실행해서 버전이 오를 때마다 경로가 바뀌고 권한을 다시 줘야 한다. cask는 상위
+  버전(16.1.0)도 따라간다 — nixpkgs는 15.7.0이다.
+
+`karabiner.json`은 심볼릭 링크가 아니라 **복사**한다. Karabiner가 실행 시 이 파일을
+정규화해 다시 쓰는데 읽기 전용 스토어로는 쓸 수 없다. 대신 UI에서 바꾼 설정은 다음
+activation까지만 살아남는다.
+
+트랙패드는 `modules/darwin.nix`에서 세 손가락 끌기를 켜고, 충돌하는 세 손가락
+스와이프 제스처를 네 손가락으로 옮긴다. nix-darwin이 `com.apple.AppleMultitouchTrackpad`와
+`com.apple.driver.AppleBluetoothMultitouch.trackpad` 양쪽에 쓰므로 내장 트랙패드와
+Magic Trackpad가 모두 적용된다.
+
+### Esc 아래 키의 ₩ 문제
+
+`~/Library/KeyBindings/DefaultKeyBinding.dict`로 해결한다.
+
+```
+{
+    "₩" = ("insertText:", "`");
+}
+```
+
+Karabiner로는 풀 수 없다. ₩는 2벌식 레이아웃이 그렇게 정한 결과이고 그 레이아웃은
+Karabiner보다 하류에 있어서, 키를 어떻게 바꿔 보내도 레이아웃이 다시 ₩로 만든다.
+입력 소스를 잠깐 빠져나갔다 돌아오는 우회가 있지만 upstream이 그걸 막는다 —
+"switching to input sources which have input_mode_id (Chinese, Japanese, **Korean**,
+Vietnamese) may be failed due to an macOS issue."
+
+그래서 문자가 실제로 삽입되는 지점에서 고친다. Cocoa 텍스트 시스템이 이 파일을 읽고,
+₩를 넣으려던 자리에 백틱을 넣는다. 한글 모드·영문 모드 모두 해당된다.
+
+**한계:** Cocoa 메커니즘이라 자체 텍스트 스택을 그리는 앱(Electron, JetBrains, 일부
+터미널)에는 적용되지 않는다. 앱은 실행 시점에 이 파일을 읽으므로 첫 적용 후 재시작이
+필요하다.
+
 ### Vim이 vim-sensible 위에 얹히는 방식
 
 nixpkgs는 sensible의 `s:MaySet`에 패치를 넣어, 옵션이 이미 `/nix/store` 경로에서

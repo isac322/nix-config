@@ -46,7 +46,14 @@ in
     # `upgrade` only sees the formula index as of the last manual `brew update`.
     onActivation.autoUpdate = true;
     casks = [
-      # "discord"
+      # Not from nixpkgs: Karabiner ships a DriverKit system extension and
+      # privileged daemons that need Input Monitoring permission. The cask keeps
+      # them at a stable /Applications path, so the permission is granted once;
+      # nix-darwin's services.karabiner-elements runs them from /nix/store,
+      # where every version bump changes the path and voids the grant. The cask
+      # also tracks upstream (16.1.0) while nixpkgs sits on 15.7.0.
+      # Its configuration is in home/keyboard.nix.
+      "karabiner-elements"
     ];
   };
 
@@ -58,6 +65,24 @@ in
     finder.AppleShowAllExtensions = lib.mkDefault true;
     NSGlobalDomain.InitialKeyRepeat = lib.mkDefault 15;
     NSGlobalDomain.KeyRepeat = lib.mkDefault 2;
+
+    # F1-F12 act as function keys; the media functions move behind fn. After the
+    # Karabiner rotation in home/karabiner.nix, fn is the physical left control
+    # key, so that is what reaches brightness and volume.
+    NSGlobalDomain."com.apple.keyboard.fnState" = lib.mkDefault true;
+
+    # Three-finger drag, which is what moves a window by its title bar. It is an
+    # Accessibility setting rather than a Trackpad one, and nix-darwin writes it
+    # to both com.apple.AppleMultitouchTrackpad and the Bluetooth domain, so it
+    # covers the built-in trackpad and a Magic Trackpad alike.
+    trackpad.TrackpadThreeFingerDrag = lib.mkDefault true;
+
+    # Three-finger swipes have to give up their gestures for the drag to be
+    # unambiguous; macOS expects those to move to four fingers.
+    trackpad.TrackpadThreeFingerHorizSwipeGesture = lib.mkDefault 0;
+    trackpad.TrackpadThreeFingerVertSwipeGesture = lib.mkDefault 0;
+    trackpad.TrackpadFourFingerHorizSwipeGesture = lib.mkDefault 2;
+    trackpad.TrackpadFourFingerVertSwipeGesture = lib.mkDefault 2;
   };
 
   system.activationScripts.extraActivation.text = ''

@@ -2,6 +2,8 @@
 { pkgs, ... }:
 
 {
+  imports = [ ./keyboard.nix ];
+
   # Firefox is the clearest case of "same option, different implementation".
   # On macOS the package is a plain .app bundle from the nixpkgs-firefox-darwin
   # overlay, which home-manager cannot wrap, so the policies have to be
