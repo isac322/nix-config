@@ -54,12 +54,40 @@ sudo darwin-rebuild switch --flake ~/nix-config#bhyoo-mac-mini
 # 서버 (해당 기기에서)
 sudo nixos-rebuild switch --flake ~/nix-config#server
 
-# 서버 (맥에서 원격으로 — aarch64 리눅스 빌더가 필요하다)
-nixos-rebuild switch --flake ~/nix-config#server --target-host root@server
+# 서버 (맥에서 원격으로). --build-host 를 같이 주는 것이 핵심이다:
+# 맥은 aarch64-darwin 이라 aarch64-linux 파생물을 realise 할 수 없다.
+# 이렇게 하면 빌드가 서버에서 일어나므로 맥에 리눅스 빌더가 필요 없다.
+nixos-rebuild switch --flake ~/nix-config#server \
+  --target-host root@server --build-host root@server
 ```
 
 레포 경로는 기기마다 달라도 된다. flake 경로는 `--flake`로 지정하는 값일 뿐이라
 설계에 영향이 없다.
+
+### 기기 간 독립성
+
+각 기기는 자기 설정을 스스로 빌드하고 전환한다. 서버는 맥에 전혀 의존하지 않는다.
+다만 두 가지를 기억할 것.
+
+**`flake.lock`은 공유 상태다.** `switch`는 lock을 건드리지 않지만
+`nix flake update`는 다시 쓴다. 기기마다 각자 update를 돌리면 lock이 갈라지고,
+단일 레포로 묶은 의미가 사라진다. 한 기기에서 update → commit → push 하고
+나머지는 pull → switch 한다.
+
+**평가는 크로스 플랫폼이지만 빌드는 아니다.** 맥에서 `nixosConfigurations.server`를
+평가해 drv 를 얻는 것은 되지만 realise 는 안 된다 (`extra-platforms` 가 비어 있고
+`/etc/nix/machines` 도 없다). 맥에서 서버를 직접 빌드하고 싶다면 Determinate 의
+네이티브 리눅스 빌더를 켠다. `system-features` 에 `apple-virt` 가 이미 있으므로
+Apple Silicon 에서는 aarch64-linux 가 나온다 — 서버와 같은 아키텍처다.
+
+```nix
+# modules/darwin.nix 또는 특정 호스트에서
+determinateNixd.builder = {
+  state = "enabled";
+  memoryBytes = 8589934592;  # 8 GiB
+  cpuCount = 4;
+};
+```
 
 ## 새 기기에 올리기
 
