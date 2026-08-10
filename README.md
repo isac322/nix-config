@@ -313,6 +313,27 @@ Vietnamese) may be failed due to an macOS issue."
 터미널)에는 적용되지 않는다. 앱은 실행 시점에 이 파일을 읽으므로 첫 적용 후 재시작이
 필요하다.
 
+### Cloudflare WARP
+
+두 맥이 **완전히 같다.** 같은 클라이언트, 같은 Zero Trust 조직(`runbear`). WARP는
+아웃바운드 클라이언트라, 책상에 놓인 기계든 들고 다니는 기계든 내부 전용 서비스에
+닿기 위해 쓰는 방식이 동일하다. 그래서 `modules/warp.nix`는 호스트 분기가 없다.
+
+**Homebrew cask로 설치한다.** nixpkgs도 `cloudflare-warp`를 aarch64-darwin으로
+빌드하지만, darwin 분기는 `.pkg` payload에서 `Cloudflare WARP.app`만 꺼내 복사하고
+`warp-cli`를 심볼릭 링크할 뿐이다. 정작 클라이언트가 올라타는 특권 데몬
+`/Library/LaunchDaemons/com.cloudflare.1dot1dot1dot1.macos.warp.daemon.plist`는
+`.pkg` 자신이 설치하고, 그 `.pkg`를 실제로 실행하는 건 cask뿐이다. Karabiner와 같은
+모양의 문제 — 실체가 시스템 서비스인 패키지는 스토어에서 설치할 수 없다.
+
+조직 등록은 선언적으로 들어간다. macOS는
+`/Library/Application Support/Cloudflare/mdm.xml`을 읽고, 서비스가 로그인 전에 이를
+적용하므로 기계마다 team 이름을 입력할 필요가 없다. 여기 적은 값이 대시보드의 기기
+설정을 덮어쓰므로, 레포에 둘 만한 것만 적는다.
+
+`service_mode`는 `warp`(전체 터널)다. 내부 전용 서비스에 닿으려면 이게 필요하고,
+`1dot1`은 DNS만 암호화한다.
+
 ### Vim이 vim-sensible 위에 얹히는 방식
 
 nixpkgs는 sensible의 `s:MaySet`에 패치를 넣어, 옵션이 이미 `/nix/store` 경로에서
