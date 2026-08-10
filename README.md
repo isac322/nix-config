@@ -52,9 +52,23 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 
 | | 랩탑 | 서버 |
 |---|---|---|
-| 데스크톱 앱 (Firefox) | ✅ | ✖ |
+| 데스크톱 앱 (Firefox + cask 12개 + MAS 2개) | ✅ | ✖ |
 | `nixpkgs-firefox-darwin` 오버레이 | ✅ | ✖ |
 | 잠들지 않음 / 정전 후 자동 복구 | ✖ | ✅ |
+
+GUI 앱은 nixpkgs가 아니라 Homebrew에서 온다. 대부분은 nixpkgs에 darwin 빌드가
+아예 없고, 있는 것도 특권 구성요소가 빠진 앱 번들 복사본이다 — WARP과 Karabiner를
+cask로 두는 것과 같은 이유다. `onActivation.upgrade`가 켜져 있어 최신 유지도
+Homebrew가 한다.
+
+셋은 예외적인 경로를 쓴다.
+
+- **Orca** (Stably) — homebrew-cask가 아니라 자체 tap에 있어서 `homebrew.taps`에
+  `stablyai/orca`를 같이 선언한다. nix-homebrew가 tap을 기본적으로 mutable로
+  두기 때문에 tap을 flake 인풋으로 고정하지 않고도 동작한다.
+- **KakaoTalk**, **WireGuard** — cask가 없는 Mac App Store 전용이라 `masApps`로
+  간다. **App Store에 로그인돼 있어야 한다.** `mas`는 대신 로그인해줄 수 없고,
+  구매하지 않았거나 로그인 안 된 앱은 그냥 건너뛴다.
 
 오버레이가 랩탑에만 있는 이유는 무해하지 않기 때문이다. `firefox-bin` 외에
 `librewolf`, `floorp-bin`, `zen-browser-bin`도 정의해서 같은 이름의 nixpkgs
