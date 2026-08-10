@@ -66,25 +66,22 @@ Homebrew가 한다.
 - **Orca** (Stably) — homebrew-cask가 아니라 자체 tap에 있어서 `homebrew.taps`에
   `stablyai/orca`를 같이 선언한다. nix-homebrew가 tap을 기본적으로 mutable로
   두기 때문에 tap을 flake 인풋으로 고정하지 않고도 동작한다.
-- **WireGuard** — App Store 앱 대신 nixpkgs의 `wireguard-tools` +
-  `wireguard-go`를 쓴다. App Store 것은 메뉴 막대 프론트엔드이고, 이쪽이 실제
-  구현이며 cask와 달리 `flake.lock`에 고정된다. macOS에는 커널 모듈이 없어서
-  `wg-quick`이 유저스페이스 `wireguard-go`로 터널을 올리는데,
-  `wireguard-tools`가 그걸 자동으로 끌어오지 않으므로 둘 다 명시한다.
-  `home.packages`가 아니라 `environment.systemPackages`에 두는 이유는
-  `wg-quick`을 sudo로 실행하기 때문이다 — root의 PATH에서 둘 다 보여야 한다.
+- **KakaoTalk**, **WireGuard** — **선언적으로 설치할 방법이 없다.** 둘 다 Mac
+  App Store 전용이다.
 
-  ```sh
-  sudo wg-quick up /path/to/tunnel.conf
-  ```
+  KakaoTalk은 Homebrew 전체에 cask가 없고, nixpkgs에도 없으며, 직접 다운로드도
+  없다 (카카오 CDN 경로는 브라우저 헤더를 붙여도 전부 403). WireGuard도 공식
+  클라이언트는 App Store 전용이고, cask에서 WireGuard를 언급하는 것들
+  (`defguard-client`, `firezone`, `passepartout`, `tailscale-app`)은 전부 다른
+  회사의 다른 앱이다. nixpkgs의 `wireguard-tools`/`wireguard-go`는 CLI지 그 앱이
+  아니다.
 
-- **KakaoTalk** — **설치할 방법이 없다.** Homebrew 전체에 cask가 없고,
-  nixpkgs에도 없으며, 직접 다운로드도 없다 (카카오 CDN 경로는 전부 403).
-  Mac App Store 전용이다. `homebrew.masApps`도 답이 아니다: activation 중
-  `brew bundle`이 sudo로 도는데 App Store의 `installd`는 로그인한 사용자 세션
-  안에서만 응답해서 `mas`가 닿지 못한다 (mas-cli 이슈 #1221). 조용히 실패하지도
-  않는다 — 이 항목 하나가 `brew bundle`을 실패시키고 `set -e`가 activation
-  나머지를 끊는다. App Store에서 손으로 설치한다.
+  `homebrew.masApps`도 답이 아니다: activation 중 `brew bundle`이 sudo로 도는데
+  App Store의 `installd`는 로그인한 사용자 세션 안에서만 응답해서 `mas`가 닿지
+  못한다 (mas-cli 이슈 #1221). 조용히 실패하지도 않는다 — 이 두 항목이
+  `brew bundle`을 실패시키고 `set -e`가 activation 나머지를 끊는다.
+
+  그래서 둘 다 App Store에서 손으로 설치한다. 기계당 한 번.
 
 오버레이가 랩탑에만 있는 이유는 무해하지 않기 때문이다. `firefox-bin` 외에
 `librewolf`, `floorp-bin`, `zen-browser-bin`도 정의해서 같은 이름의 nixpkgs
