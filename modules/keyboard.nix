@@ -101,11 +101,22 @@ let
   # Apple virtual key codes, which are not the HID usages above.
   vkSpace = 49;
   vkF18 = 79;
+  vkLeftArrow = 123;
+  vkRightArrow = 124;
 
   # Symbolic hotkey ids. `defaults read com.apple.symbolichotkeys` lists them.
+  # macOS's own table, in KeyboardSettings.appex/Contents/Resources/ko.lproj/
+  # DefaultShortcutsTable.xml, names 79 "Move to previous space" and 81 "Move to
+  # next space", each with a `slow_sybmolichotkey` partner — the same chord plus
+  # shift, which walks the space with the animation slowed. Rebinding one
+  # without the other leaves the pair inconsistent, so both move together.
   hotkeyIds = {
     previousInputSource = 60; # 이전 입력 소스 선택
     spotlight = 64;
+    previousSpace = 79;
+    previousSpaceSlow = 80;
+    nextSpace = 81;
+    nextSpaceSlow = 82;
   };
 
   # `-dict-add` rather than a plain write, and therefore an activation script
@@ -177,6 +188,13 @@ in
       vkSpace
       option
     ]}
+
+    # Spaces move on command+option+arrow. The slow partners take the same
+    # chord plus shift, matching how macOS pairs them by default.
+    ${setHotkey hotkeyIds.previousSpace [ 65535 vkLeftArrow (command + option) ]}
+    ${setHotkey hotkeyIds.previousSpaceSlow [ 65535 vkLeftArrow (command + option + shift) ]}
+    ${setHotkey hotkeyIds.nextSpace [ 65535 vkRightArrow (command + option) ]}
+    ${setHotkey hotkeyIds.nextSpaceSlow [ 65535 vkRightArrow (command + option + shift) ]}
 
     # Caps Lock stays Caps Lock; 한/영 is the right command key above.
     echo "disabling the Caps Lock input source switch..." >&2

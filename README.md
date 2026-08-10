@@ -183,6 +183,21 @@ fn → left command → left option → left control → fn
 right command → F18 → (단축키 60) 이전 입력 소스 선택 = 한/영
 ```
 
+단축키는 `modules/keyboard.nix`가 activation 때 넣는다.
+
+| id | 기능 | 값 |
+|----|------|-----|
+| 60 | 이전 입력 소스 선택 (한/영) | F18 |
+| 64 | Spotlight | ⌥Space |
+| 79 / 80 | 이전 스페이스 / 느린 변형 | ⌘⌥← / ⌘⌥⇧← |
+| 81 / 82 | 다음 스페이스 / 느린 변형 | ⌘⌥→ / ⌘⌥⇧→ |
+
+id의 의미는 추측이 아니라 macOS 자신의 표에서 확인한 것이다 —
+`KeyboardSettings.appex/Contents/Resources/ko.lproj/DefaultShortcutsTable.xml`이
+79를 "Move to previous space", 81을 "Move to next space"로 적고 각각
+`slow_sybmolichotkey`로 80, 82를 짝지어 둔다. 느린 변형은 같은 조합에 shift를 더한
+것이라 한쪽만 바꾸면 짝이 어긋난다.
+
 **Karabiner-Elements를 쓰지 않는다.** 콘솔에 사람이 없으면 올릴 수 없기 때문이다.
 DriverKit 확장을 시스템 설정에서 승인해야 하고, grabber에 입력 모니터링 권한이
 필요한데 그 권한을 기록하는 TCC 데이터베이스는 SIP로 보호된다 — CLI도, defaults 키도
@@ -248,6 +263,14 @@ Carbon.framework에서 `dlsym`으로 찾아 호출하는 작은 C 프로그램�
 
 **fn이 command가 되면서 F1–F12의 미디어 기능은 물리적 왼쪽 control로 옮겨간다.**
 회전 후 그 키가 fn을 보내기 때문이다. `com.apple.keyboard.fnState = true`와 짝이다.
+
+스페이스는 만들어진 순서를 유지한다 (`dock.mru-spaces = false`). 기본값은 최근 사용
+순으로 재배열하는 것인데, 방금 단축키로 이동한 스페이스가 그 아래에서 자리를 옮겨
+버린다.
+
+데스크탑에는 아무것도 두지 않는다. `finder.CreateDesktop = false`가 파일을 포함해
+모든 아이콘을 숨기고, `Show*OnDesktop` 네 개는 어떤 볼륨을 보일지 정하는 것이라
+아이콘을 다시 켜더라도 비어 있도록 함께 꺼 둔다.
 
 트랙패드는 `modules/darwin.nix`에서 세 손가락 끌기를 켜고, 충돌하는 세 손가락
 스와이프 제스처를 네 손가락으로 옮긴다. nix-darwin이 `com.apple.AppleMultitouchTrackpad`와

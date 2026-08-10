@@ -80,6 +80,20 @@ in
     trackpad.TrackpadThreeFingerVertSwipeGesture = lib.mkDefault 0;
     trackpad.TrackpadFourFingerHorizSwipeGesture = lib.mkDefault 2;
     trackpad.TrackpadFourFingerVertSwipeGesture = lib.mkDefault 2;
+
+    # Spaces keep the order they were created in. The default is to reorder them
+    # by most recent use, which moves a space out from under the shortcut that
+    # was just used to reach it.
+    dock.mru-spaces = lib.mkDefault false;
+
+    # Nothing on the desktop. CreateDesktop hides every icon, files included;
+    # the four below decide which volumes would be shown, and are set anyway so
+    # the desktop stays empty if icons are ever turned back on.
+    finder.CreateDesktop = lib.mkDefault false;
+    finder.ShowHardDrivesOnDesktop = lib.mkDefault false;
+    finder.ShowExternalHardDrivesOnDesktop = lib.mkDefault false;
+    finder.ShowMountedServersOnDesktop = lib.mkDefault false;
+    finder.ShowRemovableMediaOnDesktop = lib.mkDefault false;
   };
 
   system.activationScripts.extraActivation.text = ''
