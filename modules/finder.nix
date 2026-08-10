@@ -67,9 +67,11 @@ let
     "DesktopViewSettings" # desktop, in case icons are ever shown again
   ];
 
+  # "name" keeps icon views sorted by name. Combined with _FXSortFoldersFirst
+  # that puts folders first, then everything else alphabetically.
   setArrangeBy = root: ''
-    "$PB" -c "Set :${root}:IconViewSettings:arrangeBy grid" "$tmp" 2>/dev/null \
-      || "$PB" -c "Add :${root}:IconViewSettings:arrangeBy string grid" "$tmp" 2>/dev/null \
+    "$PB" -c "Set :${root}:IconViewSettings:arrangeBy name" "$tmp" 2>/dev/null \
+      || "$PB" -c "Add :${root}:IconViewSettings:arrangeBy string name" "$tmp" 2>/dev/null \
       || true
   '';
 in
@@ -94,12 +96,10 @@ in
     FavoriteTagNames = [ "" ];
     ShowRecentTags = false;
 
-    # Recents and the iCloud "Shared" item. Neither is an entry in the shared
-    # file list, which is why removing favourites does not touch them; both are
-    # plain Finder keys, found in the Finder binary's string table.
-    ShowRecents = false;
-    SidebarShowSharedCloudDocumentsLibrary = false;
   };
+
+  # Hidden files and folders are always visible.
+  system.defaults.finder.AppleShowAllFiles = true;
 
   system.activationScripts.postActivation.text = ''
     runFinderCfgAsUser() {
