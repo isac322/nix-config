@@ -5,7 +5,10 @@ let
   caches = import ../lib/caches.nix;
 in
 {
-  imports = [ ./keyboard.nix ];
+  imports = [
+    ./keyboard.nix
+    ./finder.nix
+  ];
 
   # Determinate Nix owns the Nix install, the nix-daemon and /etc/nix/nix.conf,
   # so nix-darwin must not manage them; this module sets `nix.enable = false`
