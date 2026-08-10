@@ -180,7 +180,7 @@ Linux 데스크톱이 생기면 같은 `policies`를 `pkgs.firefox`에 그냥 �
 
 ```
 fn → left command → left option → left control → fn
-right command → lang1 (한/영)
+right command → F18 → (단축키 60) 이전 입력 소스 선택 = 한/영
 ```
 
 **Karabiner-Elements를 쓰지 않는다.** 콘솔에 사람이 없으면 올릴 수 없기 때문이다.
@@ -195,7 +195,41 @@ hidutil은 그런 게 하나도 필요 없다. root로 IOKit 안에서 remap하�
 
 UserKeyMapping 값은 64비트다. 상위 32비트가 HID usage page, 하위가 usage다.
 키보드/키패드는 page 0x07이고, **fn만 애플 벤더 top case page 0xFF에 있다**
-(`0xFF00000003`). `lang1`은 0x90으로, 애플 한국어 키보드의 한/영 키가 보내는 코드다.
+(`0xFF00000003`).
+
+### 한/영 전환은 왜 F18을 거치는가
+
+오른쪽 command를 `lang1`(0x90, 애플 한국어 키보드의 한/영 키가 보내는 usage)로
+매핑하는 것은 hidutil이 받아들이기는 하지만 **macOS가 반응하지 않는다.** 동작하는
+방법은 쓰지 않는 키를 보내고 그것을 입력 소스 단축키에 묶는 것이다.
+
+```
+오른쪽 command → F18 (hidutil)
+F18 → 단축키 60번 "이전 입력 소스 선택" (com.apple.symbolichotkeys)
+```
+
+라틴 소스 하나와 한국어 소스 하나만 있으면 "이전 입력 소스"는 곧 한/영 토글이다.
+
+단축키는 `system.defaults.CustomUserPreferences`가 아니라 activation 스크립트에서
+`defaults write ... -dict-add`로 넣는다. `AppleSymbolicHotKeys`는 시스템의 모든
+단축키를 담은 **하나의 딕셔너리**인데 nix-darwin은 키를 통째로 덮어쓰기 때문에,
+그대로 쓰면 여기 적지 않은 스무 개 남짓이 사라진다. `-dict-add`는 병합한다.
+
+`parameters`는 (ASCII 문자, 가상 키코드, 모디파이어 마스크)이고 65535는 대응하는
+ASCII가 없다는 뜻이다. 마스크는 shift 131072, control 262144, option 524288,
+command 1048576. Spotlight(64번)를 ⌥Space로 바꾸는 것도 같은 경로다.
+
+### Caps Lock 한/영 전환 — 선언적으로 불가능
+
+macOS Sierra 이후, 한국어 입력 소스가 있으면 **Caps Lock이 기본적으로 한/영
+전환**이다. 이것을 끄고 Caps Lock을 본래 기능으로 되돌리는 설정은
+시스템 설정 → 키보드 → 텍스트 입력 → 편집 → "Caps Lock 키로 [ABC] 입력 소스 전환"
+토글뿐이고, **대응하는 defaults 키를 찾지 못했다.** dyld 공유 캐시에는
+`usingCapsLockLanguageSwitch`, `isCapsLockSwitchEnabled` 같은 내부 심볼만 있고
+plist 키는 노출되지 않는다. Apple 문서도 GUI 경로만 안내한다.
+
+키 리매핑으로도 우회할 수 없다. macOS가 caps lock 이벤트 자체를 가로채므로,
+다른 키를 caps lock으로 보내면 그 키도 똑같이 한/영 전환이 된다.
 
 **fn이 command가 되면서 F1–F12의 미디어 기능은 물리적 왼쪽 control로 옮겨간다.**
 회전 후 그 키가 fn을 보내기 때문이다. `com.apple.keyboard.fnState = true`와 짝이다.
