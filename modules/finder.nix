@@ -116,7 +116,17 @@ in
       tmp=$(mktemp)
       trap 'rm -f "$tmp"' EXIT
 
-      if runFinderCfgAsUser /usr/bin/defaults export com.apple.finder "$tmp"; then
+      # mktemp runs as root and leaves the file 0600 root-owned, but the export
+      # and import below run as the user, who then cannot write it. Handing the
+      # file over is what makes the round trip work at all; without it the
+      # export leaves an empty file, PlistBuddy reads nothing, and the import
+      # fails - which under `set -e` takes the whole activation down with it.
+      chown ${primaryUser} "$tmp"
+
+      # Lint the export too: a truncated or empty file must not reach
+      # PlistBuddy, and a failure here has to stay recoverable.
+      if runFinderCfgAsUser /usr/bin/defaults export com.apple.finder "$tmp" \
+         && /usr/bin/plutil -lint "$tmp" > /dev/null 2>&1; then
         ${toString (map setArrangeBy viewSettingsRoots)}
         runFinderCfgAsUser /usr/bin/defaults import com.apple.finder "$tmp"
       else
