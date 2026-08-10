@@ -66,6 +66,23 @@ Homebrew가 한다.
 - **Orca** (Stably) — homebrew-cask가 아니라 자체 tap에 있어서 `homebrew.taps`에
   `stablyai/orca`를 같이 선언한다. nix-homebrew가 tap을 기본적으로 mutable로
   두기 때문에 tap을 flake 인풋으로 고정하지 않고도 동작한다.
+### 1Password — GUI 와 CLI 를 나눠 담는다
+
+`op` CLI는 **모든 맥**에 (`home/darwin.nix`), 데스크톱 앱은 **랩탑에만**
+(`modules/roles/darwin-laptop.nix`) 들어간다.
+
+`op`는 시스템 통합이 없는 단일 바이너리라 nixpkgs에서 와도 되고, 그래서
+`flake.lock`에 고정된다. 데스크톱 앱은 그렇지 않다 — nixpkgs의 darwin 분기는
+dmg에서 `.app`만 복사하는데(Firefox·WARP와 같은 모양), 1Password 앱은 브라우저
+연동과 SSH 에이전트 같은 시스템 통합에 의존하므로 cask로 설치한다.
+
+**헤드리스 서버는 CLI만으로 충분하다.** 데스크톱 앱 없이도 서비스 계정 토큰
+(`OP_SERVICE_ACCOUNT_TOKEN`, CLI 2.18.0+)으로 비대화형 인증이 되고, 이것이
+1Password가 헤드리스 환경에 문서화해 둔 방식이다. 다만 **SSH 에이전트 기능은
+데스크톱 앱을 요구**하므로, 서버에서 1Password의 SSH 에이전트를 쓰려면 그때는
+`modules/roles/darwin-server.nix`에 cask를 추가해야 한다 — 그러면 GUI 세션이
+필요해진다.
+
 - **KakaoTalk**, **WireGuard** — **선언적으로 설치할 방법이 없다.** 둘 다 Mac
   App Store 전용이다.
 

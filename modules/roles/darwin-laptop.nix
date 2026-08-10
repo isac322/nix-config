@@ -25,6 +25,7 @@
   homebrew.taps = [ "stablyai/orca" ];
 
   homebrew.casks = [
+    "1password" # the desktop app; the `op` CLI is in home/darwin.nix
     "ente-auth"
     "google-chrome"
     "intellij-idea" # Ultimate; the community edition is intellij-idea-ce
