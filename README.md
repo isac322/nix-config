@@ -268,9 +268,14 @@ Carbon.framework에서 `dlsym`으로 찾아 호출하는 작은 C 프로그램�
 순으로 재배열하는 것인데, 방금 단축키로 이동한 스페이스가 그 아래에서 자리를 옮겨
 버린다.
 
-데스크탑에는 아무것도 두지 않는다. `finder.CreateDesktop = false`가 파일을 포함해
-모든 아이콘을 숨기고, `Show*OnDesktop` 네 개는 어떤 볼륨을 보일지 정하는 것이라
-아이콘을 다시 켜더라도 비어 있도록 함께 꺼 둔다.
+데스크탑에는 아무것도 두지 않는데, 이건 **주인이 둘**이다. 아이콘은 Finder가 그리고
+위젯은 WindowManager가 그려서, 한쪽만 꺼서는 다른 쪽이 남는다.
+
+- Finder: `CreateDesktop = false`가 파일을 포함해 모든 아이콘을 숨긴다.
+  `Show*OnDesktop` 네 개는 어떤 볼륨을 보일지 정하는 것이라 아이콘을 다시 켜더라도
+  비어 있도록 함께 꺼 둔다.
+- WindowManager: `StandardHideWidgets`, `StandardHideDesktopIcons`. Stage Manager는
+  같은 토글을 따로 들고 있어서 `StageManagerHideWidgets`, `HideDesktop`도 같이 끈다.
 
 트랙패드는 `modules/darwin.nix`에서 세 손가락 끌기를 켜고, 충돌하는 세 손가락
 스와이프 제스처를 네 손가락으로 옮긴다. nix-darwin이 `com.apple.AppleMultitouchTrackpad`와

@@ -86,14 +86,24 @@ in
     # was just used to reach it.
     dock.mru-spaces = lib.mkDefault false;
 
-    # Nothing on the desktop. CreateDesktop hides every icon, files included;
-    # the four below decide which volumes would be shown, and are set anyway so
-    # the desktop stays empty if icons are ever turned back on.
+    # Nothing on the desktop. This takes two owners: Finder draws the icons,
+    # while widgets belong to WindowManager, so hiding one leaves the other.
+    #
+    # CreateDesktop hides every Finder icon, files included; the four
+    # Show*OnDesktop keys decide which volumes would appear and are set anyway
+    # so the desktop stays empty if icons are ever turned back on.
     finder.CreateDesktop = lib.mkDefault false;
     finder.ShowHardDrivesOnDesktop = lib.mkDefault false;
     finder.ShowExternalHardDrivesOnDesktop = lib.mkDefault false;
     finder.ShowMountedServersOnDesktop = lib.mkDefault false;
     finder.ShowRemovableMediaOnDesktop = lib.mkDefault false;
+
+    # The WindowManager half, once for the ordinary desktop and once for Stage
+    # Manager, which keeps its own copy of both toggles.
+    WindowManager.StandardHideWidgets = lib.mkDefault true;
+    WindowManager.StageManagerHideWidgets = lib.mkDefault true;
+    WindowManager.StandardHideDesktopIcons = lib.mkDefault true;
+    WindowManager.HideDesktop = lib.mkDefault true;
   };
 
   system.activationScripts.extraActivation.text = ''
