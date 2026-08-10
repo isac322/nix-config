@@ -12,10 +12,66 @@
 # by the org.nixos.activate-system LaunchDaemon, so it survives reboots without
 # a login item. The cost is that it can only do 1:1 key remapping — no
 # conditional or chorded rules. Nothing here needs more than that.
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   inherit (config.system) primaryUser;
+
+  # With a Korean input source enabled, macOS makes Caps Lock switch to and from
+  # the last Latin source, and holding it does the actual caps lock. Turning
+  # that off has no defaults key: System Settings calls a private HIToolbox
+  # function, which is why nothing appears in any plist when the toggle moves.
+  # The Keyboard settings extension imports TISSetRomanSwitchState alongside
+  # TISIsRomanSwitchEnabled and TISIsRomanSwitchAllowed, and all three resolve
+  # out of Carbon.framework, so this calls them the same way.
+  #
+  # Being private API, it can disappear in a macOS update. Failure is therefore
+  # non-fatal: the program reports and exits 0 so activation is not blocked.
+  romanSwitch = pkgs.runCommandCC "roman-switch" { } ''
+    cat > roman-switch.c <<'CEOF'
+    #include <dlfcn.h>
+    #include <stdio.h>
+    #include <string.h>
+
+    typedef unsigned char Boolean;
+
+    int main(int argc, char **argv) {
+      if (argc != 2 || (strcmp(argv[1], "on") && strcmp(argv[1], "off"))) {
+        fprintf(stderr, "usage: roman-switch on|off\n");
+        return 2;
+      }
+      Boolean want = strcmp(argv[1], "on") == 0;
+
+      void *h = dlopen("/System/Library/Frameworks/Carbon.framework/Carbon", RTLD_LAZY);
+      if (!h) {
+        fprintf(stderr, "roman-switch: cannot load Carbon: %s\n", dlerror());
+        return 0;
+      }
+
+      Boolean (*isAllowed)(void)   = dlsym(h, "TISIsRomanSwitchAllowed");
+      Boolean (*isEnabled)(void)   = dlsym(h, "TISIsRomanSwitchEnabled");
+      void    (*setState)(Boolean) = dlsym(h, "TISSetRomanSwitchState");
+
+      if (!isAllowed || !isEnabled || !setState) {
+        fprintf(stderr, "roman-switch: private API missing, leaving Caps Lock alone\n");
+        return 0;
+      }
+
+      if (!isAllowed()) return 0;          /* no non-Latin source enabled */
+      if (isEnabled() == want) return 0;   /* already there */
+
+      setState(want);
+      return 0;
+    }
+    CEOF
+    mkdir -p $out/bin
+    $CC -O2 -o $out/bin/roman-switch roman-switch.c
+  '';
 
   # UserKeyMapping values are 64-bit: the high 32 bits are the HID usage page,
   # the low 32 bits the usage. Keyboard/keypad is page 0x07; the fn key lives on
@@ -121,6 +177,10 @@ in
       vkSpace
       option
     ]}
+
+    # Caps Lock stays Caps Lock; 한/영 is the right command key above.
+    echo "disabling the Caps Lock input source switch..." >&2
+    asUser ${romanSwitch}/bin/roman-switch off
 
     # nix-darwin writes the `system.defaults` plists but never asks macOS to
     # re-read them, so keyboard and trackpad changes would sit in the preference

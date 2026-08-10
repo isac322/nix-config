@@ -219,17 +219,32 @@ F18 → 단축키 60번 "이전 입력 소스 선택" (com.apple.symbolichotkeys
 ASCII가 없다는 뜻이다. 마스크는 shift 131072, control 262144, option 524288,
 command 1048576. Spotlight(64번)를 ⌥Space로 바꾸는 것도 같은 경로다.
 
-### Caps Lock 한/영 전환 — 선언적으로 불가능
+### Caps Lock 한/영 전환 끄기 — `roman-switch`
 
 macOS Sierra 이후, 한국어 입력 소스가 있으면 **Caps Lock이 기본적으로 한/영
-전환**이다. 이것을 끄고 Caps Lock을 본래 기능으로 되돌리는 설정은
-시스템 설정 → 키보드 → 텍스트 입력 → 편집 → "Caps Lock 키로 [ABC] 입력 소스 전환"
-토글뿐이고, **대응하는 defaults 키를 찾지 못했다.** dyld 공유 캐시에는
-`usingCapsLockLanguageSwitch`, `isCapsLockSwitchEnabled` 같은 내부 심볼만 있고
-plist 키는 노출되지 않는다. Apple 문서도 GUI 경로만 안내한다.
+전환**이고 길게 누르면 본래의 대문자 잠금이 된다. 여기서는 Caps Lock을 Caps Lock으로
+두고 한/영은 오른쪽 command가 맡는다.
 
-키 리매핑으로도 우회할 수 없다. macOS가 caps lock 이벤트 자체를 가로채므로,
-다른 키를 caps lock으로 보내면 그 키도 똑같이 한/영 전환이 된다.
+**이 설정에는 defaults 키가 없다.** 토글을 움직여도 어느 plist에도 나타나지 않는다.
+시스템 설정이 HIToolbox의 비공개 함수를 호출하기 때문이다. Keyboard 설정 확장
+바이너리의 임포트 심볼을 보면 드러난다.
+
+```
+_TISIsRomanSwitchAllowed
+_TISIsRomanSwitchEnabled
+_TISSetRomanSwitchState
+```
+
+"Roman switch"가 이 기능의 내부 이름이다. `modules/keyboard.nix`가 이 셋을
+Carbon.framework에서 `dlsym`으로 찾아 호출하는 작은 C 프로그램을 빌드해서 activation
+때 실행한다. 왕복 테스트로 확인했다 — `off` → `enabled=0`, `on` → `enabled=1`.
+
+비공개 API라 macOS 업데이트로 사라질 수 있다. 그래서 심볼을 못 찾으면 경고만 남기고
+0으로 종료해 activation을 막지 않는다. `TISIsRomanSwitchAllowed()`가 거짓이면
+(비라틴 입력 소스가 없으면) 아무것도 하지 않고, 이미 원하는 상태면 건너뛴다.
+
+키 리매핑으로는 우회할 수 없다는 점도 적어 둔다. macOS가 caps lock 이벤트 자체를
+가로채므로, 다른 키를 caps lock으로 보내면 그 키도 똑같이 한/영 전환이 된다.
 
 **fn이 command가 되면서 F1–F12의 미디어 기능은 물리적 왼쪽 control로 옮겨간다.**
 회전 후 그 키가 fn을 보내기 때문이다. `com.apple.keyboard.fnState = true`와 짝이다.
