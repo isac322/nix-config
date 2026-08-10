@@ -8,6 +8,7 @@ in
   imports = [
     ./keyboard.nix
     ./finder.nix
+    ./appearance.nix
   ];
 
   # Determinate Nix owns the Nix install, the nix-daemon and /etc/nix/nix.conf,
