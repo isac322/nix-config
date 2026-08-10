@@ -1,4 +1,7 @@
-{ pkgs, config, ... }:
+# home-manager configuration shared by every host, macOS and NixOS alike.
+# This is the bulk of the setup; the per-platform files add only what genuinely
+# cannot be expressed the same way on both.
+{ pkgs, ... }:
 
 {
   home.stateVersion = "26.05";
@@ -8,7 +11,8 @@
     pkgs.htop
     pkgs.fzf
     # From llm-agents rather than nixpkgs: it tracks upstream daily, while the
-    # nixpkgs-unstable channel lags master by several days.
+    # nixpkgs-unstable channel lags master by several days. It builds for
+    # aarch64-darwin, x86_64-linux and aarch64-linux, so this line is portable.
     pkgs.llm-agents.claude-code
     pkgs.llm-agents.omp
   ];
@@ -23,8 +27,9 @@
 
   programs.zsh.enable = true;
 
-  # Shadows Apple's /usr/bin/vim, which cannot be touched: it lives on the sealed
-  # read-only system volume. Nix profiles come first on PATH, so this wins.
+  # On macOS this shadows Apple's /usr/bin/vim, which cannot be touched: it
+  # lives on the sealed read-only system volume. Nix profiles come first on the
+  # PATH nix-darwin installs, so this wins. On NixOS there is nothing to shadow.
   programs.vim = {
     enable = true;
     defaultEditor = true;
@@ -111,7 +116,8 @@
 
       set updatetime=300
 
-      " Share the macOS pasteboard when this Vim was built with clipboard support.
+      " Share the system clipboard where this Vim was built with support for it.
+      " Guarded rather than assumed: a headless server build has -clipboard.
       if has('clipboard')
         set clipboard=unnamed
       endif
@@ -130,27 +136,4 @@
     ".vim/swap/.keep".text = "";
     ".vim/backup/.keep".text = "";
   };
-
-  programs.firefox =
-    let
-      policies = {
-        DisableAppUpdate = true;
-        BackgroundAppUpdate = false;
-      };
-    in
-    {
-      enable = true;
-
-      # firefox-bin comes from the nixpkgs-firefox-darwin overlay. It is a plain
-      # .app bundle, so home-manager cannot wrap it; policies are delivered twice
-      # instead: baked into the bundle here, and via macOS defaults below.
-      package = pkgs.firefox-bin.override {
-        extraFiles."distribution/policies.json".source =
-          pkgs.writeText "policies.json" (builtins.toJSON { inherit policies; });
-      };
-
-      # Written to ~/Library/Preferences/org.mozilla.firefox.plist along with
-      # EnterprisePoliciesEnabled.
-      inherit policies;
-    };
 }

@@ -1,5 +1,5 @@
 {
-  description = "Isac's darwin system";
+  description = "Isac's systems";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -26,43 +26,103 @@
     determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/3";
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew, ... }:
+  outputs =
+    inputs@{
+      self,
+      nix-darwin,
+      nixpkgs,
+      home-manager,
+      nix-homebrew,
+      ...
+    }:
     let
-      system = nix-darwin.lib.darwinSystem {
-        specialArgs = { inherit inputs; };
-        modules = [
-          ./configuration.nix
+      user = "bhyoo";
 
-          inputs.determinate.darwinModules.default
+      # The two axes are machine and purpose, and they are composed rather than
+      # inherited: every configuration is `common + platform + host + roles`.
+      # `extraModules` / `extraHomeModules` are where a role plugs in — e.g. a
+      # Mac mini doing double duty would pass a shared ./modules/media-server.nix
+      # without any of the other hosts noticing.
 
-          nix-homebrew.darwinModules.nix-homebrew
-          {
-            nix-homebrew = {
-              enable = true;
-              enableRosetta = false;
-              user = "bhyoo";
-            };
-          }
+      mkDarwin =
+        {
+          hostname,
+          extraModules ? [ ],
+          extraHomeModules ? [ ],
+        }:
+        nix-darwin.lib.darwinSystem {
+          specialArgs = { inherit inputs; };
+          modules = [
+            ./modules/common.nix
+            ./modules/darwin.nix
+            ./hosts/${hostname}
 
-          home-manager.darwinModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.users.bhyoo = import ./home.nix;
-          }
-        ];
-      };
+            inputs.determinate.darwinModules.default
+
+            nix-homebrew.darwinModules.nix-homebrew
+            {
+              nix-homebrew = {
+                enable = true;
+                enableRosetta = false;
+                inherit user;
+              };
+            }
+
+            home-manager.darwinModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.extraSpecialArgs = { inherit inputs; };
+              home-manager.users.${user}.imports = [
+                ./home/common.nix
+                ./home/darwin.nix
+              ]
+              ++ extraHomeModules;
+            }
+          ]
+          ++ extraModules;
+        };
+
+      mkNixos =
+        {
+          hostname,
+          extraModules ? [ ],
+          extraHomeModules ? [ ],
+        }:
+        nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs; };
+          modules = [
+            ./modules/common.nix
+            ./modules/nixos.nix
+            ./hosts/${hostname}
+
+            home-manager.nixosModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.extraSpecialArgs = { inherit inputs; };
+              home-manager.users.${user}.imports = [
+                ./home/common.nix
+                ./home/linux.nix
+              ]
+              ++ extraHomeModules;
+            }
+          ]
+          ++ extraModules;
+        };
     in
     {
-      # `darwin-rebuild` with no attribute selects
-      # `darwinConfigurations.$(scutil --get LocalHostName)`, so a machine with a
-      # different host name needs an attribute that does not depend on it. Both
-      # names below are the same configuration; on a fresh machine use
-      # `darwin-rebuild switch --flake /etc/nix-darwin#default`.
+      # Attribute names match each machine's host name, so a bare
+      # `darwin-rebuild switch --flake <path>` resolves. With more than one host
+      # there is no sensible `default`; name the target explicitly when the
+      # machine is called something else.
       darwinConfigurations = {
-        default = system;
-        "bhyoo-macbook-air" = system;
+        "bhyoo-macbook-air" = mkDarwin { hostname = "bhyoo-macbook-air"; };
+        "bhyoo-mac-mini" = mkDarwin { hostname = "bhyoo-mac-mini"; };
+      };
+
+      nixosConfigurations = {
+        server = mkNixos { hostname = "server"; };
       };
     };
 }
-

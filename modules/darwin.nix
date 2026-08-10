@@ -1,18 +1,20 @@
-{ pkgs, lib, inputs, ... }:
+# Shared by every Mac. Host-specific bits live in hosts/<name>/default.nix.
+{ lib, inputs, ... }:
 
+let
+  caches = import ../lib/caches.nix;
+in
 {
   # Determinate Nix owns the Nix install, the nix-daemon and /etc/nix/nix.conf,
   # so nix-darwin must not manage them; this module sets `nix.enable = false`
   # for us and renders /etc/nix/nix.custom.conf from `customSettings`.
+  # NixOS needs none of this — it manages Nix itself, see modules/nixos.nix.
   determinateNix = {
     enable = true;
 
     customSettings = {
-      # Prebuilt llm-agents packages (omp is a ~237 MiB source build otherwise).
-      extra-substituters = [ "https://cache.numtide.com" ];
-      extra-trusted-public-keys = [
-        "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
-      ];
+      extra-substituters = caches.substituters;
+      extra-trusted-public-keys = caches.trustedPublicKeys;
     };
   };
 
@@ -24,13 +26,10 @@
     "3bd68ef979a42070a44f8d82c205cfd8e8cca425d91253ec2c10a88179bb34aa"
   ];
 
-  nixpkgs.hostPlatform = "aarch64-darwin";
-  nixpkgs.overlays = [
-    inputs.nixpkgs-firefox-darwin.overlay
-    inputs.llm-agents.overlays.shared-nixpkgs
-  ];
-  nixpkgs.config.allowUnfreePredicate = pkg:
-    builtins.elem (lib.getName pkg) [ "claude-code" ];
+  # Darwin only, and it has to stay that way: besides firefox-bin, this overlay
+  # defines `librewolf`, `floorp-bin` and `zen-browser-bin`, which on Linux
+  # would shadow the perfectly good nixpkgs packages of the same names.
+  nixpkgs.overlays = [ inputs.nixpkgs-firefox-darwin.overlay ];
 
   system.primaryUser = "bhyoo";
 
@@ -38,10 +37,6 @@
     name = "bhyoo";
     home = "/Users/bhyoo";
   };
-
-  environment.systemPackages = [
-    pkgs.git
-  ];
 
   homebrew = {
     enable = true;
@@ -55,11 +50,14 @@
     ];
   };
 
+  # mkDefault throughout: these are a baseline every Mac starts from, and a host
+  # that wants something else says so in hosts/<name>/default.nix. Without it
+  # the two definitions collide at equal priority and evaluation fails.
   system.defaults = {
-    dock.autohide = true;
-    finder.AppleShowAllExtensions = true;
-    NSGlobalDomain.InitialKeyRepeat = 15;
-    NSGlobalDomain.KeyRepeat = 2;
+    dock.autohide = lib.mkDefault true;
+    finder.AppleShowAllExtensions = lib.mkDefault true;
+    NSGlobalDomain.InitialKeyRepeat = lib.mkDefault 15;
+    NSGlobalDomain.KeyRepeat = lib.mkDefault 2;
   };
 
   system.activationScripts.extraActivation.text = ''
@@ -72,5 +70,6 @@
     fi
   '';
 
+  # nix-darwin types this as an integer; NixOS uses a string. Hence per-platform.
   system.stateVersion = 7;
 }
