@@ -66,9 +66,13 @@ Homebrew가 한다.
 - **Orca** (Stably) — homebrew-cask가 아니라 자체 tap에 있어서 `homebrew.taps`에
   `stablyai/orca`를 같이 선언한다. nix-homebrew가 tap을 기본적으로 mutable로
   두기 때문에 tap을 flake 인풋으로 고정하지 않고도 동작한다.
-- **KakaoTalk**, **WireGuard** — cask가 없는 Mac App Store 전용이라 `masApps`로
-  간다. **App Store에 로그인돼 있어야 한다.** `mas`는 대신 로그인해줄 수 없고,
-  구매하지 않았거나 로그인 안 된 앱은 그냥 건너뛴다.
+- **KakaoTalk**, **WireGuard** — cask가 없는 Mac App Store 전용인데, 여기서는
+  **선언적으로 설치할 수 없다.** `homebrew.masApps`를 쓰면 activation 중
+  `brew bundle`이 sudo로 실행되고, App Store의 `installd`는 로그인한 사용자
+  세션 안에서만 응답하므로 `mas`가 거기 닿지 못한다 (mas-cli 이슈 #1221).
+  조용히 실패하지도 않는다 — 이 두 항목이 `brew bundle` 전체를 실패시키고,
+  `set -e` 때문에 activation 나머지가 통째로 중단된다. App Store에서 손으로
+  설치한다.
 
 오버레이가 랩탑에만 있는 이유는 무해하지 않기 때문이다. `firefox-bin` 외에
 `librewolf`, `floorp-bin`, `zen-browser-bin`도 정의해서 같은 이름의 nixpkgs

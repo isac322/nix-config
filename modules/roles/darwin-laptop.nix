@@ -39,11 +39,13 @@
     "zoom"
   ];
 
-  # Not on Homebrew: both are Mac App Store exclusives, so they go through mas.
-  # This needs the App Store to be signed in on the machine — mas cannot log in
-  # for you, and an unpurchased or unsigned-in app is simply skipped.
-  homebrew.masApps = {
-    KakaoTalk = 869223134;
-    WireGuard = 1451685025;
-  };
+  # KakaoTalk and WireGuard are missing on purpose. Both are Mac App Store
+  # exclusives with no cask, and `homebrew.masApps` cannot install them here:
+  # brew bundle runs under sudo during activation, while the App Store's
+  # installd only answers inside the logged-in user's session, so mas fails to
+  # reach it (mas-cli issue #1221). It does not fail quietly either — the two
+  # entries took `brew bundle` down with them, and with it the rest of
+  # activation, leaving /run/current-system a generation behind.
+  #
+  # They are installed by hand from the App Store, once per machine.
 }
