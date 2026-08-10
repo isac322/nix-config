@@ -13,46 +13,87 @@
 # is installed by the .pkg itself, which only the cask runs. Same shape as the
 # Karabiner problem: a package that is really a system service cannot be
 # installed from the store.
-{ config, lib, ... }:
+{ lib, ... }:
 
 let
-  inherit (config.system) primaryUser;
-
   # Zero Trust team name — the <team-name> in https://<team-name>.cloudflareaccess.com.
-  # While this is empty the managed configuration is not written at all, and
-  # enrolment is left to `warp-cli teams-enroll <team-name>` by hand.
   organization = "runbear";
 
-  # A managed configuration file, which is the declarative half of this. macOS
-  # reads /Library/Application Support/Cloudflare/mdm.xml and the service
-  # applies it before anyone logs in, so the organisation does not have to be
-  # typed on each machine. Settings here overrule the dashboard's device
-  # settings, so keep it to what genuinely belongs in the repo.
+  # A service token turns enrolment into something a machine with no one sitting
+  # at it can complete: without one, registering opens a browser for Access
+  # login. Create it under Zero Trust > Access controls > Service credentials,
+  # then allow it under Team & Resources > Devices > Management with a
+  # "Service Auth" device enrolment policy.
   #
-  # service_mode "warp" is the full tunnel, which is what reaching
-  # internal-only services requires; "1dot1" would only encrypt DNS.
-  mdmXml = ''
-    <?xml version="1.0" encoding="UTF-8"?>
-    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-    <plist version="1.0">
-    <dict>
-      <key>organization</key>
-      <string>${organization}</string>
-      <key>service_mode</key>
-      <string>warp</string>
-    </dict>
-    </plist>
-  '';
+  # The secret does not belong in this repository. The activation script reads
+  # it from the path below, which each machine provisions once:
+  #
+  #   sudo install -d -m 0700 /var/lib/cloudflare-warp
+  #   sudo tee /var/lib/cloudflare-warp/service-token >/dev/null <<'EOF'
+  #   CLIENT_ID=<...>.access
+  #   CLIENT_SECRET=<...>
+  #   EOF
+  #   sudo chmod 0600 /var/lib/cloudflare-warp/service-token
+  #
+  # Encrypting it into the repo with agenix or sops-nix would remove even that
+  # step; this is the version that needs no extra input.
+  serviceTokenFile = "/var/lib/cloudflare-warp/service-token";
+
+  mdmPath = "/Library/Application Support/Cloudflare/mdm.xml";
 in
 {
   homebrew.casks = [ "cloudflare-warp" ];
 
-  system.activationScripts.postActivation.text = lib.mkIf (organization != "") ''
+  # macOS reads mdm.xml before anyone logs in, so the organisation never has to
+  # be typed on a machine. Values here overrule the dashboard's device settings,
+  # so this stays limited to what belongs in the repo.
+  #
+  # service_mode "warp" is the full tunnel, which is what reaching internal-only
+  # services requires; "1dot1" would only encrypt DNS. onboarding false skips
+  # the interactive first-run screens, and auto_connect reconnects rather than
+  # waiting for someone to flip the switch — both matter on a headless machine.
+  system.activationScripts.postActivation.text = ''
     echo "writing the WARP managed configuration..." >&2
     install -d -m 0755 "/Library/Application Support/Cloudflare"
-    cat > "/Library/Application Support/Cloudflare/mdm.xml" <<'WARP_MDM_EOF'
-    ${mdmXml}
-    WARP_MDM_EOF
-    chmod 0644 "/Library/Application Support/Cloudflare/mdm.xml"
+
+    warpMdm=$(mktemp)
+    trap 'rm -f "$warpMdm"' EXIT
+
+    {
+      echo '<?xml version="1.0" encoding="UTF-8"?>'
+      echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+      echo '<plist version="1.0">'
+      echo '<dict>'
+      echo '  <key>organization</key><string>${organization}</string>'
+      echo '  <key>service_mode</key><string>warp</string>'
+      echo '  <key>auto_connect</key><integer>1</integer>'
+      echo '  <key>onboarding</key><false/>'
+    } > "$warpMdm"
+
+    warpMode=0644
+    if [ -r '${serviceTokenFile}' ]; then
+      # shellcheck disable=SC1090,SC1091
+      . '${serviceTokenFile}'
+      if [ -n "''${CLIENT_ID:-}" ] && [ -n "''${CLIENT_SECRET:-}" ]; then
+        {
+          echo "  <key>auth_client_id</key><string>$CLIENT_ID</string>"
+          echo "  <key>auth_client_secret</key><string>$CLIENT_SECRET</string>"
+        } >> "$warpMdm"
+        # The file now holds a credential, so it stops being world readable.
+        warpMode=0600
+      else
+        echo "  ${serviceTokenFile} has no CLIENT_ID/CLIENT_SECRET, enrolling interactively" >&2
+      fi
+    else
+      echo "  no service token at ${serviceTokenFile}; enrolment will need a browser" >&2
+    fi
+
+    { echo '</dict>'; echo '</plist>'; } >> "$warpMdm"
+
+    if /usr/bin/plutil -lint "$warpMdm" > /dev/null; then
+      install -m "$warpMode" "$warpMdm" '${mdmPath}'
+    else
+      echo "  generated mdm.xml is not a valid plist, leaving the existing one alone" >&2
+    fi
   '';
 }

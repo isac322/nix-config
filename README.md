@@ -332,7 +332,34 @@ Vietnamese) may be failed due to an macOS issue."
 설정을 덮어쓰므로, 레포에 둘 만한 것만 적는다.
 
 `service_mode`는 `warp`(전체 터널)다. 내부 전용 서비스에 닿으려면 이게 필요하고,
-`1dot1`은 DNS만 암호화한다.
+`1dot1`은 DNS만 암호화한다. `onboarding = false`는 최초 실행 화면을 건너뛰고,
+`auto_connect = 1`은 누가 스위치를 켜주길 기다리지 않는다 — 둘 다 헤드리스에서 의미가
+있다.
+
+### 헤드리스 등록 — service token
+
+service token이 없으면 등록이 브라우저를 열어 Access 로그인을 요구한다. 사람이 없는
+기계에서는 그게 막힌다. 토큰을 넣으면 상호작용 없이 등록된다.
+
+만드는 곳: Zero Trust > Access controls > Service credentials > Service Tokens.
+그리고 Team & Resources > Devices > Management 에서 **Service Auth** 기기 등록
+정책으로 그 토큰을 허용해야 한다.
+
+**비밀은 레포에 들어가지 않는다.** activation 스크립트가
+`/var/lib/cloudflare-warp/service-token`을 읽고, 있으면 `auth_client_id` /
+`auth_client_secret`을 mdm.xml에 넣은 뒤 파일 권한을 `0600`으로 조인다. 없으면 그
+두 키 없이 쓰고 경고만 남긴다 — 설정이 깨지지 않는다.
+
+```sh
+sudo install -d -m 0700 /var/lib/cloudflare-warp
+sudo tee /var/lib/cloudflare-warp/service-token >/dev/null <<'EOF'
+CLIENT_ID=<...>.access
+CLIENT_SECRET=<...>
+EOF
+sudo chmod 0600 /var/lib/cloudflare-warp/service-token
+```
+
+agenix나 sops-nix로 레포에 암호화해 넣으면 이 한 단계도 사라진다.
 
 ### Vim이 vim-sensible 위에 얹히는 방식
 
