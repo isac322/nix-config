@@ -14,32 +14,58 @@ flake.nix          기기 목록. 각 기기가 어떤 모듈을 조합할지만
 lib/caches.nix     플랫폼별 옵션 경로가 달라서 모듈이 아닌 순수 데이터로 둔 것
 modules/           시스템 레벨
   common.nix         모든 OS 공통
-  darwin.nix         맥 두 대 공통
-  nixos.nix          NixOS 공통
+  darwin.nix         모든 macOS
+  nixos.nix          모든 NixOS
+  roles/
+    darwin-laptop.nix   랩탑 macOS
+    darwin-server.nix   서버 macOS
 hosts/             기기 고유
   bhyoo-macbook-air/
   bhyoo-mac-mini/
   server/            + hardware-configuration.nix
 home/              사용자 레벨 (home-manager)
   common.nix         모든 기기 공통 — 설정의 대부분이 여기 있다
-  darwin.nix         맥 전용
+  darwin.nix         모든 macOS
   linux.nix          NixOS 전용
+  roles/
+    darwin-laptop.nix   데스크톱 앱
+    darwin-server.nix
 ```
 
-축이 둘(기기 × 목적)인데 상속이 아니라 **조합**으로 푼다. 모든 설정은
-`common + platform + host + roles`이고, 조합 지점은 `flake.nix` 한 곳뿐이다.
-
-역할을 추가하려면 모듈 파일을 만들고 `flake.nix`에서 넘긴다:
+축이 셋(OS × 역할 × 기기)인데 상속이 아니라 **조합**으로 푼다. 모든 설정은
+`common + platform + role + host`이고, 조합 지점은 `flake.nix` 한 곳뿐이다.
 
 ```nix
-"bhyoo-mac-mini" = mkDarwin {
-  hostname = "bhyoo-mac-mini";
-  extraModules = [ ./modules/roles/media-server.nix ];
-  extraHomeModules = [ ./home/roles/media-server.nix ];
-};
+"bhyoo-macbook-air" = mkDarwin { hostname = "bhyoo-macbook-air"; role = "laptop"; };
+"bhyoo-mac-mini"    = mkDarwin { hostname = "bhyoo-mac-mini";    role = "server"; };
 ```
 
-다른 기기는 아무것도 모른 채로 남는다.
+### 무엇이 어느 층에 속하나
+
+**모든 macOS** (`modules/darwin.nix`와 그것이 import하는 파일들) — 맥이라면
+무조건 같아야 하는 것. 키 리매핑과 단축키 전부(`keyboard.nix`), Finder 전부
+(`finder.nix`), Liquid Glass·Spotlight(`appearance.nix`), WARP(`warp.nix`),
+Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Homebrew 기반.
+
+**역할 전용** — 역할 파일은 의도적으로 얇다. 맥은 어느 역할이든 같은 맥이라
+겉모습 설정은 위층에 있고, 여기에는 진짜로 갈리는 것만 둔다.
+
+| | 랩탑 | 서버 |
+|---|---|---|
+| 데스크톱 앱 (Firefox) | ✅ | ✖ |
+| `nixpkgs-firefox-darwin` 오버레이 | ✅ | ✖ |
+| 잠들지 않음 / 정전 후 자동 복구 | ✖ | ✅ |
+
+오버레이가 랩탑에만 있는 이유는 무해하지 않기 때문이다. `firefox-bin` 외에
+`librewolf`, `floorp-bin`, `zen-browser-bin`도 정의해서 같은 이름의 nixpkgs
+패키지를 가린다. 검증: 맥북에서 `librewolf.pname`은 `Librewolf`(오버레이),
+맥미니에서는 `librewolf`(nixpkgs).
+
+**기기 전용** (`hosts/<name>/`) — 정말 그 기계에만 해당하는 것. 지금은
+`hostPlatform`과 서버의 `hardware-configuration.nix`뿐이다.
+
+세 층 어디에도 안 맞는 것은 `extraModules` / `extraHomeModules`로 넘긴다 —
+한 기계가 미디어 서버를 겸하는 식의 경우.
 
 ## 기기별 명령
 
@@ -170,7 +196,8 @@ NixOS에는 이 문제가 없다. Nix가 시스템 클로저의 일부라서 `ni
 1. 번들 안 `Contents/Resources/distribution/policies.json` — 오버레이의 `extraFiles`
 2. `~/Library/Preferences/org.mozilla.firefox.plist` — home-manager의 `policies`
 
-`home/darwin.nix`에서 `let policies = ...`로 한 번만 정의해 양쪽에 `inherit`한다.
+`home/roles/darwin-laptop.nix`에서 `let policies = ...`로 한 번만 정의해 양쪽에
+`inherit`한다.
 Linux 데스크톱이 생기면 같은 `policies`를 `pkgs.firefox`에 그냥 넘기면 된다 —
 "같은 옵션, 다른 구현"의 전형적인 사례다.
 
