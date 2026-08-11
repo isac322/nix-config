@@ -77,9 +77,19 @@
       #
       # cmd+opt+t opens an ordinary window. `new_window` brings Ghostty to the
       # front when it is not focused, so the binding doubles as "launch it".
+      # Splits and movement between them. No `global:` — these only make sense
+      # while the terminal is focused.
+      #
+      # ⌘⌥D needed macOS's Dock-hiding shortcut turned off first; it is a
+      # system binding, and those win over an application's. That is handled in
+      # modules/keyboard.nix. ⌘⌥R and both ⇧⌥ combinations were free.
       keybind = [
         "global:f12=toggle_quick_terminal"
         "global:cmd+opt+t=new_window"
+        "cmd+opt+d=new_split:down"
+        "cmd+opt+r=new_split:right"
+        "shift+opt+d=goto_split:down"
+        "shift+opt+r=goto_split:right"
       ];
       quick-terminal-position = "top";
       quick-terminal-screen = "mouse";

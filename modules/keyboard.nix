@@ -117,6 +117,7 @@ let
     previousSpaceSlow = 80;
     nextSpace = 81;
     nextSpaceSlow = 82;
+    dockHiding = 52; # ⌘⌥D, "Turn Dock hiding on/off"
   };
 
   # `-dict-add` rather than a plain write, and therefore an activation script
@@ -127,6 +128,13 @@ let
   #
   # parameters is (ASCII character, virtual key code, modifier mask), where
   # 65535 means the key has no ASCII equivalent.
+  # A system shortcut always wins over an application's, so one that is in the
+  # way has to be switched off rather than worked around.
+  disableHotkey = id: ''
+    asUser /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add ${toString id} "
+      <dict><key>enabled</key><false/></dict>"
+  '';
+
   setHotkey = id: params: ''
     asUser /usr/bin/defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add ${toString id} "
       <dict>
@@ -188,6 +196,12 @@ in
       vkSpace
       option
     ]}
+
+    # ⌘⌥D is the terminal's split-down binding (home/roles/darwin-laptop.nix),
+    # and macOS claims it for toggling Dock hiding. Nothing is lost by giving
+    # it up: `system.defaults.dock.autohide` is set here, so activation would
+    # undo whatever the toggle did anyway.
+    ${disableHotkey hotkeyIds.dockHiding}
 
     # Spaces move on command+option+arrow. The slow partners take the same
     # chord plus shift, matching how macOS pairs them by default.

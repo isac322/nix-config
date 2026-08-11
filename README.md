@@ -85,10 +85,28 @@ Homebrew가 한다.
 다른 앱이 포커스를 가진 상태에서도 동작해야 하므로 macOS가 승인을 요구한다.
 선언으로 없앨 수 없는 한 번의 GUI 단계다.
 
-단축키는 `F12`가 드롭다운, `⌘⌥T`가 일반 창이다. `new_window`는 Ghostty가
-포커스되지 않았으면 앞으로 가져오므로 "실행"도 겸한다. F12를 고른 근거는
-macOS 자체 단축키 표에 키코드 111을 쓰는 항목이 없고, 이 기계의 symbolichotkeys
-에도 없다는 것이다.
+단축키는 전역 두 개와 앱 내부 네 개다.
+
+| 키 | 동작 |
+|---|---|
+| `F12` | 드롭다운 토글 (전역) |
+| `⌘⌥T` | 일반 창 (전역). `new_window`는 포커스가 없으면 앱을 앞으로 가져오므로 "실행"도 겸한다 |
+| `⌘⌥D` / `⌘⌥R` | 하단 / 우측 분할 |
+| `⇧⌥D` / `⇧⌥R` | 아래 / 오른쪽 분할로 이동 |
+
+키를 고를 때는 macOS 자체 단축키 표(`DefaultShortcutsTable.xml`)와 이 기계의
+`symbolichotkeys`를 대조해 충돌을 확인했다. F12(키코드 111)와 `⌘⌥R`은 비어
+있었고, `⇧⌥` 조합은 시스템이 전혀 쓰지 않는다.
+
+**`⌘⌥D`만 충돌했다.** macOS의 "Dock 자동 숨기기 켜기/끄기"(단축키 52번)가 그
+조합이고, **시스템 단축키는 앱 단축키보다 우선**이라 Ghostty가 이벤트를 아예 받지
+못한다. 그래서 52번을 꺼 두었다 — `system.defaults.dock.autohide`를 여기서
+고정하고 있으므로 그 토글은 어차피 다음 activation에 되돌려질 뿐이다.
+
+**드롭다운 창에는 탭이 없다.** macOS 네이티브 탭 구현상의 제약으로 quick terminal
+과 non-native fullscreen 둘 다 탭을 지원하지 않는다 (ghostty #2888, #3629).
+분할은 되므로 위 키들이 그 자리를 메운다. 일반 창(`⌘⌥T`)에서는 `⌘T`로 탭이
+정상 동작한다.
 
 폰트는 `nerd-fonts.jetbrains-mono`. darwin에서 home-manager는 `home.packages`의
 폰트를 `~/Library/Fonts/HomeManager`로 rsync한다. 패밀리 이름은
