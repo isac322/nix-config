@@ -83,16 +83,19 @@
       # ⌘⌥D needed macOS's Dock-hiding shortcut turned off first; it is a
       # system binding, and those win over an application's. That is handled in
       # modules/keyboard.nix. ⌘⌥R was unclaimed, and macOS uses no ⇧⌥
-      # combination at all, so all four movement keys were free.
+      # combination at all, so the WASD movement keys were all free.
+      #
+      # Note the overlap: ⌘⌥D splits downwards while ⇧⌥D moves right, because
+      # movement follows WASD and splitting follows the direction's initial.
       keybind = [
         "global:f12=toggle_quick_terminal"
         "global:cmd+opt+t=new_window"
         "cmd+opt+d=new_split:down"
         "cmd+opt+r=new_split:right"
-        "shift+opt+d=goto_split:down"
-        "shift+opt+r=goto_split:right"
-        "shift+opt+u=goto_split:up"
-        "shift+opt+l=goto_split:left"
+        "shift+opt+w=goto_split:up"
+        "shift+opt+a=goto_split:left"
+        "shift+opt+s=goto_split:down"
+        "shift+opt+d=goto_split:right"
       ];
       quick-terminal-position = "top";
       quick-terminal-screen = "mouse";
