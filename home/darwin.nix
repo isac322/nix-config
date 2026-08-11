@@ -2,7 +2,7 @@
 #
 # Desktop applications are not here — they belong to the laptop role, in
 # home/roles/darwin-laptop.nix.
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   imports = [ ./keyboard.nix ];
@@ -59,27 +59,36 @@
         -N "" \
         -C "bhyoo@$(/bin/hostname -s)"
     fi
+
+    # `git log --show-signature` needs to know which keys count as yours;
+    # without this file it refuses to verify anything. It is derived from the
+    # key above, so it is written here rather than declared — the public key
+    # only exists once the key has been made.
+    #
+    # This lists this machine's key only, which verifies commits signed here.
+    # Adding the other Mac's public key would let each verify the other's; that
+    # is public data and could live in the repo once both keys exist.
+    if [ -f "$HOME/.ssh/id_ed25519.pub" ]; then
+      run install -m 0644 /dev/null "$HOME/.ssh/allowed_signers"
+      printf '%s %s\n' "bhyoo@bhyoo.com" "$(cat "$HOME/.ssh/id_ed25519.pub")" \
+        > "$HOME/.ssh/allowed_signers"
+    fi
   '';
 
-  programs.gpg.enable = true;
-
-  # gpg-agent caches the passphrase so it is entered once per session rather
-  # than per signature. On darwin home-manager runs it as a launchd agent
-  # rather than a systemd unit.
+  # Commits are signed with the SSH key above rather than a GPG key. Git has
+  # supported this since 2.34 and it removes an entire parallel system: no
+  # second keypair, no gpg-agent, no pinentry, no keyring to keep in sync
+  # across machines. GitHub verifies it the same way, once the public key is
+  # added there as a *signing* key rather than an authentication key.
   #
-  # pinentry_mac is the piece that matters on macOS: it prompts in a native
-  # window and can put the passphrase in the login keychain, which is the same
-  # arrangement SSH gets above.
-  #
-  # enableSshSupport stays off on purpose. It would make gpg-agent serve SSH
-  # keys too, which is the usual Linux arrangement, but here macOS's own
-  # ssh-agent already holds them and two agents would fight over SSH_AUTH_SOCK.
-  services.gpg-agent = {
-    enable = true;
-    enableSshSupport = false;
-    pinentry.package = pkgs.pinentry_mac;
-    defaultCacheTtl = 28800; # 8h — a working day
-    maxCacheTtl = 86400; # 24h
+  # Absolute paths on purpose: git expands `~` for some config values and not
+  # others, and allowedSignersFile is one of the ones that has bitten people.
+  programs.git.settings = {
+    gpg.format = "ssh";
+    gpg.ssh.allowedSignersFile = "${config.home.homeDirectory}/.ssh/allowed_signers";
+    user.signingkey = "${config.home.homeDirectory}/.ssh/id_ed25519.pub";
+    commit.gpgsign = true;
+    tag.gpgsign = true;
   };
 
   # The 1Password CLI, on every Mac including the headless one. `op` is a

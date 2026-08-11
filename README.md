@@ -92,14 +92,20 @@ ssh-keygen -p -f ~/.ssh/id_ed25519
 ssh-add --apple-use-keychain ~/.ssh/id_ed25519
 ```
 
-**GPG 는 `services.gpg-agent` 로 돌린다.** darwin 에서는 systemd 유닛이 아니라
-launchd 에이전트(`org.nix-community.home.gpg-agent`)로 등록된다. `pinentry_mac`
-이 macOS 네이티브 창으로 묻고 키체인에 저장할 수 있어 SSH 쪽과 같은 그림이 된다.
-캐시는 8시간(하루 작업), 최대 24시간.
+**커밋 서명은 SSH 키로 한다. GPG 는 쓰지 않는다.** git 2.34 부터 지원하는
+`gpg.format = ssh` 로, 위에서 만든 키를 그대로 쓴다. GPG 를 걷어내면 두 번째
+키쌍, gpg-agent, pinentry, 기계 간 동기화해야 할 키링이 통째로 사라진다.
+GitHub 도 같은 방식으로 검증하며, 공개키를 인증용이 아니라 **서명용(signing
+key)** 으로 등록하면 된다.
 
-`enableSshSupport` 는 일부러 꺼 두었다. 켜면 gpg-agent 가 SSH 키까지 맡는데,
-그것은 리눅스에서의 배치이고 여기서는 macOS 자체 ssh-agent 가 이미 그 일을 하므로
-둘이 `SSH_AUTH_SOCK` 을 두고 다투게 된다.
+`allowed_signers` 는 `git log --show-signature` 가 "누구 키를 믿을지" 판단하는
+파일이고, 없으면 검증 자체를 거부한다. 공개키는 키를 만든 뒤에야 존재하므로
+선언이 아니라 키 생성과 같은 activation 단계에서 파생해 쓴다. 지금은 그 기계의
+키만 들어가므로 그 기계에서 서명한 커밋을 검증한다 — 공개키는 공개 데이터라,
+두 맥의 키가 모두 생기면 레포에 넣어 서로를 검증하게 만들 수 있다.
+
+경로는 절대경로로 쓴다. git 은 설정 항목에 따라 `~` 를 확장하기도 하고 안 하기도
+하는데 `allowedSignersFile` 이 안 되는 쪽이다.
 
 **OrbStack 충돌.** OrbStack 은 `~/.ssh/config` 맨 위에 자기 `Include` 를 넣고
 지우면 다시 넣는다. `programs.ssh.includes` 로 선언해 두면 home-manager 가 그
