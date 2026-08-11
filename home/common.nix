@@ -41,7 +41,35 @@
     };
   };
 
-  programs.zsh.enable = true;
+  # Nothing in a stock zsh is coloured. The prompt is `%m%#` in plain text, and
+  # `ls` on macOS is BSD ls, which stays monochrome unless it is asked not to
+  # be — so a terminal can be perfectly capable of 24-bit colour and still show
+  # none of it. That is separate from the xterm-ghostty terminfo problem in
+  # home/roles/darwin-laptop.nix, which is about the terminal being unknown
+  # rather than unused.
+  #
+  # The prompt itself is deliberately left alone: it is a matter of taste, not
+  # of something being broken.
+  programs.zsh = {
+    enable = true;
+
+    # Colours the command line as it is typed — commands that exist in green,
+    # ones that do not in red, quoting and redirection picked out. It is the
+    # single change that makes a shell look like it has colour at all, and it
+    # catches a typo before Enter rather than after.
+    syntaxHighlighting.enable = true;
+  };
+
+  # The two implementations disagree on how to be asked. BSD ls has no
+  # --color; GNU ls has no -G. Aliases are read only by interactive shells, so
+  # scripts still get the plain, parseable output either way.
+  home.shellAliases = {
+    ls = "ls ${if pkgs.stdenv.hostPlatform.isDarwin then "-G" else "--color=auto"}";
+    # `auto` and not `always`: colour when the output is a terminal, nothing
+    # when it is a pipe, so `grep x | grep y` does not match escape sequences.
+    # Both greps here understand this spelling.
+    grep = "grep --color=auto";
+  };
 
   # On macOS this shadows Apple's /usr/bin/vim, which cannot be touched: it
   # lives on the sealed read-only system volume. Nix profiles come first on the

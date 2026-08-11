@@ -40,6 +40,19 @@ in
   # Required for `users.users.bhyoo.shell = pkgs.zsh` to be a valid login shell.
   programs.zsh.enable = true;
 
+  # This machine is reached from Ghostty, which sets TERM=xterm-ghostty. That
+  # name is not in ncurses — 6.6 ships the entry as plain `ghostty`, a
+  # different name that does not answer for it — so without this every TUI over
+  # ssh dies with `Error opening terminal: xterm-ghostty`.
+  #
+  # The laptop's Ghostty can push the entry over on first connect
+  # (`shell-integration-features = ssh-terminfo`, home/roles/darwin-laptop.nix),
+  # but that is a shell function wrapping `ssh`, so it misses anything not
+  # typed at a prompt. This is a machine we own, so it carries the entry itself
+  # and the answer stops depending on how the connection was opened. 2 kB from
+  # cache.nixos.org, built from the same 1.3.1 the laptop runs.
+  environment.systemPackages = [ pkgs.ghostty.terminfo ];
+
   services.openssh = {
     enable = true;
     settings = {

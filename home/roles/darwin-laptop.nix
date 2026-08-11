@@ -143,6 +143,36 @@
       quick-terminal-position = "top";
       quick-terminal-screen = "mouse";
       quick-terminal-animation-duration = 0.1;
+
+      # Ghostty describes itself as `xterm-ghostty`, and the terminfo entry for
+      # that name exists in exactly one place on this machine: inside
+      # Ghostty.app. It is found through the TERMINFO variable Ghostty exports
+      # into the shell, so anything that drops the environment loses it — sudo
+      # clears it by env_reset, and ssh never forwards it at all. Hence
+      # `Error opening terminal: xterm-ghostty` on the far end, and a root-run
+      # TUI with no colour on this one. Neither Apple's /usr/share/terminfo nor
+      # nixpkgs' ncurses 6.6 has the entry; ncurses ships it as plain `ghostty`,
+      # which is a different name and does not answer for this one.
+      #
+      # The three features below are Ghostty's own answers, all off by default
+      # because each shadows a command with a shell function. The list merges
+      # with the default rather than replacing it, so cursor, title and path
+      # stay on without being named.
+      #
+      #   sudo         carries TERMINFO across the sudo boundary
+      #   ssh-terminfo copies the entry to a host on first connect, using `tic`
+      #                there, and remembers it in `ghostty +ssh-cache`
+      #   ssh-env      sets COLORTERM and TERM_PROGRAM on the remote, and is
+      #                the fallback to xterm-256color when the copy fails
+      #
+      # Being shell functions, they only cover `ssh` typed at an interactive
+      # prompt. git, scp, rsync -e ssh and anything inside a Makefile call the
+      # binary directly and are unaffected — which is why the NixOS server
+      # installs the terminfo itself, in modules/nixos.nix, rather than relying
+      # on this. For a host that is neither ours nor reachable that way:
+      #
+      #   infocmp -x xterm-ghostty | ssh HOST -- tic -x -
+      shell-integration-features = "sudo,ssh-terminfo,ssh-env";
     };
   };
 }

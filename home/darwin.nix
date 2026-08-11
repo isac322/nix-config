@@ -52,14 +52,29 @@ let
   # attribute in the key files" since 2.3.7.
   gpgSshAuthorize = pkgs.writeShellApplication {
     name = "gpg-ssh-authorize";
-    runtimeInputs = [ pkgs.gnupg ];
+    # writeShellApplication builds PATH out of runtimeInputs alone, so every
+    # command the script uses has to be named here — gawk and gnugrep included.
+    # Leaving them out is not a build error: shellcheck does not resolve
+    # commands, so the first sign is `awk: command not found` at run time.
+    runtimeInputs = [
+      pkgs.gnupg
+      pkgs.gawk
+      pkgs.gnugrep
+    ];
     text = ''
+      # Two steps rather than one pipeline. gpg exits non-zero when the keyring
+      # holds no secret key at all, which is an ordinary outcome and has to be
+      # tolerated — but `|| true` over the whole pipeline would tolerate awk
+      # failing too, and an empty result then reads as "no key found" and sends
+      # the reader off to import a key they already have. Only gpg is excused.
+      keys=$(gpg --list-secret-keys --with-keygrip --with-colons 2>/dev/null || true)
+
       # Field 12 of a sec/ssb record is that key's capabilities, where `a` means
       # authentication; the grp record following it carries its keygrip. So this
       # prints the keygrip of every key allowed to authenticate, and nothing else.
-      grips=$(gpg --list-secret-keys --with-keygrip --with-colons 2>/dev/null |
+      grips=$(printf '%s\n' "$keys" |
         awk -F: '$1 == "sec" || $1 == "ssb" { auth = ($12 ~ /a/) }
-                 $1 == "grp" && auth        { print $10 }') || true
+                 $1 == "grp" && auth        { print $10 }')
 
       if [ -z "$grips" ]; then
         echo "gpg-ssh-authorize: no authentication-capable secret key found." >&2
