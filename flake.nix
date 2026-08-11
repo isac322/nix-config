@@ -38,6 +38,16 @@
     let
       user = "bhyoo";
 
+      # Systems the locally packaged CLIs are offered for. Two of these are
+      # machines that exist here; x86_64-linux is included because it costs
+      # nothing to evaluate and is what anyone else consuming this flake is
+      # most likely to be on.
+      forAllSystems = nixpkgs.lib.genAttrs [
+        "aarch64-darwin"
+        "aarch64-linux"
+        "x86_64-linux"
+      ];
+
       # Three axes, composed rather than inherited: every configuration is
       # `common + platform + role + host`. A Mac is the same Mac in either role
       # — same keyboard, Finder, Dock and trackpad — so the role files carry
@@ -128,6 +138,66 @@
         };
     in
     {
+      # pkgs/ is exposed as flake outputs, not just consumed internally, so
+      # that another machine — or another person — can take these packages as
+      # an input instead of copying the directory. pkgs/overlay.nix remains the
+      # single definition: the configurations below import the same file, so
+      # there is no second copy to drift.
+      overlays.default = import ./pkgs/overlay.nix;
+
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system}.extend (import ./pkgs/overlay.nix);
+        in
+        {
+          inherit (pkgs) posthog-cli axiom-cli tempo-cli;
+        }
+      );
+
+      # `nix run .#cache-push -- <cache>` builds the three packages above and
+      # uploads them. They are exactly the set no public cache can have:
+      # posthog-cli and axiom-cli exist nowhere else, and tempo-cli is an
+      # override, so its derivation differs from the tempo that
+      # cache.nixos.org built. Everything else in a system closure still comes
+      # from upstream caches, so there is nothing else worth pushing.
+      #
+      # The store paths are baked in rather than resolved from `.#` at run
+      # time: building this app builds precisely what it will push, and it
+      # keeps the script correct when run from another directory.
+      apps = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system}.extend (import ./pkgs/overlay.nix);
+          inherit (nixpkgs) lib;
+          targets = [
+            pkgs.posthog-cli
+            pkgs.axiom-cli
+            pkgs.tempo-cli
+          ];
+        in
+        {
+          cache-push = {
+            type = "app";
+            meta.description = "Push the locally packaged CLIs to a Cachix cache";
+            program = lib.getExe (
+              pkgs.writeShellApplication {
+                name = "cache-push";
+                runtimeInputs = [ pkgs.cachix ];
+                text = ''
+                  cache=''${1:-}
+                  if [ -z "$cache" ]; then
+                    echo "usage: nix run <flake>#cache-push -- <cachix-cache-name>" >&2
+                    exit 2
+                  fi
+                  exec cachix push "$cache" ${lib.concatStringsSep " " (map toString targets)}
+                '';
+              }
+            );
+          };
+        }
+      );
+
       # Attribute names match each machine's host name, so a bare
       # `darwin-rebuild switch --flake <path>` resolves. With more than one host
       # there is no sensible `default`; name the target explicitly when the

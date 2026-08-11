@@ -244,6 +244,63 @@ Ghostty가 꺼져 있으면 F12도 `⌘⌥T`도 아무 일도 하지 않는다. 
 - **`axiom` 은 `axiom-cli` 가 아니다.** 바이너리 이름이 `axiom` 이다. attribute 는
   여기 있는 다른 CLI 옆에서 찾을 수 있게 `axiom-cli` 로 두었다.
 
+### 이 레포를 패키지 저장소로 쓰기
+
+`pkgs/` 는 내부용으로만 쓰이지 않고 **플레이크 출력으로 노출**된다. 다른 기기나
+다른 사람이 디렉터리를 복사하는 대신 인풋으로 가져갈 수 있게 하려는 것이다.
+
+```nix
+inputs.bhyoo.url = "github:bhyoo/nix-darwin";   # 리모트가 생기면
+# 이후
+nixpkgs.overlays = [ inputs.bhyoo.overlays.default ];
+# 또는
+environment.systemPackages = [ inputs.bhyoo.packages.${system}.posthog-cli ];
+```
+
+`overlays.default` 와 `packages.<system>` 둘 다 `pkgs/overlay.nix` **같은 파일**을
+읽는다. 여기 있는 설정들도 같은 파일을 import 하므로 정의가 둘로 갈라져 어긋날
+일이 없다. 제공 시스템은 `aarch64-darwin`, `aarch64-linux`, `x86_64-linux` 셋이다.
+
+Nix 에서 "저장소" 는 AUR 처럼 중앙 집중이 아니다. 레포가 이 두 출력을 갖는 순간
+그것이 곧 패키지 저장소이고, 등록 절차도 심사도 없다. 남이 **발견**하게 하려면
+그때 [NUR](https://github.com/nix-community/NUR) 의 `repos.json` 에 PR 을 올리면
+되는데, NUR 은 코드를 담지 않고 레포 목록만 관리한다.
+
+### 세 기기가 같은 것을 세 번 컴파일하지 않게 — Cachix
+
+AUR 과 정말 다른 지점은 여기다. 배포 방식이 아니라 **빌드**가 아프다.
+`pkgs/` 의 셋은 어떤 공개 캐시에도 없다 — 둘은 nixpkgs 에 존재하지 않고,
+`tempo-cli` 는 오버라이드라 `cache.nixos.org` 가 빌드한 `tempo` 와 파생이 다르다.
+그래서 기기마다 새로 컴파일한다. 나머지는 상류 캐시가 덮으므로, 올릴 가치가 있는
+것은 정확히 이 셋뿐이다.
+
+FlakeHub Cache 는 Determinate 를 이미 쓰는 만큼 자연스러워 보이지만 두 번 막힌다 —
+유료 플랜 전용이고, 애드혹 push 를 의도적으로 금지해 신뢰된 빌더(GitHub Actions,
+Semaphore, Buildkite)에서만 올릴 수 있다. 랩탑에서 빌드해 올리는 방식과 맞지 않는다.
+Cachix 는 오픈소스에 5 GB 무료이고 어디서든 push 된다.
+
+처음 한 번:
+
+```sh
+nix run nixpkgs#cachix -- authtoken <token>   # cachix.org 로그인 후 발급
+nix run nixpkgs#cachix -- create <cache>      # 만들면 공개키가 출력된다
+```
+
+그 URL 과 공개키를 `lib/caches.nix` 의 표시된 자리에 넣는다. **미리 채워두지
+않았다.** 키가 틀린 항목은 없는 것보다 나쁘다 — substituter 로 접속은 하면서
+받아온 답을 매번 버리기 때문이다.
+
+이후 패키지가 바뀔 때마다:
+
+```sh
+nix run /etc/nix-darwin#cache-push -- <cache>
+```
+
+푸시 대상 경로는 스크립트에 **박혀 있다**. 실행 시점에 `.#` 를 해석하지 않으므로
+다른 디렉터리에서 불러도 맞고, 앱을 빌드하는 것이 곧 올릴 것을 빌드하는 것이다.
+`cachix` 는 클로저가 344 MiB 라 홈 패키지에 상주시키지 않고 이 앱에만 매달아
+두었다 — 쓸 때만 받아온다.
+
 ### nixpkgs 에 없어서 직접 담은 것 — `pkgs/`
 
 `posthog-cli` 와 `axiom-cli` 는 nixpkgs 에 아예 없다. `pkgs/overlay.nix` 가
