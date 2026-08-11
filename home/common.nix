@@ -24,13 +24,26 @@
     # Two are not the obvious attribute. `promtool` is in prometheus's `cli`
     # output, so plain `pkgs.prometheus` would install the server and no tool
     # at all; `tempo-cli` is a local trim of the Tempo package — see
-    # pkgs/overlay.nix. The remaining three are upstream as-is, except that
-    # posthog-cli and axiom-cli had to be packaged here — see pkgs/.
+    # pkgs/overlay.nix. Of the rest only sentry-cli comes from nixpkgs as it
+    # is: posthog-cli, axiom-cli and langfuse-cli are absent there and are
+    # packaged in pkgs/.
     pkgs.tempo-cli
     pkgs.prometheus.cli
     pkgs.sentry-cli
     pkgs.posthog-cli
     pkgs.axiom-cli
+    pkgs.langfuse-cli
+
+    # The services those same agents have to act on rather than just read.
+    # All four are in nixpkgs unchanged; two are simply not named after their
+    # binary. `gws` is Google's Workspace CLI — @googleworkspace/cli upstream,
+    # and `gws` is what it installs — and `stripe-cli` installs `stripe`.
+    # agent-browser is Vercel's headless browser, meant to be driven by an
+    # agent rather than by a test suite.
+    pkgs.wrangler
+    pkgs.stripe-cli
+    pkgs.agent-browser
+    pkgs.gws
   ];
 
   programs.git = {

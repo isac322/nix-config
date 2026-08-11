@@ -301,12 +301,12 @@ Ghostty가 꺼져 있으면 F12도 `⌘⌥T`도 아무 일도 하지 않는다. 
 
 ### 관측 CLI — 에이전트가 직접 조회하게
 
-`tempo-cli`, `promtool`, `sentry-cli`, `posthog-cli`, `axiom` 다섯을 **모든 기기**에
-둔다 (`home/common.nix`). 코딩 에이전트가 대시보드 스크린샷을 받는 대신 텔레메트리를
-직접 질의하라고 두는 것이라, `claude-code` 와 같은 층에 있다 — 에이전트는 작업이
-있는 곳에서 돈다.
+`tempo-cli`, `promtool`, `sentry-cli`, `posthog-cli`, `axiom`, `langfuse` 여섯을
+**모든 기기**에 둔다 (`home/common.nix`). 코딩 에이전트가 대시보드 스크린샷을 받는
+대신 텔레메트리를 직접 질의하라고 두는 것이라, `claude-code` 와 같은 층에 있다 —
+에이전트는 작업이 있는 곳에서 돈다.
 
-셋은 nixpkgs 에서 바로 오지만 **어느 것도 이름 그대로의 attribute 가 아니다.**
+셋은 nixpkgs 에서 오지만 **어느 것도 이름 그대로의 attribute 가 아니다.**
 
 - **`promtool` 은 `pkgs.prometheus` 에 없다.** 상류가 `moveToOutput bin/promtool
   $cli` 로 별도 출력에 옮겨 두어서, `pkgs.prometheus` 를 설치하면 서버와 `migrate`
@@ -317,6 +317,33 @@ Ghostty가 꺼져 있으면 F12도 `⌘⌥T`도 아무 일도 하지 않는다. 
   `tempo` 라는 이름의 바이너리가 PATH 에서 빠진다 (`pkgs/overlay.nix`).
 - **`axiom` 은 `axiom-cli` 가 아니다.** 바이너리 이름이 `axiom` 이다. attribute 는
   여기 있는 다른 CLI 옆에서 찾을 수 있게 `axiom-cli` 로 두었다.
+
+`langfuse` 는 nixpkgs 에 없어서 직접 담았다. nixpkgs 의 `langfuse` attribute 는
+파이썬 SDK 이고 그 안에는 실행 파일이 없다 — 아래 `pkgs/` 절을 보라.
+
+### 서비스 CLI — 읽는 것에서 하는 것으로
+
+`wrangler`, `stripe`, `agent-browser`, `gws` 넷도 같은 자리에 둔다
+(`home/common.nix`). 관측 CLI 가 "무슨 일이 있었는지" 를 읽는 쪽이라면 이쪽은
+에이전트가 실제로 **손을 대는** 쪽이다 — Worker 를 배포하고, 결제 이벤트를 찾고,
+캘린더를 읽고, 브라우저를 몰고 다닌다.
+
+넷 다 nixpkgs 에서 그대로 오지만 둘은 이름이 다르다.
+
+- **`gws` 가 구글 워크스페이스 CLI 다.** 상류 이름은 `@googleworkspace/cli` 인데
+  설치되는 바이너리는 `gws` 이고, nixpkgs 의 attribute 도 `gws` 다.
+  `google-workspace-cli` 같은 attribute 는 없다. 구글 저장소에 있지만
+  "officially supported Google product 가 아니다" 라고 스스로 명시한다.
+- **`stripe-cli` 가 설치하는 바이너리는 `stripe` 다.**
+- **`agent-browser` 는 테스트 러너가 아니다.** Vercel 이 에이전트가 몰도록 만든
+  헤드리스 브라우저 CLI 라, `skills get core` 로 자기 사용법을 먼저 뱉는다.
+  브라우저 **자체는 클로저에 없다** — nixpkgs 표현식이 크롬을 심어주지 않으므로
+  `agent-browser install` 이 런타임에 받아오거나, 이미 있는 크롬을
+  `--executable-path` / `--auto-connect` 로 가리켜야 한다. 랩탑에는 캐스크로
+  들어온 크롬이 있다.
+- **`wrangler` 는 클로저가 774 MiB 다.** 상류가 `workerd` 와 여러 플랫폼용
+  `esbuild` 를 함께 담기 때문이고, 잘라낼 `subPackages` 같은 손잡이가 없다.
+  `cache.nixos.org` 에서 그대로 받아오니 빌드 시간은 들지 않는다.
 
 ### 이 레포를 패키지 저장소로 쓰기
 
@@ -343,10 +370,10 @@ Nix 에서 "저장소" 는 AUR 처럼 중앙 집중이 아니다. 레포가 이 
 ### 세 기기가 같은 것을 세 번 컴파일하지 않게 — Cachix
 
 AUR 과 정말 다른 지점은 여기다. 배포 방식이 아니라 **빌드**가 아프다.
-`pkgs/` 의 셋은 어떤 공개 캐시에도 없다 — 둘은 nixpkgs 에 존재하지 않고,
+`pkgs/` 의 넷은 어떤 공개 캐시에도 없다 — 셋은 nixpkgs 에 존재하지 않고,
 `tempo-cli` 는 오버라이드라 `cache.nixos.org` 가 빌드한 `tempo` 와 파생이 다르다.
 그래서 기기마다 새로 컴파일한다. 나머지는 상류 캐시가 덮으므로, 올릴 가치가 있는
-것은 정확히 이 셋뿐이다.
+것은 정확히 이 넷뿐이다.
 
 FlakeHub Cache 는 Determinate 를 이미 쓰는 만큼 자연스러워 보이지만 두 번 막힌다 —
 유료 플랜 전용이고, 애드혹 push 를 의도적으로 금지해 신뢰된 빌더(GitHub Actions,
@@ -377,9 +404,9 @@ nix run /etc/nix-darwin#cache-push -- <cache>
 
 ### nixpkgs 에 없어서 직접 담은 것 — `pkgs/`
 
-`posthog-cli` 와 `axiom-cli` 는 nixpkgs 에 아예 없다. `pkgs/overlay.nix` 가
-오버레이로 얹으므로, 이 디렉터리를 볼 일 없는 home-manager 모듈에서도 그냥
-`pkgs.posthog-cli` 로 쓴다.
+`posthog-cli`, `axiom-cli`, `langfuse-cli` 는 nixpkgs 에 아예 없다.
+`pkgs/overlay.nix` 가 오버레이로 얹으므로, 이 디렉터리를 볼 일 없는 home-manager
+모듈에서도 그냥 `pkgs.posthog-cli` 로 쓴다.
 
 **posthog-cli 는 crates.io 에서 가져온다.** GitHub 이 아니라 crates.io 인 이유는,
 이 CLI 가 PostHog 모노레포 안에 살아서 git 체크아웃을 하면 작은 바이너리 하나
@@ -399,6 +426,34 @@ nix run /etc/nix-darwin#cache-push -- <cache>
 `stdenv.buildPlatform.canExecute` 로 감쌌다 — 크로스 빌드에서는 완성만 빠지고
 빌드는 실패하지 않는다. posthog-cli 는 clap 정의에 완성 생성 서브커맨드가 없어
 넣지 않았다.
+
+**langfuse-cli 는 npm 타르볼에서 가져온다.** 저장소에는 태그가 하나도 없고
+`dist/` 가 `.gitignore` 에 들어 있다 — 번들은 prepublish 훅의 `bun build` 가
+만든다. 체크아웃을 쓰면 npm 이 이미 배포한 파일 하나를 다시 만들자고 bun 을
+빌드 의존성으로 끌어와야 하고, 버전 번호가 가리키는 것도 결국 그 타르볼이다.
+
+npm 타르볼에는 **lock 파일이 없는데** `buildNpmPackage` 의 재현성은 `npm ci` 에서
+나오고 `npm ci` 는 lock 없이는 돌기를 거부한다. 그래서 한 번 손으로 만들어
+`pkgs/langfuse-cli/package-lock.json` 으로 함께 담았다. 버전을 올릴 때 둘을 같이
+다시 만든다:
+
+```sh
+npm install --package-lock-only --legacy-peer-deps
+nix run nixpkgs#prefetch-npm-deps -- package-lock.json   # npmDepsHash
+```
+
+`--legacy-peer-deps` 는 에러를 지우려고 붙인 것이 아니다. 유일한 의존성인 `specli`
+가 `ai` 와 `zod` 를 peer 로 선언하는데, 그대로 두면 `undici` 까지 열두 개가 더
+따라 들어온다. 둘은 `specli` 의 `dist/ai/tools.js` — 이 CLI 가 한 번도 로드하지
+않는 별개 export — 에서만 쓰인다.
+
+설치 검사는 `--version` 이 아니라 `api __schema` 다. 이 CLI 는 `--version` 을
+아예 모르고 (도움말을 뱉으며 0 으로 끝난다), 도움말은 **아무것도 증명하지 않는다** —
+번들의 유일한 런타임 import 인 `import.meta.resolve("specli")` 는 로드 시점이 아니라
+api 서브커맨드가 돌 때 풀리므로, `node_modules` 가 통째로 없어도 도움말은 멀쩡히
+나온다. 그게 바로 이 패키지가 깨질 수 있는 지점이다. `api __schema` 는 그 import 를
+지나가는 가장 싼 명령이고, 스펙을 타르볼에 담긴 `openapi.yml` 에서 읽으므로 자격
+증명도 샌드박스에 없는 네트워크도 필요 없다.
 
 ### 1Password — GUI 와 CLI 를 나눠 담는다
 

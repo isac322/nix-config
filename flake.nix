@@ -151,14 +151,19 @@
           pkgs = nixpkgs.legacyPackages.${system}.extend (import ./pkgs/overlay.nix);
         in
         {
-          inherit (pkgs) posthog-cli axiom-cli tempo-cli;
+          inherit (pkgs)
+            posthog-cli
+            axiom-cli
+            langfuse-cli
+            tempo-cli
+            ;
         }
       );
 
-      # `nix run .#cache-push -- <cache>` builds the three packages above and
+      # `nix run .#cache-push -- <cache>` builds the four packages above and
       # uploads them. They are exactly the set no public cache can have:
-      # posthog-cli and axiom-cli exist nowhere else, and tempo-cli is an
-      # override, so its derivation differs from the tempo that
+      # posthog-cli, axiom-cli and langfuse-cli exist nowhere else, and
+      # tempo-cli is an override, so its derivation differs from the tempo that
       # cache.nixos.org built. Everything else in a system closure still comes
       # from upstream caches, so there is nothing else worth pushing.
       #
@@ -173,6 +178,7 @@
           targets = [
             pkgs.posthog-cli
             pkgs.axiom-cli
+            pkgs.langfuse-cli
             pkgs.tempo-cli
           ];
         in

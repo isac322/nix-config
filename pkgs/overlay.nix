@@ -6,6 +6,7 @@
 final: _prev: {
   posthog-cli = final.callPackage ./posthog-cli/package.nix { };
   axiom-cli = final.callPackage ./axiom-cli/package.nix { };
+  langfuse-cli = final.callPackage ./langfuse-cli/package.nix { };
 
   # nixpkgs builds all four of Tempo's commands, three of which are the
   # server side of a trace store nothing here runs. Building only the CLI
