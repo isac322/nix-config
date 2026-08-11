@@ -66,6 +66,29 @@ Homebrew가 한다.
 - **Orca** (Stably) — homebrew-cask가 아니라 자체 tap에 있어서 `homebrew.taps`에
   `stablyai/orca`를 같이 선언한다. nix-homebrew가 tap을 기본적으로 mutable로
   두기 때문에 tap을 flake 인풋으로 고정하지 않고도 동작한다.
+### Ghostty — 설정이 파일이라서 골랐다
+
+랩탑의 터미널. quake 스타일 드롭다운(Ghostty가 "quick terminal"이라 부르는 것)이
+내장이고, `⌃\``로 어느 앱 위에서든 내려온다.
+
+같은 기능을 Warp, iTerm2, Tabby도 내장으로 갖고 있다. Ghostty를 고른 이유는
+**설정이 평범한 텍스트 파일**(`~/.config/ghostty/config`)이기 때문이다. 나머지
+셋은 GUI 환경설정 저장소에 값이 들어가서, 레포로 관리하려면 스냅샷을 뜨고 토글한
+뒤 diff로 키를 찾아내는 짓을 해야 한다 — 이 레포에서 Liquid Glass와 Caps Lock에
+실제로 했던 그것이다.
+
+앱은 cask다. nixpkgs의 `ghostty`는 `meta.platforms`에 darwin이 없다. home-manager
+모듈이 이 경우를 문서화해 두었으므로 `programs.ghostty.package = null`로 두고
+설치만 Homebrew에 맡긴다.
+
+**전역 단축키에는 접근성 권한이 필요하다.** `global:` 접두사가 붙은 키바인딩은
+다른 앱이 포커스를 가진 상태에서도 동작해야 하므로 macOS가 승인을 요구한다.
+선언으로 없앨 수 없는 한 번의 GUI 단계다.
+
+폰트는 `nerd-fonts.jetbrains-mono`. darwin에서 home-manager는 `home.packages`의
+폰트를 `~/Library/Fonts/HomeManager`로 rsync한다. 패밀리 이름은
+`JetBrainsMono Nerd Font`이고, 같은 패키지의 NL·Mono 변형은 별도 패밀리다.
+
 ### 1Password — GUI 와 CLI 를 나눠 담는다
 
 `op` CLI는 **모든 맥**에 (`home/darwin.nix`), 데스크톱 앱은 **랩탑에만**

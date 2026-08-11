@@ -31,4 +31,37 @@
       # EnterprisePoliciesEnabled.
       inherit policies;
     };
+
+  # JetBrains Mono Nerd Font. home-manager links fonts into ~/Library/Fonts on
+  # darwin, so a package in home.packages is all it takes. The family name is
+  # "JetBrainsMono Nerd Font" — the files are JetBrainsMonoNerdFont-*.ttf, and
+  # the NL and Mono variants in the same package are separate families.
+  home.packages = [ pkgs.nerd-fonts.jetbrains-mono ];
+
+  programs.ghostty = {
+    # Ghostty itself is a cask, declared in modules/roles/darwin-laptop.nix.
+    # nixpkgs builds it for Linux only — `meta.platforms` has no darwin — and
+    # the module documents exactly this case: set package to null where ghostty
+    # is unavailable and let something else install it.
+    enable = true;
+    package = null;
+
+    # Written to ~/.config/ghostty/config. Ghostty is the one terminal here
+    # whose settings are a plain text file rather than a GUI preference store,
+    # which is why it was chosen over Warp and iTerm2 — the quake window is
+    # built in to all three, but only this one is configurable from the repo.
+    settings = {
+      font-family = "JetBrainsMono Nerd Font";
+      font-size = 14;
+
+      # The quake-style drop-down. `global:` makes the binding work while
+      # another app is focused, which on macOS needs Ghostty to be granted
+      # Accessibility permission — a one-time GUI approval that cannot be
+      # declared away.
+      keybind = [ "global:ctrl+grave_accent=toggle_quick_terminal" ];
+      quick-terminal-position = "top";
+      quick-terminal-screen = "mouse";
+      quick-terminal-animation-duration = 0.1;
+    };
+  };
 }
