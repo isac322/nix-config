@@ -216,6 +216,7 @@ in
       echo "                                       # Byeonghoon Yoo <bhyoo@bhyoo.com>," >&2
       echo "                                       # or git will not find the key" >&2
       echo "    gpg --edit-key bhyoo@bhyoo.com     # addkey, ECC, Authenticate" >&2
+      echo "    gpg-ssh-authorize                  # same step as above" >&2
       echo "" >&2
       echo "  Export it for the other machines:" >&2
       echo "" >&2

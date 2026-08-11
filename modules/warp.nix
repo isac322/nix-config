@@ -52,7 +52,15 @@ in
   # services requires; "1dot1" would only encrypt DNS. onboarding false skips
   # the interactive first-run screens, and auto_connect reconnects rather than
   # waiting for someone to flip the switch — both matter on a headless machine.
-  system.activationScripts.postActivation.text = ''
+  #
+  # preActivation, not postActivation, because of the very first activation on a
+  # fresh machine. nix-darwin runs preActivation, then extraActivation, then
+  # homebrew, then postActivation; the cask's .pkg starts the WARP daemon as it
+  # installs. Written afterwards, the file would arrive too late to be read and
+  # the machine would sit unenrolled until something restarted the daemon —
+  # which, on the Mac mini, means noticing from somewhere else that it never
+  # came back. Written first, the daemon finds its configuration already there.
+  system.activationScripts.preActivation.text = ''
     echo "writing the WARP managed configuration..." >&2
     install -d -m 0755 "/Library/Application Support/Cloudflare"
 

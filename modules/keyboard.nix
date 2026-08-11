@@ -167,6 +167,11 @@ in
   # Korean keyboards send for 한/영, and hidutil accepts it, but macOS does not
   # act on it from a remapped key. The recipe that does work is to send an
   # otherwise unused key and bind it to the input-source shortcut below.
+  # This option is `internal = true` in nix-darwin, so it carries no
+  # compatibility promise and could change without the usual rename shim. There
+  # is no public alternative: the documented options (swapLeftCtrlAndFn,
+  # swapLeftCommandAndLeftAlt, ...) are fixed pairs and cannot express a
+  # four-way rotation. Worth re-checking whenever the nix-darwin input moves.
   system.keyboard.userKeyMapping = [
     (remap keys.fn keys.leftCommand)
     (remap keys.leftCommand keys.leftOption)
