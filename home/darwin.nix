@@ -69,6 +69,29 @@
     fi
   '';
 
+  # GPG is here for Arch packaging, not for git. `makepkg --sign` and the
+  # `validpgpkeys` check in a PKGBUILD are PGP-only — an SSH signature cannot
+  # stand in for either, because pacman's trust model is PGP throughout. Commit
+  # signing stays on SSH below; the two do not conflict, and having gnupg
+  # installed does not make git reach for it.
+  programs.gpg.enable = true;
+
+  # The agent caches the passphrase so it is entered once per session rather
+  # than once per signature. On darwin home-manager runs it as a launchd agent
+  # rather than a systemd unit, and pinentry_mac prompts in a native window
+  # that can put the passphrase in the login keychain — the same arrangement
+  # SSH gets above.
+  #
+  # enableSshSupport stays off: macOS's own ssh-agent already holds the SSH
+  # keys, and two agents would fight over SSH_AUTH_SOCK.
+  services.gpg-agent = {
+    enable = true;
+    enableSshSupport = false;
+    pinentry.package = pkgs.pinentry_mac;
+    defaultCacheTtl = 28800; # 8h — a working day
+    maxCacheTtl = 86400; # 24h
+  };
+
   #
   # Absolute paths on purpose: git expands `~` for some config values and not
   # others, and allowedSignersFile is one of the ones that has bitten people.
