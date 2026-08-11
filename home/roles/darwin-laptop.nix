@@ -125,7 +125,7 @@
       # not just reloaded, and opacity is ignored in native fullscreen because
       # the backdrop turns grey there.
       background-opacity = 0.9;
-      background-blur = true;
+      background-blur = "macos-glass-regular";
 
       # Unfocused splits fade so the active one is obvious. 0.7 is already the
       # default; 0.6 makes it more legible at a glance. The floor is 0.15.
