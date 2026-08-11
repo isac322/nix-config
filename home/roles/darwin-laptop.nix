@@ -108,6 +108,12 @@
         "shift+opt+s=goto_split:down"
         "shift+opt+d=goto_split:right"
       ];
+      # Dragging a selection puts it on the clipboard. `true` is already the
+      # default and on macOS falls back to the system clipboard because there
+      # is no X11-style selection clipboard here; `clipboard` says so outright
+      # rather than depending on that fallback.
+      copy-on-select = "clipboard";
+
       quick-terminal-position = "top";
       quick-terminal-screen = "mouse";
       quick-terminal-animation-duration = 0.1;
