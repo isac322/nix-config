@@ -13,10 +13,30 @@ let
   #
   # The cost is that macOS points everything at its own ssh-agent. launchd
   # publishes that socket through SSH_AUTH_SOCK to every process in the login
-  # session, GUI apps included, so redirecting it takes two independent
-  # measures below. Getting only one of them right fails quietly in exactly the
-  # places that are hardest to notice.
-  sshAuthSock = "/private/var/run/org.nix-community.home.gpg-agent/S.gpg-agent.ssh";
+  # session, GUI apps included, so redirecting it takes three measures below —
+  # the same three every guide to this setup lists, only declared rather than
+  # pasted into a shell profile.
+  #
+  # This is the socket gpg-agent actually listens on: GnuPG keeps it in the
+  # home directory, and `gpgconf --list-dirs agent-ssh-socket` is how the world
+  # finds it. Spelled out here rather than asked at run time because it has to
+  # go into files at build time.
+  #
+  # Explicitly *not* home-manager's socket. `services.gpg-agent` on darwin
+  # defines a LaunchAgent that runs `gpg-agent --supervised` behind launchd
+  # sockets under /private/var/run — but --supervised implements systemd's
+  # socket activation protocol, which wants LISTEN_FDS in the environment and a
+  # listening socket on file descriptor 3. launchd hands sockets over its own
+  # API instead, so the job dies the moment it starts, every time:
+  #
+  #   Fatal: file descriptor 3 must be valid in --supervised mode
+  #          if LISTEN_FDNAMES is not set
+  #
+  # and launchd, having created the socket files before running the job, leaves
+  # them sitting there answering nothing. Pointing at them does not fail — it
+  # hangs, which is the worst way for this to be wrong. That job is turned off
+  # below and GnuPG's own startup path used instead.
+  sshAuthSock = "${config.programs.gpg.homedir}/S.gpg-agent.ssh";
 
   # gpg-agent holds every secret key but offers only the ones it has been told
   # to offer, and what it wants is a keygrip — a value that comes into being
@@ -91,22 +111,44 @@ in
     };
   };
 
-  # Measure two. home-manager only exports SSH_AUTH_SOCK from shell init, which
-  # reaches terminals and nothing else; launchd-started applications never read
-  # a shell profile. `launchctl setenv` sets it for the whole login session, so
-  # anything reading the variable directly finds gpg-agent as well.
-  launchd.agents.ssh-auth-sock = {
+  # Measures two and three, which have to happen together and in this order.
+  #
+  # Two: start the agent. Nothing else will. gpg starts it on demand, but ssh
+  # has no idea gpg-agent exists — it opens the socket or gives up — so at
+  # login, before any gpg command has run, there is nothing to connect to.
+  # `gpgconf --launch` is GnuPG's own answer to this and is what every writeup
+  # of this setup puts in a shell profile; a LaunchAgent is where it belongs
+  # when the goal is for it to hold for the whole session, not per terminal.
+  #
+  # Three: publish the socket. home-manager exports SSH_AUTH_SOCK from shell
+  # init, which reaches terminals and nothing else, because launchd-started
+  # applications never read a shell profile. `launchctl setenv` sets it for the
+  # login session, so whatever reads the variable directly finds gpg-agent too.
+  #
+  # wait4path because /nix/store is on a volume that need not be mounted yet
+  # when LaunchAgents start — the same guard home-manager puts on its own.
+  launchd.agents.gpg-agent-ssh = {
     enable = true;
     config = {
       ProgramArguments = [
-        "/bin/launchctl"
-        "setenv"
-        "SSH_AUTH_SOCK"
-        sshAuthSock
+        "/bin/sh"
+        "-c"
+        "/bin/wait4path /nix/store && exec ${
+          pkgs.writeShellScript "gpg-agent-ssh-bootstrap" ''
+            ${pkgs.gnupg}/bin/gpgconf --launch gpg-agent
+            /bin/launchctl setenv SSH_AUTH_SOCK ${sshAuthSock}
+          ''
+        }"
       ];
       RunAtLoad = true;
     };
   };
+
+  # See the note on sshAuthSock: this LaunchAgent cannot work on macOS, and its
+  # sockets are worse than absent because connecting to one hangs. Everything
+  # else services.gpg-agent does — writing gpg-agent.conf, exporting
+  # SSH_AUTH_SOCK from shell init — is unaffected and still wanted.
+  launchd.agents.gpg-agent.enable = lib.mkForce false;
 
   programs.gpg.enable = true;
 
@@ -125,6 +167,12 @@ in
     # default-cache-ttl 0 still get asked only once.
     defaultCacheTtl = 28800;
     maxCacheTtl = 86400;
+    # The SSH path has its own pair of timers, and setting only the two above
+    # leaves it on gpg-agent's defaults of 1800 and 7200 seconds — which, with
+    # enableSshSupport being the point of this block, is the path that matters
+    # most. Same values, so the key behaves the same whichever way it is used.
+    defaultCacheTtlSsh = 28800;
+    maxCacheTtlSsh = 86400;
   };
 
   targets.darwin.defaults."org.gpgtools.pinentry-mac" = {

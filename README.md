@@ -84,14 +84,43 @@ Homebrew가 한다.
 **대가는 macOS 가 자기 ssh-agent 를 가리키고 있다는 것이다.** macOS 는 gpg-agent 를
 내장하지 않지만 ssh-agent 는 `com.openssh.ssh-agent.plist` 로 띄우고, launchd 가
 그 소켓 경로를 `SSH_AUTH_SOCK` 으로 **로그인 세션 전체**에 — GUI 앱 포함 — 심는다.
-그래서 방향을 돌리는 데 서로 독립적인 조치가 둘 필요하다. 하나만 맞히면 가장
-알아채기 어려운 곳에서 조용히 실패한다.
+그래서 방향을 돌리는 데 조치가 셋 필요하다. 이건 이 저장소가 고안한 게 아니라 이
+설정을 다루는 모든 안내가 공통으로 말하는 셋이고, 다만 셸 프로파일에 붙여넣는 대신
+선언으로 옮겨 적었을 뿐이다.
 
-1. `~/.ssh/config` 의 `IdentityAgent` — ssh 바이너리는 누가 실행하든 이 파일을
+1. **에이전트를 띄운다** — `gpgconf --launch gpg-agent`. gpg 는 필요할 때 알아서
+   에이전트를 띄우지만 **ssh 는 gpg-agent 라는 것을 모른다.** 소켓을 열어보고 없으면
+   포기할 뿐이다. 로그인 직후 gpg 명령을 한 번도 안 돌린 시점이 정확히 그 상황이다.
+   보통 셸 프로파일에 넣으라고 하는 줄인데, 세션 전체에 걸리는 게 목적이므로
+   LaunchAgent 에 둔다.
+2. **`~/.ssh/config` 의 `IdentityAgent`** — ssh 바이너리는 누가 실행하든 이 파일을
    읽는다. 셸을 거치지 않는 GUI 앱이 ssh 를 호출하는 경우까지 덮는다.
-2. `launchctl setenv SSH_AUTH_SOCK` LaunchAgent — home-manager 는 이 변수를 셸
-   초기화에서만 내보내는데, 그건 터미널까지만 닿는다. launchd 로 뜬 앱은 셸
-   프로파일을 읽지 않으므로, 변수를 직접 읽는 쪽을 위해 세션 전역으로 심는다.
+3. **`launchctl setenv SSH_AUTH_SOCK`** — home-manager 는 이 변수를 셸 초기화에서만
+   내보내는데, 그건 터미널까지만 닿는다. launchd 로 뜬 앱은 셸 프로파일을 읽지
+   않으므로, 변수를 직접 읽는 쪽을 위해 세션 전역으로 심는다.
+
+**home-manager 의 gpg-agent LaunchAgent 는 끈다** (`launchd.agents.gpg-agent.enable
+= mkForce false`). `services.gpg-agent` 는 darwin 에서 `/private/var/run` 아래
+launchd 소켓을 걸고 `gpg-agent --supervised` 를 띄우는 잡을 만드는데, `--supervised`
+는 **systemd 의 소켓 액티베이션 규약**(환경변수 `LISTEN_FDS`, 그리고 fd 3 에 걸린
+리스닝 소켓)을 구현한 모드다. launchd 는 소켓을 자기 API 로 넘기므로 fd 3 은 결코
+소켓이 아니고, 잡은 뜨는 즉시 죽는다.
+
+```
+Fatal: file descriptor 3 must be valid in --supervised mode if LISTEN_FDNAMES is not set
+```
+
+여기서 나쁜 건 실패 자체가 아니라 **실패하는 방식**이다. launchd 는 잡을 돌리기 전에
+`Sockets` 에 적힌 소켓 파일을 미리 만들어 둔다. 그래서 파일은 존재하는데 아무도
+응답하지 않는다 — 연결하면 에러가 아니라 **무한 대기**다. `ssh` 가 멈춰 있고
+`ssh-add -L` 이 영영 돌아오지 않는데 소켓은 멀쩡히 거기 있는, 진단하기 가장 나쁜
+모양이 된다. 그래서 이 잡을 끄고 GnuPG 자신의 기동 경로(`gpgconf --launch`)와
+GnuPG 자신의 소켓(`~/.gnupg/S.gpg-agent.ssh`)을 쓴다. `services.gpg-agent` 가 하는
+나머지 일 — `gpg-agent.conf` 생성, 셸 초기화에서의 `SSH_AUTH_SOCK` — 은 그대로 다
+쓴다.
+
+세 조치가 **같은 하나의 소켓**을 가리키는 것이 핵심이다. 갈라지면 터미널에서는 되고
+GUI 에서는 멈추는, 재현 조건이 이상한 버그가 된다.
 
 `enableDefaultConfig` 는 꺼 두었다. 자체 `*` 블록이 위 설정과 충돌하기 때문이고,
 기본값들은 그대로 옮겨 적되 `AddKeysToAgent` 와 `UseKeychain` 은 뺐다 — 둘 다
