@@ -41,6 +41,12 @@
     pkgs.nerd-fonts.d2coding
   ];
 
+  # OrbStack writes this Include at the top of ~/.ssh/config and puts it back
+  # if removed, which would fight home-manager for the file. Declaring it here
+  # settles that: `includes` is emitted before any Host block, which is where
+  # OrbStack requires it. OrbStack is laptop-only, so this is too.
+  programs.ssh.includes = [ "~/.orbstack/ssh/config" ];
+
   programs.ghostty = {
     # Ghostty itself is a cask, declared in modules/roles/darwin-laptop.nix.
     # nixpkgs builds it for Linux only — `meta.platforms` has no darwin — and

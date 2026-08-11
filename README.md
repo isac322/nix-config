@@ -66,6 +66,46 @@ Homebrew가 한다.
 - **Orca** (Stably) — homebrew-cask가 아니라 자체 tap에 있어서 `homebrew.taps`에
   `stablyai/orca`를 같이 선언한다. nix-homebrew가 tap을 기본적으로 mutable로
   두기 때문에 tap을 flake 인풋으로 고정하지 않고도 동작한다.
+### SSH 와 GPG 에이전트
+
+둘 다 **모든 맥** 공통이다 (`home/darwin.nix`). 목적은 같다 — 매번 암호를 치지 않는 것.
+
+**SSH 는 macOS 가 이미 돌리는 ssh-agent 를 쓴다.** launchd 가 띄우고 로그인
+키체인과 엮여 있으므로 별도 에이전트를 세울 이유가 없다.
+
+- `AddKeysToAgent yes` — 처음 쓸 때 키를 에이전트에 넘긴다
+- `UseKeychain yes` — macOS 전용 옵션. 패스프레이즈를 키체인에 넣어 **로그인마다가
+  아니라 평생 한 번만** 묻게 한다
+
+`enableDefaultConfig` 는 꺼 두었다. 자체 `*` 블록을 써서 위 설정과 충돌하기
+때문이고, 그 기본값들은 `AddKeysToAgent` 만 뒤집어 그대로 옮겨 적었다.
+
+**키는 첫 activation 때 자동 생성된다** (ed25519). 개인키는 nix 로 만들 수 없다 —
+스토어는 월드 리더블이고, 모든 기계가 같은 키를 갖는 것은 기계별 키의 의미를
+없앤다. 그래서 파일이 없을 때만 만들고 이후로는 손대지 않는다.
+
+activation 은 프롬프트를 띄울 수 없어 패스프레이즈 없이 만든다. 붙이는 건 두
+줄이고, 그러면 위 키체인 설정이 그때부터 기억한다.
+
+```sh
+ssh-keygen -p -f ~/.ssh/id_ed25519
+ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+```
+
+**GPG 는 `services.gpg-agent` 로 돌린다.** darwin 에서는 systemd 유닛이 아니라
+launchd 에이전트(`org.nix-community.home.gpg-agent`)로 등록된다. `pinentry_mac`
+이 macOS 네이티브 창으로 묻고 키체인에 저장할 수 있어 SSH 쪽과 같은 그림이 된다.
+캐시는 8시간(하루 작업), 최대 24시간.
+
+`enableSshSupport` 는 일부러 꺼 두었다. 켜면 gpg-agent 가 SSH 키까지 맡는데,
+그것은 리눅스에서의 배치이고 여기서는 macOS 자체 ssh-agent 가 이미 그 일을 하므로
+둘이 `SSH_AUTH_SOCK` 을 두고 다투게 된다.
+
+**OrbStack 충돌.** OrbStack 은 `~/.ssh/config` 맨 위에 자기 `Include` 를 넣고
+지우면 다시 넣는다. `programs.ssh.includes` 로 선언해 두면 home-manager 가 그
+줄을 직접 맨 앞에 쓰므로 서로 싸우지 않는다. OrbStack 이 랩탑 전용이라 이 선언도
+랩탑 역할에만 있다.
+
 ### Ghostty — 설정이 파일이라서 골랐다
 
 랩탑의 터미널. quake 스타일 드롭다운(Ghostty가 "quick terminal"이라 부르는 것)이
