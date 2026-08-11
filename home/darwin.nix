@@ -37,49 +37,34 @@
     };
   };
 
-  # A private key cannot come from nix: the store is world readable, and a key
-  # that is identical on every machine defeats the point of per-machine keys.
-  # So it is generated once, on first activation, and left alone afterwards —
-  # the check is the file's existence, which makes this safe to re-run.
+  # The key is deliberately *not* generated here. A passphrase is the point of
+  # the keychain setup above, and an activation script cannot prompt for one —
+  # generating it non-interactively would mean an unprotected key on disk. So
+  # this only reports what is missing and how to make it.
   #
-  # ed25519 rather than RSA: shorter, faster, and the modern default.
-  #
-  # The key is created without a passphrase because activation cannot prompt
-  # for one. Adding it afterwards is one command, and the keychain setup above
-  # then remembers it for good:
-  #
-  #   ssh-keygen -p -f ~/.ssh/id_ed25519
-  #   ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+  # `allowed_signers` is derived from the public key when one exists: it is
+  # what `git log --show-signature` consults to decide whose signatures count,
+  # and it cannot be declared because the key does not exist until it is made.
   home.activation.sshKey = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
-      run mkdir -p "$HOME/.ssh"
-      run chmod 700 "$HOME/.ssh"
-      run ${pkgs.openssh}/bin/ssh-keygen -t ed25519 \
-        -f "$HOME/.ssh/id_ed25519" \
-        -N "" \
-        -C "bhyoo@$(/bin/hostname -s)"
-    fi
-
-    # `git log --show-signature` needs to know which keys count as yours;
-    # without this file it refuses to verify anything. It is derived from the
-    # key above, so it is written here rather than declared — the public key
-    # only exists once the key has been made.
-    #
-    # This lists this machine's key only, which verifies commits signed here.
-    # Adding the other Mac's public key would let each verify the other's; that
-    # is public data and could live in the repo once both keys exist.
-    if [ -f "$HOME/.ssh/id_ed25519.pub" ]; then
-      run install -m 0644 /dev/null "$HOME/.ssh/allowed_signers"
+      echo "" >&2
+      echo "  No SSH key at ~/.ssh/id_ed25519. Commit signing is on, so commits" >&2
+      echo "  will fail until one exists. To create it:" >&2
+      echo "" >&2
+      echo "    ssh-keygen -t ed25519 -C \"bhyoo@\$(hostname -s)\"" >&2
+      echo "    ssh-add --apple-use-keychain ~/.ssh/id_ed25519" >&2
+      echo "" >&2
+      echo "  Give it a passphrase — the keychain remembers it, so it is asked" >&2
+      echo "  for once and never again. Then re-run darwin-rebuild to write" >&2
+      echo "  ~/.ssh/allowed_signers." >&2
+      echo "" >&2
+    else
       printf '%s %s\n' "bhyoo@bhyoo.com" "$(cat "$HOME/.ssh/id_ed25519.pub")" \
         > "$HOME/.ssh/allowed_signers"
+      chmod 0644 "$HOME/.ssh/allowed_signers"
     fi
   '';
 
-  # Commits are signed with the SSH key above rather than a GPG key. Git has
-  # supported this since 2.34 and it removes an entire parallel system: no
-  # second keypair, no gpg-agent, no pinentry, no keyring to keep in sync
-  # across machines. GitHub verifies it the same way, once the public key is
-  # added there as a *signing* key rather than an authentication key.
   #
   # Absolute paths on purpose: git expands `~` for some config values and not
   # others, and allowedSignersFile is one of the ones that has bitten people.
