@@ -15,6 +15,22 @@
     # aarch64-darwin, x86_64-linux and aarch64-linux, so this line is portable.
     pkgs.llm-agents.claude-code
     pkgs.llm-agents.omp
+
+    # Observability CLIs, for the coding agents above to query telemetry with
+    # rather than being handed screenshots of dashboards. They go on every
+    # machine for the same reason claude-code does: the agent runs wherever
+    # the work is.
+    #
+    # Two are not the obvious attribute. `promtool` is in prometheus's `cli`
+    # output, so plain `pkgs.prometheus` would install the server and no tool
+    # at all; `tempo-cli` is a local trim of the Tempo package — see
+    # pkgs/overlay.nix. The remaining three are upstream as-is, except that
+    # posthog-cli and axiom-cli had to be packaged here — see pkgs/.
+    pkgs.tempo-cli
+    pkgs.prometheus.cli
+    pkgs.sentry-cli
+    pkgs.posthog-cli
+    pkgs.axiom-cli
   ];
 
   programs.git = {

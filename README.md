@@ -225,6 +225,50 @@ Ghostty가 꺼져 있으면 F12도 `⌘⌥T`도 아무 일도 하지 않는다. 
 격자가 안 깨진다. 비례 한글 폰트는 이 조건을 만족하지 않고, 터미널에서는 그게
 바로 티가 난다.
 
+### 관측 CLI — 에이전트가 직접 조회하게
+
+`tempo-cli`, `promtool`, `sentry-cli`, `posthog-cli`, `axiom` 다섯을 **모든 기기**에
+둔다 (`home/common.nix`). 코딩 에이전트가 대시보드 스크린샷을 받는 대신 텔레메트리를
+직접 질의하라고 두는 것이라, `claude-code` 와 같은 층에 있다 — 에이전트는 작업이
+있는 곳에서 돈다.
+
+셋은 nixpkgs 에서 바로 오지만 **어느 것도 이름 그대로의 attribute 가 아니다.**
+
+- **`promtool` 은 `pkgs.prometheus` 에 없다.** 상류가 `moveToOutput bin/promtool
+  $cli` 로 별도 출력에 옮겨 두어서, `pkgs.prometheus` 를 설치하면 서버와 `migrate`
+  만 들어오고 정작 원한 도구는 안 들어온다. `pkgs.prometheus.cli` 로 집는다.
+- **`tempo-cli` 는 잘라서 쓴다.** nixpkgs 의 `tempo` 는 `subPackages` 로 명령
+  넷을 모두 빌드하는데 셋은 여기서 돌리지 않는 트레이스 저장소의 서버 쪽이다.
+  `cmd/tempo-cli` 만 남기면 클로저가 237 MiB 에서 72 MiB 로 줄고, 서버로 읽히는
+  `tempo` 라는 이름의 바이너리가 PATH 에서 빠진다 (`pkgs/overlay.nix`).
+- **`axiom` 은 `axiom-cli` 가 아니다.** 바이너리 이름이 `axiom` 이다. attribute 는
+  여기 있는 다른 CLI 옆에서 찾을 수 있게 `axiom-cli` 로 두었다.
+
+### nixpkgs 에 없어서 직접 담은 것 — `pkgs/`
+
+`posthog-cli` 와 `axiom-cli` 는 nixpkgs 에 아예 없다. `pkgs/overlay.nix` 가
+오버레이로 얹으므로, 이 디렉터리를 볼 일 없는 home-manager 모듈에서도 그냥
+`pkgs.posthog-cli` 로 쓴다.
+
+**posthog-cli 는 crates.io 에서 가져온다.** GitHub 이 아니라 crates.io 인 이유는,
+이 CLI 가 PostHog 모노레포 안에 살아서 git 체크아웃을 하면 작은 바이너리 하나
+만들자고 거대한 트리를 받아오기 때문이다. 배포된 크레이트는 같은 코드에 Cargo.lock
+까지 들어 있다. 두 가지를 미리 확인했다 — 의존성이 rustls 로 풀려 Cargo.lock 어디에도
+`openssl-sys` 가 없어서 맥과 리눅스가 같은 표현식으로 빌드되고, `build.rs` 가 심는
+텔레메트리 토큰은 디버그 빌드 전용에 소비 측이 `option_env!` 이라 릴리스 빌드는 CI
+시크릿 없이도 컴파일되고 토큰도 안 들어간다.
+
+`fetchCrate` 의 해시는 파일 해시가 아니라 **압축을 푼 트리의 NAR 해시**다.
+`nix store prefetch-file` 로 받은 값을 그대로 넣으면 어긋난다.
+
+**axiom-cli 는 평범한 Go 모듈이다.** goreleaser 가 박는 변수 중 `version.release`
+만 옮겨 심었다. 나머지 둘(`revision`, `buildDate`)은 체크아웃의 git 메타데이터를
+요구하는데 받아온 타르볼에는 없다. 최소한 `release` 는 있어야 `axiom version` 이
+빈 문자열을 뱉지 않는다. 셸 완성은 방금 빌드한 바이너리를 실행해서 만들므로
+`stdenv.buildPlatform.canExecute` 로 감쌌다 — 크로스 빌드에서는 완성만 빠지고
+빌드는 실패하지 않는다. posthog-cli 는 clap 정의에 완성 생성 서브커맨드가 없어
+넣지 않았다.
+
 ### 1Password — GUI 와 CLI 를 나눠 담는다
 
 `op` CLI는 **모든 맥**에 (`home/darwin.nix`), 데스크톱 앱은 **랩탑에만**

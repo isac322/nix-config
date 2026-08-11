@@ -12,6 +12,9 @@
     # aarch64-linux. The Firefox overlay is deliberately not here — see
     # modules/darwin.nix for why it must stay off Linux.
     inputs.llm-agents.overlays.shared-nixpkgs
+
+    # Locally packaged CLIs — see pkgs/overlay.nix.
+    (import ../pkgs/overlay.nix)
   ];
 
   nixpkgs.config.allowUnfreePredicate =
