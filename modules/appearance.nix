@@ -32,7 +32,6 @@ in
   };
 
   system.activationScripts.postActivation.text = ''
-    echo "disabling Spotlight related content..." >&2
     runAppearanceAsUser() {
       launchctl asuser "$(id -u -- ${primaryUser})" sudo --user=${primaryUser} -- "$@"
     }

@@ -757,3 +757,14 @@ Determinate 설치 프로그램이 만들어둔 `nix.custom.conf`를 determinate
 하는데, nix-darwin은 정체불명 파일을 만나면 activation을 중단한다. 설치 프로그램이
 쓴 파일의 해시를 화이트리스트에 넣어 첫 activation이 통과하게 한다. 설치 옵션이
 다르면 해시도 달라지므로, 그때는 새 해시를 목록에 추가한다.
+
+### activation 이 말을 거는 기준
+
+activation 스크립트와 여기서 만든 커맨드(`gpg-ssh-authorize` 등)는 **사람이
+직접 해야만 끝나는 일이 남았을 때만** 출력한다. GPG 키가 없다, service token 이
+없어서 브라우저 등록이 필요하다, plist 를 못 읽어서 건너뛰었다 — 이런 것들이다.
+
+"configuring keyboard shortcuts..." 류의 진행 상황 보고와, 스크립트가 알아서
+처리한 변경의 통보는 넣지 않는다. switch 할 때마다 같은 줄이 지나가면 읽지 않게
+되고, 그러면 정작 읽어야 할 한 줄도 같이 흘러간다. 성공하면 조용한 쪽이 유닉스
+관례이기도 하다.

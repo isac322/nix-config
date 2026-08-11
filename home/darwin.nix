@@ -71,15 +71,14 @@ let
         [ -n "$grip" ] || continue
 
         # The attribute name keeps its trailing colon: KEYATTR addresses the
-        # raw field name as it appears in the key file. Reading it first keeps
-        # a switch that has nothing to do silent.
+        # raw field name as it appears in the key file. Reading it first means
+        # a run with nothing to do writes nothing.
         if gpg-connect-agent "KEYATTR $grip Use-for-ssh:" /bye 2>/dev/null |
           grep -q '^D yes'; then
           continue
         fi
 
         gpg-connect-agent "KEYATTR $grip Use-for-ssh: yes" /bye >/dev/null
-        echo "gpg-ssh-authorize: $grip is now offered over SSH." >&2
       done <<<"$grips"
     '';
   };

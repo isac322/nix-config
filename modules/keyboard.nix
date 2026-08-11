@@ -185,8 +185,6 @@ in
       launchctl asuser "$(id -u -- ${primaryUser})" sudo --user=${primaryUser} -- "$@"
     }
 
-    echo "configuring keyboard shortcuts..." >&2
-
     # 한/영. Right command sends F18 (see userKeyMapping), and F18 selects the
     # previous input source, which with one Latin and one Korean source is a
     # straight toggle.
@@ -216,7 +214,6 @@ in
     ${setHotkey hotkeyIds.nextSpaceSlow [ 65535 vkRightArrow (command + option + shift) ]}
 
     # Caps Lock stays Caps Lock; 한/영 is the right command key above.
-    echo "disabling the Caps Lock input source switch..." >&2
     asUser ${romanSwitch}/bin/roman-switch off
 
     # nix-darwin writes the `system.defaults` plists but never asks macOS to
@@ -225,7 +222,6 @@ in
     # itself performs, run as the user because the defaults are in the user
     # domain. Shortcut changes are read by the WindowServer and may still want
     # a log out.
-    echo "reloading system settings..." >&2
     asUser /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
   '';
 }

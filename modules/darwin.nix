@@ -108,7 +108,8 @@ in
 
   system.activationScripts.extraActivation.text = ''
     if ! /usr/bin/xcode-select -p &>/dev/null; then
-      echo "Installing Xcode Command Line Tools..." >&2
+      # softwareupdate --verbose narrates the download itself, so nothing is
+      # printed here beyond what it says.
       touch /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
       PROD=$(softwareupdate -l 2>/dev/null | grep "\*.*Command Line" | tail -n 1 | sed 's/^[^C]* //')
       softwareupdate -i "$PROD" --verbose

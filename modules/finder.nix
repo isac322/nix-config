@@ -106,11 +106,9 @@ in
       launchctl asuser "$(id -u -- ${primaryUser})" sudo --user=${primaryUser} -- "$@"
     }
 
-    echo "trimming Finder sidebar favourites..." >&2
     runFinderCfgAsUser ${sidebarFavorites}/bin/sidebar-favorites-remove \
       ~${primaryUser}/Desktop ~${primaryUser}/Documents || true
 
-    echo "configuring Finder view defaults..." >&2
     (
       PB=/usr/libexec/PlistBuddy
       tmp=$(mktemp)

@@ -61,7 +61,6 @@ in
   # which, on the Mac mini, means noticing from somewhere else that it never
   # came back. Written first, the daemon finds its configuration already there.
   system.activationScripts.preActivation.text = ''
-    echo "writing the WARP managed configuration..." >&2
     install -d -m 0755 "/Library/Application Support/Cloudflare"
 
     warpMdm=$(mktemp)
