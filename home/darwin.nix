@@ -92,6 +92,21 @@
     maxCacheTtl = 86400; # 24h
   };
 
+  # nixpkgs' pinentry-mac is the GPGTools build (bundle id
+  # org.gpgtools.pinentry-mac), which can put the passphrase in the login
+  # keychain — the same place SSH's ends up. With this the cache TTLs above
+  # stop being the thing that matters: the passphrase is asked for once and
+  # retrieved from the keychain afterwards, rather than re-entered when the
+  # cache expires.
+  #
+  # Both keys are needed. DisableKeychain defaults to true, and while it is
+  # set the "Save in Keychain" checkbox never appears no matter what
+  # UseKeychain says.
+  targets.darwin.defaults."org.gpgtools.pinentry-mac" = {
+    UseKeychain = true;
+    DisableKeychain = false;
+  };
+
   #
   # Absolute paths on purpose: git expands `~` for some config values and not
   # others, and allowedSignersFile is one of the ones that has bitten people.

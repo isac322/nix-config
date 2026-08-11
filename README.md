@@ -92,7 +92,20 @@ ssh-add --apple-use-keychain ~/.ssh/id_ed25519
 **커밋 서명이 켜져 있으므로 키가 없으면 커밋이 실패한다.** activation 이 그
 사실과 위 명령을 함께 출력한다.
 
-**커밋 서명은 SSH 키로 한다. GPG 는 쓰지 않는다.** git 2.34 부터 지원하는
+**GPG 는 Arch 패키징용으로 둔다.** `makepkg --sign` 과 PKGBUILD 의
+`validpgpkeys` 는 PGP 전용이라 SSH 서명이 대신할 수 없다 — pacman 의 신뢰 모델이
+PGP 이기 때문이다. AUR 자체는 커밋 서명을 보지 않는다. `aur-dev` 에서 SSH 서명
+검증이 논의된 적은 있으나 구현되지 않았고, AUR 은 푸시 인증에만 SSH 를 쓴다.
+
+`services.gpg-agent` 는 darwin 에서 launchd 에이전트로 등록된다. 그리고 nixpkgs 의
+`pinentry_mac` 은 GPGTools 빌드(`org.gpgtools.pinentry-mac`)라 **패스프레이즈를
+로그인 키체인에 저장할 수 있다** — SSH 와 같은 자리다. 그래서 캐시 TTL 은
+중요하지 않게 된다: 한 번 묻고 이후에는 키체인에서 꺼내 쓴다.
+
+키가 둘 다 필요하다. `DisableKeychain` 의 기본값이 참이고, 그것이 켜져 있는 한
+`UseKeychain` 이 무엇이든 "Save in Keychain" 체크박스가 나타나지 않는다.
+
+**커밋 서명은 GPG 가 아니라 SSH 키로 한다.** git 2.34 부터 지원하는
 `gpg.format = ssh` 로, 위에서 만든 키를 그대로 쓴다. GPG 를 걷어내면 두 번째
 키쌍, gpg-agent, pinentry, 기계 간 동기화해야 할 키링이 통째로 사라진다.
 GitHub 도 같은 방식으로 검증하며, 공개키를 인증용이 아니라 **서명용(signing
