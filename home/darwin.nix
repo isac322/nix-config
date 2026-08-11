@@ -88,6 +88,12 @@
     enable = true;
     enableSshSupport = false;
     pinentry.package = pkgs.pinentry_mac;
+    # These only govern the window before the passphrase reaches the keychain,
+    # or if "Save in Keychain" is declined. Once it is stored, pinentry fetches
+    # it silently on every expiry and the TTLs stop being observable — GPGTools
+    # stores it with "always allow", which is why people running
+    # default-cache-ttl 0 still get asked only once. Raising them would buy
+    # nothing and keep the secret in agent memory longer.
     defaultCacheTtl = 28800; # 8h — a working day
     maxCacheTtl = 86400; # 24h
   };

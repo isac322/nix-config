@@ -100,7 +100,10 @@ PGP 이기 때문이다. AUR 자체는 커밋 서명을 보지 않는다. `aur-d
 `services.gpg-agent` 는 darwin 에서 launchd 에이전트로 등록된다. 그리고 nixpkgs 의
 `pinentry_mac` 은 GPGTools 빌드(`org.gpgtools.pinentry-mac`)라 **패스프레이즈를
 로그인 키체인에 저장할 수 있다** — SSH 와 같은 자리다. 그래서 캐시 TTL 은
-중요하지 않게 된다: 한 번 묻고 이후에는 키체인에서 꺼내 쓴다.
+관측되지 않게 된다: 만료될 때마다 pinentry 가 키체인에서 조용히 꺼내오므로, 묻는
+것은 최초 한 번뿐이다. GPGTools 는 "always allow" 로 저장하기 때문에
+`default-cache-ttl 0` 으로 두어도 결과가 같다. TTL 을 늘려봐야 얻는 것은 없고
+비밀이 에이전트 메모리에 더 오래 남을 뿐이다.
 
 키가 둘 다 필요하다. `DisableKeychain` 의 기본값이 참이고, 그것이 켜져 있는 한
 `UseKeychain` 이 무엇이든 "Save in Keychain" 체크박스가 나타나지 않는다.
