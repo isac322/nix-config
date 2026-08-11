@@ -114,6 +114,32 @@
       # rather than depending on that fallback.
       copy-on-select = "clipboard";
 
+      # Translucency. Blur only takes effect while opacity is below 1, so the
+      # two go together. 0.9 is deliberately mild — enough to see through,
+      # not enough to fight the text. `true` is a blur intensity of 20, which
+      # the docs call a good looking default; macOS 26 also accepts
+      # `macos-glass-regular` and `macos-glass-clear` for the native glass
+      # effect, which is worth trying next to the Tinted setting elsewhere.
+      #
+      # Two macOS caveats: opacity changes need Ghostty restarted outright,
+      # not just reloaded, and opacity is ignored in native fullscreen because
+      # the backdrop turns grey there.
+      background-opacity = 0.9;
+      background-blur = true;
+
+      # Unfocused splits fade so the active one is obvious. 0.7 is already the
+      # default; 0.6 makes it more legible at a glance. The floor is 0.15.
+      unfocused-split-opacity = 0.6;
+
+      # Unlimited is not available — the docs say so outright and call it a
+      # planned feature — so this is just a large ceiling. It is bytes per
+      # surface, allocated lazily, so a big number costs nothing until the
+      # scrollback actually fills. 100 MB against a default of 10 MB.
+      scrollback-limit = 100000000;
+
+      # Mousing over a split focuses it, within the focused window only.
+      focus-follows-mouse = true;
+
       quick-terminal-position = "top";
       quick-terminal-screen = "mouse";
       quick-terminal-animation-duration = 0.1;
