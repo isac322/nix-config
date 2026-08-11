@@ -67,6 +67,11 @@
       ];
       font-size = 14;
 
+      # Closing every window leaves the process running, which is what keeps
+      # the global keybinds alive. This is already the macOS default, but the
+      # whole arrangement depends on it, so it is stated rather than assumed.
+      quit-after-last-window-closed = false;
+
       # The quake-style drop-down. `global:` makes the binding work while
       # another app is focused, which on macOS needs Ghostty to be granted
       # Accessibility permission — a one-time GUI approval that cannot be

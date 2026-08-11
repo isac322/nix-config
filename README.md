@@ -106,6 +106,18 @@ Homebrew가 한다.
 못한다. 그래서 52번을 꺼 두었다 — `system.defaults.dock.autohide`를 여기서
 고정하고 있으므로 그 토글은 어차피 다음 activation에 되돌려질 뿐이다.
 
+**전역 단축키는 앱이 떠 있어야 동작한다.** 키를 듣는 주체가 실행 중인 앱이라,
+Ghostty가 꺼져 있으면 F12도 `⌘⌥T`도 아무 일도 하지 않는다. macOS에는 키에 앱
+실행을 묶는 기본 기능이 없다 — 키보드 단축키 설정은 이미 실행 중인 앱의 메뉴
+항목에만 닿는다. 그래서 두 가지를 함께 건다.
+
+- `launchd.user.agents.ghostty` (`modules/roles/darwin-laptop.nix`)가 로그인 때
+  `open -g -a Ghostty --args --initial-window=false`로 띄운다. `-g`는 포커스를
+  뺏지 않고, `--initial-window=false`는 그 실행에만 적용되므로 손으로 열 때는
+  평소대로 창이 뜬다.
+- `quit-after-last-window-closed = false`로 마지막 창을 닫아도 프로세스가 남는다.
+  macOS 기본값이지만 이 구조 전체가 여기에 의존하므로 명시해 둔다.
+
 **드롭다운 창에는 탭이 없다.** macOS 네이티브 탭 구현상의 제약으로 quick terminal
 과 non-native fullscreen 둘 다 탭을 지원하지 않는다 (ghostty #2888, #3629).
 분할은 되므로 위 키들이 그 자리를 메운다. 일반 창(`⌘⌥T`)에서는 `⌘T`로 탭이

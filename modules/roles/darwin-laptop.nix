@@ -41,6 +41,30 @@
     "zoom"
   ];
 
+  # A global keybind is registered by the running application, so with Ghostty
+  # closed there is no process to receive F12 or ⌘⌥T and nothing happens at
+  # all. macOS has no built-in way to bind a key to launching an app — the
+  # keyboard settings only reach menu items of apps already running — so the
+  # app has to be up. This starts it at login; `quit-after-last-window-closed`
+  # in home/roles/darwin-laptop.nix keeps it up after the last window closes.
+  #
+  # `-g` keeps it from taking focus at login, and `--initial-window=false`
+  # applies only to this launch, so opening Ghostty by hand still gives a
+  # window.
+  launchd.user.agents.ghostty = {
+    serviceConfig = {
+      ProgramArguments = [
+        "/usr/bin/open"
+        "-g"
+        "-a"
+        "Ghostty"
+        "--args"
+        "--initial-window=false"
+      ];
+      RunAtLoad = true;
+    };
+  };
+
   # KakaoTalk and WireGuard are missing on purpose: both are Mac App Store
   # exclusives and there is no route to either from here.
   #
