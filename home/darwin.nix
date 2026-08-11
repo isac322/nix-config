@@ -17,6 +17,52 @@ let
   # measures below. Getting only one of them right fails quietly in exactly the
   # places that are hardest to notice.
   sshAuthSock = "/private/var/run/org.nix-community.home.gpg-agent/S.gpg-agent.ssh";
+
+  # gpg-agent holds every secret key but offers only the ones it has been told
+  # to offer, and what it wants is a keygrip — a value that comes into being
+  # when the key lands on the machine, so it can never be written down here.
+  # Reading it back out of the keyring is what removes the last manual step:
+  # whichever authentication-capable key is present gets marked, and a second
+  # run changes nothing.
+  #
+  # The mark lives in the private key file as a `Use-for-ssh` attribute, set
+  # through gpg-connect-agent's KEYATTR. Appending the keygrip to
+  # ~/.gnupg/sshcontrol still works and is what most guides say, but GnuPG's
+  # own manual has called that file "deprecated in favor of the "Use-for-ssh"
+  # attribute in the key files" since 2.3.7.
+  gpgSshAuthorize = pkgs.writeShellApplication {
+    name = "gpg-ssh-authorize";
+    runtimeInputs = [ pkgs.gnupg ];
+    text = ''
+      # Field 12 of a sec/ssb record is that key's capabilities, where `a` means
+      # authentication; the grp record following it carries its keygrip. So this
+      # prints the keygrip of every key allowed to authenticate, and nothing else.
+      grips=$(gpg --list-secret-keys --with-keygrip --with-colons 2>/dev/null |
+        awk -F: '$1 == "sec" || $1 == "ssb" { auth = ($12 ~ /a/) }
+                 $1 == "grp" && auth        { print $10 }') || true
+
+      if [ -z "$grips" ]; then
+        echo "gpg-ssh-authorize: no authentication-capable secret key found." >&2
+        echo "gpg-ssh-authorize: import one, then run this again." >&2
+        exit 0
+      fi
+
+      while IFS= read -r grip; do
+        [ -n "$grip" ] || continue
+
+        # The attribute name keeps its trailing colon: KEYATTR addresses the
+        # raw field name as it appears in the key file. Reading it first keeps
+        # a switch that has nothing to do silent.
+        if gpg-connect-agent "KEYATTR $grip Use-for-ssh:" /bye 2>/dev/null |
+          grep -q '^D yes'; then
+          continue
+        fi
+
+        gpg-connect-agent "KEYATTR $grip Use-for-ssh: yes" /bye >/dev/null
+        echo "gpg-ssh-authorize: $grip is now offered over SSH." >&2
+      done <<<"$grips"
+    '';
+  };
 in
 {
   imports = [ ./keyboard.nix ];
@@ -88,10 +134,14 @@ in
 
   # Nothing is generated here. The key is created once, elsewhere, and carried
   # between machines as an exported .asc — which is the whole point of using
-  # one key for everything. This only reports its absence and how to bring it
-  # in, because an activation script cannot prompt for a passphrase.
+  # one key for everything. An activation script cannot prompt for a
+  # passphrase, so importing stays manual; everything after the import does
+  # not, and is done here. Importing a key and switching, in either order,
+  # ends up in the same place.
   home.activation.gpgKey = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    if ! ${pkgs.gnupg}/bin/gpg --list-secret-keys --with-colons 2>/dev/null | grep -q '^sec'; then
+    if ${pkgs.gnupg}/bin/gpg --list-secret-keys --with-colons 2>/dev/null | grep -q '^sec'; then
+      ${lib.getExe gpgSshAuthorize}
+    else
       echo "" >&2
       echo "  No GPG secret key. Commit signing is on and SSH authenticates" >&2
       echo "  through gpg-agent, so both are inert until a key is imported." >&2
@@ -105,11 +155,10 @@ in
       echo "" >&2
       echo "    gpg --edit-key bhyoo@bhyoo.com     # then: trust, 5, y, quit" >&2
       echo "" >&2
-      echo "  And authorise its authentication subkey for SSH. The keygrip is" >&2
-      echo "  the line under the subkey whose usage is [A]:" >&2
+      echo "  And hand its authentication subkey to SSH. This finds the key on" >&2
+      echo "  its own — there is no keygrip to read off a screen:" >&2
       echo "" >&2
-      echo "    gpg --list-secret-keys --with-keygrip" >&2
-      echo "    echo <KEYGRIP> >> ~/.gnupg/sshcontrol" >&2
+      echo "    gpg-ssh-authorize" >&2
       echo "" >&2
       echo "  Check it took: ssh-add -L should list the key." >&2
       echo "" >&2
@@ -146,5 +195,10 @@ in
   # come from nixpkgs and be pinned by flake.lock. It does not need the app to
   # work: a service account token authenticates it non-interactively, which is
   # what a machine with nobody at it has to use.
-  home.packages = [ pkgs._1password-cli ];
+  # gpg-ssh-authorize is on PATH as well as wired into activation, so a key
+  # imported between switches can be put to work immediately.
+  home.packages = [
+    pkgs._1password-cli
+    gpgSshAuthorize
+  ];
 }

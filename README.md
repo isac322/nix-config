@@ -125,15 +125,28 @@ gpg --import secret.asc            # 개인키
 gpg --import-ownertrust trust.asc  # 선택. 신뢰 설정 복원
 gpg --edit-key bhyoo@bhyoo.com     # trust, 5, y, quit — 내 키로 표시
 
-# 인증 서브키를 SSH 에 노출시킨다. keygrip 은 usage 가 [A] 인 서브키 밑의 줄
-gpg --list-secret-keys --with-keygrip
-echo <KEYGRIP> >> ~/.gnupg/sshcontrol
+gpg-ssh-authorize                  # 인증 서브키를 SSH 에 노출시킨다
 ssh-add -L                         # 키가 뜨면 성공
 ```
 
-`sshcontrol` 이 한 번 더 필요한 이유는, gpg-agent 가 비밀키를 다 갖고 있어도 그중
-무엇을 SSH 로 내줄지는 별도로 지정해야 하기 때문이다. 서명키까지 통째로 노출하지
-않으려는 설계다.
+**한 단계가 더 필요한 이유는** gpg-agent 가 비밀키를 다 갖고 있어도 그중 무엇을 SSH
+로 내줄지는 따로 지정해야 하기 때문이다. 서명키까지 통째로 노출하지 않으려는
+설계다. 그런데 지정에 쓰는 값이 **keygrip** — 키가 이 기계에 들어온 뒤에야 생기는
+값이라 설정 파일에 미리 적어둘 수가 없다. 그래서 흔히 보이는 안내가 `gpg
+--list-secret-keys --with-keygrip` 을 눈으로 읽어 `~/.gnupg/sshcontrol` 에 붙여넣는
+것인데, 사람이 화면에서 옮겨 적는 단계는 이 저장소의 전제와 어긋난다.
+
+`gpg-ssh-authorize` (`home/darwin.nix` 에서 정의) 는 그 값을 키링에서 직접
+읽어낸다. `--with-colons` 출력에서 sec/ssb 레코드의 12번째 필드가 그 키의 용도이고
+`a` 가 인증이므로, 그 뒤에 따라오는 `grp` 레코드가 곧 찾던 keygrip 이다. 즉 **볼
+것도 고를 것도 없이** 인증 가능한 키 전부가 대상이 된다. switch 때마다 자동으로
+돌고, 이미 표시된 키는 건드리지 않으므로 두 번 돌아도 조용하다. 키를 switch 사이에
+가져왔다면 PATH 에도 있으니 그 자리에서 실행하면 된다.
+
+표시가 저장되는 곳은 `~/.gnupg/sshcontrol` 이 아니라 **개인키 파일 안의
+`Use-for-ssh` 속성**이고, `gpg-connect-agent` 의 `KEYATTR` 로 쓴다. GnuPG 매뉴얼이
+2.3.7 부터 sshcontrol 을 두고 *"deprecated in favor of the `Use-for-ssh` attribute
+in the key files"* 라고 명시하고 있다. 동작은 둘 다 하지만, 남는 쪽을 쓴다.
 
 키가 아직 없다면 인증 서브키를 붙여서 만들고, 다른 기계로 내보낸다.
 
