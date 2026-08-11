@@ -4,27 +4,35 @@
 # home/roles/darwin-laptop.nix.
 { config, lib, pkgs, ... }:
 
+let
+
+  # One key does everything: SSH authentication, git commit signing, and the
+  # PGP signing that Arch packaging needs. The GPG key's authentication subkey
+  # is served to SSH by gpg-agent, so there is no separate SSH keypair to
+  # create, back up or register per machine — moving the key moves all three.
+  #
+  # The cost is that macOS points everything at its own ssh-agent. launchd
+  # publishes that socket through SSH_AUTH_SOCK to every process in the login
+  # session, GUI apps included, so redirecting it takes two independent
+  # measures below. Getting only one of them right fails quietly in exactly the
+  # places that are hardest to notice.
+  sshAuthSock = "/private/var/run/org.nix-community.home.gpg-agent/S.gpg-agent.ssh";
+in
 {
   imports = [ ./keyboard.nix ];
 
-  # SSH keys are held by the ssh-agent macOS already runs under launchd, with
-  # the passphrase in the login keychain. AddKeysToAgent hands the key over the
-  # first time it is used; UseKeychain is the macOS-only half that makes the
-  # passphrase persist, so it is asked for once ever rather than once per
-  # login. Both together are what "stop typing it" means here.
-  #
-  # enableDefaultConfig is off because it writes its own `*` block and would
-  # collide with this one. Its values are reproduced below, with AddKeysToAgent
-  # flipped — the rest are upstream's defaults, kept so nothing changes by
-  # accident.
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;
 
     settings."*" = {
-      AddKeysToAgent = "yes";
-      UseKeychain = "yes";
+      # Measure one. ssh reads this file no matter who launched it, so this
+      # covers anything that shells out to the ssh binary — including the GUI
+      # applications that never see a shell's environment.
+      IdentityAgent = sshAuthSock;
 
+      # Upstream's defaults, kept verbatim. AddKeysToAgent and UseKeychain are
+      # gone: they belong to macOS's ssh-agent, which is no longer in the path.
       ForwardAgent = false;
       Compression = false;
       ServerAliveInterval = 0;
@@ -37,89 +45,98 @@
     };
   };
 
-  # The key is deliberately *not* generated here. A passphrase is the point of
-  # the keychain setup above, and an activation script cannot prompt for one —
-  # generating it non-interactively would mean an unprotected key on disk. So
-  # this only reports what is missing and how to make it.
-  #
-  # `allowed_signers` is derived from the public key when one exists: it is
-  # what `git log --show-signature` consults to decide whose signatures count,
-  # and it cannot be declared because the key does not exist until it is made.
-  # The instructions below include the one line that writes it, so creating a
-  # key does not strand you needing another activation to finish the job; this
-  # step then keeps it in sync on every later switch.
-  home.activation.sshKey = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
-      echo "" >&2
-      echo "  No SSH key at ~/.ssh/id_ed25519. Commit signing is on, so commits" >&2
-      echo "  will fail until one exists. To create it:" >&2
-      echo "" >&2
-      echo "    ssh-keygen -t ed25519 -C \"bhyoo@\$(hostname -s)\"" >&2
-      echo "    ssh-add --apple-use-keychain ~/.ssh/id_ed25519" >&2
-      echo "    printf '%s %s\\n' bhyoo@bhyoo.com \"\$(cat ~/.ssh/id_ed25519.pub)\" > ~/.ssh/allowed_signers" >&2
-      echo "" >&2
-      echo "  Give it a passphrase — the keychain remembers it, so it is asked" >&2
-      echo "  for once and never again. The third line is what this step would" >&2
-      echo "  have written; running it here avoids a second darwin-rebuild." >&2
-      echo "" >&2
-    else
-      printf '%s %s\n' "bhyoo@bhyoo.com" "$(cat "$HOME/.ssh/id_ed25519.pub")" \
-        > "$HOME/.ssh/allowed_signers"
-      chmod 0644 "$HOME/.ssh/allowed_signers"
-    fi
-  '';
-
-  # GPG is here for Arch packaging, not for git. `makepkg --sign` and the
-  # `validpgpkeys` check in a PKGBUILD are PGP-only — an SSH signature cannot
-  # stand in for either, because pacman's trust model is PGP throughout. Commit
-  # signing stays on SSH below; the two do not conflict, and having gnupg
-  # installed does not make git reach for it.
-  programs.gpg.enable = true;
-
-  # The agent caches the passphrase so it is entered once per session rather
-  # than once per signature. On darwin home-manager runs it as a launchd agent
-  # rather than a systemd unit, and pinentry_mac prompts in a native window
-  # that can put the passphrase in the login keychain — the same arrangement
-  # SSH gets above.
-  #
-  # enableSshSupport stays off: macOS's own ssh-agent already holds the SSH
-  # keys, and two agents would fight over SSH_AUTH_SOCK.
-  services.gpg-agent = {
+  # Measure two. home-manager only exports SSH_AUTH_SOCK from shell init, which
+  # reaches terminals and nothing else; launchd-started applications never read
+  # a shell profile. `launchctl setenv` sets it for the whole login session, so
+  # anything reading the variable directly finds gpg-agent as well.
+  launchd.agents.ssh-auth-sock = {
     enable = true;
-    enableSshSupport = false;
-    pinentry.package = pkgs.pinentry_mac;
-    # These only govern the window before the passphrase reaches the keychain,
-    # or if "Save in Keychain" is declined. Once it is stored, pinentry fetches
-    # it silently on every expiry and the TTLs stop being observable — GPGTools
-    # stores it with "always allow", which is why people running
-    # default-cache-ttl 0 still get asked only once. Raising them would buy
-    # nothing and keep the secret in agent memory longer.
-    defaultCacheTtl = 28800; # 8h — a working day
-    maxCacheTtl = 86400; # 24h
+    config = {
+      ProgramArguments = [
+        "/bin/launchctl"
+        "setenv"
+        "SSH_AUTH_SOCK"
+        sshAuthSock
+      ];
+      RunAtLoad = true;
+    };
   };
 
-  # nixpkgs' pinentry-mac is the GPGTools build (bundle id
-  # org.gpgtools.pinentry-mac), which can put the passphrase in the login
-  # keychain — the same place SSH's ends up. With this the cache TTLs above
-  # stop being the thing that matters: the passphrase is asked for once and
-  # retrieved from the keychain afterwards, rather than re-entered when the
-  # cache expires.
-  #
-  # Both keys are needed. DisableKeychain defaults to true, and while it is
-  # set the "Save in Keychain" checkbox never appears no matter what
-  # UseKeychain says.
+  programs.gpg.enable = true;
+
+  # enableSshSupport is what makes the authentication subkey available over the
+  # ssh-agent protocol. pinentry_mac is the GPGTools build, so the passphrase
+  # goes into the login keychain and is asked for once — covering SSH and
+  # signing alike, since they are now the same key.
+  services.gpg-agent = {
+    enable = true;
+    enableSshSupport = true;
+    pinentry.package = pkgs.pinentry_mac;
+    # These only govern the window before the passphrase reaches the keychain,
+    # or if "Save in Keychain" is declined. Once stored, pinentry fetches it
+    # silently on every expiry and the TTLs stop being observable — GPGTools
+    # stores it with "always allow", which is why people running
+    # default-cache-ttl 0 still get asked only once.
+    defaultCacheTtl = 28800;
+    maxCacheTtl = 86400;
+  };
+
   targets.darwin.defaults."org.gpgtools.pinentry-mac" = {
     UseKeychain = true;
     DisableKeychain = false;
   };
 
-  #
-  # Absolute paths on purpose: git expands `~` for some config values and not
-  # others, and allowedSignersFile is one of the ones that has bitten people.
+  # Nothing is generated here. The key is created once, elsewhere, and carried
+  # between machines as an exported .asc — which is the whole point of using
+  # one key for everything. This only reports its absence and how to bring it
+  # in, because an activation script cannot prompt for a passphrase.
+  home.activation.gpgKey = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if ! ${pkgs.gnupg}/bin/gpg --list-secret-keys --with-colons 2>/dev/null | grep -q '^sec'; then
+      echo "" >&2
+      echo "  No GPG secret key. Commit signing is on and SSH authenticates" >&2
+      echo "  through gpg-agent, so both are inert until a key is imported." >&2
+      echo "" >&2
+      echo "  Importing an existing key from a backup:" >&2
+      echo "" >&2
+      echo "    gpg --import secret.asc            # the private key" >&2
+      echo "    gpg --import-ownertrust trust.asc  # optional, restores trust" >&2
+      echo "" >&2
+      echo "  Then mark it ultimately trusted, so gpg treats it as yours:" >&2
+      echo "" >&2
+      echo "    gpg --edit-key bhyoo@bhyoo.com     # then: trust, 5, y, quit" >&2
+      echo "" >&2
+      echo "  And authorise its authentication subkey for SSH. The keygrip is" >&2
+      echo "  the line under the subkey whose usage is [A]:" >&2
+      echo "" >&2
+      echo "    gpg --list-secret-keys --with-keygrip" >&2
+      echo "    echo <KEYGRIP> >> ~/.gnupg/sshcontrol" >&2
+      echo "" >&2
+      echo "  Check it took: ssh-add -L should list the key." >&2
+      echo "" >&2
+      echo "  If there is no key yet, create one with an [A] subkey:" >&2
+      echo "" >&2
+      echo "    gpg --full-generate-key            # ed25519; the user id must be" >&2
+      echo "                                       # Byeonghoon Yoo <bhyoo@bhyoo.com>," >&2
+      echo "                                       # or git will not find the key" >&2
+      echo "    gpg --edit-key bhyoo@bhyoo.com     # addkey, ECC, Authenticate" >&2
+      echo "" >&2
+      echo "  Export it for the other machines:" >&2
+      echo "" >&2
+      echo "    gpg --armor --export-secret-keys bhyoo@bhyoo.com > secret.asc" >&2
+      echo "    gpg --export-ownertrust > trust.asc" >&2
+      echo "" >&2
+    fi
+  '';
+
+  # Commits are signed with the same GPG key. `user.signingkey` is left unset
+  # on purpose: with no key configured and the default openpgp format, git
+  # passes the committer identity itself to gpg (`-u "Name <email>"`), which
+  # selects the secret key whose user id matches. So the key is found by who
+  # the commit says it is from, and no key id — which differs per machine and
+  # changes on rotation — has to appear in the configuration. The catch is that
+  # the key's user id must be created to match: `Byeonghoon Yoo
+  # <bhyoo@bhyoo.com>`, exactly the name and email set in home/common.nix.
   programs.git.settings = {
-    gpg.format = "ssh";
-    gpg.ssh.allowedSignersFile = "${config.home.homeDirectory}/.ssh/allowed_signers";
-    user.signingkey = "${config.home.homeDirectory}/.ssh/id_ed25519.pub";
     commit.gpgsign = true;
     tag.gpgsign = true;
   };

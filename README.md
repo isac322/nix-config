@@ -66,62 +66,89 @@ Homebrew가 한다.
 - **Orca** (Stably) — homebrew-cask가 아니라 자체 tap에 있어서 `homebrew.taps`에
   `stablyai/orca`를 같이 선언한다. nix-homebrew가 tap을 기본적으로 mutable로
   두기 때문에 tap을 flake 인풋으로 고정하지 않고도 동작한다.
-### SSH 와 GPG 에이전트
+### SSH 와 GPG — 열쇠 하나로 셋 다
 
-둘 다 **모든 맥** 공통이다 (`home/darwin.nix`). 목적은 같다 — 매번 암호를 치지 않는 것.
+둘 다 **모든 맥** 공통이다 (`home/darwin.nix`). 목적은 같다 — 매번 암호를 치지
+않는 것. 그런데 필요한 서명이 셋이었다: SSH 접속 인증, git 커밋 서명, 그리고 Arch
+패키징(`makepkg --sign`)이다.
 
-**SSH 는 macOS 가 이미 돌리는 ssh-agent 를 쓴다.** launchd 가 띄우고 로그인
-키체인과 엮여 있으므로 별도 에이전트를 세울 이유가 없다.
+**셋을 GPG 키 하나로 한다.** `makepkg --sign` 과 PKGBUILD 의 `validpgpkeys` 는 PGP
+전용이라 SSH 서명이 대신할 수 없다 — pacman 의 신뢰 모델이 PGP 이기 때문이다.
+(AUR 자체는 커밋 서명을 보지 않는다. `aur-dev` 에서 SSH 서명 검증이 논의된 적은
+있으나 구현되지 않았고, AUR 은 푸시 인증에만 SSH 를 쓴다.) 즉 GPG 키는 어차피
+있어야 한다. 그렇다면 SSH 키쌍을 따로 두는 대신 GPG 의 **인증(authentication)
+서브키**를 gpg-agent 가 ssh-agent 프로토콜로 내주게 하면 — `enableSshSupport` 가
+하는 일이다 — 기계마다 만들고 백업하고 등록할 키가 하나로 준다. 키를 옮기면 셋이
+같이 옮겨간다.
 
-- `AddKeysToAgent yes` — 처음 쓸 때 키를 에이전트에 넘긴다
-- `UseKeychain yes` — macOS 전용 옵션. 패스프레이즈를 키체인에 넣어 **로그인마다가
-  아니라 평생 한 번만** 묻게 한다
+**대가는 macOS 가 자기 ssh-agent 를 가리키고 있다는 것이다.** macOS 는 gpg-agent 를
+내장하지 않지만 ssh-agent 는 `com.openssh.ssh-agent.plist` 로 띄우고, launchd 가
+그 소켓 경로를 `SSH_AUTH_SOCK` 으로 **로그인 세션 전체**에 — GUI 앱 포함 — 심는다.
+그래서 방향을 돌리는 데 서로 독립적인 조치가 둘 필요하다. 하나만 맞히면 가장
+알아채기 어려운 곳에서 조용히 실패한다.
 
-`enableDefaultConfig` 는 꺼 두었다. 자체 `*` 블록을 써서 위 설정과 충돌하기
-때문이고, 그 기본값들은 `AddKeysToAgent` 만 뒤집어 그대로 옮겨 적었다.
+1. `~/.ssh/config` 의 `IdentityAgent` — ssh 바이너리는 누가 실행하든 이 파일을
+   읽는다. 셸을 거치지 않는 GUI 앱이 ssh 를 호출하는 경우까지 덮는다.
+2. `launchctl setenv SSH_AUTH_SOCK` LaunchAgent — home-manager 는 이 변수를 셸
+   초기화에서만 내보내는데, 그건 터미널까지만 닿는다. launchd 로 뜬 앱은 셸
+   프로파일을 읽지 않으므로, 변수를 직접 읽는 쪽을 위해 세션 전역으로 심는다.
 
-**키는 자동 생성하지 않는다.** 패스프레이즈를 거는 것이 위 키체인 설정의
-목적인데 activation 은 프롬프트를 띄울 수 없어, 자동 생성은 곧 패스프레이즈 없는
-키를 디스크에 두는 것이 된다. 그래서 없으면 만드는 법만 알려주고 끝낸다.
+`enableDefaultConfig` 는 꺼 두었다. 자체 `*` 블록이 위 설정과 충돌하기 때문이고,
+기본값들은 그대로 옮겨 적되 `AddKeysToAgent` 와 `UseKeychain` 은 뺐다 — 둘 다
+macOS ssh-agent 의 옵션인데 그게 더는 경로에 없다.
+
+**패스프레이즈는 평생 한 번.** nixpkgs 의 `pinentry_mac` 은 GPGTools
+빌드(`org.gpgtools.pinentry-mac`)라 패스프레이즈를 로그인 키체인에 저장할 수 있고,
+GPGTools 는 "always allow" 로 저장한다. 그래서 캐시 TTL 은 관측되지 않는다:
+만료될 때마다 pinentry 가 키체인에서 조용히 꺼내오므로 묻는 것은 최초 한 번뿐이다.
+키가 하나이므로 이 한 번이 SSH 와 서명 양쪽을 덮는다. `UseKeychain` 과
+`DisableKeychain = false` 가 둘 다 필요하다 — 후자의 기본값이 참이고, 그것이 켜져
+있는 한 "Save in Keychain" 체크박스 자체가 나타나지 않는다.
+
+**커밋 서명에 `user.signingkey` 를 쓰지 않는다.** 키가 지정되지 않고 형식이 기본값
+openpgp 이면 git 은 커미터 신원을 그대로 gpg 에 넘긴다 (`-u "Name <email>"`,
+`gpg-interface.c` 의 `get_signing_key`). 즉 **커밋이 누구 것이라고 말하는가로 키를
+찾는다.** 키 ID 를 적어두면 기계마다 다르고 교체할 때마다 설정을 고쳐야 하는데,
+이렇게 두면 그럴 일이 없다. 대신 조건이 붙는다 — 키의 사용자 ID 를
+`Byeonghoon Yoo <bhyoo@bhyoo.com>` 으로, `home/common.nix` 의 이름과 이메일에
+정확히 맞춰 만들어야 한다. 이메일만 같고 이름이 다르면 git 이 키를 찾지 못한다.
+
+**키는 자동 생성하지 않는다.** 패스프레이즈를 거는 것이 위 키체인 설정의 목적인데
+activation 은 프롬프트를 띄울 수 없어, 자동 생성은 곧 패스프레이즈 없는 키를
+디스크에 두는 것이 된다. 그리고 애초에 키 하나를 여러 기계가 공유하는 구성이라
+기계마다 새로 만드는 것은 목적에 어긋난다. 그래서 없으면 가져오는 법만 알려주고
+끝낸다. 커밋 서명이 켜져 있으므로 키가 없으면 커밋이 실패하고, activation 이 그
+사실과 아래 명령을 함께 출력한다.
 
 ```sh
-ssh-keygen -t ed25519 -C "bhyoo@$(hostname -s)"
-ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+gpg --import secret.asc            # 개인키
+gpg --import-ownertrust trust.asc  # 선택. 신뢰 설정 복원
+gpg --edit-key bhyoo@bhyoo.com     # trust, 5, y, quit — 내 키로 표시
+
+# 인증 서브키를 SSH 에 노출시킨다. keygrip 은 usage 가 [A] 인 서브키 밑의 줄
+gpg --list-secret-keys --with-keygrip
+echo <KEYGRIP> >> ~/.gnupg/sshcontrol
+ssh-add -L                         # 키가 뜨면 성공
 ```
 
-**커밋 서명이 켜져 있으므로 키가 없으면 커밋이 실패한다.** activation 이 그
-사실과 위 명령을 함께 출력한다.
+`sshcontrol` 이 한 번 더 필요한 이유는, gpg-agent 가 비밀키를 다 갖고 있어도 그중
+무엇을 SSH 로 내줄지는 별도로 지정해야 하기 때문이다. 서명키까지 통째로 노출하지
+않으려는 설계다.
 
-**GPG 는 Arch 패키징용으로 둔다.** `makepkg --sign` 과 PKGBUILD 의
-`validpgpkeys` 는 PGP 전용이라 SSH 서명이 대신할 수 없다 — pacman 의 신뢰 모델이
-PGP 이기 때문이다. AUR 자체는 커밋 서명을 보지 않는다. `aur-dev` 에서 SSH 서명
-검증이 논의된 적은 있으나 구현되지 않았고, AUR 은 푸시 인증에만 SSH 를 쓴다.
+키가 아직 없다면 인증 서브키를 붙여서 만들고, 다른 기계로 내보낸다.
 
-`services.gpg-agent` 는 darwin 에서 launchd 에이전트로 등록된다. 그리고 nixpkgs 의
-`pinentry_mac` 은 GPGTools 빌드(`org.gpgtools.pinentry-mac`)라 **패스프레이즈를
-로그인 키체인에 저장할 수 있다** — SSH 와 같은 자리다. 그래서 캐시 TTL 은
-관측되지 않게 된다: 만료될 때마다 pinentry 가 키체인에서 조용히 꺼내오므로, 묻는
-것은 최초 한 번뿐이다. GPGTools 는 "always allow" 로 저장하기 때문에
-`default-cache-ttl 0` 으로 두어도 결과가 같다. TTL 을 늘려봐야 얻는 것은 없고
-비밀이 에이전트 메모리에 더 오래 남을 뿐이다.
+```sh
+# 사용자 ID 는 반드시 Byeonghoon Yoo <bhyoo@bhyoo.com>
+gpg --full-generate-key            # ed25519
+gpg --edit-key bhyoo@bhyoo.com     # addkey → ECC → Authenticate
 
-키가 둘 다 필요하다. `DisableKeychain` 의 기본값이 참이고, 그것이 켜져 있는 한
-`UseKeychain` 이 무엇이든 "Save in Keychain" 체크박스가 나타나지 않는다.
+gpg --armor --export-secret-keys bhyoo@bhyoo.com > secret.asc
+gpg --export-ownertrust > trust.asc
+```
 
-**커밋 서명은 GPG 가 아니라 SSH 키로 한다.** git 2.34 부터 지원하는
-`gpg.format = ssh` 로, 위에서 만든 키를 그대로 쓴다. GPG 를 걷어내면 두 번째
-키쌍, gpg-agent, pinentry, 기계 간 동기화해야 할 키링이 통째로 사라진다.
-GitHub 도 같은 방식으로 검증하며, 공개키를 인증용이 아니라 **서명용(signing
-key)** 으로 등록하면 된다.
-
-`allowed_signers` 는 `git log --show-signature` 가 "누구 키를 믿을지" 판단하는
-파일이고, 없으면 검증 자체를 거부한다. 공개키는 키를 만든 뒤에야 존재하므로
-선언이 아니라 키 생성과 같은 activation 단계에서 파생해 쓴다. 지금은 그 기계의
-키만 들어가므로 그 기계에서 서명한 커밋을 검증한다 — 공개키는 공개 데이터라,
-두 맥의 키가 모두 생기면 레포에 넣어 서로를 검증하게 만들 수 있다.
-
-경로는 절대경로로 쓴다. git 은 설정 항목에 따라 `~` 를 확장하기도 하고 안 하기도
-하는데 `allowedSignersFile` 이 안 되는 쪽이다.
+GitHub 에는 공개키를 GPG key 로 등록하면 커밋 검증이 되고, 접속용으로는 인증
+서브키를 SSH key 로 따로 등록한다 (`gpg --export-ssh-key bhyoo@bhyoo.com`).
+`allowed_signers` 는 SSH 서명 전용 파일이라 이제 없다 — GPG 검증은 키링이 한다.
 
 **OrbStack 충돌.** OrbStack 은 `~/.ssh/config` 맨 위에 자기 `Include` 를 넣고
 지우면 다시 넣는다. `programs.ssh.includes` 로 선언해 두면 home-manager 가 그
