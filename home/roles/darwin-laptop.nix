@@ -82,7 +82,8 @@
       #
       # ⌘⌥D needed macOS's Dock-hiding shortcut turned off first; it is a
       # system binding, and those win over an application's. That is handled in
-      # modules/keyboard.nix. ⌘⌥R and both ⇧⌥ combinations were free.
+      # modules/keyboard.nix. ⌘⌥R was unclaimed, and macOS uses no ⇧⌥
+      # combination at all, so all four movement keys were free.
       keybind = [
         "global:f12=toggle_quick_terminal"
         "global:cmd+opt+t=new_window"
@@ -90,6 +91,8 @@
         "cmd+opt+r=new_split:right"
         "shift+opt+d=goto_split:down"
         "shift+opt+r=goto_split:right"
+        "shift+opt+u=goto_split:up"
+        "shift+opt+l=goto_split:left"
       ];
       quick-terminal-position = "top";
       quick-terminal-screen = "mouse";
