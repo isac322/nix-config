@@ -45,6 +45,9 @@
   # `allowed_signers` is derived from the public key when one exists: it is
   # what `git log --show-signature` consults to decide whose signatures count,
   # and it cannot be declared because the key does not exist until it is made.
+  # The instructions below include the one line that writes it, so creating a
+  # key does not strand you needing another activation to finish the job; this
+  # step then keeps it in sync on every later switch.
   home.activation.sshKey = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
       echo "" >&2
@@ -53,10 +56,11 @@
       echo "" >&2
       echo "    ssh-keygen -t ed25519 -C \"bhyoo@\$(hostname -s)\"" >&2
       echo "    ssh-add --apple-use-keychain ~/.ssh/id_ed25519" >&2
+      echo "    printf '%s %s\\n' bhyoo@bhyoo.com \"\$(cat ~/.ssh/id_ed25519.pub)\" > ~/.ssh/allowed_signers" >&2
       echo "" >&2
       echo "  Give it a passphrase — the keychain remembers it, so it is asked" >&2
-      echo "  for once and never again. Then re-run darwin-rebuild to write" >&2
-      echo "  ~/.ssh/allowed_signers." >&2
+      echo "  for once and never again. The third line is what this step would" >&2
+      echo "  have written; running it here avoids a second darwin-rebuild." >&2
       echo "" >&2
     else
       printf '%s %s\n' "bhyoo@bhyoo.com" "$(cat "$HOME/.ssh/id_ed25519.pub")" \

@@ -76,6 +76,12 @@
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.extraSpecialArgs = { inherit inputs; };
+
+              # home-manager refuses to overwrite a file it did not create and
+              # aborts the whole activation, which is how ~/.ssh/config — left
+              # behind by OrbStack — took down a switch. Moving the stray file
+              # aside turns that into a rename instead of a dead end.
+              home-manager.backupFileExtension = "hm-backup";
               home-manager.users.${user}.imports = [
                 ./home/common.nix
                 ./home/darwin.nix
@@ -105,6 +111,12 @@
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.extraSpecialArgs = { inherit inputs; };
+
+              # home-manager refuses to overwrite a file it did not create and
+              # aborts the whole activation, which is how ~/.ssh/config — left
+              # behind by OrbStack — took down a switch. Moving the stray file
+              # aside turns that into a rename instead of a dead end.
+              home-manager.backupFileExtension = "hm-backup";
               home-manager.users.${user}.imports = [
                 ./home/common.nix
                 ./home/linux.nix
