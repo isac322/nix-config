@@ -36,7 +36,10 @@
   # darwin, so a package in home.packages is all it takes. The family name is
   # "JetBrainsMono Nerd Font" — the files are JetBrainsMonoNerdFont-*.ttf, and
   # the NL and Mono variants in the same package are separate families.
-  home.packages = [ pkgs.nerd-fonts.jetbrains-mono ];
+  home.packages = [
+    pkgs.nerd-fonts.jetbrains-mono
+    pkgs.nerd-fonts.d2coding
+  ];
 
   programs.ghostty = {
     # Ghostty itself is a cask, declared in modules/roles/darwin-laptop.nix.
@@ -51,14 +54,33 @@
     # which is why it was chosen over Warp and iTerm2 — the quake window is
     # built in to all three, but only this one is configurable from the repo.
     settings = {
-      font-family = "JetBrainsMono Nerd Font";
+      # Repeating font-family builds a fallback chain: Ghostty moves down the
+      # list when a codepoint is missing from the font above. JetBrains Mono has
+      # no Hangul, so without a second entry macOS picks something arbitrary.
+      #
+      # D2Coding is the pairing that keeps the grid intact — its Hangul is
+      # exactly twice the ASCII advance, which a proportional Korean face is
+      # not, and a terminal notices.
+      font-family = [
+        "JetBrainsMono Nerd Font"
+        "D2CodingLigature Nerd Font"
+      ];
       font-size = 14;
 
       # The quake-style drop-down. `global:` makes the binding work while
       # another app is focused, which on macOS needs Ghostty to be granted
       # Accessibility permission — a one-time GUI approval that cannot be
       # declared away.
-      keybind = [ "global:ctrl+grave_accent=toggle_quick_terminal" ];
+      #
+      # F12 is free: nothing in macOS's own shortcut table binds key code 111,
+      # and no symbolic hotkey on this machine uses it.
+      #
+      # cmd+opt+t opens an ordinary window. `new_window` brings Ghostty to the
+      # front when it is not focused, so the binding doubles as "launch it".
+      keybind = [
+        "global:f12=toggle_quick_terminal"
+        "global:cmd+opt+t=new_window"
+      ];
       quick-terminal-position = "top";
       quick-terminal-screen = "mouse";
       quick-terminal-animation-duration = 0.1;

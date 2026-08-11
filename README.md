@@ -85,9 +85,23 @@ Homebrew가 한다.
 다른 앱이 포커스를 가진 상태에서도 동작해야 하므로 macOS가 승인을 요구한다.
 선언으로 없앨 수 없는 한 번의 GUI 단계다.
 
+단축키는 `F12`가 드롭다운, `⌘⌥T`가 일반 창이다. `new_window`는 Ghostty가
+포커스되지 않았으면 앞으로 가져오므로 "실행"도 겸한다. F12를 고른 근거는
+macOS 자체 단축키 표에 키코드 111을 쓰는 항목이 없고, 이 기계의 symbolichotkeys
+에도 없다는 것이다.
+
 폰트는 `nerd-fonts.jetbrains-mono`. darwin에서 home-manager는 `home.packages`의
 폰트를 `~/Library/Fonts/HomeManager`로 rsync한다. 패밀리 이름은
 `JetBrainsMono Nerd Font`이고, 같은 패키지의 NL·Mono 변형은 별도 패밀리다.
+
+**한글은 폴백 체인으로 처리한다.** `font-family`를 여러 번 적으면 Ghostty가 위
+폰트에 없는 코드포인트를 만났을 때 아래로 내려간다. JetBrains Mono에 한글이 없어서
+두 번째 항목이 없으면 macOS가 아무 폰트나 고른다 — 그래서 한글만 어색해 보인다.
+
+짝으로 D2Coding을 쓴다 (`nerd-fonts.d2coding`, 패밀리 이름
+`D2CodingLigature Nerd Font`). 한글 글자 폭이 ASCII의 정확히 두 배라서 터미널
+격자가 안 깨진다. 비례 한글 폰트는 이 조건을 만족하지 않고, 터미널에서는 그게
+바로 티가 난다.
 
 ### 1Password — GUI 와 CLI 를 나눠 담는다
 
