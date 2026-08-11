@@ -197,6 +197,52 @@ GitHub 에는 공개키를 GPG key 로 등록하면 커밋 검증이 되고, 접
 줄을 직접 맨 앞에 쓰므로 서로 싸우지 않는다. OrbStack 이 랩탑 전용이라 이 선언도
 랩탑 역할에만 있다.
 
+### `xterm-ghostty` — 터미널 이름을 모르는 상대들
+
+Ghostty 는 자신을 `xterm-ghostty` 로 소개한다. 그런데 그 이름의 terminfo 엔트리는
+이 맥에서 **Ghostty.app 안에 한 곳**밖에 없고, 셸은 Ghostty 가 넣어준 `TERMINFO`
+환경변수로만 그것을 찾는다. 그래서 환경을 비우는 쪽에서는 전부 깨진다.
+
+- `sudo` 는 `env_reset` 으로 `TERMINFO` 를 지운다 → root 로 띄운 TUI 가 색을 잃는다
+- `ssh` 는 `TERM` 만 넘기고 `TERMINFO` 는 안 넘긴다 → 반대편에서
+  `Error opening terminal: xterm-ghostty`
+
+애플의 `/usr/share/terminfo` 에도, nixpkgs 의 ncurses 6.6 에도 이 이름은 없다.
+ncurses 가 담고 있는 것은 `ghostty` 라는 **다른 이름**이라 대신 응답하지 않는다.
+
+해법은 두 층이다.
+
+1. `shell-integration-features = sudo,ssh-terminfo,ssh-env` — Ghostty 가 제공하는
+   기본 해법이고, 셋 다 기본값이 꺼짐이다(각각 명령을 셸 함수로 가리기 때문).
+   이 값은 기본 집합을 **덮어쓰지 않고 병합**하므로 `cursor,title,path` 는 적지
+   않아도 유지된다. `ssh-terminfo` 는 첫 접속 때 원격에 `tic` 으로 엔트리를 심고
+   `ghostty +ssh-cache` 에 기억해 둔다.
+2. NixOS 서버는 `environment.systemPackages = [ pkgs.ghostty.terminfo ]` 로 엔트리를
+   **자기가 들고 있는다**. 1번은 어디까지나 `ssh` 를 가린 셸 함수라서 프롬프트에
+   직접 친 `ssh` 만 거친다 — `git`, `scp`, `rsync -e ssh`, Makefile 안의 것들은
+   바이너리를 직접 부르므로 해당이 없다. 우리 소유의 기계라면 접속 경로에
+   의존하지 않는 쪽이 맞다. 2 kB 이고 cache.nixos.org 에 있다.
+
+남의 기계라 둘 다 못 쓸 때는 한 줄로 밀어넣는다:
+
+```
+infocmp -x xterm-ghostty | ssh HOST -- tic -x -
+```
+
+### 셸에 색이 없던 것은 terminfo 문제가 아니었다
+
+`xterm-ghostty` 를 못 찾는 것과, 셸이 무채색인 것은 별개다. 후자는 **색을 낼
+설정이 아무것도 없어서**다. zsh 의 기본 프롬프트는 `%m%#` 순수 텍스트이고,
+macOS 의 `ls` 는 BSD ls 라 시키지 않으면 색을 쓰지 않는다. 24비트 색이 되는
+터미널에서도 보여줄 것이 없으면 그대로 무채색이다.
+
+`ls` 와 `grep` 에 별칭을 걸고 zsh-syntax-highlighting 을 켰다. 두 구현이 서로
+다른 플래그를 원해서(BSD 에는 `--color` 가, GNU 에는 `-G` 가 없다) 별칭은 플랫폼
+분기가 있다. 별칭은 대화형 셸만 읽으므로 스크립트는 여전히 파싱 가능한 원래
+출력을 받는다.
+
+프롬프트 자체는 건드리지 않았다. 그건 고장이 아니라 취향이다.
+
 ### Ghostty — 설정이 파일이라서 골랐다
 
 랩탑의 터미널. quake 스타일 드롭다운(Ghostty가 "quick terminal"이라 부르는 것)이
