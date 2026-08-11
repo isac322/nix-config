@@ -8,6 +8,7 @@
   buildGoModule,
   fetchFromGitHub,
   installShellFiles,
+  versionCheckHook,
 }:
 
 buildGoModule (finalAttrs: {
@@ -48,11 +49,24 @@ buildGoModule (finalAttrs: {
       --fish <($out/bin/axiom completion fish)
   '';
 
+  # Runs `axiom --version` and fails the build unless the version string is in
+  # the output. That is a real guard here rather than a formality: the ldflags
+  # above stamp the version through an import path that lives upstream, and if
+  # a refactor moves it the build still succeeds while `axiom version` quietly
+  # reports nothing. Guarded on the same condition as postInstall, for the same
+  # reason — it runs the binary that was just built.
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  doInstallCheck = stdenv.buildPlatform.canExecute stdenv.hostPlatform;
+
   meta = {
-    description = "The power of Axiom on the command line";
+    # Upstream's tagline is "The power of Axiom on the command line", which
+    # nixpkgs' rules for descriptions reject on three counts: leading article,
+    # marketing rather than fact, trailing period.
+    description = "Command-line client for Axiom";
     homepage = "https://github.com/axiomhq/cli";
     license = lib.licenses.mit;
     mainProgram = "axiom";
     platforms = lib.platforms.unix;
+    maintainers = [ ];
   };
 })

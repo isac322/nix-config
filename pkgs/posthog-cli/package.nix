@@ -8,6 +8,7 @@
   lib,
   rustPlatform,
   fetchCrate,
+  versionCheckHook,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -28,11 +29,19 @@ rustPlatform.buildRustPackage (finalAttrs: {
   # no openssl-sys anywhere in Cargo.lock. That is what keeps this buildable on
   # darwin and linux from the same expression.
 
+  # Cheap sanity check that the binary starts and is the version claimed —
+  # worth having when the version is only ever bumped by hand.
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  doInstallCheck = true;
+
   meta = {
     description = "Command line interface for PostHog";
     homepage = "https://github.com/PostHog/posthog/tree/master/rust/cli";
     license = lib.licenses.mit;
     mainProgram = "posthog-cli";
     platforms = lib.platforms.unix;
+    # Empty rather than absent: nixpkgs requires the attribute on new packages,
+    # and there is no handle in the pinned tree to put in it.
+    maintainers = [ ];
   };
 })

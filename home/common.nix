@@ -50,20 +50,18 @@
     enable = true;
     defaultEditor = true;
 
-    # vim-sensible is home-manager's default for this option; it is repeated
-    # here because assigning `plugins` replaces the default rather than adding
-    # to it. It supplies the uncontroversial baseline (backspace, smarttab,
-    # complete-=i, incsearch, ruler, laststatus, wildmenu, autoread,
+    # vim-sensible is not listed. home-manager's module sets it in its own
+    # `config`, not merely as the option's default, and `plugins` is a list —
+    # so definitions concatenate instead of overriding, and naming it here only
+    # loads it twice. It supplies the uncontroversial baseline (backspace,
+    # smarttab, complete-=i, incsearch, ruler, laststatus, wildmenu, autoread,
     # tabpagemax, formatoptions+=j, matchit ...) so none of that is repeated
     # below. Where the settings here overlap, they win: nixpkgs patches
     # sensible's `s:MaySet` to skip any option already set from /nix/store.
     #
     # Vim ships syntax files for most languages but not for Nix, and this
     # configuration is the thing most often edited here.
-    plugins = [
-      pkgs.vimPlugins.vim-sensible
-      pkgs.vimPlugins.vim-nix
-    ];
+    plugins = [ pkgs.vimPlugins.vim-nix ];
 
     # Only the options home-manager knows about; everything else is extraConfig.
     settings = {
