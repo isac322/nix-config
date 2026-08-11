@@ -54,6 +54,28 @@ in
     ];
   };
 
+  # Why a switch asks for a password a second time, after the one that started
+  # it. Homebrew refuses to run as root, so nix-darwin's activation — which is
+  # root by then — drops back to the primary user for the brew step:
+  #
+  #   sudo --preserve-env=PATH --user=bhyoo --set-home env brew bundle …
+  #
+  # Casks whose artifact is a `pkg` rather than an `app` have to run
+  # /usr/sbin/installer as root, so Homebrew, now unprivileged, calls sudo
+  # again. Root's authority does not flow down into a de-escalated child, and
+  # the timestamp from the first sudo has a five-minute life (sudoers(5),
+  # `timestamp_timeout`, default 5), which a build outlasts. So the prompt
+  # appears exactly when brew has work to do — which `onActivation.upgrade`
+  # above makes often.
+  #
+  # Thirty minutes covers a rebuild without leaving the terminal authenticated
+  # for the rest of the day. The record is per-terminal (`timestamp_type` is
+  # `tty` by default), so this does not hand the window to another session.
+  # The laptop layers Touch ID on top; see modules/roles/darwin-laptop.nix.
+  security.sudo.extraConfig = ''
+    Defaults timestamp_timeout=30
+  '';
+
   # mkDefault throughout: these are a baseline every Mac starts from, and a host
   # that wants something else says so in hosts/<name>/default.nix. Without it
   # the two definitions collide at equal priority and evaluation fails.

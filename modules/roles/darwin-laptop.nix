@@ -41,6 +41,25 @@
     "zoom"
   ];
 
+  # Laptop-only, because it needs a fingerprint sensor: the mini is headless and
+  # reached over SSH, where pam_tid has nothing to prompt on. This does not
+  # replace the sudo timestamp in modules/darwin.nix — it decides what happens
+  # when a prompt does appear, and that one decides how often one appears.
+  #
+  # nix-darwin renders /etc/pam.d/sudo_local, the file Apple added in macOS 14
+  # precisely so local changes survive a system update; /etc/pam.d/sudo itself
+  # is on the sealed volume and includes it.
+  #
+  # `reattach` (pam_reattach) comes along because pam_tid can only draw its
+  # prompt from inside the user's bootstrap session. A shell under tmux is
+  # outside it, and so is the brew step, which activation reaches through
+  # `sudo --user=bhyoo` from a root process. It is an `auth optional` line, so
+  # it costs nothing where it is not needed.
+  security.pam.services.sudo_local = {
+    touchIdAuth = true;
+    reattach = true;
+  };
+
   # A global keybind is registered by the running application, so with Ghostty
   # closed there is no process to receive F12 or ⌘⌥T and nothing happens at
   # all. macOS has no built-in way to bind a key to launching an app — the

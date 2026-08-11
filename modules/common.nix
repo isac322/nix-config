@@ -4,7 +4,12 @@
 # NOT live here. `system.stateVersion` is the trap: nix-darwin types it as an
 # integer and NixOS as a string, so it is set in modules/darwin.nix and
 # modules/nixos.nix separately.
-{ lib, pkgs, inputs, ... }:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
 {
   nixpkgs.overlays = [
@@ -22,6 +27,10 @@
     builtins.elem (lib.getName pkg) [
       "1password-cli"
       "claude-code"
+      # Only the server Mac takes this from nixpkgs — see
+      # modules/roles/darwin-server.nix. The laptop's Chrome is a cask, which
+      # Homebrew installs without consulting this predicate at all.
+      "google-chrome"
     ];
 
   environment.systemPackages = [
