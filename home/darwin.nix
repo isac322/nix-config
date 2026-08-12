@@ -305,8 +305,8 @@ in
   #
   # The language toolchains sit here rather than in home/common.nix because the
   # Macs are where code gets written; the Linux server runs services and has no
-  # use for a compiler. Rust is not in this list — only the mini was asked for
-  # it, so it lives in home/roles/darwin-server.nix.
+  # use for a compiler. Rust is not in this list — only the server Mac was asked
+  # for it, so it lives in home/roles/darwin-server.nix.
   #
   # `go` is the whole toolchain — compiler, module tooling, gofmt — and follows
   # whatever nixpkgs currently treats as current, which is what naming it `go`

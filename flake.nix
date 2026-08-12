@@ -213,8 +213,8 @@
           hostname = "bhyoo-macbook-air";
           role = "laptop";
         };
-        "bhyoo-mac-mini" = mkDarwin {
-          hostname = "bhyoo-mac-mini";
+        "bhyoo-macbook-pro" = mkDarwin {
+          hostname = "bhyoo-macbook-pro";
           role = "server";
         };
       };

@@ -58,8 +58,9 @@ in
   # homebrew, then postActivation; the cask's .pkg starts the WARP daemon as it
   # installs. Written afterwards, the file would arrive too late to be read and
   # the machine would sit unenrolled until something restarted the daemon —
-  # which, on the Mac mini, means noticing from somewhere else that it never
-  # came back. Written first, the daemon finds its configuration already there.
+  # which, on the headless MacBook Pro, means noticing from somewhere else that
+  # it never came back. Written first, the daemon finds its configuration
+  # already there.
   system.activationScripts.preActivation.text = ''
     install -d -m 0755 "/Library/Application Support/Cloudflare"
 

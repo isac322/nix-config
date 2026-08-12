@@ -83,8 +83,9 @@ in
     { app = "/System/Applications/System Settings.app"; }
   ];
 
-  # Laptop-only, because it needs a fingerprint sensor: the mini is headless and
-  # reached over SSH, where pam_tid has nothing to prompt on. This does not
+  # Laptop-only in the role sense, not the hardware sense — the server Mac is a
+  # MacBook Pro and has the same sensor. It is run headless with the lid shut
+  # and reached over SSH, where pam_tid has nothing to prompt on. This does not
   # replace the sudo timestamp in modules/darwin.nix — it decides what happens
   # when a prompt does appear, and that one decides how often one appears.
   #

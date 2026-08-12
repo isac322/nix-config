@@ -1,8 +1,9 @@
 # A Mac that runs unattended.
 #
 # The difference from a laptop is not what it looks like — the desktop settings
-# in modules/darwin.nix apply here too — but that nobody is present. It has to
-# stay awake, and it has to come back on its own.
+# in modules/darwin.nix apply here too, and the hardware is a MacBook Pro just
+# like the other one — but that nobody is present. It has to stay awake, and it
+# has to come back on its own.
 { lib, pkgs, ... }:
 
 {
@@ -21,7 +22,7 @@
   # This is environment.variables, not home.sessionVariables, because the
   # machine is driven over SSH: /etc/zshenv is read by every zsh, while the
   # home-manager session file is only sourced by login and interactive shells,
-  # which `ssh mini agent-browser …` is neither.
+  # which `ssh bhyoo-macbook-pro agent-browser …` is neither.
   environment.systemPackages = [ pkgs.google-chrome ];
   environment.variables.AGENT_BROWSER_EXECUTABLE_PATH = lib.getExe pkgs.google-chrome;
 

@@ -21,7 +21,7 @@ modules/           시스템 레벨
     darwin-server.nix   서버 macOS
 hosts/             기기 고유
   bhyoo-macbook-air/
-  bhyoo-mac-mini/
+  bhyoo-macbook-pro/
   server/            + hardware-configuration.nix
 home/              사용자 레벨 (home-manager)
   common.nix         모든 기기 공통 — 설정의 대부분이 여기 있다
@@ -37,7 +37,7 @@ home/              사용자 레벨 (home-manager)
 
 ```nix
 "bhyoo-macbook-air" = mkDarwin { hostname = "bhyoo-macbook-air"; role = "laptop"; };
-"bhyoo-mac-mini"    = mkDarwin { hostname = "bhyoo-mac-mini";    role = "server"; };
+"bhyoo-macbook-pro" = mkDarwin { hostname = "bhyoo-macbook-pro"; role = "server"; };
 ```
 
 ### 무엇이 어느 층에 속하나
@@ -368,7 +368,7 @@ Canary, Chromium, Brave. 마지막 것이 **하드코딩된 절대 경로**라�
 
 `home.sessionVariables` 가 아니라 `environment.variables` 인 이유는 이 기기를
 SSH 로 몰기 때문이다. `/etc/zshenv` 는 모든 zsh 가 읽지만 home-manager 의
-세션 파일은 로그인·인터랙티브 셸만 읽는데, `ssh mini agent-browser …` 는 둘 다
+세션 파일은 로그인·인터랙티브 셸만 읽는데, `ssh bhyoo-macbook-pro agent-browser …` 는 둘 다
 아니다.
 
 `doctor` 의 `Chrome` 항목은 이 환경변수를 무시하고 자동 탐지 결과만 보여준다 —
@@ -539,7 +539,7 @@ dmg에서 `.app`만 복사하는데(Firefox·WARP와 같은 모양), 1Password �
 ```sh
 # 맥 (해당 기기에서)
 sudo darwin-rebuild switch --flake ~/nix-config#bhyoo-macbook-air
-sudo darwin-rebuild switch --flake ~/nix-config#bhyoo-mac-mini
+sudo darwin-rebuild switch --flake ~/nix-config#bhyoo-macbook-pro
 
 # 서버 (해당 기기에서)
 sudo nixos-rebuild switch --flake ~/nix-config#server
