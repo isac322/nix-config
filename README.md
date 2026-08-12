@@ -16,18 +16,20 @@ home-manager, llm-agents까지 전부 고정한다. 기기별로 레포를 나�
 1. **Determinate Nix 설치.** nix-darwin 모듈은 설치해주지 않는다.
    <https://install.determinate.systems/determinate-pkg/stable/Universal>
 2. **레포 clone.**
-3. **호스트명을 flake 속성 이름에 맞춘다.** `flake.nix` 의 속성이 호스트명이므로,
-   맞춰 두면 그 뒤로는 `#<hostname>` 없이 `darwin-rebuild switch --flake <path>`
-   가 알아서 이 기기 설정을 찾는다. 이름은 셋이고 셋 다 세워야 한다 — 그중
-   `LocalHostName` 이 `darwin-rebuild` 가 보는 것이다.
+3. **호스트명을 이 기기의 flake 속성 이름으로 맞춘다.** 이 이름이 어느 설정을
+   고를지의 입력이다 — 안 맞으면 그냥 실패한다. 목록은 레포가 갖고 있으므로 물어보면
+   된다.
    ```sh
-   sudo scutil --set ComputerName  bhyoo-macbook-pro   # 공유 화면에 보이는 이름
-   sudo scutil --set LocalHostName bhyoo-macbook-pro   # Bonjour, .local
-   sudo scutil --set HostName      bhyoo-macbook-pro   # 셸 프롬프트, hostname(1)
+   nix eval --json .#darwinConfigurations --apply builtins.attrNames
+   NAME=<위 목록에서 이 기기>
+   sudo scutil --set ComputerName  "$NAME"   # 공유 화면에 보이는 이름
+   sudo scutil --set LocalHostName "$NAME"   # Bonjour, .local — 이게 결정한다
+   sudo scutil --set HostName      "$NAME"   # 셸 프롬프트, hostname(1)
    ```
-   이건 nix-darwin 에 맡길 수도 있지만(`networking.hostName` 등) 일부러 두지
-   않았다 — 이 이름이 곧 어느 설정을 고를지의 입력이라, 설정 안에 두면 잘못된
-   기기 설정을 한 번 적용해야 이름이 고쳐지는 순환이 된다.
+   셋 중 `LocalHostName` 만 설정 선택에 관여하지만, 셋이 갈라져 있으면 나중에
+   기계를 헷갈리므로 같이 세운다. nix-darwin 에 맡길 수도 있지만
+   (`networking.hostName` 등) 일부러 두지 않았다 — 이름이 곧 입력이라 설정 안에
+   두면 잘못된 기기 설정을 한 번 적용해야 이름이 고쳐지는 순환이 된다.
 4. **바이너리 캐시 부트스트랩** (선택, 강력 권장). 첫 `switch`는 `nix.custom.conf`가
    적용되기 전에 빌드한다. 건너뛰면 `omp`를 소스에서 빌드한다 — Rust 툴체인 + zig
    461 MiB를 받고 cargo vendor부터 전부 컴파일한다.
@@ -71,27 +73,17 @@ home-manager, llm-agents까지 전부 고정한다. 기기별로 레포를 나�
 
 ## 기기별 명령
 
-**맥에서는 호스트명을 칠 일이 없다.** `darwin-rebuild` 가 `--flake` 뒤에 `#` 이
-없으면 `scutil --get LocalHostName` 을 그대로 속성 이름으로 쓴다(핀 고정된
-`pkgs/nix-tools/darwin-rebuild.sh`). `--flake` 자체를 생략하면
-`/etc/nix-darwin/flake.nix` 를 따라가므로 — 심링크여도 된다 — 그 경우 명령은
-`sudo darwin-rebuild switch` 한 줄이다.
-
-바꿔 말하면 **호스트명이 곧 어느 설정을 고를지의 입력**이다. 안 맞으면 엉뚱한
-설정이 조용히 깔리는 게 아니라 `does not provide attribute
-'darwinConfigurations.<그 이름>.system'` 으로 즉시 멈춘다. 위
-[새 기기에 올리기](#맥) 3번이 그 이름을 세우는 단계다. 일회성으로 다른 기기 설정을
-빌드하고 싶을 때만 `#` 로 덮어쓴다.
-
-`nixos-rebuild` 는 이 편의가 없다 — 항상 `#server` 를 붙인다.
+**맥에서는 기기 이름을 칠 일이 없다.** `darwin-rebuild` 는 `#` 이 없으면
+`scutil --get LocalHostName` 을 속성 이름으로 쓰고(핀 고정된
+`pkgs/nix-tools/darwin-rebuild.sh`), `--flake` 자체가 없으면
+`/etc/nix-darwin/flake.nix` 를 따라간다 — 심링크여도 된다.
+[부트스트랩 3번](#맥) 에서 이름을 세워 두면 그 뒤로는 아래 한 줄이 전부다.
+`nixos-rebuild` 는 이 편의가 없어서 서버만 `#server` 를 붙인다.
 
 ```sh
 # 맥 (해당 기기에서). 이름이 맞으면 이게 전부다
 sudo darwin-rebuild switch --flake ~/nix-config
 sudo darwin-rebuild switch                      # 레포가 /etc/nix-darwin 일 때
-
-# 맥 — 일부러 다른 기기 설정을 고를 때만
-sudo darwin-rebuild switch --flake ~/nix-config#bhyoo-macbook-pro
 
 # 서버 (해당 기기에서)
 sudo nixos-rebuild switch --flake ~/nix-config#server
