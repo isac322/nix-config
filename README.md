@@ -66,6 +66,13 @@ nixos-rebuild switch --flake ~/nix-config#server \
    결과물 안에 들어 있으므로 그걸로 자기 자신을 설치한다. 레포 루트에서:
    ```sh
    nix build .#darwinConfigurations.$(scutil --get LocalHostName).system
+
+   # 여기서 nix.custom.conf 를 비켜둔다. 이 자리는 activation 이 선언된 내용으로
+   # 다시 채우는데, nix-darwin 은 내용을 알아보지 못하는 /etc 파일을 덮어쓰지
+   # 않고 중단한다 — 4번을 했다면 확실히 그렇게 된다. 지우는 게 아니라 이름만
+   # 바꾸는 것이고, 빌드는 위에서 이미 끝났으므로 캐시 설정도 제 몫을 다했다.
+   sudo mv /etc/nix/nix.custom.conf{,.before-nix-darwin}
+
    sudo ./result/sw/bin/darwin-rebuild switch --flake .
    ```
    업스트림이 안내하는 `sudo nix run nix-darwin/master#darwin-rebuild -- switch` 도
