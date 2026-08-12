@@ -44,6 +44,10 @@ in
     "notion"
     "orbstack"
     "slack"
+    # `auto_updates true` in the cask, so Spotify replaces itself in place and
+    # onActivation.upgrade rarely has anything to do — which is fine, and the
+    # reason the version here is never what is running.
+    "spotify"
     "stablyai/orca/orca"
     "telegram" # the native macOS client, not telegram-desktop
     "vorta"

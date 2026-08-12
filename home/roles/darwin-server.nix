@@ -30,8 +30,27 @@
   #
   # Both packages are needed: rustc is the compiler alone, and cargo is a
   # separate derivation in nixpkgs rather than something it brings along.
+  #
+  # The two language servers are here rather than in home/darwin.nix because
+  # this is the machine an editor or a coding agent actually runs on. Neither
+  # is configured: an LSP client starts the binary and speaks to it over stdio,
+  # so being on PATH under the name the client looks for is the whole
+  # integration.
+  #
+  # `rust-analyzer`, not `rust-analyzer-unwrapped`. The plain attribute is a
+  # wrapper whose only job is to set RUST_SRC_PATH to rustPlatform.rustLibSrc,
+  # and without it the server runs perfectly well while knowing nothing about
+  # the standard library — no completion or go-to-definition on anything from
+  # std. That fails as missing features rather than as an error, which is the
+  # kind of wrong that goes unnoticed.
+  #
+  # terraform-ls is HashiCorp's own and, unlike terraform itself, is still
+  # MPL-2.0 — so it needs no allowUnfreePredicate entry. It shells out to
+  # `terraform` for validation, and finds the one from home/darwin.nix.
   home.packages = [
     pkgs.cargo
+    pkgs.rust-analyzer
     pkgs.rustc
+    pkgs.terraform-ls
   ];
 }

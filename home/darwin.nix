@@ -276,7 +276,9 @@ in
   # someone is looking at things. Note that `kubectl` on these machines is
   # /usr/local/bin/kubectl, put there by something outside nix — k9s never
   # calls it, but anything that does still gets that one rather than a pinned
-  # version.
+  # version. stern is the same shape of tool and the same absence of
+  # configuration: it tails logs across pods and containers by regex, which is
+  # the one thing k9s is awkward at, and it reads the same kubeconfig.
   #
   # Two of the cloud three are not named what they are called.
   #
@@ -318,7 +320,18 @@ in
   # bun is upstream's own binary, not a build from source — nixpkgs marks it
   # binaryNativeCode — because it vendors a patched JavaScriptCore that nothing
   # else here builds. It sits alongside Node rather than replacing it: the two
-  # read the same package.json and neither supplies the other.
+  # read the same package.json and neither supplies the other. It is also the
+  # one package here that does not come from nixpkgs as it stands: nixpkgs is a
+  # release behind and the version that was wanted is 1.3.14, so it is
+  # overridden in pkgs/overlay.nix, which is where the reasoning lives.
+  #
+  # uv is the Python half, and the reason no Python interpreter is listed
+  # beside it: uv fetches its own, standalone CPython builds under
+  # ~/.local/share/uv, and manages virtualenvs against those. That is outside
+  # nix by design — it is per-project, moves with pyproject.toml and does not
+  # belong in a system closure — but it does mean `uv python install` writes
+  # binaries this configuration did not put there. They are ordinary
+  # relocatable macOS builds, so unlike on NixOS they simply run.
   home.packages = [
     pkgs._1password-cli
     pkgs.bun
@@ -331,6 +344,8 @@ in
     pkgs.k9s
     pkgs.kubernetes-helm
     pkgs.nodejs_24
+    pkgs.stern
     pkgs.terraform
+    pkgs.uv
   ];
 }
