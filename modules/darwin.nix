@@ -121,11 +121,12 @@ in
     dock.wvous-bl-corner = lib.mkDefault 1;
     dock.wvous-br-corner = lib.mkDefault 1;
 
-    # The Dock holds the list modules/roles/darwin-laptop.nix pins and nothing
-    # else. Recents append themselves to the right of that list and change with
-    # whatever was opened last, which is the opposite of a Dock one navigates
-    # by position.
-    dock.show-recents = lib.mkDefault false;
+    # Recents stay. They sit to the right of the pinned list in
+    # modules/roles/darwin-laptop.nix and never reorder it, so the two are
+    # independent: the pinned tiles keep their positions and recents fill in
+    # beside them. This matches Apple's default and is declared anyway, so that
+    # pinning the Dock does not read as a decision about recents too.
+    dock.show-recents = lib.mkDefault true;
 
     # Nothing on the desktop. This takes two owners: Finder draws the icons,
     # while widgets belong to WindowManager, so hiding one leaves the other.

@@ -52,8 +52,9 @@ in
 
   # The Dock, left to right. Setting this makes the list declarative in both
   # directions: an app dragged in by hand is gone at the next activation, and
-  # an app removed from here leaves the Dock. `dock.show-recents` is off in
-  # modules/darwin.nix so nothing appends itself to the right of it either.
+  # an app removed from here leaves the Dock. It says nothing about recents,
+  # which are on — they occupy their own section to the right and do not
+  # disturb these positions.
   #
   # A tile is a path and only a path — nix-darwin writes it verbatim into
   # com.apple.dock. A path that no longer resolves is not a build error; it is
