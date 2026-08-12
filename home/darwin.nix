@@ -270,9 +270,17 @@ in
   # it deliberately does not reuse the SSH key set up above: `gh` speaks the
   # REST API over HTTPS, which is a different credential from the one `git`
   # pushes with.
+  # k9s reads whatever kubeconfig the environment already points at and talks
+  # to the API server itself, so it carries no cluster configuration and none
+  # belongs here. It is on both Macs for the same reason `gh` is: this is where
+  # someone is looking at things. Note that `kubectl` on these machines is
+  # /usr/local/bin/kubectl, put there by something outside nix — k9s never
+  # calls it, but anything that does still gets that one rather than a pinned
+  # version.
   home.packages = [
     pkgs._1password-cli
     pkgs.gh
     gpgSshAuthorize
+    pkgs.k9s
   ];
 }
