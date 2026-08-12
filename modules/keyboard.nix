@@ -208,10 +208,26 @@ in
 
     # Spaces move on command+option+arrow. The slow partners take the same
     # chord plus shift, matching how macOS pairs them by default.
-    ${setHotkey hotkeyIds.previousSpace [ 65535 vkLeftArrow (command + option) ]}
-    ${setHotkey hotkeyIds.previousSpaceSlow [ 65535 vkLeftArrow (command + option + shift) ]}
-    ${setHotkey hotkeyIds.nextSpace [ 65535 vkRightArrow (command + option) ]}
-    ${setHotkey hotkeyIds.nextSpaceSlow [ 65535 vkRightArrow (command + option + shift) ]}
+    ${setHotkey hotkeyIds.previousSpace [
+      65535
+      vkLeftArrow
+      (command + option)
+    ]}
+    ${setHotkey hotkeyIds.previousSpaceSlow [
+      65535
+      vkLeftArrow
+      (command + option + shift)
+    ]}
+    ${setHotkey hotkeyIds.nextSpace [
+      65535
+      vkRightArrow
+      (command + option)
+    ]}
+    ${setHotkey hotkeyIds.nextSpaceSlow [
+      65535
+      vkRightArrow
+      (command + option + shift)
+    ]}
 
     # Caps Lock stays Caps Lock; 한/영 is the right command key above.
     asUser ${romanSwitch}/bin/roman-switch off

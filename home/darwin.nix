@@ -2,7 +2,12 @@
 #
 # Desktop applications are not here — they belong to the laptop role, in
 # home/roles/darwin-laptop.nix.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
 
@@ -147,12 +152,10 @@ in
       ProgramArguments = [
         "/bin/sh"
         "-c"
-        "/bin/wait4path /nix/store && exec ${
-          pkgs.writeShellScript "gpg-agent-ssh-bootstrap" ''
-            ${pkgs.gnupg}/bin/gpgconf --launch gpg-agent
-            /bin/launchctl setenv SSH_AUTH_SOCK ${sshAuthSock}
-          ''
-        }"
+        "/bin/wait4path /nix/store && exec ${pkgs.writeShellScript "gpg-agent-ssh-bootstrap" ''
+          ${pkgs.gnupg}/bin/gpgconf --launch gpg-agent
+          /bin/launchctl setenv SSH_AUTH_SOCK ${sshAuthSock}
+        ''}"
       ];
       RunAtLoad = true;
     };

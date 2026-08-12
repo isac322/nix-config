@@ -23,8 +23,9 @@
 
       # Baked into the bundle.
       package = pkgs.firefox-bin.override {
-        extraFiles."distribution/policies.json".source =
-          pkgs.writeText "policies.json" (builtins.toJSON { inherit policies; });
+        extraFiles."distribution/policies.json".source = pkgs.writeText "policies.json" (
+          builtins.toJSON { inherit policies; }
+        );
       };
 
       # Written to ~/Library/Preferences/org.mozilla.firefox.plist along with
