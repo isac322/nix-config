@@ -8,6 +8,7 @@ final: prev: {
   posthog-cli = final.callPackage ./posthog-cli/package.nix { };
   axiom-cli = final.callPackage ./axiom-cli/package.nix { };
   langfuse-cli = final.callPackage ./langfuse-cli/package.nix { };
+  vercel-cli = final.callPackage ./vercel-cli/package.nix { };
 
   # This one replaces an existing attribute rather than adding one: nixpkgs'
   # `slack-cli` is a different project that took the name first. The reasoning

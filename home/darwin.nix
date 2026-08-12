@@ -356,12 +356,22 @@ in
   # binaries this configuration did not put there. They are ordinary
   # relocatable macOS builds, so unlike on NixOS they simply run.
   #
+  # The last two are the two platform CLIs, and neither comes from nixpkgs as
+  # it stands.
+  #
   # slack-cli is the one name here that is a trap. `pkgs.slack-cli` in nixpkgs
   # is a different project — a bash script from 2023 that posts to an incoming
   # webhook — and pkgs/overlay.nix replaces the attribute with
   # slackapi/slack-cli, the Go tool for creating, running and deploying Slack
   # apps. Both install a binary called `slack`, so the wrong one is not a build
   # failure; it is `slack app` reporting an unknown argument.
+  #
+  # vercel-cli is in nixpkgs under no name at all, so it is built here from the
+  # published npm tarball. pkgs/vercel-cli/ has the reasoning, including why
+  # its manifest arrives edited and why the platform-native binaries upstream
+  # ships alongside the JavaScript are left out. It authenticates itself —
+  # `vercel login` writes a token under the user's own config directory — so
+  # nothing about the account belongs in this file.
   home.packages = [
     pkgs._1password-cli
     pkgs.bun
@@ -381,5 +391,6 @@ in
     pkgs.stern
     pkgs.terraform
     pkgs.uv
+    pkgs.vercel-cli
   ];
 }
