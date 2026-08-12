@@ -277,15 +277,20 @@ in
   # /usr/local/bin/kubectl, put there by something outside nix — k9s never
   # calls it, but anything that does still gets that one rather than a pinned
   # version.
-  # Two of these three are not named what they are called.
+  #
+  # Two of the cloud three are not named what they are called.
   #
   # `gcloud` is the main program of google-cloud-sdk; there is no gcloud
-  # attribute. Bare, it is the CLI and nothing else — GKE authentication needs
-  # a component the plain package leaves out, and kubectl and k9s fail with
-  # "no Auth Provider found" rather than anything mentioning gcloud. That is
-  # `google-cloud-sdk.withExtraComponents [
-  # google-cloud-sdk.components.gke-gcloud-auth-plugin ]`, left off here until
-  # there is a GKE cluster to point at.
+  # attribute. Bare, the package is the CLI and nothing else, and GKE is the
+  # one thing that wants more than the CLI: Kubernetes dropped the in-tree GCP
+  # auth provider in 1.26, so a kubeconfig written by `gcloud container
+  # clusters get-credentials` names an external credential plugin instead.
+  # Without gke-gcloud-auth-plugin on PATH, kubectl and k9s fail with "no Auth
+  # Provider found" — an error that mentions neither gcloud nor the plugin.
+  # Google ships it as a gcloud component, and the documented way to get one is
+  # `gcloud components install`, which writes into the package's own directory:
+  # impossible against a read-only store path. withExtraComponents is the
+  # declarative form and builds the component into the package instead.
   #
   # `helm` is a different program entirely — a GPL-3.0 tool at 0.9.0 that has
   # nothing to do with Kubernetes. Helm the chart manager is kubernetes-helm,
@@ -295,13 +300,37 @@ in
   # terraform is unfree; see the note in modules/common.nix.
   # home-manager.useGlobalPkgs is on, so that predicate covers these packages
   # as much as it does the system ones.
+  #
+  # The language toolchains sit here rather than in home/common.nix because the
+  # Macs are where code gets written; the Linux server runs services and has no
+  # use for a compiler. Rust is not in this list — only the mini was asked for
+  # it, so it lives in home/roles/darwin-server.nix.
+  #
+  # `go` is the whole toolchain — compiler, module tooling, gofmt — and follows
+  # whatever nixpkgs currently treats as current, which is what naming it `go`
+  # rather than `go_1_26` buys.
+  #
+  # `nodejs_24` rather than plain `nodejs`, even though the two are the same
+  # derivation today. nixpkgs already carries nodejs_25 and nodejs_26, so the
+  # default will move off 24 on its own schedule; asking by version means that
+  # happens when this line changes and not before.
+  #
+  # bun is upstream's own binary, not a build from source — nixpkgs marks it
+  # binaryNativeCode — because it vendors a patched JavaScriptCore that nothing
+  # else here builds. It sits alongside Node rather than replacing it: the two
+  # read the same package.json and neither supplies the other.
   home.packages = [
     pkgs._1password-cli
+    pkgs.bun
     pkgs.gh
-    pkgs.google-cloud-sdk
+    pkgs.go
+    (pkgs.google-cloud-sdk.withExtraComponents [
+      pkgs.google-cloud-sdk.components.gke-gcloud-auth-plugin
+    ])
     gpgSshAuthorize
     pkgs.k9s
     pkgs.kubernetes-helm
+    pkgs.nodejs_24
     pkgs.terraform
   ];
 }
