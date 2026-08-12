@@ -52,7 +52,7 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 | 데스크톱 앱 (Firefox + cask 15개 + MAS 2개) | ✅ | ✖ |
 | `nixpkgs-firefox-darwin` 오버레이 | ✅ | ✖ |
 | Touch ID 로 sudo (`pam_tid`) | ✅ | ✖ |
-| [전원 연결 중엔 뚜껑을 닫아도 안 잠](decisions/0006-clamshell-only-while-on-power.md) · 정전 후 자동 복구 | ✖ | ✅ |
+| [전원 연결 중엔 뚜껑을 닫아도 안 잠](decisions/0006-clamshell-only-while-on-power.md) · 전원별 유휴 타이머 | ✖ | ✅ |
 | [크롬](decisions/0024-chrome-for-agent-browser-on-the-server.md)(agent-browser 용) · Rust · 언어 서버 | ✖ | ✅ |
 
 두 맥 다 MacBook Pro 급 하드웨어이고 Touch ID 센서도 둘 다 달려 있다. 랩탑에만

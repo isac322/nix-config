@@ -28,7 +28,16 @@
   environment.variables.AGENT_BROWSER_EXECUTABLE_PATH = lib.getExe pkgs.google-chrome;
 
   # Come back without someone pressing the button.
-  power.restartAfterPowerFailure = true;
+  #
+  # `power.restartAfterPowerFailure` is deliberately absent. Apple Silicon
+  # notebooks do not have the capability — `pmset -g cap` lists no
+  # `autorestart`, and `systemsetup -getRestartPowerFailure` answers "Not
+  # supported". nix-darwin checks for exactly that before activating and exits
+  # 2, so setting it does not merely no-op: it aborts every switch on this
+  # machine. Nothing is lost by dropping it. A notebook does not see a power
+  # failure — the adapter going away is a source change, which the daemon below
+  # handles, and the machine only powers off once the battery is flat. Attaching
+  # the adapter to a flat Mac powers it on by itself.
   power.restartAfterFreeze = true;
 
   # Idle timers, written per power source.

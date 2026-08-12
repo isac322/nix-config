@@ -65,8 +65,15 @@ nix-darwin 의 `power.sleep.*` 을 여기서 안 쓰는 이유가 이것이다. 
 **남는 위험 하나.** 일단 잠들면 데몬도 같이 자므로, 어댑터가 돌아왔을 때 깨우는
 것은 macOS 몫이다. 그걸 정하던 `acwake` 는 애플 실리콘에서 죽은 설정이라
 (`pmset -g cap` 에 없고 써도 안 먹는다) 동작이 기종에 박혀 있다. 이 기계가 어댑터로
-안 깨는 쪽이면, 배터리 타이머보다 긴 정전은 사람이 뚜껑을 열어야 끝난다. 전원이
-아예 나갔다 들어온 경우는 `restartAfterPowerFailure` 가 받는다.
+안 깨는 쪽이면, 배터리 타이머보다 긴 정전은 사람이 뚜껑을 열어야 끝난다.
+
+`restartAfterPowerFailure` 로 이걸 받으려 했지만 애플 실리콘 노트북에는 그 기능이
+없다 — `pmset -g cap` 에 `autorestart` 가 없고 `systemsetup
+-getRestartPowerFailure` 는 "Not supported" 를 답한다. nix-darwin 은 활성화 전에
+바로 그걸 검사해서 `exit 2` 로 죽으므로, 설정해두면 무시되는 게 아니라 switch
+자체가 매번 실패한다. 어차피 노트북은 정전을 겪지 않는다. 어댑터가 빠지는 것은
+전원 전환일 뿐이고, 실제로 꺼지는 건 배터리가 다 닳았을 때뿐이며, 방전된 맥은
+어댑터를 꽂으면 알아서 켜진다.
 
 데몬이 조용히 죽어서 뚜껑 뒤에서 기계가 자고 있는 것이 볼 수 있어야 할 실패라서,
 stderr 는 `/var/log/clamshell-on-power.err.log` 로 남는다. 정상이면 비어 있다.
