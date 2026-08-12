@@ -31,6 +31,13 @@
       # modules/roles/darwin-server.nix. The laptop's Chrome is a cask, which
       # Homebrew installs without consulting this predicate at all.
       "google-chrome"
+      # HashiCorp relicensed Terraform from MPL-2.0 to the Business Source
+      # License at 1.5.x, so nixpkgs has marked it unfree ever since. Nothing
+      # about the binary changed and the BUSL permits this use; it only forbids
+      # offering a competing Terraform service. opentofu is the MPL fork that
+      # came out of the relicensing and needs no entry here, if the licence
+      # rather than the tool is what matters later.
+      "terraform"
     ];
 
   environment.systemPackages = [

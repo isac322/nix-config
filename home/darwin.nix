@@ -277,10 +277,31 @@ in
   # /usr/local/bin/kubectl, put there by something outside nix — k9s never
   # calls it, but anything that does still gets that one rather than a pinned
   # version.
+  # Two of these three are not named what they are called.
+  #
+  # `gcloud` is the main program of google-cloud-sdk; there is no gcloud
+  # attribute. Bare, it is the CLI and nothing else — GKE authentication needs
+  # a component the plain package leaves out, and kubectl and k9s fail with
+  # "no Auth Provider found" rather than anything mentioning gcloud. That is
+  # `google-cloud-sdk.withExtraComponents [
+  # google-cloud-sdk.components.gke-gcloud-auth-plugin ]`, left off here until
+  # there is a GKE cluster to point at.
+  #
+  # `helm` is a different program entirely — a GPL-3.0 tool at 0.9.0 that has
+  # nothing to do with Kubernetes. Helm the chart manager is kubernetes-helm,
+  # whose mainProgram is nonetheless `helm`, so the wrong one installs quietly
+  # and only looks wrong when it runs.
+  #
+  # terraform is unfree; see the note in modules/common.nix.
+  # home-manager.useGlobalPkgs is on, so that predicate covers these packages
+  # as much as it does the system ones.
   home.packages = [
     pkgs._1password-cli
     pkgs.gh
+    pkgs.google-cloud-sdk
     gpgSshAuthorize
     pkgs.k9s
+    pkgs.kubernetes-helm
+    pkgs.terraform
   ];
 }
