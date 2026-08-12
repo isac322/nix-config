@@ -312,6 +312,20 @@ in
   # whatever nixpkgs currently treats as current, which is what naming it `go`
   # rather than `go_1_26` buys.
   #
+  # golangci-lint is what Go projects mean by "the linter": one binary running
+  # govet, staticcheck, errcheck and several dozen others from a single
+  # .golangci.yml, which is why it is here instead of each of them. It is
+  # version 2, and that matters to any repository still carrying an older
+  # config — the v2 binary cannot read a v1 file at all, and stops with
+  # "unsupported version of the configuration" rather than linting.
+  # `golangci-lint migrate` converts one in place.
+  #
+  # hadolint is the same idea for Dockerfiles, and a linter in the strict
+  # sense: it parses the file into a syntax tree rather than building it, so it
+  # wants neither a daemon nor a network. Findings arrive under two prefixes —
+  # DL for its own rules about how a Dockerfile should be written, SC for
+  # ShellCheck, which it hands the body of every RUN to.
+  #
   # `nodejs_24` rather than plain `nodejs`, even though the two are the same
   # derivation today. nixpkgs already carries nodejs_25 and nodejs_26, so the
   # default will move off 24 on its own schedule; asking by version means that
@@ -346,10 +360,12 @@ in
     pkgs.bun
     pkgs.gh
     pkgs.go
+    pkgs.golangci-lint
     (pkgs.google-cloud-sdk.withExtraComponents [
       pkgs.google-cloud-sdk.components.gke-gcloud-auth-plugin
     ])
     gpgSshAuthorize
+    pkgs.hadolint
     pkgs.k9s
     pkgs.kubernetes-helm
     pkgs.nodejs_24
