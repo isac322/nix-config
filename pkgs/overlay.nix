@@ -1,5 +1,5 @@
-# Packages this configuration needs that nixpkgs does not have, and the two it
-# has in a form this configuration cannot use.
+# Packages this configuration needs that nixpkgs does not have, and the three
+# it has in a form this configuration cannot use.
 #
 # They are added through an overlay rather than referenced as bare paths so
 # that `pkgs.posthog-cli` works everywhere `pkgs` does — including inside
@@ -8,6 +8,11 @@ final: prev: {
   posthog-cli = final.callPackage ./posthog-cli/package.nix { };
   axiom-cli = final.callPackage ./axiom-cli/package.nix { };
   langfuse-cli = final.callPackage ./langfuse-cli/package.nix { };
+
+  # This one replaces an existing attribute rather than adding one: nixpkgs'
+  # `slack-cli` is a different project that took the name first. The reasoning
+  # is in the package, since that is where it would be read.
+  slack-cli = final.callPackage ./slack-cli/package.nix { };
 
   # bun, one release ahead of the pinned nixpkgs, because 1.3.14 is the version
   # that was asked for. It has been upstream since 2026-05-13 and nixpkgs has

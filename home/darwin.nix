@@ -355,6 +355,13 @@ in
   # belong in a system closure — but it does mean `uv python install` writes
   # binaries this configuration did not put there. They are ordinary
   # relocatable macOS builds, so unlike on NixOS they simply run.
+  #
+  # slack-cli is the one name here that is a trap. `pkgs.slack-cli` in nixpkgs
+  # is a different project — a bash script from 2023 that posts to an incoming
+  # webhook — and pkgs/overlay.nix replaces the attribute with
+  # slackapi/slack-cli, the Go tool for creating, running and deploying Slack
+  # apps. Both install a binary called `slack`, so the wrong one is not a build
+  # failure; it is `slack app` reporting an unknown argument.
   home.packages = [
     pkgs._1password-cli
     pkgs.bun
@@ -370,6 +377,7 @@ in
     pkgs.kubernetes-helm
     pkgs.nodejs_24
     pkgs.pnpm
+    pkgs.slack-cli
     pkgs.stern
     pkgs.terraform
     pkgs.uv
