@@ -7,6 +7,145 @@ home-manager, llm-agents까지 전부 고정한다. 기기별로 레포를 나�
 맥북의 vim과 서버의 vim이 서로 다른 버전으로 갈라진다. "대부분의 설정을 공유"라는
 전제가 거기서 깨진다.
 
+## 새 기기에 올리기
+
+선언적으로 되지 않는 부트스트랩이 남아 있다.
+
+### 맥
+
+1. **Determinate Nix 설치.** nix-darwin 모듈은 설치해주지 않는다.
+   <https://install.determinate.systems/determinate-pkg/stable/Universal>
+2. **레포 clone.**
+3. **호스트명을 flake 속성 이름에 맞춘다.** `flake.nix` 의 속성이 호스트명이므로,
+   맞춰 두면 그 뒤로는 `#<hostname>` 없이 `darwin-rebuild switch --flake <path>`
+   가 알아서 이 기기 설정을 찾는다. 이름은 셋이고 셋 다 세워야 한다 — 그중
+   `LocalHostName` 이 `darwin-rebuild` 가 보는 것이다.
+   ```sh
+   sudo scutil --set ComputerName  bhyoo-macbook-pro   # 공유 화면에 보이는 이름
+   sudo scutil --set LocalHostName bhyoo-macbook-pro   # Bonjour, .local
+   sudo scutil --set HostName      bhyoo-macbook-pro   # 셸 프롬프트, hostname(1)
+   ```
+   이건 nix-darwin 에 맡길 수도 있지만(`networking.hostName` 등) 일부러 두지
+   않았다 — 이 이름이 곧 어느 설정을 고를지의 입력이라, 설정 안에 두면 잘못된
+   기기 설정을 한 번 적용해야 이름이 고쳐지는 순환이 된다.
+4. **바이너리 캐시 부트스트랩** (선택, 강력 권장). 첫 `switch`는 `nix.custom.conf`가
+   적용되기 전에 빌드한다. 건너뛰면 `omp`를 소스에서 빌드한다 — Rust 툴체인 + zig
+   461 MiB를 받고 cargo vendor부터 전부 컴파일한다.
+   ```sh
+   printf '\nextra-substituters = https://cache.numtide.com\nextra-trusted-public-keys = niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=\n' \
+     | sudo tee -a /etc/nix/nix.custom.conf
+   sudo launchctl kickstart -k system/systems.determinate.nix-daemon
+   ```
+   activation이 같은 내용을 선언적으로 다시 깔아주므로 이후에는 신경 쓸 필요 없다.
+5. **첫 `switch`.** 이때는 `darwin-rebuild` 가 아직 PATH 에 없다 — 그 명령 자체가
+   nix-darwin 이 깔아주는 것이고, 설치 프로그램은 따로 없다. 시스템을 한 번 빌드하면
+   결과물 안에 들어 있으므로 그걸로 자기 자신을 설치한다. 레포 루트에서:
+   ```sh
+   nix build .#darwinConfigurations.$(scutil --get LocalHostName).system
+   sudo ./result/sw/bin/darwin-rebuild switch --flake .
+   ```
+   업스트림이 안내하는 `sudo nix run nix-darwin/master#darwin-rebuild -- switch` 도
+   되지만 그건 nix-darwin 을 **master 에서** 끌어온다. 위 방식은 `flake.lock` 에
+   핀 고정된 리비전을 쓰므로 두 번째 switch 부터와 같은 버전이다.
+
+   두 번째부터는 `darwin-rebuild` 가 PATH 에 있으므로 아래
+   [기기별 명령](#기기별-명령) 대로 하면 된다.
+6. **App Management 권한 승인.** `home.stateVersion >= 25.11`이라
+   `targets.darwin.copyApps`가 켜져 있고 Firefox.app을
+   `~/Applications/Home Manager Apps/`로 복사한다. 거부하면 activation이 실패한다.
+   시스템 설정 → 개인정보 보호 및 보안 → 앱 관리.
+7. **GPG 키 가져오기.** 커밋 서명과 SSH 인증이 둘 다 이 키를 쓰므로 없으면 둘 다
+   먹통이다. activation 이 없다는 걸 알아채고 절차를 그 자리에서 안내한다 —
+   아래 [SSH 와 GPG](#ssh-와-gpg--열쇠-하나로-셋-다) 와 같은 내용이다.
+8. **WARP service token** — 서버 역할의 맥만. 아래
+   [헤드리스 등록](#헤드리스-등록--service-token) 을 보라.
+
+### 서버
+
+1. NixOS 설치 후 `nixos-generate-config --show-hardware-config`를 실행해
+   `hosts/server/hardware-configuration.nix`를 **통째로 교체한다.** 지금 들어 있는
+   건 맥에서 flake가 평가되도록 하기 위한 자리표시자이고 부팅되지 않는다.
+2. `services.openssh.settings.PasswordAuthentication = false`이므로 설치 시
+   `users.users.bhyoo.openssh.authorizedKeys.keys`를 넣어두거나 콘솔로 접근한다.
+3. `sudo nixos-rebuild switch --flake <path>#server`
+
+## 기기별 명령
+
+**맥에서는 호스트명을 칠 일이 없다.** `darwin-rebuild` 가 `--flake` 뒤에 `#` 이
+없으면 `scutil --get LocalHostName` 을 그대로 속성 이름으로 쓴다(핀 고정된
+`pkgs/nix-tools/darwin-rebuild.sh`). `--flake` 자체를 생략하면
+`/etc/nix-darwin/flake.nix` 를 따라가므로 — 심링크여도 된다 — 그 경우 명령은
+`sudo darwin-rebuild switch` 한 줄이다.
+
+바꿔 말하면 **호스트명이 곧 어느 설정을 고를지의 입력**이다. 안 맞으면 엉뚱한
+설정이 조용히 깔리는 게 아니라 `does not provide attribute
+'darwinConfigurations.<그 이름>.system'` 으로 즉시 멈춘다. 위
+[새 기기에 올리기](#맥) 3번이 그 이름을 세우는 단계다. 일회성으로 다른 기기 설정을
+빌드하고 싶을 때만 `#` 로 덮어쓴다.
+
+`nixos-rebuild` 는 이 편의가 없다 — 항상 `#server` 를 붙인다.
+
+```sh
+# 맥 (해당 기기에서). 이름이 맞으면 이게 전부다
+sudo darwin-rebuild switch --flake ~/nix-config
+sudo darwin-rebuild switch                      # 레포가 /etc/nix-darwin 일 때
+
+# 맥 — 일부러 다른 기기 설정을 고를 때만
+sudo darwin-rebuild switch --flake ~/nix-config#bhyoo-macbook-pro
+
+# 서버 (해당 기기에서)
+sudo nixos-rebuild switch --flake ~/nix-config#server
+
+# 서버 (맥에서 원격으로). --build-host 를 같이 주는 것이 핵심이다:
+# 맥은 aarch64-darwin 이라 aarch64-linux 파생물을 realise 할 수 없다.
+# 이렇게 하면 빌드가 서버에서 일어나므로 맥에 리눅스 빌더가 필요 없다.
+nixos-rebuild switch --flake ~/nix-config#server \
+  --target-host root@server --build-host root@server
+```
+
+레포 경로는 기기마다 달라도 된다. flake 경로는 `--flake`로 지정하는 값일 뿐이라
+설계에 영향이 없다.
+
+### 기기 간 독립성
+
+각 기기는 자기 설정을 스스로 빌드하고 전환한다. 서버는 맥에 전혀 의존하지 않는다.
+다만 두 가지를 기억할 것.
+
+**`flake.lock`은 공유 상태다.** `switch`는 lock을 건드리지 않지만
+`nix flake update`는 다시 쓴다. 기기마다 각자 update를 돌리면 lock이 갈라지고,
+단일 레포로 묶은 의미가 사라진다. 한 기기에서 update → commit → push 하고
+나머지는 pull → switch 한다.
+
+**평가는 크로스 플랫폼이지만 빌드는 아니다.** 맥에서 `nixosConfigurations.server`를
+평가해 drv 를 얻는 것은 되지만 realise 는 안 된다 (`extra-platforms` 가 비어 있고
+`/etc/nix/machines` 도 없다). 맥에서 서버를 직접 빌드하고 싶다면 Determinate 의
+네이티브 리눅스 빌더를 켠다. `system-features` 에 `apple-virt` 가 이미 있으므로
+Apple Silicon 에서는 aarch64-linux 가 나온다 — 서버와 같은 아키텍처다.
+
+```nix
+# modules/darwin.nix 또는 특정 호스트에서
+determinateNixd.builder = {
+  state = "enabled";
+  memoryBytes = 8589934592;  # 8 GiB
+  cpuCount = 4;
+};
+```
+
+## 업데이트
+
+버전은 전부 `flake.lock`에 고정돼 있다. lock을 갱신해야 올라간다.
+
+```sh
+nix flake update                    # 전체
+nix flake update nixpkgs            # 특정 인풋만
+# 그리고 각 기기에서 switch
+```
+
+flake 밖에서 관리되는 것:
+
+- **Nix 자체 (맥)** — `sudo determinate-nixd upgrade`
+- **Homebrew** — `onActivation.{upgrade,autoUpdate}`가 켜져 있어 switch 때 같이 올라간다
+
 ## 구조
 
 ```
@@ -676,121 +815,6 @@ dmg에서 `.app`만 복사하는데(Firefox·WARP와 같은 모양), 1Password �
 
 세 층 어디에도 안 맞는 것은 `extraModules` / `extraHomeModules`로 넘긴다 —
 한 기계가 미디어 서버를 겸하는 식의 경우.
-
-## 기기별 명령
-
-속성 이름은 각 기기의 호스트명과 같다. 이름이 맞으면 속성을 생략해도 되고,
-아니면 명시한다. 맞는지 확인하는 것은 `scutil --get LocalHostName` 이고, 그게
-`darwin-rebuild` 가 `#` 없이 찾아가는 이름이다 — 다르면 아래
-[새 기기에 올리기](#맥) 의 이름 맞추기 단계를 보라.
-
-```sh
-# 맥 (해당 기기에서)
-sudo darwin-rebuild switch --flake ~/nix-config#bhyoo-macbook-air
-sudo darwin-rebuild switch --flake ~/nix-config#bhyoo-macbook-pro
-
-# 서버 (해당 기기에서)
-sudo nixos-rebuild switch --flake ~/nix-config#server
-
-# 서버 (맥에서 원격으로). --build-host 를 같이 주는 것이 핵심이다:
-# 맥은 aarch64-darwin 이라 aarch64-linux 파생물을 realise 할 수 없다.
-# 이렇게 하면 빌드가 서버에서 일어나므로 맥에 리눅스 빌더가 필요 없다.
-nixos-rebuild switch --flake ~/nix-config#server \
-  --target-host root@server --build-host root@server
-```
-
-레포 경로는 기기마다 달라도 된다. flake 경로는 `--flake`로 지정하는 값일 뿐이라
-설계에 영향이 없다.
-
-### 기기 간 독립성
-
-각 기기는 자기 설정을 스스로 빌드하고 전환한다. 서버는 맥에 전혀 의존하지 않는다.
-다만 두 가지를 기억할 것.
-
-**`flake.lock`은 공유 상태다.** `switch`는 lock을 건드리지 않지만
-`nix flake update`는 다시 쓴다. 기기마다 각자 update를 돌리면 lock이 갈라지고,
-단일 레포로 묶은 의미가 사라진다. 한 기기에서 update → commit → push 하고
-나머지는 pull → switch 한다.
-
-**평가는 크로스 플랫폼이지만 빌드는 아니다.** 맥에서 `nixosConfigurations.server`를
-평가해 drv 를 얻는 것은 되지만 realise 는 안 된다 (`extra-platforms` 가 비어 있고
-`/etc/nix/machines` 도 없다). 맥에서 서버를 직접 빌드하고 싶다면 Determinate 의
-네이티브 리눅스 빌더를 켠다. `system-features` 에 `apple-virt` 가 이미 있으므로
-Apple Silicon 에서는 aarch64-linux 가 나온다 — 서버와 같은 아키텍처다.
-
-```nix
-# modules/darwin.nix 또는 특정 호스트에서
-determinateNixd.builder = {
-  state = "enabled";
-  memoryBytes = 8589934592;  # 8 GiB
-  cpuCount = 4;
-};
-```
-
-## 새 기기에 올리기
-
-선언적으로 되지 않는 부트스트랩이 남아 있다.
-
-### 맥
-
-1. **Determinate Nix 설치.** nix-darwin 모듈은 설치해주지 않는다.
-   <https://install.determinate.systems/determinate-pkg/stable/Universal>
-2. **레포 clone.**
-3. **호스트명을 flake 속성 이름에 맞춘다.** `flake.nix` 의 속성이 호스트명이므로,
-   맞춰 두면 그 뒤로는 `#<hostname>` 없이 `darwin-rebuild switch --flake <path>`
-   가 알아서 이 기기 설정을 찾는다. 이름은 셋이고 셋 다 세워야 한다 — 그중
-   `LocalHostName` 이 `darwin-rebuild` 가 보는 것이다.
-   ```sh
-   sudo scutil --set ComputerName  bhyoo-macbook-pro   # 공유 화면에 보이는 이름
-   sudo scutil --set LocalHostName bhyoo-macbook-pro   # Bonjour, .local
-   sudo scutil --set HostName      bhyoo-macbook-pro   # 셸 프롬프트, hostname(1)
-   ```
-   이건 nix-darwin 에 맡길 수도 있지만(`networking.hostName` 등) 일부러 두지
-   않았다 — 이 이름이 곧 어느 설정을 고를지의 입력이라, 설정 안에 두면 잘못된
-   기기 설정을 한 번 적용해야 이름이 고쳐지는 순환이 된다.
-4. **바이너리 캐시 부트스트랩** (선택, 강력 권장). 첫 `switch`는 `nix.custom.conf`가
-   적용되기 전에 빌드한다. 건너뛰면 `omp`를 소스에서 빌드한다 — Rust 툴체인 + zig
-   461 MiB를 받고 cargo vendor부터 전부 컴파일한다.
-   ```sh
-   printf '\nextra-substituters = https://cache.numtide.com\nextra-trusted-public-keys = niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=\n' \
-     | sudo tee -a /etc/nix/nix.custom.conf
-   sudo launchctl kickstart -k system/systems.determinate.nix-daemon
-   ```
-   activation이 같은 내용을 선언적으로 다시 깔아주므로 이후에는 신경 쓸 필요 없다.
-5. `sudo darwin-rebuild switch --flake <path>#<hostname>`
-6. **App Management 권한 승인.** `home.stateVersion >= 25.11`이라
-   `targets.darwin.copyApps`가 켜져 있고 Firefox.app을
-   `~/Applications/Home Manager Apps/`로 복사한다. 거부하면 activation이 실패한다.
-   시스템 설정 → 개인정보 보호 및 보안 → 앱 관리.
-7. **GPG 키 가져오기.** 커밋 서명과 SSH 인증이 둘 다 이 키를 쓰므로 없으면 둘 다
-   먹통이다. activation 이 없다는 걸 알아채고 절차를 그 자리에서 안내한다 —
-   위 [SSH 와 GPG](#ssh-와-gpg--열쇠-하나로-셋-다) 와 같은 내용이다.
-8. **WARP service token** — 서버 역할의 맥만. 아래
-   [헤드리스 등록](#헤드리스-등록--service-token) 을 보라.
-
-### 서버
-
-1. NixOS 설치 후 `nixos-generate-config --show-hardware-config`를 실행해
-   `hosts/server/hardware-configuration.nix`를 **통째로 교체한다.** 지금 들어 있는
-   건 맥에서 flake가 평가되도록 하기 위한 자리표시자이고 부팅되지 않는다.
-2. `services.openssh.settings.PasswordAuthentication = false`이므로 설치 시
-   `users.users.bhyoo.openssh.authorizedKeys.keys`를 넣어두거나 콘솔로 접근한다.
-3. `sudo nixos-rebuild switch --flake <path>#server`
-
-## 업데이트
-
-버전은 전부 `flake.lock`에 고정돼 있다. lock을 갱신해야 올라간다.
-
-```sh
-nix flake update                    # 전체
-nix flake update nixpkgs            # 특정 인풋만
-# 그리고 각 기기에서 switch
-```
-
-flake 밖에서 관리되는 것:
-
-- **Nix 자체 (맥)** — `sudo determinate-nixd upgrade`
-- **Homebrew** — `onActivation.{upgrade,autoUpdate}`가 켜져 있어 switch 때 같이 올라간다
 
 ## 설계 메모
 
