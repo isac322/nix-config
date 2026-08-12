@@ -1,11 +1,20 @@
 # A Mac someone sits in front of.
 #
-# Dock, trackpad, keyboard, Finder and the rest are the same on every Mac and
-# live in modules/darwin.nix; what makes a laptop different is only that it
-# runs desktop applications. The user-level half is
-# home/roles/darwin-laptop.nix.
-{ inputs, ... }:
+# How the Dock behaves, and trackpad, keyboard, Finder and the rest, are the
+# same on every Mac and live in modules/darwin.nix; what makes a laptop
+# different is only that it runs desktop applications — including which of them
+# the Dock holds, since that list is mostly the casks below. The user-level half
+# is home/roles/darwin-laptop.nix.
+{ config, inputs, ... }:
 
+let
+  inherit (config.system) primaryUser;
+
+  # Where a nixpkgs .app lands on darwin under home-manager. A stable path that
+  # points into the store, which is the reason to name it rather than a store
+  # path: this one survives a rebuild, and a store path in the Dock would not.
+  homeApps = "${config.users.users.${primaryUser}.home}/Applications/Home Manager Apps";
+in
 {
   # Only the machines that actually run Firefox need this overlay, and it is
   # not harmless elsewhere: besides firefox-bin it defines librewolf,
@@ -39,6 +48,34 @@
     "telegram" # the native macOS client, not telegram-desktop
     "vorta"
     "zoom"
+  ];
+
+  # The Dock, left to right. Setting this makes the list declarative in both
+  # directions: an app dragged in by hand is gone at the next activation, and
+  # an app removed from here leaves the Dock. `dock.show-recents` is off in
+  # modules/darwin.nix so nothing appends itself to the right of it either.
+  #
+  # A tile is a path and only a path — nix-darwin writes it verbatim into
+  # com.apple.dock. A path that no longer resolves is not a build error; it is
+  # a question mark in the Dock, which is why the /Applications entries are
+  # worth reading against the cask list above when either changes.
+  #
+  # Three sources, and which one a tile comes from decides what breaks it:
+  #   /System/Applications  Apple's own, present on every Mac.
+  #   /Applications         The casks above, put there by Homebrew.
+  #   homeApps              home-manager's per-user link farm — see the let
+  #                         binding at the top of this file.
+  #
+  # Note zoom.us.app: the cask is `zoom`, the bundle is not.
+  system.defaults.dock.persistent-apps = [
+    { app = "/System/Applications/Apps.app"; }
+    { app = "/System/Applications/Calendar.app"; }
+    { app = "${homeApps}/Firefox.app"; }
+    { app = "/Applications/Orca.app"; }
+    { app = "/Applications/Ghostty.app"; }
+    { app = "/Applications/Slack.app"; }
+    { app = "/Applications/zoom.us.app"; }
+    { app = "/System/Applications/System Settings.app"; }
   ];
 
   # Laptop-only, because it needs a fingerprint sensor: the mini is headless and

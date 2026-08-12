@@ -108,6 +108,25 @@ in
     # was just used to reach it.
     dock.mru-spaces = lib.mkDefault false;
 
+    # No hot corners. macOS assigns one out of the box — bottom right opens a
+    # Quick Note — and leaves the other three unset, which is not the same as
+    # off: an unset corner is one a later release is free to assign. `1` is the
+    # value for "no action", so all four are named rather than left to a
+    # default.
+    #
+    # nix-darwin has no wvous-*-modifier options and none are needed here: a
+    # modifier only gates a corner that has an action to gate.
+    dock.wvous-tl-corner = lib.mkDefault 1;
+    dock.wvous-tr-corner = lib.mkDefault 1;
+    dock.wvous-bl-corner = lib.mkDefault 1;
+    dock.wvous-br-corner = lib.mkDefault 1;
+
+    # The Dock holds the list modules/roles/darwin-laptop.nix pins and nothing
+    # else. Recents append themselves to the right of that list and change with
+    # whatever was opened last, which is the opposite of a Dock one navigates
+    # by position.
+    dock.show-recents = lib.mkDefault false;
+
     # Nothing on the desktop. This takes two owners: Finder draws the icons,
     # while widgets belong to WindowManager, so hiding one leaves the other.
     #
