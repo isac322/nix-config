@@ -317,6 +317,15 @@ in
   # default will move off 24 on its own schedule; asking by version means that
   # happens when this line changes and not before.
   #
+  # pnpm is the package manager half of that, and is listed rather than left to
+  # Corepack: `corepack enable` writes shims into the Node installation's own
+  # bin directory, which here is a read-only store path, and the versions it
+  # would then fetch come from each project's packageManager field at run time
+  # — the same unpinned shape as rustup, for the same reason it is not used
+  # either. The nixpkgs package carries its own nodejs-slim, so it does not
+  # depend on the `nodejs_24` above and does not shadow it; what lands on PATH
+  # is `pnpm` and `pnpx`.
+  #
   # bun is upstream's own binary, not a build from source — nixpkgs marks it
   # binaryNativeCode — because it vendors a patched JavaScriptCore that nothing
   # else here builds. It sits alongside Node rather than replacing it: the two
@@ -344,6 +353,7 @@ in
     pkgs.k9s
     pkgs.kubernetes-helm
     pkgs.nodejs_24
+    pkgs.pnpm
     pkgs.stern
     pkgs.terraform
     pkgs.uv
