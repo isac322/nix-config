@@ -38,6 +38,14 @@
   # failure — the adapter going away is a source change, which the daemon below
   # handles, and the machine only powers off once the battery is flat. Attaching
   # the adapter to a flat Mac powers it on by itself.
+  #
+  # `restartAfterFreeze` stays. It is not the same case: `strings
+  # /usr/sbin/systemsetup` carries a "Not supported on this machine" line for
+  # wake-on-modem, wake-on-network, restart-after-power-failure and the power
+  # button, and none for freeze — `-getRestartFreeze` can only answer On or Off.
+  # It cannot abort a switch either. nix-darwin greps that string rather than
+  # reading `$?` because systemsetup exits 0 even when it refuses, so an
+  # unsupported setting can never trip the activation script's `set -e`.
   power.restartAfterFreeze = true;
 
   # Idle timers, written per power source.
