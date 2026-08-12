@@ -260,8 +260,16 @@ in
   # what a machine with nobody at it has to use.
   # gpg-ssh-authorize is on PATH as well as wired into activation, so a key
   # imported between switches can be put to work immediately.
+  # `gh` sits here rather than in home/common.nix because the two Macs are
+  # where repositories are worked on; the Linux server runs services and has
+  # nothing to open a pull request about. It authenticates on its own — a
+  # keyring entry or GH_TOKEN — so nothing about it belongs in this file, and
+  # it deliberately does not reuse the SSH key set up above: `gh` speaks the
+  # REST API over HTTPS, which is a different credential from the one `git`
+  # pushes with.
   home.packages = [
     pkgs._1password-cli
+    pkgs.gh
     gpgSshAuthorize
   ];
 }
