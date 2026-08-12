@@ -28,9 +28,24 @@ in
   # The Determinate installer writes its own /etc/nix/nix.custom.conf, which the
   # determinate module then wants to replace. Without whitelisting that file's
   # hash, the first activation on a fresh machine aborts with
-  # "Unexpected files in /etc". Add a hash here if an install writes a variant.
+  # "Unexpected files in /etc".
+  #
+  # nix-darwin carries the same list for the same file, but ours has to stand on
+  # its own: that copy lives in the nix module behind `handleUnmanaged`, and
+  # `nix.enable = false` switches the whole branch off. These are every variant
+  # upstream has vetted as untouched installer output — the file is only
+  # overwritten when it still matches one of them, so a machine installed by a
+  # different version is covered while a hand-edited file still stops the
+  # switch. Add a hash here if an install writes a variant not listed yet.
   environment.etc."nix/nix.custom.conf".knownSha256Hashes = [
+    # DetSys v0.33.0
+    "6787fade1cf934f82db554e78e1fc788705c2c5257fddf9b59bdd963ca6fec63"
+    # DetSys v0.34.0
     "3bd68ef979a42070a44f8d82c205cfd8e8cca425d91253ec2c10a88179bb34aa"
+    # Nix 2.33.3
+    "71f7fdc9f6c9e55ca0f2e6f85137037d660b3224a34d59305e8530ca292bc734"
+    # Lix 2.95.1
+    "a6dee4985bf207d3bec6a3cee28aefb33e60f5d0a91d8c20bbd71b9dadb2e601"
   ];
 
   system.primaryUser = "bhyoo";
