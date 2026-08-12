@@ -1,0 +1,18 @@
+# `nix build` drops these in the working tree, and a flake only sees tracked
+# files — so an untracked result/ is invisible to the build but very visible
+# in `git status`.
+/result
+/result-*
+
+# Vim swap and undo files. Not hypothetical: .home.nix.swp was committed once
+# and is still in the history. A swap file holds the whole edit buffer, which
+# is exactly the shape of accident that leaks something from a file being
+# edited but not yet saved.
+*.swp
+*.swo
+*.un~
+
+# Direnv, if it is ever used here.
+/.direnv/
+
+.DS_Store
