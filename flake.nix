@@ -155,17 +155,25 @@
             posthog-cli
             axiom-cli
             langfuse-cli
+            vercel-cli
+            slack-cli
             tempo-cli
             ;
         }
       );
 
-      # `nix run .#cache-push -- <cache>` builds the four packages above and
-      # uploads them. They are exactly the set no public cache can have:
-      # posthog-cli, axiom-cli and langfuse-cli exist nowhere else, and
-      # tempo-cli is an override, so its derivation differs from the tempo that
-      # cache.nixos.org built. Everything else in a system closure still comes
-      # from upstream caches, so there is nothing else worth pushing.
+      # `nix run .#cache-push -- <cache>` builds the packages above and uploads
+      # them. They are exactly the set no public cache can have: the first four
+      # exist nowhere else, and slack-cli and tempo-cli replace nixpkgs
+      # attributes, so their derivations differ from what cache.nixos.org built
+      # under those names. Everything else in a system closure still comes from
+      # upstream caches, so there is nothing else worth pushing — the bun
+      # override in pkgs/overlay.nix is also built locally, but building it is
+      # unpacking a zip upstream published and pushing it would save nothing.
+      #
+      # It is the same list, read out of packages rather than written twice —
+      # a package added there and forgotten here would be one that quietly gets
+      # compiled on every machine.
       #
       # The store paths are baked in rather than resolved from `.#` at run
       # time: building this app builds precisely what it will push, and it
@@ -175,12 +183,7 @@
         let
           pkgs = nixpkgs.legacyPackages.${system}.extend (import ./pkgs/overlay.nix);
           inherit (nixpkgs) lib;
-          targets = [
-            pkgs.posthog-cli
-            pkgs.axiom-cli
-            pkgs.langfuse-cli
-            pkgs.tempo-cli
-          ];
+          targets = builtins.attrValues self.packages.${system};
         in
         {
           cache-push = {
