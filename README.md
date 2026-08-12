@@ -29,7 +29,8 @@ home/              사용자 레벨 (home-manager)
   linux.nix          NixOS 전용
   roles/
     darwin-laptop.nix   데스크톱 앱
-    darwin-server.nix
+    darwin-server.nix   Rust · 언어 서버
+pkgs/              nixpkgs 에 없거나 쓸 수 없는 형태인 패키지 + overlay.nix
 ```
 
 축이 셋(OS × 역할 × 기기)인데 상속이 아니라 **조합**으로 푼다. 모든 설정은
@@ -52,9 +53,15 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 
 | | 랩탑 | 서버 |
 |---|---|---|
-| 데스크톱 앱 (Firefox + cask 12개 + MAS 2개) | ✅ | ✖ |
+| 데스크톱 앱 (Firefox + cask 15개 + MAS 2개) | ✅ | ✖ |
 | `nixpkgs-firefox-darwin` 오버레이 | ✅ | ✖ |
-| 잠들지 않음 / 정전 후 자동 복구 | ✖ | ✅ |
+| Touch ID 로 sudo (`pam_tid`) | ✅ | ✖ |
+| 잠들지 않음 · [뚜껑을 닫아도](#뚜껑을-닫아도-안-자게--disablesleep) · 정전 후 자동 복구 | ✖ | ✅ |
+| 크롬(agent-browser 용) · Rust · 언어 서버 | ✖ | ✅ |
+
+두 맥 다 MacBook Pro 급 하드웨어이고 Touch ID 센서도 둘 다 달려 있다. 랩탑에만
+있는 이유는 하드웨어가 아니라 역할이다 — 서버 맥은 뚜껑을 닫은 채 SSH 로만
+들어가므로 `pam_tid` 가 프롬프트를 띄울 화면이 없다.
 
 GUI 앱은 nixpkgs가 아니라 Homebrew에서 온다. 대부분은 nixpkgs에 darwin 빌드가
 아예 없고, 있는 것도 특권 구성요소가 빠진 앱 번들 복사본이다 — WARP과 Karabiner를
@@ -66,7 +73,7 @@ Homebrew가 한다.
 - **Orca** (Stably) — homebrew-cask가 아니라 자체 tap에 있어서 `homebrew.taps`에
   `stablyai/orca`를 같이 선언한다. nix-homebrew가 tap을 기본적으로 mutable로
   두기 때문에 tap을 flake 인풋으로 고정하지 않고도 동작한다.
-- **맥미니의 크롬** — 위 문단의 유일한 반례로, nixpkgs 에서 온다. 사람이 쓰는
+- **서버 맥의 크롬** — 위 문단의 유일한 반례로, nixpkgs 에서 온다. 사람이 쓰는
   브라우저가 아니라 `agent-browser` 가 몰 대상이라 자동 업데이트가 장점이 아니고,
   캐스크가 아니면 activation 중 root 도 필요 없다. 자동 탐지에 걸리지 않는
   경로에 설치되므로 환경변수를 같이 세운다 — [agent-browser 에게 브라우저를
@@ -358,7 +365,7 @@ Canary, Chromium, Brave. 마지막 것이 **하드코딩된 절대 경로**라�
 - **랩탑은 아무것도 안 해도 된다.** `google-chrome` 캐스크가 크롬을 정확히
   `/Applications/Google Chrome.app` 에 놓기 때문에 자동 탐지에 그대로 걸린다.
   `agent-browser doctor` 가 `pass Google Chrome 151.0.7922.109` 를 찍는다.
-- **맥미니는 nixpkgs 에서 받고, 경로를 손으로 알려준다**
+- **서버 맥은 nixpkgs 에서 받고, 경로를 손으로 알려준다**
   (`modules/roles/darwin-server.nix`). 아무도 안 쓰는 기기에 캐스크로 자동
   업데이트되는 브라우저를 둘 이유가 없어서 nixpkgs 쪽을 골랐다 — 클로저와 같이
   핀 되고, activation 중에 root 를 요구하는 `pkg` 아티팩트도 없다. 대신 nixpkgs
@@ -376,13 +383,83 @@ SSH 로 몰기 때문이다. `/etc/zshenv` 는 모든 zsh 가 읽지만 home-man
 그럴 뿐 실행에는 환경변수가 이긴다: 없는 경로를 넣으면 `Launch test` 가
 `Failed to launch Chrome at "…"` 로 떨어지고, nix 크롬을 넣으면 통과한다.
 
+### 개발 도구 — 맥에만 있다
+
+위의 두 CLI 묶음은 **모든 기기**에 있지만, 컴파일러와 개발 도구는 맥에만 둔다
+(`home/darwin.nix`). 리눅스 서버는 서비스를 돌리는 기계라 컴파일할 것이 없다.
+
+**언어 툴체인** — `go`, `nodejs_24` + `pnpm`, `bun`, `uv`. Rust 는 여기 없고
+서버 맥에만 있다 (`home/roles/darwin-server.nix`) — 요청이 그 기계에 한정돼
+있었다.
+
+- **`go` 는 버전 없는 이름 그대로 쓴다.** nixpkgs 가 현재로 취급하는 것을 따라가는
+  게 맞다고 봤다. **`nodejs_24` 는 반대로 버전을 박았다** — 오늘은 `nodejs` 와 같은
+  파생이지만 nixpkgs 에 이미 25 와 26 이 있어서 기본값은 알아서 움직인다. 버전을
+  적어 두면 그 이동이 이 줄을 고칠 때 일어난다.
+- **pnpm 은 Corepack 에 맡기지 않고 패키지로 넣는다.** `corepack enable` 은 Node
+  설치 디렉터리 안에 shim 을 쓰는데 여기서는 그게 읽기 전용 스토어 경로다. 게다가
+  그 뒤로 받아오는 버전은 프로젝트의 `packageManager` 필드가 런타임에 정한다 —
+  rustup 을 쓰지 않는 것과 정확히 같은 이유다. nixpkgs 패키지는 자기 `nodejs-slim`
+  을 들고 오므로 위의 `nodejs_24` 를 가리지도, 의존하지도 않는다.
+- **bun 은 이 목록에서 유일하게 nixpkgs 그대로가 아니다.** 필요한 버전이 1.3.14
+  인데 nixpkgs 는 한 릴리스 뒤라 `pkgs/overlay.nix` 에서 덮어썼다. 노드를 대체하러
+  온 게 아니라 옆에 선다 — 둘은 같은 `package.json` 을 읽고 서로를 대신하지 않는다.
+- **uv 옆에 파이썬 인터프리터가 없는 건 빠뜨린 게 아니다.** uv 가
+  `~/.local/share/uv` 밑에 자기 standalone CPython 을 받아 거기에 virtualenv 를
+  만든다. 그건 의도적으로 nix 바깥이고 — 프로젝트마다 다르고 `pyproject.toml` 을
+  따라 움직이니 시스템 클로저에 있을 것이 아니다 — 대신 이 설정이 놓지 않은
+  바이너리가 생긴다는 뜻이기도 하다. 평범한 relocatable macOS 빌드라 NixOS 와
+  달리 그냥 실행된다.
+
+**린터 둘** — `golangci-lint`, `hadolint`. 둘 다 설정을 들고 오지 않는다.
+프로젝트의 `.golangci.yml` 과 지목된 Dockerfile 을 읽을 뿐이라 이 레포에 넣을
+것이 없다. 각각 하나가 아니라 묶음이라는 점이 같다 — golangci-lint 는 govet ·
+staticcheck · errcheck 를 포함한 수십 개를 한 바이너리로 돌리고, hadolint 는 모든
+`RUN` 본문을 ShellCheck 에 넘긴다 (그래서 결과가 `DL` 과 `SC` 두 접두사로 나온다).
+
+**하나만 미리 알아둘 것: 핀 된 golangci-lint 는 2.x 다.** v1 형식의
+`.golangci.yml` 은 무시되거나 부분 동작하는 게 아니라 실행 자체가 멈춘다 —
+린트가 아니라 `unsupported version of the configuration` 이 나온다.
+`golangci-lint migrate` 가 제자리에서 변환한다.
+
+**쿠버네티스·클라우드** — `k9s`, `stern`, `kubernetes-helm`, `google-cloud-sdk`,
+`terraform`. 셋은 이름이 함정이다.
+
+- **`gcloud` 라는 attribute 는 없다.** `google-cloud-sdk` 의 mainProgram 이다.
+  그냥 담으면 CLI 뿐인데, GKE 가 CLI 이상을 요구하는 유일한 항목이다 — 쿠버네티스가
+  1.26 에서 in-tree GCP auth provider 를 뺐기 때문에 `gcloud container clusters
+  get-credentials` 가 쓴 kubeconfig 는 외부 자격증명 플러그인을 지목한다.
+  `gke-gcloud-auth-plugin` 이 PATH 에 없으면 kubectl 과 k9s 가 `no Auth Provider
+  found` 로 죽는데, 이 메시지는 gcloud 도 플러그인도 언급하지 않는다. 구글의
+  안내는 `gcloud components install` 이고 그건 패키지 자기 디렉터리에 쓰므로
+  읽기 전용 스토어에서는 불가능하다. `withExtraComponents` 가 선언적인 형태이고,
+  컴포넌트를 패키지 안에 빌드해 넣는다.
+- **`helm` 은 전혀 다른 프로그램이다.** 0.9.0 짜리 GPL-3.0 도구로 쿠버네티스와
+  무관하다. 차트 매니저는 `kubernetes-helm` 이고, 그런데 그것의 mainProgram 도
+  `helm` 이라 잘못 담아도 조용히 설치되고 실행할 때만 이상해 보인다.
+- **`stern` 은 k9s 의 빈자리다.** 정규식으로 여러 파드·컨테이너의 로그를 한꺼번에
+  따라가는 쪽이라 k9s 가 어색한 딱 그 일을 한다. 둘 다 kubeconfig 를 스스로 읽으니
+  여기에 클러스터 설정은 없다. 참고로 이 기계들의 `kubectl` 은
+  `/usr/local/bin/kubectl` — nix 바깥에서 온 것이다. k9s 는 그걸 부르지 않지만,
+  부르는 무언가는 핀 된 버전이 아니라 그쪽을 잡는다.
+
+`terraform` 은 unfree 라 `modules/common.nix` 의 predicate 를 탄다.
+`home-manager.useGlobalPkgs` 가 켜져 있어 시스템 패키지와 같은 규칙이 적용된다.
+
+**플랫폼 CLI** — `gh`, `slack-cli`, `vercel-cli`. 셋 다 자기가 알아서 인증한다
+(각각 키체인/`GH_TOKEN`, `slack login`, `vercel login`) 이라 계정에 관한 것은
+이 레포에 하나도 없다. `gh` 가 `home/common.nix` 가 아니라 여기 있는 이유는 맥이
+저장소를 만지는 기계이기 때문이고, SSH 키를 재활용하지 않는다는 점도 알아둘 만하다
+— `gh` 는 HTTPS 위의 REST API 를 쓰므로 `git` 이 push 하는 자격증명과 별개다.
+뒤의 둘은 nixpkgs 에서 그대로 오지 않는다 — 아래 `pkgs/` 절을 보라.
+
 ### 이 레포를 패키지 저장소로 쓰기
 
 `pkgs/` 는 내부용으로만 쓰이지 않고 **플레이크 출력으로 노출**된다. 다른 기기나
 다른 사람이 디렉터리를 복사하는 대신 인풋으로 가져갈 수 있게 하려는 것이다.
 
 ```nix
-inputs.bhyoo.url = "github:bhyoo/nix-darwin";   # 리모트가 생기면
+inputs.bhyoo.url = "github:isac322/nix-config";
 # 이후
 nixpkgs.overlays = [ inputs.bhyoo.overlays.default ];
 # 또는
@@ -401,10 +478,16 @@ Nix 에서 "저장소" 는 AUR 처럼 중앙 집중이 아니다. 레포가 이 
 ### 세 기기가 같은 것을 세 번 컴파일하지 않게 — Cachix
 
 AUR 과 정말 다른 지점은 여기다. 배포 방식이 아니라 **빌드**가 아프다.
-`pkgs/` 의 넷은 어떤 공개 캐시에도 없다 — 셋은 nixpkgs 에 존재하지 않고,
-`tempo-cli` 는 오버라이드라 `cache.nixos.org` 가 빌드한 `tempo` 와 파생이 다르다.
-그래서 기기마다 새로 컴파일한다. 나머지는 상류 캐시가 덮으므로, 올릴 가치가 있는
-것은 정확히 이 넷뿐이다.
+`pkgs/` 의 여섯은 어떤 공개 캐시에도 없다 — 넷은 nixpkgs 에 존재하지 않고,
+`slack-cli` 와 `tempo-cli` 는 nixpkgs 의 attribute 를 갈아끼운 것이라
+`cache.nixos.org` 가 그 이름으로 빌드해 둔 것과 파생이 다르다. 그래서 기기마다
+새로 컴파일한다. 나머지는 상류 캐시가 덮으므로, 올릴 가치가 있는 것은 정확히 이
+여섯뿐이다. (`bun` 오버라이드도 로컬 빌드이긴 한데, 상류가 배포한 zip 을 푸는
+게 빌드의 전부라 올려도 아끼는 게 없다.)
+
+`packages.<system>` 과 `cache-push` 는 **같은 목록**이다. 후자가 전자를
+`attrValues` 로 읽는다 — 한쪽에만 추가된 패키지는 조용히 모든 기기에서 다시
+컴파일되는 패키지가 되기 때문이다.
 
 FlakeHub Cache 는 Determinate 를 이미 쓰는 만큼 자연스러워 보이지만 두 번 막힌다 —
 유료 플랜 전용이고, 애드혹 push 를 의도적으로 금지해 신뢰된 빌더(GitHub Actions,
@@ -435,9 +518,10 @@ nix run /etc/nix-darwin#cache-push -- <cache>
 
 ### nixpkgs 에 없어서 직접 담은 것 — `pkgs/`
 
-`posthog-cli`, `axiom-cli`, `langfuse-cli` 는 nixpkgs 에 아예 없다.
-`pkgs/overlay.nix` 가 오버레이로 얹으므로, 이 디렉터리를 볼 일 없는 home-manager
-모듈에서도 그냥 `pkgs.posthog-cli` 로 쓴다.
+`posthog-cli`, `axiom-cli`, `langfuse-cli`, `vercel-cli` 는 nixpkgs 에 아예 없다.
+`slack-cli` 는 있는데 **다른 프로그램**이고, `tempo-cli` 는 nixpkgs 것을 잘라
+쓴다. `pkgs/overlay.nix` 가 오버레이로 얹으므로, 이 디렉터리를 볼 일 없는
+home-manager 모듈에서도 그냥 `pkgs.posthog-cli` 로 쓴다.
 
 **posthog-cli 는 crates.io 에서 가져온다.** GitHub 이 아니라 crates.io 인 이유는,
 이 CLI 가 PostHog 모노레포 안에 살아서 git 체크아웃을 하면 작은 바이너리 하나
@@ -486,6 +570,68 @@ api 서브커맨드가 돌 때 풀리므로, `node_modules` 가 통째로 없어
 지나가는 가장 싼 명령이고, 스펙을 타르볼에 담긴 `openapi.yml` 에서 읽으므로 자격
 증명도 샌드박스에 없는 네트워크도 필요 없다.
 
+**vercel-cli 도 npm 타르볼에서 가져온다.** nixpkgs 에는 어떤 이름으로도 없다 —
+`vercel` 도 `vercel-cli` 도 없고, 가장 비슷한 `vercel-pkg` 는 이름만 바뀐
+zeit/pkg 번들러로 무관하다. 타르볼을 고른 이유는 langfuse-cli 와 같다: 저장소가
+모노레포이고 `files` 가 `["dist"]` 이라, 배포된 것이 곧 prepublish 가 만든 번들이고
+버전 번호가 가리키는 것도 그것이다.
+
+까다로운 쪽은 의존성 트리이고, 패키지 옆에 `package.json` 과 `package-lock.json`
+**둘 다** 들어 있는 게 그 결과다.
+
+npm 타르볼에 lock 이 없다는 것까지는 langfuse-cli 와 같은데, 여기서는 배포된
+manifest 그대로는 lock 을 만들 수조차 없다. devDependencies 셋이 애초에 배포된 적
+없는 워크스페이스 패키지라 `npm install --package-lock-only` 가 레지스트리 404 에서
+멈춘다. `--omit=dev` 도 답이 아니다 — lock 은 설치할 것이 아니라 **이상적인 트리
+전체**를 적기 때문이다. 어차피 여기서는 아무것도 컴파일하거나 테스트하지 않으므로
+필요도 없다.
+
+`optionalDependencies` 는 이유가 다르다. 같은 네이티브 바이너리를 플랫폼별로 넷
+빌드해 둔 것이고 하나가 약 68 MB 인데, `prefetch-npm-deps` 는 이 플랫폼 것인지와
+무관하게 lock 의 모든 항목을 받아온다. `dist/vc.js` 의 shim 은 사용자가 명시적으로
+켰을 때만 그중 하나를 JS CLI 보다 우선하므로, 빼도 기본 경로는 그대로이고 클로저가
+270 MB 가벼워진다.
+
+**그 편집이 lock 을 읽기 전에 끝나야 하고, 그건 곧 `postPatch` 안이어야 한다는
+뜻이다.** `buildNpmPackage` 는 의존성 캐시를 두 번째 fixed-output 파생에서 만드는데
+그쪽은 `src` 와 `postPatch` 만 공유하고 빌드 인풋은 하나도 못 받는다. 게다가
+`npmConfigHook` 은 자기를 `postPatchHooks` 에 덧붙이므로 `preConfigure` 는
+자기가 준비해 주려던 `npm ci` **다음에** 돈다. 이미 편집된 manifest 를 복사해
+넣는 방식은 두 파생 모두에서 동작하고 둘 다 아무 도구도 필요 없다. 다시 만드는
+절차는 패키지 안에 적어 두었다.
+
+설치 검사가 `--version` 이 아니라 `vercel telemetry status` 인 것도 같은 종류의
+이유다. 버전은 shim 이 아무것도 로드하기 전에 답하므로 `node_modules` 가 통째로
+없어도 통과한다 — 위의 이야기가 전부 node_modules 에 무엇을 넣느냐였다는 걸
+생각하면, 그게 바로 잡아야 할 고장이다.
+
+**slack-cli 는 이름을 뺏긴 경우다.** nixpkgs 의 `slack-cli` 는
+rockymadden/slack-cli — 2023년 2월에 마지막으로 손댄, incoming webhook 에 글을
+올리는 bash 스크립트다. 오늘 "Slack CLI" 라고 하면 slackapi/slack-cli, Slack 앱을
+만들고 돌리고 배포하는 Go 프로그램을 말한다. **둘 다 `slack` 이라는 바이너리를
+설치하므로 잘못 고르는 것은 빌드 실패가 아니다** — 한참 뒤에 `slack app` 이 인자를
+모른다고 답하는 형태로 나타난다. 그래서 오버레이는 새 이름을 만드는 대신 attribute
+자체를 갈아끼운다.
+
+빌드에 일러줘야 하는 것이 넷인데, 넷 다 빠뜨리면 시끄럽게가 아니라 조용히 어긋난다.
+
+- **버전은 ldflags 로 박는다.** 상류는 `git describe` 에서 읽는데 받아온 타르볼은
+  그 질문에 답할 수 없고, 폴백이 `v0.0.0-dev` 다 — 영원히 업그레이드하라고 잔소리하고
+  `slack version` 에도 거짓을 말하는 바이너리가 된다. 설치 검사가 그 명령을 실행해
+  진짜 버전을 찾으므로, 상류가 import 경로를 옮기면 도장이 조용히 썩지는 않는다.
+- **Go 는 바이너리 이름을 모듈 경로에서 짓는다** — `slack-cli` 가 나온다. 상류의
+  Makefile 도 Homebrew 도 문서도 전부 `slack` 이라, 설치할 때 이름을 바꾼다.
+- **테스트와 설치 검사에 각각 임시 HOME 을 준다.** 이 CLI 는 무엇을 하기 전에 먼저
+  `~/.slack` 을 여는데 샌드박스에는 홈 디렉터리가 없다. `git` 이 테스트 인풋인 것도
+  같은 모양의 이유다 — `cmd/doctor` 의 테스트가 실제 도구들에게 버전을 묻고, 그중
+  git 은 꼭 찾아야 한다고 고집한다.
+- **빌드 동안은 텔레메트리를 끈다.** 안 그러면 위의 두 번의 실행이 네트워크 없는
+  샌드박스에서 Slack 에 자기를 보고하려 든다. 빌드 환경에 한정된 이야기이고, 설치된
+  바이너리가 무엇을 보고할지는 사용자 몫으로 남는다.
+
+셸 완성은 바이너리 자신에게서 받는다 — Cobra 가 등록해 두고 숨겨 놓은 `completion`
+서브커맨드다.
+
 ### 1Password — GUI 와 CLI 를 나눠 담는다
 
 `op` CLI는 **모든 맥**에 (`home/darwin.nix`), 데스크톱 앱은 **랩탑에만**
@@ -522,8 +668,8 @@ dmg에서 `.app`만 복사하는데(Firefox·WARP와 같은 모양), 1Password �
 
 오버레이가 랩탑에만 있는 이유는 무해하지 않기 때문이다. `firefox-bin` 외에
 `librewolf`, `floorp-bin`, `zen-browser-bin`도 정의해서 같은 이름의 nixpkgs
-패키지를 가린다. 검증: 맥북에서 `librewolf.pname`은 `Librewolf`(오버레이),
-맥미니에서는 `librewolf`(nixpkgs).
+패키지를 가린다. 검증: 랩탑에서 `librewolf.pname`은 `Librewolf`(오버레이),
+서버 맥에서는 `librewolf`(nixpkgs).
 
 **기기 전용** (`hosts/<name>/`) — 정말 그 기계에만 해당하는 것. 지금은
 `hostPlatform`과 서버의 `hardware-configuration.nix`뿐이다.
@@ -534,7 +680,9 @@ dmg에서 `.app`만 복사하는데(Firefox·WARP와 같은 모양), 1Password �
 ## 기기별 명령
 
 속성 이름은 각 기기의 호스트명과 같다. 이름이 맞으면 속성을 생략해도 되고,
-아니면 명시한다.
+아니면 명시한다. 맞는지 확인하는 것은 `scutil --get LocalHostName` 이고, 그게
+`darwin-rebuild` 가 `#` 없이 찾아가는 이름이다 — 다르면 아래
+[새 기기에 올리기](#맥) 의 이름 맞추기 단계를 보라.
 
 ```sh
 # 맥 (해당 기기에서)
@@ -588,7 +736,19 @@ determinateNixd.builder = {
 1. **Determinate Nix 설치.** nix-darwin 모듈은 설치해주지 않는다.
    <https://install.determinate.systems/determinate-pkg/stable/Universal>
 2. **레포 clone.**
-3. **바이너리 캐시 부트스트랩** (선택, 강력 권장). 첫 `switch`는 `nix.custom.conf`가
+3. **호스트명을 flake 속성 이름에 맞춘다.** `flake.nix` 의 속성이 호스트명이므로,
+   맞춰 두면 그 뒤로는 `#<hostname>` 없이 `darwin-rebuild switch --flake <path>`
+   가 알아서 이 기기 설정을 찾는다. 이름은 셋이고 셋 다 세워야 한다 — 그중
+   `LocalHostName` 이 `darwin-rebuild` 가 보는 것이다.
+   ```sh
+   sudo scutil --set ComputerName  bhyoo-macbook-pro   # 공유 화면에 보이는 이름
+   sudo scutil --set LocalHostName bhyoo-macbook-pro   # Bonjour, .local
+   sudo scutil --set HostName      bhyoo-macbook-pro   # 셸 프롬프트, hostname(1)
+   ```
+   이건 nix-darwin 에 맡길 수도 있지만(`networking.hostName` 등) 일부러 두지
+   않았다 — 이 이름이 곧 어느 설정을 고를지의 입력이라, 설정 안에 두면 잘못된
+   기기 설정을 한 번 적용해야 이름이 고쳐지는 순환이 된다.
+4. **바이너리 캐시 부트스트랩** (선택, 강력 권장). 첫 `switch`는 `nix.custom.conf`가
    적용되기 전에 빌드한다. 건너뛰면 `omp`를 소스에서 빌드한다 — Rust 툴체인 + zig
    461 MiB를 받고 cargo vendor부터 전부 컴파일한다.
    ```sh
@@ -597,11 +757,16 @@ determinateNixd.builder = {
    sudo launchctl kickstart -k system/systems.determinate.nix-daemon
    ```
    activation이 같은 내용을 선언적으로 다시 깔아주므로 이후에는 신경 쓸 필요 없다.
-4. `sudo darwin-rebuild switch --flake <path>#<hostname>`
-5. **App Management 권한 승인.** `home.stateVersion >= 25.11`이라
+5. `sudo darwin-rebuild switch --flake <path>#<hostname>`
+6. **App Management 권한 승인.** `home.stateVersion >= 25.11`이라
    `targets.darwin.copyApps`가 켜져 있고 Firefox.app을
    `~/Applications/Home Manager Apps/`로 복사한다. 거부하면 activation이 실패한다.
    시스템 설정 → 개인정보 보호 및 보안 → 앱 관리.
+7. **GPG 키 가져오기.** 커밋 서명과 SSH 인증이 둘 다 이 키를 쓰므로 없으면 둘 다
+   먹통이다. activation 이 없다는 걸 알아채고 절차를 그 자리에서 안내한다 —
+   위 [SSH 와 GPG](#ssh-와-gpg--열쇠-하나로-셋-다) 와 같은 내용이다.
+8. **WARP service token** — 서버 역할의 맥만. 아래
+   [헤드리스 등록](#헤드리스-등록--service-token) 을 보라.
 
 ### 서버
 
@@ -674,6 +839,37 @@ sudoers 파일은 문법이 틀리면 sudo 전체가 막히므로, 병합된 결
 
 NOPASSWD 규칙은 쓰지 않았다. 프롬프트는 사라지지만 그건 인증 정책을 통째로 내리는
 것이라 질문에 대한 답이 아니다.
+
+### 뚜껑을 닫아도 안 자게 — `disablesleep`
+
+서버 맥은 MacBook Pro 를 뚜껑 닫고 SSH 로만 쓰는 기계다.
+`modules/roles/darwin-server.nix` 의 `power.sleep.*` 셋은 **유휴 타이머**라 이걸
+막지 못한다. 뚜껑을 닫는 것은 잠들기로 가는 별개의 경로다 — 리드 스위치가
+`IOPMrootDomain` 에 직접 잠들라고 하므로 `sleep 0` 인 기계도 뚜껑이 본체에 닿는
+순간 내려간다. `caffeinate` 도 답이 아니다. 그건 power assertion 을 잡는데,
+assertion 을 참조하는 것은 리드 스위치가 아니라 유휴 타이머다.
+
+애플의 정식 답은 클램쉘 모드지만 **외장 디스플레이 + 전원 + 입력장치**가 전제다.
+이 기계는 셋 다 없이 SSH 로만 접근하므로 그 길은 막혀 있다.
+
+남는 것이 `SleepDisabled` 다. `IOPMrootDomain` 이 리드를 포함한 **모든** 출처의
+잠들기에 대한 거부권으로 취급하는 커널 플래그이고, 세우는 방법은
+`pmset -a disablesleep 1` 하나뿐이다 — nix-darwin 옵션도 없고, 전원 모듈이 실제로
+모는 `systemsetup` 도 노출하지 않는다. 그래서 activation 스크립트로 남았다.
+
+**전원 연결 중일 때만, 은 표현할 수 없다.** 이건 지름길이 아니라 macOS 의 모양이다.
+보통의 pmset 설정은 전원별 딕셔너리에 들어가는데(`pmset -g cap` 이 각 전원이 받는
+목록을 찍고, `disablesleep` 은 어느 쪽에도 없다), `SleepDisabled` 는
+`/Library/Preferences/com.apple.PowerManagement.plist` 의 `SystemPowerSettings`
+아래 단일 키다. `pmset -c disablesleep 1` 도 받아들여지지만 똑같은 전역 키를 쓴다 —
+`-c` 는 장식이다. **그래서 배터리로도 안 잔다.** 정전이 길어지면 서스펜드가 아니라
+방전으로 끝난다. 어댑터에 물려 사는 기계이고, 위의 `restartAfterPowerFailure` 가
+전기가 돌아오면 다시 켜 주므로 그 거래를 택했다.
+
+스크립트가 값을 먼저 읽는 것은 최적화가 아니다 — pmset 은 같은 값을 다시 써도
+불평하지 않는다. [할 일이 없으면 아무 말도 하지 않는다](#activation-이-말을-거는-기준)
+는 규칙 때문이다. 플래그가 꺼져 있는 동안 `pmset -g` 는 그 줄을 아예 빼므로, 빈
+결과가 알아서 쓰기로 떨어진다.
 
 ### 공유 모듈에 넣으면 안 되는 것
 
