@@ -19,6 +19,7 @@
 - [0017. WARP 조직 등록은 mdm.xml 로](0017-warp-enrollment-via-mdm-xml.md)
 - [0026. 서버 맥의 sshd](0026-sshd-on-the-server-mac.md) — 키 전용, 그리고 열쇠는 레포에 안 넣는다
 - [0027. ssh-audit 권장값을 프로파일 하나로](0027-ssh-audit-profile-shared-by-every-host.md) — post-quantum 전환과 `010-` 파일
+- [0029. 서버 맥의 WireGuard 는 앱이 아니라 루트 데몬](0029-wireguard-as-a-daemon-on-the-server-mac.md) — 앱은 콘솔 로그인이 있어야 한다
 
 ## 전원 · 하드웨어
 
@@ -38,7 +39,7 @@
 - [0013. Ghostty — 설정이 파일이라서 골랐다](0013-ghostty-because-config-is-a-file.md)
 - [0014. `xterm-ghostty` — 터미널 이름을 모르는 상대들](0014-xterm-ghostty-terminfo.md)
 - [0015. GUI 앱은 Homebrew 에서](0015-gui-apps-come-from-homebrew.md)
-- [0016. App Store 전용 앱 둘은 손으로 깐다](0016-mas-only-apps-installed-by-hand.md)
+- [0016. App Store 전용 앱 둘은 손으로 깐다](0016-mas-only-apps-installed-by-hand.md) — 그리고 없으면 switch 가 매번 알린다
 - [0021. Firefox 정책을 두 경로로 넣는 이유](0021-firefox-policies-two-paths.md)
 - [0022. Vim 이 vim-sensible 위에 얹히는 방식](0022-vim-on-top-of-vim-sensible.md)
 - [0024. agent-browser 에게 브라우저를 쥐여주는 두 가지 방법](0024-chrome-for-agent-browser-on-the-server.md)

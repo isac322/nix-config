@@ -18,3 +18,13 @@ App Store의 `installd`는 로그인한 사용자 세션 안에서만 응답해�
 `brew bundle`을 실패시키고 `set -e`가 activation 나머지를 끊는다.
 
 그래서 둘 다 App Store에서 손으로 설치한다. 기계당 한 번.
+
+## 그 뒤
+
+서버 역할의 맥은 WireGuard 앱을 아예 안 쓰게 됐다. 위의 두 문장은 그대로 참이고,
+달라진 것은 화면 없는 기계가 그 앱을 원하지 않는다는 쪽이다 —
+[0029](0029-wireguard-as-a-daemon-on-the-server-mac.md).
+
+설치돼 있어야 하는 기계에 없을 때는 switch 가 매번 알린다
+([0025](0025-activation-speaks-only-when-needed.md)). 선언은
+`local.masApps` 이고 구현은 `modules/mas-apps.nix` 에 있다.

@@ -86,7 +86,12 @@ nixos-rebuild switch --flake ~/nix-config#server \
    먹통이다. activation 이 없다는 걸 알아채고 절차를 그 자리에서 안내한다 —
    [운영 · GPG 키 가져오기](docs/operations.md#gpg-키-가져오기) 와 같은 내용이다.
 8. **App Store 전용 앱 두 개** — 랩탑만. KakaoTalk 과 WireGuard 는 손으로 깐다
-   ([0016](docs/decisions/0016-mas-only-apps-installed-by-hand.md)).
+   ([0016](docs/decisions/0016-mas-only-apps-installed-by-hand.md)). 없으면
+   switch 가 매번 알리므로 잊고 넘어갈 일은 없다. 서버 맥은 WireGuard 앱을 안
+   쓰고 터널을 데몬으로 돌린다 —
+   [0029](docs/decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md), 대신
+   `/etc/wireguard/<iface>.conf` 를 놓는다
+   ([운영](docs/operations.md#wireguard-서버-맥)).
 9. **WARP service token** — 서버 역할의 맥만.
    [운영 · WARP service token](docs/operations.md#warp-service-token).
 

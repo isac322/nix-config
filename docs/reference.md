@@ -14,12 +14,14 @@ modules/           시스템 레벨
   darwin.nix         모든 macOS
   nixos.nix          모든 NixOS
   orca.nix           `local.*` 옵션 선언. 설정은 없다 — hosts/ 가 값을 준다
+  wireguard.nix      서버 맥의 터널. 앱이 아니라 wg-quick 을 도는 루트 데몬
+  mas-apps.nix       App Store 전용 앱이 없을 때 switch 가 알리게 한다
   roles/
     darwin-laptop.nix   랩탑 macOS
     darwin-server.nix   서버 macOS
 hosts/             기기 고유
   bhyoo-macbook-air/
-  bhyoo-macbook-pro/   + Orca 광고 주소
+  bhyoo-macbook-pro/   + Orca 광고 주소, WireGuard 인터페이스 이름
   server/            + hardware-configuration.nix
 home/              사용자 레벨 (home-manager)
   common.nix         모든 기기 공통 — 설정의 대부분이 여기 있다
@@ -67,6 +69,7 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 | [전원 연결 중엔 뚜껑을 닫아도 안 잠](decisions/0006-clamshell-only-while-on-power.md) · 전원별 유휴 타이머 | ✖ | ✅ |
 | [크롬](decisions/0024-chrome-for-agent-browser-on-the-server.md)(agent-browser 용) · Rust · 언어 서버 | ✖ | ✅ |
 | [Orca 런타임을 계속 띄우는 LaunchAgent](decisions/0028-orca-runtime-on-the-server-mac.md) | ✖ | ✅ |
+| [WireGuard — 앱(랩탑) 대 루트 데몬(서버)](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md) | 앱 | 데몬 |
 
 두 맥 다 MacBook Pro 급 하드웨어이고 Touch ID 센서도 둘 다 달려 있다. 랩탑에만
 있는 이유는 하드웨어가 아니라 역할이다 — 서버 맥은 뚜껑을 닫은 채 SSH 로만
@@ -97,7 +100,11 @@ nixpkgs 가 아니라 Homebrew 에서 온다
 - **서버 맥의 크롬** — 유일하게 nixpkgs 에서 온다
   ([0024](decisions/0024-chrome-for-agent-browser-on-the-server.md)).
 - **KakaoTalk · WireGuard** — Mac App Store 전용이라 손으로 깐다
-  ([0016](decisions/0016-mas-only-apps-installed-by-hand.md)).
+  ([0016](decisions/0016-mas-only-apps-installed-by-hand.md)). 둘 다 랩탑 전용이
+  됐다: 서버 맥은 WireGuard 앱 대신 `wireguard-tools` 를 루트 데몬으로 돌린다
+  ([0029](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md)). 선언한
+  기계에 앱이 없으면 switch 가 매번 알린다 — `local.masApps`,
+  `modules/mas-apps.nix`.
 
 **1Password 는 나눠 담는다.** `op` CLI는 **모든 맥**에 (`home/darwin.nix`),
 데스크톱 앱은 **랩탑에만** (`modules/roles/darwin-laptop.nix`). `op`는 시스템

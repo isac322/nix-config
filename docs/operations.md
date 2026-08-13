@@ -84,6 +84,44 @@ chmod 600 ~/.ssh/authorized_keys
 키](decisions/0004-one-gpg-key-for-ssh-signing-packaging.md)라, 기계 사이에 옮길
 것이 없다. 아무것도 안 나오면 순서가 뒤집힌 것이다 — 위의 GPG 키부터 가져온다.
 
+## WireGuard (서버 맥)
+
+서버 역할의 맥만 해당한다. 랩탑은 App Store 앱을 그대로 쓰고 여기는 아무 절차도
+없다. 서버 맥은 [앱 대신 루트 데몬](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md)
+이 `wg-quick` 을 돌리고, 그 설정 파일만 손으로 놓는다 — **개인키가 들어 있어서
+레포에 안 들어간다.**
+
+`hosts/<name>/` 의 `local.wireguard.interface` 가 이름을 정하고, 그게 곧 파일
+이름이다.
+
+```sh
+sudo install -d -m 0700 /etc/wireguard
+sudo tee /etc/wireguard/<iface>.conf >/dev/null <<'EOF'
+[Interface]
+PrivateKey = <...>
+Address = 10.222.0.8/32
+
+[Peer]
+PublicKey = <...>
+AllowedIPs = 10.222.0.0/24
+Endpoint = <host>:<port>
+PersistentKeepalive = 25
+EOF
+sudo chmod 0600 /etc/wireguard/<iface>.conf
+sudo launchctl kickstart -k system/org.nixos.wireguard
+```
+
+확인:
+
+```sh
+sudo wg show
+cat /var/log/wireguard.log
+```
+
+파일이 없으면 데몬은 터널을 안 올리고 그 사실을 로그에 남긴다 — 설정이 깨지지는
+않는다. `wg-quick up` 은 인터페이스를 올리고 끝나므로 데몬이 계속 떠 있지 않는
+것이 정상이다. 살아 있게 하는 것은 wg-quick 이 떼어 놓는 `wireguard-go` 다.
+
 ## Orca 런타임 (서버 맥)
 
 `orca serve` 가 LaunchAgent 로 돈다
@@ -213,6 +251,15 @@ nix run /etc/nix-darwin#cache-push -- <cache>
 
 ## App Store 전용 앱
 
-KakaoTalk 과 WireGuard 는 기계당 한 번 손으로 깐다. 선언적으로 설치할 방법이
-없다는 것이 결론이고, 왜 없는지는
+**랩탑만 해당한다.** KakaoTalk 과 WireGuard 는 기계당 한 번 손으로 깐다.
+선언적으로 설치할 방법이 없다는 것이 결론이고, 왜 없는지는
 [0016](decisions/0016-mas-only-apps-installed-by-hand.md).
+
+깔려 있지 않으면 switch 가 매번 알리고 App Store 페이지를 여는 명령을 같이
+낸다. 알림 자체는 손으로 할 일을 없애 주지는 않지만, 잊은 채로 지나가지는
+않게 한다.
+
+서버 맥에는 WireGuard 앱을 깔지 않는다. 그 앱은 콘솔 로그인 없이는 터널을 못
+올려서, 거기서는 `wireguard-tools` 가 데몬으로 돈다 —
+[위](#wireguard-서버-맥) 와
+[0029](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md).

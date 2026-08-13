@@ -22,6 +22,26 @@ in
   # names for anything else that might want them.
   nixpkgs.overlays = [ inputs.nixpkgs-firefox-darwin.overlay ];
 
+  # The two App Store only applications (0016). Both are role-level rather than
+  # shared, for different reasons: KakaoTalk is a window and the server Mac has
+  # nobody to look at it, and WireGuard is the *app*, which the server Mac
+  # deliberately does not use — it runs the tunnel as a root daemon instead,
+  # because the app cannot come up without a console login. See
+  # modules/wireguard.nix.
+  local.masApps.kakaotalk = {
+    name = "KakaoTalk";
+    path = "/Applications/KakaoTalk.app";
+    appStoreId = 869223134;
+    reason = "Nothing else installed here replaces it.";
+  };
+
+  local.masApps.wireguard = {
+    name = "WireGuard";
+    path = "/Applications/WireGuard.app";
+    appStoreId = 1451685025;
+    reason = "The tunnel is how this machine reaches the others, including the server Mac's Orca runtime.";
+  };
+
   # GUI applications come from Homebrew rather than nixpkgs. Most of these have
   # no darwin build in nixpkgs at all, and the ones that do are unmaintained
   # app-bundle copies that miss the privileged pieces — the same reason WARP
