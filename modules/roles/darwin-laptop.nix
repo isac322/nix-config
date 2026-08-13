@@ -27,12 +27,9 @@ in
   # app-bundle copies that miss the privileged pieces — the same reason WARP
   # and Karabiner are casks. Homebrew is also what keeps them current, since
   # `onActivation.upgrade` is on.
-  # Stably's Orca ships from its own tap rather than homebrew-cask, so the tap
-  # has to be declared alongside it. nix-homebrew leaves taps mutable by
-  # default, which is what lets this work without pinning the tap as a flake
-  # input.
-  homebrew.taps = [ "stablyai/orca" ];
-
+  #
+  # Orca is not here: it is the one application both Macs run, so its cask and
+  # tap are in modules/darwin.nix. Only its Dock tile below is laptop-only.
   homebrew.casks = [
     "1password" # the desktop app; the `op` CLI is in home/darwin.nix
     "ente-auth"
@@ -48,7 +45,6 @@ in
     # onActivation.upgrade rarely has anything to do — which is fine, and the
     # reason the version here is never what is running.
     "spotify"
-    "stablyai/orca/orca"
     "telegram" # the native macOS client, not telegram-desktop
     "vorta"
     "zoom"

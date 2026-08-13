@@ -42,14 +42,15 @@ pkgs/              nixpkgs 에 없거나 쓸 수 없는 형태인 패키지 + ov
 **모든 macOS** (`modules/darwin.nix`와 그것이 import하는 파일들) — 맥이라면
 무조건 같아야 하는 것. 키 리매핑과 단축키 전부(`keyboard.nix`), Finder 전부
 (`finder.nix`), Liquid Glass·Spotlight(`appearance.nix`), WARP(`warp.nix`),
-Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Homebrew 기반.
+Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Homebrew 기반과
+그 위의 Orca.
 
 **역할 전용** — 역할 파일은 의도적으로 얇다. 맥은 어느 역할이든 같은 맥이라
 겉모습 설정은 위층에 있고, 여기에는 진짜로 갈리는 것만 둔다.
 
 | | 랩탑 | 서버 |
 |---|---|---|
-| 데스크톱 앱 (Firefox + cask 15개 + MAS 2개) | ✅ | ✖ |
+| 데스크톱 앱 (Firefox + cask 14개 + MAS 2개) | ✅ | ✖ |
 | `nixpkgs-firefox-darwin` 오버레이 | ✅ | ✖ |
 | Touch ID 로 sudo (`pam_tid`) | ✅ | ✖ |
 | [전원 연결 중엔 뚜껑을 닫아도 안 잠](decisions/0006-clamshell-only-while-on-power.md) · 전원별 유휴 타이머 | ✖ | ✅ |
@@ -73,7 +74,14 @@ nixpkgs 가 아니라 Homebrew 에서 온다
 
 - **Orca** (Stably) — homebrew-cask가 아니라 자체 tap에 있어서 `homebrew.taps`에
   `stablyai/orca`를 같이 선언한다. nix-homebrew가 tap을 기본적으로 mutable로
-  두기 때문에 tap을 flake 인풋으로 고정하지 않고도 동작한다.
+  두기 때문에 tap을 flake 인풋으로 고정하지 않고도 동작한다. tap 접두사는
+  선택이 아니다 — homebrew-cask 의 맨 `orca` 는 plotly 의 차트 렌더러로,
+  Gatekeeper 를 통과하지 못해 deprecated 된 무관한 패키지다.
+
+  **여기서 유일하게 두 맥 모두에 깔리는 cask** 라 `modules/darwin.nix` 에 있다.
+  Orca 는 코딩 에이전트를 각자의 git worktree 에서 병렬로 굴리는 도구이고,
+  번들에 같이 들어오는 `orca` CLI 가 헤드리스 기계에서 쓸모 있는 쪽이다.
+  랩탑에만 있는 것은 Dock 타일뿐이다.
 - **서버 맥의 크롬** — 유일하게 nixpkgs 에서 온다
   ([0024](decisions/0024-chrome-for-agent-browser-on-the-server.md)).
 - **KakaoTalk · WireGuard** — Mac App Store 전용이라 손으로 깐다
@@ -92,6 +100,18 @@ nixpkgs 가 아니라 Homebrew 에서 온다
 데스크톱 앱을 요구**하므로, 서버에서 1Password의 SSH 에이전트를 쓰려면 그때는
 `modules/roles/darwin-server.nix`에 cask를 추가해야 한다 — 그러면 GUI 세션이
 필요해진다.
+
+## 코딩 에이전트 — 작업이 있는 곳에서 돈다
+
+`claude-code`, `codex`, `omp` 셋을 **모든 기기**에 둔다 (`home/common.nix`).
+아래 두 CLI 묶음이 이 층에 있는 이유가 이것이라, 순서상 여기가 먼저다.
+
+셋 다 nixpkgs 가 아니라 `llm-agents` 인풋에서 온다. nixpkgs-unstable 채널이
+master 를 며칠씩 뒤따라오는 반면 이쪽은 매일 상류를 따라가고, aarch64-darwin 과
+x86_64-linux·aarch64-linux 를 모두 빌드해서 리눅스 서버에서도 같은 줄이 통한다.
+
+**Orca 는 여기 없다.** GUI 앱이라 cask 로 오고, 그래서 맥 둘에만 있다 —
+위 [GUI 앱](#gui-앱) 을 보라.
 
 ## 관측 CLI — 에이전트가 직접 조회하게
 

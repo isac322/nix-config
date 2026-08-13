@@ -14,6 +14,7 @@
     # nixpkgs-unstable channel lags master by several days. It builds for
     # aarch64-darwin, x86_64-linux and aarch64-linux, so this line is portable.
     pkgs.llm-agents.claude-code
+    pkgs.llm-agents.codex
     pkgs.llm-agents.omp
 
     # Observability CLIs, for the coding agents above to query telemetry with
