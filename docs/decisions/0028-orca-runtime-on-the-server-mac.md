@@ -32,10 +32,23 @@ user/501/org.nix-community.home.gpg-agent-ssh  없음   (session = Background)
 `com.apple.cfprefsd.xpc.agent` 는 `user/501` 에만 있고 `gui/501` 에는 없다.
 
 그래서 `Background` 를 준다. `user/<uid>` 도메인은 윈도우 서버에 안 묶여 있다.
-**증명하지 못한 것 하나** — 아무도 로그인하지 않은 부팅 직후에 그 도메인이
-올라오는지는 로그인해 있는 기계에서 확인할 수 없었다. 그 기계에서 재부팅 후
-한 번 확인하는 절차를 [운영](../operations.md) 에 적어 뒀고, 안 되면 남는 답은
-자동 로그인이다.
+
+**그런데 그 키만으로는 안 된다.** home-manager 는 plist 를 두고 마는 것이 아니라
+`launchctl bootstrap <domain>/$UID` 를 직접 부르고, `launchd.agents.<name>.domain`
+의 기본값이 `gui` 다. 세션 타입만 `Background` 로 주면 자기 타입이 배제하는 바로
+그 세션에 부트스트랩된다. `domain = "user"` 가 같이 있어야 한다. 두 줄은 같은
+말이 아니다 — 하나는 activation 이 어디에 넣느냐고, 다른 하나는 그 뒤에 launchd
+가 파일을 어떻게 다루느냐다.
+
+후자도 여전히 필요하다. plist 는 어느 도메인으로 가든 `~/Library/LaunchAgents`
+에 설치되고, 콘솔 로그인 때 launchd 가 그 디렉터리를 Aqua 세션으로 자동
+로드한다. `LimitLoadToSessionType` 이 없으면 user 도메인의 것과 별개로 한 벌이
+더 뜨고, 둘째는 프로필이 이미 잡혀 있어 exit 3 을 받는다.
+
+**증명하지 못한 것 하나** — 아무도 로그인하지 않은 부팅 직후에 `user/<uid>`
+도메인이 올라오는지는 로그인해 있는 기계에서 확인할 수 없었다. 그 기계에서
+재부팅 후 한 번 확인하는 절차를 [운영](../operations.md) 에 적어 뒀고, 안 되면
+남는 답은 자동 로그인이다.
 
 대안이던 LaunchDaemon 은 로그인 없이 뜨는 대신 GUI 세션도 로그인 keychain 도
 없다. Electron 기동과 Claude·Codex 계정 인증이 거기서 깨진다. 로그인 없이 뜨는

@@ -86,16 +86,31 @@ in
   # all, rather than starting one that advertises a guess.
   launchd.agents.orca-serve = lib.mkIf (cfg.pairingAddress != null) {
     enable = true;
+
+    # The half that actually decides this. home-manager runs
+    # `launchctl bootstrap <domain>/$UID` itself, and its default domain is
+    # `gui` — so an agent typed Background but bootstrapped into gui is
+    # bootstrapped into the one session its own type excludes. Both lines are
+    # needed and they are not saying the same thing: this one is where
+    # activation puts it, and LimitLoadToSessionType below is what launchd does
+    # with the file afterwards.
+    domain = "user";
+
     config = {
-      # wait4path because /nix/store is on a volume that need not be mounted
-      # when LaunchAgents start — the same guard home-manager puts on its own,
-      # and the reason this is not just Program = orcaServe.
-      ProgramArguments = [
-        "/bin/sh"
-        "-c"
-        "/bin/wait4path /nix/store && exec ${orcaServe}"
-      ];
+      # No /bin/wait4path here. home-manager wraps ProgramArguments in exactly
+      # that guard already (`waitForNixStore`, on by default), and writing it
+      # again nests one inside the other — visible in the gpg-agent-ssh plist
+      # this repository generates today, which is double-wrapped for that
+      # reason.
+      ProgramArguments = [ "${orcaServe}" ];
       RunAtLoad = true;
+
+      # The plist is installed to ~/Library/LaunchAgents whichever domain it is
+      # bootstrapped into, and launchd auto-loads that directory into the Aqua
+      # session at console login. Without this key a GUI login would start a
+      # second copy alongside the one in the user domain, and the second would
+      # take exit 3 — the profile is already owned. This says the file does not
+      # apply to Aqua at all.
       LimitLoadToSessionType = "Background";
 
       # Restart on failure, not on a clean stop. The wrapper turns the one
