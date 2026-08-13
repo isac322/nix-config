@@ -17,6 +17,7 @@
 
 - [0004. 열쇠 하나로 셋 다](0004-one-gpg-key-for-ssh-signing-packaging.md) — SSH · 커밋 서명 · 패키징
 - [0017. WARP 조직 등록은 mdm.xml 로](0017-warp-enrollment-via-mdm-xml.md)
+- [0026. 서버 맥의 sshd](0026-sshd-on-the-server-mac.md) — 키 전용, 그리고 열쇠는 레포에 안 넣는다
 
 ## 전원 · 하드웨어
 

@@ -8,6 +8,49 @@
 { lib, pkgs, ... }:
 
 {
+  # The way in. Everything else in this file assumes a machine nobody is sitting
+  # at, and this is what makes that true rather than merely unattended.
+  #
+  # nix-darwin does not touch `systemsetup -setremotelogin`, which needs Full
+  # Disk Access and so cannot be driven from a switch. It enables the launchd
+  # job directly instead — `launchctl enable system/com.openssh.sshd` and
+  # `launchctl bootstrap system /System/Library/LaunchDaemons/ssh.plist` — which
+  # is the same daemon System Settings' Remote Login toggle starts. Apple's sshd
+  # is the one that runs; this decides whether it is loaded and hands it a
+  # fragment in /etc/ssh/sshd_config.d.
+  #
+  # Not in modules/darwin.nix. The laptop should not answer on 22 — it is on
+  # networks this machine never sees — and leaving `enable` unset there is not
+  # the same as setting it false: null means "leave it to macOS", which is what
+  # a machine whose Remote Login is a personal decision wants.
+  services.openssh = {
+    enable = true;
+
+    # The same posture as the NixOS server (modules/nixos.nix): keys only, and
+    # not as root. `sudo` is how anything privileged happens here, which keeps
+    # the audit trail attached to a person.
+    #
+    # All three matter, because macOS leaves all three at the upstream default —
+    # /etc/ssh/sshd_config carries them commented out, so it is
+    # `prohibit-password`, `yes` and `yes` that apply until something says
+    # otherwise.
+    #
+    # KbdInteractiveAuthentication is the one that is easy to miss. macOS sets
+    # `UsePAM yes`, and PAM offers password authentication a second time through
+    # keyboard-interactive, so turning off PasswordAuthentication alone leaves a
+    # password prompt reachable.
+    #
+    # These land in 100-nix-darwin.conf. The include glob is read in lexical
+    # order and sshd keeps the first value it sees for an option, so Apple's
+    # 100-macos.conf is read first — it sets only UsePAM, AcceptEnv and an
+    # include of crypto.conf, none of which is touched here.
+    extraConfig = ''
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+    '';
+  };
+
   # A browser for agent-browser (home/common.nix) to drive. The laptop gets
   # this from the google-chrome cask, which is the right answer where someone
   # also browses with it; here nothing does, so it comes from nixpkgs — pinned

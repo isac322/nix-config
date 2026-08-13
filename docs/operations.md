@@ -64,6 +64,26 @@ gpg --export-ownertrust > trust.asc
 GitHub 에는 공개키를 GPG key 로 등록하면 커밋 검증이 되고, 접속용으로는 인증
 서브키를 SSH key 로 따로 등록한다 (`gpg --export-ssh-key bhyoo@bhyoo.com`).
 
+## 서버 맥에 SSH 로 들어갈 수 있게
+
+서버 역할의 맥만 해당한다. 그 기계의 sshd 는 [키만 받고 암호는 두 경로 모두
+막혀 있어서](decisions/0026-sshd-on-the-server-mac.md), `authorized_keys` 가
+비어 있으면 아무도 못 들어간다. 첫 switch 가 정확히 그 상태이므로, 그때
+activation 이 아래를 출력한다.
+
+**그 기계의 콘솔에서** 한 번 한다. 뚜껑을 열고 로그인해야 한다는 뜻이다 — SSH 로
+하려면 SSH 가 이미 돼야 하니까.
+
+```sh
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+ssh-add -L >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+```
+
+`ssh-add -L` 이 뱉는 것은 [다른 기계가 쓰는 것과 같은
+키](decisions/0004-one-gpg-key-for-ssh-signing-packaging.md)라, 기계 사이에 옮길
+것이 없다. 아무것도 안 나오면 순서가 뒤집힌 것이다 — 위의 GPG 키부터 가져온다.
+
 ## WARP service token
 
 서버 역할의 맥만 해당한다. service token 이 없으면 등록이 브라우저를 열어 Access
