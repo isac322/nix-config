@@ -84,6 +84,57 @@ chmod 600 ~/.ssh/authorized_keys
 키](decisions/0004-one-gpg-key-for-ssh-signing-packaging.md)라, 기계 사이에 옮길
 것이 없다. 아무것도 안 나오면 순서가 뒤집힌 것이다 — 위의 GPG 키부터 가져온다.
 
+## Orca 런타임 (서버 맥)
+
+`orca serve` 가 LaunchAgent 로 돈다
+([0028](decisions/0028-orca-runtime-on-the-server-mac.md)). 선언은 끝났고 아래는
+확인과 일회성 절차다.
+
+**로그와 페어링 링크.** 창이 없는 기계라 준비 완료 줄은 로그에만 남는다.
+
+```sh
+tail -f ~/Library/Logs/orca-serve.log
+```
+
+`orca_server_ready` 한 줄에 `boundEndpoint`, `advertisedEndpoint`, 그리고
+`pairing.url` 이 들어 있다. 그 URL 을 클라이언트의 Settings > Remote Orca
+Servers > Add Server 에 붙인다. **URL 자체가 접근 권한**이니 비밀처럼 다룬다.
+페어링한 기기의 키는 프로필에 남아서 재시작해도 다시 안 해도 된다.
+
+```sh
+launchctl print user/$(id -u)/org.nix-community.home.orca-serve   # 상태
+orca status --json                                                # 런타임 쪽에서 본 상태
+```
+
+**부팅 확인 — 한 번은 해야 한다.** `LimitLoadToSessionType = "Background"` 는
+콘솔 로그인 없이도 뜨라는 뜻인데, 아무도 로그인하지 않은 부팅 직후에
+`user/<uid>` 도메인이 올라오는지는 그 기계에서만 확인된다. 재부팅하고, **콘솔에
+로그인하지 말고** SSH 로만 들어와서:
+
+```sh
+launchctl print user/$(id -u)/org.nix-community.home.orca-serve | head -5
+```
+
+`state = running` 이면 끝이다. `Could not find service` 면 그 도메인이 부팅 때
+안 올라온 것이고, 그때는 자동 로그인
+(`system.defaults.loginwindow.autoLoginUser` + 손으로 넣는 `/etc/kcpassword`)
+이 남은 방법이다.
+
+**에이전트 계정은 서버 쪽에서.** 원격 세션은 서버의 PATH·홈·자격증명을 쓰고
+클라이언트의 것을 안 쓴다. 그래서 원격 클라이언트에서는 Add account 가 아예
+막혀 있다.
+
+```sh
+orca account add --agent claude
+orca account add --agent codex
+orca account list
+```
+
+**포트는 0.0.0.0 에 열린다.** `--pairing-address` 는 광고 주소만 바꾸고 바인딩을
+좁히는 플래그가 없다. 즉 그 기계가 붙어 있는 모든 네트워크에서 6768 이 열려
+있으므로, 막는 것은 런타임이 아니라 네트워크 쪽 일이다. 공개 인터넷으로
+포워딩하지 않는다.
+
 ## RSA 호스트 키가 3072 비트일 때
 
 sshd 를 켠 기계만 해당하고, 프로파일보다 먼저 만들어진 키가 있을 때만 해당한다.

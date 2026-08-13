@@ -21,6 +21,10 @@ in
     ./finder.nix
     ./appearance.nix
     ./warp.nix
+
+    # Options only, no configuration. Every Mac can declare where its Orca
+    # runtime is reached; only the server role acts on it.
+    ./orca.nix
   ];
 
   # Determinate Nix owns the Nix install, the nix-daemon and /etc/nix/nix.conf,

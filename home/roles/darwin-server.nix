@@ -4,9 +4,113 @@
 # are in home/common.nix and home/darwin.nix — and the only thing it does not
 # want is the desktop applications, which it gets by not importing the laptop
 # role. What lands here is tooling this machine alone has a use for.
-{ pkgs, ... }:
-
 {
+  config,
+  lib,
+  osConfig,
+  pkgs,
+  ...
+}:
+
+let
+  # Declared in modules/orca.nix, set per machine in hosts/<name>/. Nothing
+  # about the address is role-shaped — every server Mac would have a different
+  # one — so the role decides only that a runtime runs at all, and the machine
+  # says where it is reached. `osConfig` is the system configuration of the host
+  # this home-manager generation belongs to.
+  cfg = osConfig.local.orca;
+
+  # Homebrew's, because the cask is where Orca comes from (see
+  # docs/decisions/0015-gui-apps-come-from-homebrew.md). This is a symlink brew
+  # maintains into /Applications/Orca.app; naming the shim rather than the path
+  # inside the bundle keeps this working if the bundle is rearranged.
+  orca = "/opt/homebrew/bin/orca";
+
+  orcaServe = pkgs.writeShellScript "orca-serve" ''
+    set -u
+
+    # A launchd agent inherits almost no PATH, and `orca serve` shells out to
+    # everything the agents need — git, claude, codex — from the server's own
+    # environment rather than the client's. These are, in order: home-manager's
+    # profile, nix-darwin's system profile, Homebrew, and the base system.
+    export PATH=/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
+
+    if [ ! -x ${orca} ]; then
+      # First boot after the cask is declared but before `brew bundle` has run.
+      # Exit 0 so KeepAlive leaves it alone instead of spinning; the next
+      # switch, or the next login, starts it for real.
+      echo "orca-serve: ${orca} is not installed yet — nothing to start." >&2
+      exit 0
+    fi
+
+    ${orca} serve --port ${toString cfg.port} --pairing-address ${cfg.pairingAddress} --json
+    status=$?
+
+    # Exit 3 means another process already owns the Orca profile — the desktop
+    # app, or a serve started by hand. Restarting cannot help, and upstream's
+    # own systemd unit says so with RestartPreventExitStatus=3. launchd has no
+    # equivalent, so the wrapper reports it as a clean exit and KeepAlive
+    # (SuccessfulExit = false) stops there.
+    if [ "$status" -eq 3 ]; then
+      echo "orca-serve: exit 3 — another process already owns the Orca profile. Not restarting." >&2
+      exit 0
+    fi
+
+    exit "$status"
+  '';
+in
+{
+  # The Orca runtime, headless, for the whole time the machine is up.
+  #
+  # `orca serve` is upstream's answer for a host that should run without a
+  # desktop window. The client is only the UI: this side owns the projects,
+  # worktrees, terminals and agent processes, and uses this machine's PATH,
+  # home directory and credentials rather than the client's.
+  #
+  # LimitLoadToSessionType = "Background" is the load-bearing line. A LaunchAgent
+  # with no session type defaults to Aqua, which means it starts at console GUI
+  # login and at no other time — an SSH login does not do it. Verified on a Mac
+  # here: home-manager's gpg-agent-ssh agent appears in `gui/501` and is absent
+  # from `user/501`, while Apple's own Background-typed agents are the exact
+  # reverse. "Background" puts this in `user/<uid>`, which is not tied to the
+  # window server. See docs/operations.md for how to confirm it survives a
+  # reboot with nobody logged in, which is the one claim that could not be
+  # tested from another machine.
+  #
+  # It binds 0.0.0.0. There is no flag to narrow that — --pairing-address only
+  # changes the address handed to clients — so what keeps this off other
+  # networks is the network, not the runtime. Upstream is explicit that the port
+  # must not be forwarded to the public internet.
+  #
+  # A machine that has not said where it is reached does not start a runtime at
+  # all, rather than starting one that advertises a guess.
+  launchd.agents.orca-serve = lib.mkIf (cfg.pairingAddress != null) {
+    enable = true;
+    config = {
+      # wait4path because /nix/store is on a volume that need not be mounted
+      # when LaunchAgents start — the same guard home-manager puts on its own,
+      # and the reason this is not just Program = orcaServe.
+      ProgramArguments = [
+        "/bin/sh"
+        "-c"
+        "/bin/wait4path /nix/store && exec ${orcaServe}"
+      ];
+      RunAtLoad = true;
+      LimitLoadToSessionType = "Background";
+
+      # Restart on failure, not on a clean stop. The wrapper turns the one
+      # failure worth not retrying into a clean stop.
+      KeepAlive.SuccessfulExit = false;
+      ThrottleInterval = 10;
+
+      # Where the readiness line lands: `orca_server_ready` carries the bound
+      # endpoint, the advertised endpoint and the pairing URL, and there is
+      # nowhere else to read it on a machine with no window.
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/orca-serve.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/orca-serve.log";
+    };
+  };
+
   # No authorized_keys handling here, of either kind. The file is not declared
   # (`users.users.<name>.openssh.authorizedKeys`) because this repository is
   # public and one key is the SSH identity of every machine — see

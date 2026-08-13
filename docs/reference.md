@@ -13,12 +13,13 @@ modules/           시스템 레벨
   common.nix         모든 OS 공통
   darwin.nix         모든 macOS
   nixos.nix          모든 NixOS
+  orca.nix           `local.*` 옵션 선언. 설정은 없다 — hosts/ 가 값을 준다
   roles/
     darwin-laptop.nix   랩탑 macOS
     darwin-server.nix   서버 macOS
 hosts/             기기 고유
   bhyoo-macbook-air/
-  bhyoo-macbook-pro/
+  bhyoo-macbook-pro/   + Orca 광고 주소
   server/            + hardware-configuration.nix
 home/              사용자 레벨 (home-manager)
   common.nix         모든 기기 공통 — 설정의 대부분이 여기 있다
@@ -65,6 +66,7 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 | [sshd — 키 전용, root 금지](decisions/0026-sshd-on-the-server-mac.md) | ✖ | ✅ |
 | [전원 연결 중엔 뚜껑을 닫아도 안 잠](decisions/0006-clamshell-only-while-on-power.md) · 전원별 유휴 타이머 | ✖ | ✅ |
 | [크롬](decisions/0024-chrome-for-agent-browser-on-the-server.md)(agent-browser 용) · Rust · 언어 서버 | ✖ | ✅ |
+| [Orca 런타임을 계속 띄우는 LaunchAgent](decisions/0028-orca-runtime-on-the-server-mac.md) | ✖ | ✅ |
 
 두 맥 다 MacBook Pro 급 하드웨어이고 Touch ID 센서도 둘 다 달려 있다. 랩탑에만
 있는 이유는 하드웨어가 아니라 역할이다 — 서버 맥은 뚜껑을 닫은 채 SSH 로만

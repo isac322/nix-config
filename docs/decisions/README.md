@@ -42,6 +42,7 @@
 - [0021. Firefox 정책을 두 경로로 넣는 이유](0021-firefox-policies-two-paths.md)
 - [0022. Vim 이 vim-sensible 위에 얹히는 방식](0022-vim-on-top-of-vim-sensible.md)
 - [0024. agent-browser 에게 브라우저를 쥐여주는 두 가지 방법](0024-chrome-for-agent-browser-on-the-server.md)
+- [0028. 서버 맥에서 Orca 런타임을 계속 띄운다](0028-orca-runtime-on-the-server-mac.md) — LaunchAgent 가 콘솔 로그인에 안 묶이게
 
 ## 패키징 · 캐시
 
