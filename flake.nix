@@ -15,9 +15,12 @@
     nixpkgs-firefox-darwin.url = "github:bandithedoge/nixpkgs-firefox-darwin";
     nixpkgs-firefox-darwin.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Deliberately NOT `inputs.nixpkgs.follows = "nixpkgs"`: the shared-nixpkgs
-    # overlay builds against our pkgs but pins `bun` from its own nixpkgs, and
-    # following would change every store path in the set, missing the cache.
+    # Deliberately NOT `inputs.nixpkgs.follows = "nixpkgs"`. We take
+    # `packages.<system>` from this flake rather than its overlay precisely
+    # because those are built against the nixpkgs it pinned, which is what makes
+    # the store paths match what cache.numtide.com holds. A `follows` would
+    # change every one of them and put us back to compiling Rust from source,
+    # which is what the overlay was doing. See home/common.nix.
     llm-agents.url = "github:numtide/llm-agents.nix";
 
     # Lets nix-darwin manage /etc/nix/nix.custom.conf declaratively. It forces

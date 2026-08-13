@@ -4,20 +4,16 @@
 # NOT live here. `system.stateVersion` is the trap: nix-darwin types it as an
 # integer and NixOS as a string, so it is set in modules/darwin.nix and
 # modules/nixos.nix separately.
-{
-  lib,
-  pkgs,
-  inputs,
-  ...
-}:
+{ lib, pkgs, ... }:
 
 {
+  # llm-agents' `overlays.shared-nixpkgs` used to be here and is deliberately
+  # gone: it builds that whole set against our nixpkgs, and its binary cache
+  # only answers for the revision they pinned. home/common.nix takes
+  # `packages.<system>` instead, which is the build they actually uploaded.
+  # The Firefox overlay is deliberately not here either — see modules/darwin.nix
+  # for why it must stay off Linux.
   nixpkgs.overlays = [
-    # Cross-platform: llm-agents builds for aarch64-darwin, x86_64-linux and
-    # aarch64-linux. The Firefox overlay is deliberately not here — see
-    # modules/darwin.nix for why it must stay off Linux.
-    inputs.llm-agents.overlays.shared-nixpkgs
-
     # Locally packaged CLIs — see pkgs/overlay.nix.
     (import ../pkgs/overlay.nix)
   ];

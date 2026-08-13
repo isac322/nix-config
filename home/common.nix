@@ -1,8 +1,32 @@
 # home-manager configuration shared by every host, macOS and NixOS alike.
 # This is the bulk of the setup; the per-platform files add only what genuinely
 # cannot be expressed the same way on both.
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 
+let
+  # llm-agents' own build of its own packages, not its overlay.
+  #
+  # Both exist and produce the same programs. `overlays.shared-nixpkgs` builds
+  # them against our nixpkgs, which shares dependencies with the rest of the
+  # system and applies our `nixpkgs.config` — and, as upstream's README says
+  # outright, hits their binary cache only while our nixpkgs revision matches
+  # theirs. Ours does not. `codex` and `omp` are Rust, so missing the cache
+  # means dragging in a toolchain and compiling; omp took long enough to be
+  # noticed, which is how this was found.
+  #
+  # `packages.<system>` is built against the nixpkgs they pinned, so the store
+  # path is the one they uploaded and it substitutes every time. What that
+  # costs is a second copy of whatever their revision disagrees with ours
+  # about — measured before switching, and on this machine it was two store
+  # paths, not a second dependency tree. Fine trade for not compiling Rust
+  # three times a week on three machines.
+  #
+  # `nixpkgs.config.allowUnfreePredicate` no longer reaches claude-code as a
+  # result; their instantiation allows it themselves. The entry stays in
+  # modules/common.nix because it is still what makes the name evaluable if
+  # anything here ever refers to nixpkgs' own claude-code.
+  agents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
+in
 {
   home.stateVersion = "26.05";
 
@@ -13,9 +37,9 @@
     # From llm-agents rather than nixpkgs: it tracks upstream daily, while the
     # nixpkgs-unstable channel lags master by several days. It builds for
     # aarch64-darwin, x86_64-linux and aarch64-linux, so this line is portable.
-    pkgs.llm-agents.claude-code
-    pkgs.llm-agents.codex
-    pkgs.llm-agents.omp
+    agents.claude-code
+    agents.codex
+    agents.omp
 
     # Observability CLIs, for the coding agents above to query telemetry with
     # rather than being handed screenshots of dashboards. They go on every
