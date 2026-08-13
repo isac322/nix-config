@@ -7,6 +7,50 @@
 # and come back on its own.
 { lib, pkgs, ... }:
 
+let
+  # The part `services.openssh.enable = true` turns out not to guarantee.
+  #
+  # nix-darwin bootstraps the launchd job only when
+  # `systemsetup -getremotelogin` reads exactly "Off". On this machine it read
+  # "On" while nothing held port 22: the job was registered in the system domain
+  # but disabled, so its socket was never bound. That combination is invisible
+  # to the guard — it is not "Off", so no switch ever ran the bootstrap, and
+  # every switch quietly did nothing while Remote Login looked on.
+  #
+  # `launchctl enable` alone was what fixed it. `bootstrap` answered "Bootstrap
+  # failed: 5: Input/output error", which is launchd for "already loaded".
+  #
+  # So ask the port rather than asking systemsetup. Nothing listening on 22 is
+  # the actual symptom, it is what a person would check, and it is true exactly
+  # when there is something to repair — which keeps this silent and idempotent
+  # on a machine that is already fine. Testing for a running sshd would not
+  # work: the daemon is socket-activated, launchd holds 22 on its behalf, and
+  # `state = not running` is its normal resting state.
+  sshdEnsureListening = ''
+    if ! /usr/sbin/lsof -nP -iTCP:22 -sTCP:LISTEN >/dev/null 2>&1; then
+      /bin/launchctl enable system/com.openssh.sshd
+
+      # Already-loaded is the expected answer whenever `enable` was the missing
+      # half, and it is not a failure. Anything else is, and says so rather than
+      # aborting a switch that has otherwise finished.
+      if ! bootstrapOut=$(/bin/launchctl bootstrap system /System/Library/LaunchDaemons/ssh.plist 2>&1); then
+        case "$bootstrapOut" in
+          *"Input/output error"* | *already*) ;;
+          *)
+            echo "" >&2
+            echo "  sshd is not listening on 22 and could not be started:" >&2
+            echo "    $bootstrapOut" >&2
+            echo "" >&2
+            echo "  This machine is reached over SSH, so that is worth looking at" >&2
+            echo "  from its own console before the session you are in ends." >&2
+            echo "" >&2
+            ;;
+        esac
+      fi
+    fi
+  '';
+in
+
 {
   # The way in. Everything else in this file assumes a machine nobody is sitting
   # at, and this is what makes that true rather than merely unattended.
@@ -110,9 +154,13 @@
   # a laptop, because on battery that is what it is — see the daemon below.
   # `ttyskeepawake` is on by default and counts an active SSH session as
   # activity, so the battery timer does not cut a session short.
+  # Two unrelated things share this block because `postActivation.text` can only
+  # be assigned once per module, and both belong to this file.
   system.activationScripts.postActivation.text = ''
     /usr/bin/pmset -c sleep 0 disksleep 0 displaysleep 10
     /usr/bin/pmset -b sleep 10 disksleep 10 displaysleep 2
+
+    ${sshdEnsureListening}
   '';
 
   # Clamshell — keep running with the lid shut, but only while on power.
