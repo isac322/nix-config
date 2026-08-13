@@ -40,10 +40,17 @@
     # keyboard-interactive, so turning off PasswordAuthentication alone leaves a
     # password prompt reachable.
     #
-    # These land in 100-nix-darwin.conf. The include glob is read in lexical
-    # order and sshd keeps the first value it sees for an option, so Apple's
-    # 100-macos.conf is read first — it sets only UsePAM, AcceptEnv and an
-    # include of crypto.conf, none of which is touched here.
+    # These land in 100-nix-darwin.conf, which is read after Apple's
+    # 100-macos.conf — and for these three that is harmless, because
+    # 100-macos.conf sets only UsePAM, AcceptEnv and an include of crypto.conf.
+    # It is not harmless for anything crypto.conf names, which is why the
+    # algorithm lists are not here but in a 010- file written directly from
+    # modules/darwin.nix. That file explains the ordering; this one only has to
+    # stay clear of it.
+    #
+    # Only the authentication policy is role-specific. What the daemon would
+    # speak if it were listening is not — that is the same answer on any Mac,
+    # and applying it to a machine whose sshd is off costs nothing.
     extraConfig = ''
       PasswordAuthentication no
       KbdInteractiveAuthentication no

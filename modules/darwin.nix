@@ -1,8 +1,19 @@
 # Shared by every Mac. Host-specific bits live in hosts/<name>/default.nix.
-{ lib, ... }:
+{ config, lib, ... }:
 
 let
   caches = import ../lib/caches.nix;
+  sshAudit = import ../lib/ssh-audit.nix;
+
+  # sshd_config takes one directive per line, values comma-joined. Integers pass
+  # through as themselves. NixOS renders this for us; macOS does not, because
+  # nothing here goes through a NixOS-style `settings` option — see below.
+  sshdConfigText = lib.concatStringsSep "\n" (
+    lib.mapAttrsToList (
+      name: value:
+      "${name} ${if lib.isList value then lib.concatStringsSep "," value else toString value}"
+    ) sshAudit.sshdSettings
+  );
 in
 {
   imports = [
@@ -165,6 +176,82 @@ in
     WindowManager.StandardHideDesktopIcons = lib.mkDefault true;
     WindowManager.HideDesktop = lib.mkDefault true;
   };
+
+  # The crypto half of the sshd configuration, on every Mac. Whether sshd
+  # actually answers is a separate question decided per role — the laptop leaves
+  # `services.openssh.enable` at null, which hands the daemon back to macOS.
+  # These two settings are about what it does when it is on, no matter who
+  # turned it on, and a laptop whose Remote Login someone flips in System
+  # Settings should not be weaker than the server for it.
+  #
+  # Dropping ECDSA from the default rsa/ecdsa/ed25519 triple is what stops it
+  # being offered. nix-darwin writes one `HostKey` line per entry into
+  # 099-host-keys.conf and generates any key that is missing — but only missing
+  # ones, never a replacement for a key already there, which is why the RSA size
+  # below is a message rather than a regeneration.
+  services.openssh.hostKeys = lib.attrValues sshAudit.hostKeys;
+
+  # And this is why the algorithm lists are not in `services.openssh.extraConfig`
+  # where they visibly belong.
+  #
+  # sshd_config's first line is `Include /etc/ssh/sshd_config.d/*`, the glob
+  # expands in lexical order, and sshd keeps the **first** value it sees for a
+  # keyword. Apple ships 100-macos.conf, which includes /etc/ssh/crypto.conf,
+  # which sets Ciphers, KexAlgorithms and MACs with a leading `^` — prepend to
+  # the defaults. nix-darwin writes `extraConfig` to 100-nix-darwin.conf, and
+  # "100-macos" sorts before "100-nix-darwin".
+  #
+  # So the obvious placement loses, silently and only for the directives that
+  # matter. Written as extraConfig, `sshd -T` reports kexalgorithms starting
+  # with ecdh-sha2-nistp256 and running through curve25519 and two more NIST
+  # curves — the exact opposite of the intent, with the file looking correct.
+  # The identical text under this name yields `kexalgorithms
+  # mlkem768x25519-sha256` and nothing else.
+  #
+  # 010- rather than 000- leaves room to wedge something in front, and sits
+  # clear of 099-host-keys.conf, which nix-darwin owns.
+  environment.etc."ssh/sshd_config.d/010-ssh-audit-hardening.conf".text = sshdConfigText + "\n";
+
+  # nix-darwin generates a missing host key but never regenerates an existing
+  # one, which is the right call — replacing a host key breaks every client's
+  # known_hosts and no switch should do that on its own. The consequence is that
+  # a machine that made its RSA key before this profile existed keeps whatever
+  # ssh-keygen defaulted to at the time, and macOS's default is 3072. That
+  # passes RequiredRSASize and fails the ssh-audit policy, which checks the size
+  # of the key actually presented.
+  #
+  # Only said where sshd is actually on: on the laptop this is nobody's problem
+  # until they turn Remote Login on, and at that point the switch after it says
+  # so. `enable` is `nullOr bool`, so the comparison has to be against true
+  # rather than a truth test.
+  system.activationScripts.postActivation.text =
+    lib.optionalString (config.services.openssh.enable == true)
+      ''
+        if [ -f /etc/ssh/ssh_host_rsa_key.pub ]; then
+          rsaBits=$(/usr/bin/ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub 2>/dev/null | /usr/bin/awk '{print $1}')
+          if [ -n "$rsaBits" ] && [ "$rsaBits" -lt 4096 ]; then
+            echo "" >&2
+            echo "  The RSA host key is $rsaBits bits, and the hardening profile wants" >&2
+            echo "  4096. It predates the profile, and a switch will not replace a host" >&2
+            echo "  key that already exists — that is a decision with consequences for" >&2
+            echo "  every client that has ever connected." >&2
+            echo "" >&2
+            echo "  Deleting it and switching again regenerates it at 4096:" >&2
+            echo "" >&2
+            echo "    sudo rm /etc/ssh/ssh_host_rsa_key /etc/ssh/ssh_host_rsa_key.pub" >&2
+            echo "    sudo darwin-rebuild switch --flake /etc/nix-darwin" >&2
+            echo "" >&2
+            echo "  Every client that trusted the old key will refuse to connect until" >&2
+            echo "  the stale line is out of its known_hosts. Do it from the console, or" >&2
+            echo "  from a session you can afford to lose." >&2
+            echo "" >&2
+            echo "  The ED25519 key is preferred over RSA and is unaffected, so an" >&2
+            echo "  ordinary OpenSSH client will not notice either way. This is about" >&2
+            echo "  what the machine still offers, not what it uses." >&2
+            echo "" >&2
+          fi
+        fi
+      '';
 
   system.activationScripts.extraActivation.text = ''
     if ! /usr/bin/xcode-select -p &>/dev/null; then

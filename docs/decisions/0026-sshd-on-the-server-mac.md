@@ -47,7 +47,11 @@ PAM 이 keyboard-interactive 를 통해 암호 인증을 **한 번 더** 제공�
 `sshd_config` 맨 위에 있고 glob 은 사전순으로 펼쳐지며 sshd 는 **먼저 본 값**을
 지킨다. 그래서 애플의 `100-macos.conf` 가 우리 `100-nix-darwin.conf` 보다 앞서
 읽히지만, 거기 들어 있는 것은 `UsePAM`·`AcceptEnv`·`crypto.conf` include 뿐이라
-겹치는 것이 없다.
+이 세 줄과는 겹치는 것이 없다.
+
+`crypto.conf` 가 정하는 것들과는 겹친다. 그쪽은 이 파일에 들어올 수 없어서
+`010-` 로 시작하는 별도 파일로 나가고, 그 이야기는
+[0027](0027-ssh-audit-profile-shared-by-every-host.md) 에 있다.
 
 ## 열쇠는 왜 선언하지 않나
 

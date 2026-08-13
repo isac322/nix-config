@@ -84,6 +84,27 @@ chmod 600 ~/.ssh/authorized_keys
 키](decisions/0004-one-gpg-key-for-ssh-signing-packaging.md)라, 기계 사이에 옮길
 것이 없다. 아무것도 안 나오면 순서가 뒤집힌 것이다 — 위의 GPG 키부터 가져온다.
 
+## RSA 호스트 키가 3072 비트일 때
+
+sshd 를 켠 기계만 해당하고, 프로파일보다 먼저 만들어진 키가 있을 때만 해당한다.
+[ssh-audit 프로파일](decisions/0027-ssh-audit-profile-shared-by-every-host.md)은
+4096 을 요구하는데 macOS 가 예전에 만든 키는 3072 이고, switch 는 **이미 있는
+호스트 키를 바꾸지 않는다**. 그래서 activation 이 이 사실과 아래를 출력한다.
+
+```sh
+sudo rm /etc/ssh/ssh_host_rsa_key /etc/ssh/ssh_host_rsa_key.pub
+sudo darwin-rebuild switch --flake /etc/nix-darwin
+```
+
+**그 키를 신뢰하던 클라이언트는 전부 접속을 거부한다.** 각자의 `known_hosts` 에서
+해당 줄을 지워야 다시 들어간다. 콘솔에서 하거나, 끊겨도 되는 세션에서 한다.
+
+ED25519 키가 우선순위에서 앞서므로 평범한 OpenSSH 클라이언트는 어느 쪽이든
+차이를 못 느낀다. 이건 그 기계가 아직 **무엇을 내놓는가**의 문제다.
+
+ECDSA 키 파일도 남아 있을 수 있는데, `HostKey` 줄에서 이름이 빠진 이상 읽히지
+않는다. 지워도 되고 둬도 된다.
+
 ## WARP service token
 
 서버 역할의 맥만 해당한다. service token 이 없으면 등록이 브라우저를 열어 Access

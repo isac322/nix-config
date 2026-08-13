@@ -6,7 +6,9 @@
 
 ```
 flake.nix          기기 목록. 각 기기가 어떤 모듈을 조합할지만 정한다
-lib/caches.nix     플랫폼별 옵션 경로가 달라서 모듈이 아닌 순수 데이터로 둔 것
+lib/               플랫폼별 옵션 경로가 달라서 모듈이 아닌 순수 데이터로 둔 것
+  caches.nix         substituter 와 공개키
+  ssh-audit.nix      sshd 알고리즘 프로파일. 맥은 파일로, NixOS 는 settings 로
 modules/           시스템 레벨
   common.nix         모든 OS 공통
   darwin.nix         모든 macOS
@@ -26,6 +28,8 @@ home/              사용자 레벨 (home-manager)
     darwin-laptop.nix   데스크톱 앱
     darwin-server.nix   Rust · 언어 서버
 pkgs/              nixpkgs 에 없거나 쓸 수 없는 형태인 패키지 + overlay.nix
+.claude/skills/    이 레포에 대해 되풀이하는 절차
+  ssh-audit/         sshd 권장값이 움직였는지 다시 대조한다
 ```
 
 축이 셋(OS × 역할 × 기기)인데 상속이 아니라 **조합**으로 푼다
@@ -43,7 +47,12 @@ pkgs/              nixpkgs 에 없거나 쓸 수 없는 형태인 패키지 + ov
 무조건 같아야 하는 것. 키 리매핑과 단축키 전부(`keyboard.nix`), Finder 전부
 (`finder.nix`), Liquid Glass·Spotlight(`appearance.nix`), WARP(`warp.nix`),
 Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Homebrew 기반과
-그 위의 Orca.
+그 위의 Orca, 그리고 [sshd 가 쓸 알고리즘과 호스트
+키](decisions/0027-ssh-audit-profile-shared-by-every-host.md).
+
+마지막 것이 역할이 아닌 이유는 아래 표의 sshd 줄과 갈리는 지점이기도 하다.
+누가 들어올 수 있는지는 역할이 정하고, 들어올 때 무엇으로 말하는지는 맥이면 답이
+같다. 랩탑에서 원격 로그인을 손으로 켰을 때 그 기계만 약한 편이 훨씬 나쁘다.
 
 **역할 전용** — 역할 파일은 의도적으로 얇다. 맥은 어느 역할이든 같은 맥이라
 겉모습 설정은 위층에 있고, 여기에는 진짜로 갈리는 것만 둔다.
