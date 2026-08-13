@@ -16,5 +16,5 @@
   # It is here rather than in the role because it describes this machine and
   # nothing else — a second server Mac would set its own and share every other
   # line of the configuration.
-  local.orca.pairingAddress = "10.222.0.134";
+  local.orca.pairingAddress = "10.222.0.8";
 }
