@@ -19,6 +19,68 @@ let
   cfg = osConfig.local.orca;
   autoLogin = osConfig.local.autoLogin;
 
+  # Where the GPG passphrase lives on this machine. In the user's own home
+  # rather than /var/lib, unlike the login password: this one is read by a user
+  # agent and never by root, so there is no reason for root to own it.
+  gpgPassphraseFile = "${config.home.homeDirectory}/.config/nix-darwin/gpg-passphrase";
+
+  # Push the passphrase into gpg-agent so nothing has to be asked.
+  #
+  # `gpg-preset-passphrase` puts it straight into the agent's cache, which is
+  # what `allow-preset-passphrase` in gpg-agent.conf permits. After this, a
+  # signature or an SSH authentication finds it already there and no pinentry
+  # runs — the difference between a machine that signs unattended and one that
+  # waits for a person.
+  #
+  # It is subject to `max-cache-ttl` like anything else in that cache, which is
+  # a day here, so the agent that runs this repeats on a timer rather than only
+  # at login.
+  #
+  # Every secret keygrip, not just the authentication one: the same key signs
+  # commits and answers SSH, and they are different subkeys with different
+  # keygrips.
+  presetPassphrase = pkgs.writeShellScript "gpg-preset-passphrase" ''
+    set -u
+
+    if [ ! -r ${lib.escapeShellArg gpgPassphraseFile} ]; then
+      echo "gpg-preset: no ${gpgPassphraseFile}, so nothing is preset." >&2
+      echo "gpg-preset: without it this machine asks for the GPG passphrase on" >&2
+      echo "gpg-preset: the first signature after each reboot, over SSH." >&2
+      echo "gpg-preset: write it there, mode 0600, and this stops happening." >&2
+      exit 0
+    fi
+
+    preset="$(${pkgs.gnupg}/bin/gpgconf --list-dirs libexecdir)/gpg-preset-passphrase"
+    if [ ! -x "$preset" ]; then
+      echo "gpg-preset: $preset is missing." >&2
+      exit 1
+    fi
+
+    grips=$(${pkgs.gnupg}/bin/gpg --list-secret-keys --with-keygrip --with-colons 2>/dev/null |
+      /usr/bin/awk -F: '$1 == "grp" { print $10 }')
+
+    if [ -z "$grips" ]; then
+      echo "gpg-preset: no secret key on this machine yet; nothing to preset." >&2
+      exit 0
+    fi
+
+    pw=$(/usr/bin/head -n 1 ${lib.escapeShellArg gpgPassphraseFile})
+
+    failed=""
+    for grip in $grips; do
+      # On a pipe rather than in argv, which every process on the machine can
+      # read.
+      if ! printf '%s' "$pw" | "$preset" --preset "$grip" >/dev/null 2>&1; then
+        failed="''${failed:+$failed }$grip"
+      fi
+    done
+
+    if [ -n "$failed" ]; then
+      echo "gpg-preset: could not preset: $failed" >&2
+      echo "gpg-preset: is the passphrase in ${gpgPassphraseFile} still right?" >&2
+    fi
+  '';
+
   # The bill for automatic login, and the thing that pays it.
   #
   # When a person types their password at the login window, that keystroke does
@@ -207,6 +269,30 @@ in
     };
   };
 
+  # pinentry that can ask over SSH, and a passphrase preset so it usually does
+  # not have to ask at all.
+  #
+  # pinentry-mac is right on a laptop and wrong here. It draws its dialog on the
+  # console, so over SSH the prompt is invisible and the request waits forever —
+  # `ssh -T git@github.com` stops at "Server accepts key" and a commit stops at
+  # nothing at all. Its "Save in Keychain" is its own feature, implemented
+  # against Keychain Services; the upstream pinentries have no such code. Losing
+  # it is the point of the preset below.
+  #
+  # pkgs/pinentry-keychain: keychain first, and pinentry-tty behind it. tty
+  # rather than curses for that fallback — this machine is only ever a remote
+  # shell, and a plain prompt beats a full-screen one there. When there is no
+  # terminal at all it fails immediately instead of hanging, which is the
+  # failure worth having.
+  #
+  # `program` is named because `writeScriptBin` sets no `meta.mainProgram`, and
+  # home-manager would otherwise look for a binary called `pinentry`.
+  services.gpg-agent.pinentry.package = lib.mkForce pkgs.pinentry-keychain;
+  services.gpg-agent.pinentry.program = lib.mkForce "pinentry-keychain";
+
+  # What lets the agent below hand a passphrase straight to gpg-agent.
+  services.gpg-agent.extraConfig = "allow-preset-passphrase";
+
   # Unlock the login keychain that automatic login leaves locked. See the
   # script above for why this is needed at all.
   #
@@ -225,6 +311,22 @@ in
       RunAtLoad = true;
       StandardOutPath = "${config.home.homeDirectory}/Library/Logs/unlock-login-keychain.log";
       StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/unlock-login-keychain.log";
+    };
+  };
+
+  # Runs at login and every six hours after it.
+  #
+  # The interval is not decoration: a preset entry expires with `max-cache-ttl`,
+  # a day here, and a machine that only preset at boot would start asking again
+  # on its second day of uptime — over SSH, where nobody is watching.
+  launchd.agents.gpg-preset-passphrase = {
+    enable = true;
+    config = {
+      ProgramArguments = [ "${presetPassphrase}" ];
+      RunAtLoad = true;
+      StartInterval = 21600;
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/gpg-preset-passphrase.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/gpg-preset-passphrase.log";
     };
   };
 

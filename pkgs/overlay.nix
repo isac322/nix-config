@@ -10,6 +10,11 @@ final: prev: {
   langfuse-cli = final.callPackage ./langfuse-cli/package.nix { };
   vercel-cli = final.callPackage ./vercel-cli/package.nix { };
 
+  # macOS only in practice — it shells out to /usr/bin/security. Declared here
+  # rather than in a role file because it is a program, and this is where this
+  # repository's programs live.
+  pinentry-keychain = final.callPackage ./pinentry-keychain/package.nix { };
+
   # This one replaces an existing attribute rather than adding one: nixpkgs'
   # `slack-cli` is a different project that took the name first. The reasoning
   # is in the package, since that is where it would be read.
