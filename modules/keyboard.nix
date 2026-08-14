@@ -180,6 +180,41 @@ in
     (remap keys.rightCommand keys.f18)
   ];
 
+  # And again at every boot, because activation is the only place nix-darwin
+  # applies the mapping and `hidutil property --set` does not survive one.
+  #
+  # hidutil writes into IOKit at run time. There is no file it persists to, so
+  # the mapping lives exactly as long as the machine stays up: activation sets
+  # it, a reboot drops it, and nothing puts it back until the next switch. On a
+  # laptop that switches often the gap is easy to miss. On a Mac that reboots
+  # unattended and is then driven over SSH, the keyboard is simply wrong until
+  # someone notices — which is how this was found.
+  #
+  # A daemon rather than an agent: hidutil as root sets the mapping for the
+  # whole machine including the login window, and there is no user session to
+  # wait for. RunAtLoad with no KeepAlive, because the command sets a property
+  # and exits — there is nothing to supervise.
+  #
+  # `config.system.keyboard.userKeyMapping` rather than a second copy of the
+  # list, so this and nix-darwin's own activation cannot drift apart.
+  #
+  # What it still does not cover: the mapping is per matching device and is
+  # dropped when one re-enumerates, so an external keyboard plugged in after
+  # boot starts unmapped. Nothing short of a watcher fixes that, and there is no
+  # external keyboard here.
+  launchd.daemons.keyboard-mapping = lib.mkIf config.system.keyboard.enableKeyMapping {
+    serviceConfig = {
+      ProgramArguments = [
+        "/usr/bin/hidutil"
+        "property"
+        "--set"
+        ''{"UserKeyMapping":${builtins.toJSON config.system.keyboard.userKeyMapping}}''
+      ];
+      RunAtLoad = true;
+      KeepAlive = false;
+    };
+  };
+
   system.activationScripts.postActivation.text = ''
     asUser() {
       launchctl asuser "$(id -u -- ${primaryUser})" sudo --user=${primaryUser} -- "$@"
