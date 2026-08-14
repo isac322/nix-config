@@ -124,7 +124,22 @@ in
   # machine is driven over SSH: /etc/zshenv is read by every zsh, while the
   # home-manager session file is only sourced by login and interactive shells,
   # which `ssh bhyoo-macbook-pro agent-browser …` is neither.
-  environment.systemPackages = [ pkgs.google-chrome ];
+  # Deliberately *not* in `environment.systemPackages`, which is the one thing
+  # that would put a copy in /Applications/Nix Apps — and that directory is what
+  # makes this machine unswitchable over SSH.
+  #
+  # nix-darwin's checks touch a file inside every bundle under /Applications/Nix
+  # Apps to prove it may modify them, and an SSH session has no such permission
+  # unless "Allow full disk access for remote users" is granted by hand in
+  # System Settings. Upstream's own comment says even granting it "will still
+  # fail sometimes". With no bundle there the loop has nothing to test and the
+  # check passes, so a headless machine stays switchable from anywhere.
+  #
+  # Nothing is lost. agent-browser never looks on PATH or in /Applications — it
+  # is handed the absolute store path below, which is the whole point of
+  # docs/decisions/0024-chrome-for-agent-browser-on-the-server.md. And the
+  # package stays in the closure because that path is written into /etc/zshenv,
+  # which Nix scans for store references.
   environment.variables.AGENT_BROWSER_EXECUTABLE_PATH = lib.getExe pkgs.google-chrome;
 
   # Log in without someone being there to do it.
