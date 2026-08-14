@@ -125,7 +125,7 @@ in
         echo "  The password cannot live in this repository, which is public." >&2
         echo "  Write it once, here, and every switch after this does the rest:" >&2
         echo "" >&2
-        echo "    sudo install -d -m 0700 ${dirOf cfg.passwordFile}" >&2
+        echo "    sudo install -d -m 0700 -o ${cfg.user} ${dirOf cfg.passwordFile}" >&2
         echo "    sudo tee ${cfg.passwordFile} >/dev/null <<'EOF'" >&2
         echo "    <${cfg.user}'s login password>" >&2
         echo "    EOF" >&2
@@ -139,6 +139,14 @@ in
         # Owned by the account whose password it is, and readable by nobody
         # else. Re-applied every switch so a file placed as root still ends up
         # right.
+        #
+        # The directory as well, which is the part that is easy to miss: a file
+        # the user owns is still unreachable through a directory they cannot
+        # traverse, and `install -d -m 0700` as root makes exactly that. Both
+        # stay 0700/0600 — this hands the path to one account, it does not open
+        # it.
+        chown ${cfg.user} ${lib.escapeShellArg (dirOf cfg.passwordFile)}
+        chmod 0700 ${lib.escapeShellArg (dirOf cfg.passwordFile)}
         chown ${cfg.user} ${lib.escapeShellArg cfg.passwordFile}
         chmod 0600 ${lib.escapeShellArg cfg.passwordFile}
 
