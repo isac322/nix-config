@@ -146,6 +146,11 @@ in
   # not by anything here.
   local.wireguard.enable = true;
 
+  # The Orca runtime. The address it advertises is not written here — it is read
+  # off the tunnel above at run time, because that is where the answer is
+  # already decided (0028).
+  local.orca.enable = true;
+
   # Come back without someone pressing the button.
   #
   # `power.restartAfterPowerFailure` is deliberately absent. Apple Silicon

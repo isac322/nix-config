@@ -20,23 +20,32 @@
 
 {
   options.local.orca = {
+    enable = lib.mkEnableOption ''
+      keeping an Orca runtime running on this machine.
+
+      Off by default. A Mac someone sits at opens the application instead;
+      this is for the one that has no window to open it in'';
+
     pairingAddress = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
-      example = "10.99.0.2";
+      example = "10.222.0.7";
       description = ''
         Address clients should dial to reach this machine's Orca runtime,
-        passed to `orca serve --pairing-address`. Normally this machine's
-        WireGuard address.
+        passed to `orca serve --pairing-address`.
 
-        This changes only what the runtime advertises in its pairing URL. It is
-        not a bind address, and there is no flag that is: the runtime listens on
-        0.0.0.0, so what keeps it off other networks is the network.
+        `null` — the default — does not mean unset. It means *read it off the
+        WireGuard interface at run time*, which is where the answer already
+        lives: the tunnel is how this machine is reached, so the address it
+        answers on is the address to advertise. Writing it here as well would be
+        a second copy of a number that is decided elsewhere, and the two would
+        eventually disagree — they already did once.
 
-        `null` — the default — means no runtime is started on this machine.
-        That is deliberate rather than a fallback: a pairing URL built from a
-        guessed address resolves to nothing, and upstream refuses to advertise a
-        wildcard for the same reason.
+        Set it only for a machine reached some other way.
+
+        Either way this changes only what the runtime advertises in its pairing
+        URL. It is not a bind address, and there is no flag that is: the runtime
+        listens on 0.0.0.0, so what keeps it off other networks is the network.
       '';
     };
 

@@ -13,11 +13,9 @@
 }:
 
 let
-  # Declared in modules/orca.nix, set per machine in hosts/<name>/. Nothing
-  # about the address is role-shaped — every server Mac would have a different
-  # one — so the role decides only that a runtime runs at all, and the machine
-  # says where it is reached. `osConfig` is the system configuration of the host
-  # this home-manager generation belongs to.
+  # Declared in modules/orca.nix. `osConfig` is the system configuration of the
+  # host this home-manager generation belongs to — home-manager's nix-darwin
+  # module passes it in under that name.
   cfg = osConfig.local.orca;
 
   # Homebrew's, because the cask is where Orca comes from (see
@@ -43,7 +41,49 @@ let
       exit 0
     fi
 
-    ${orca} serve --port ${toString cfg.port} --pairing-address ${cfg.pairingAddress} --json
+    ${
+      if cfg.pairingAddress != null then
+        "addr=${lib.escapeShellArg cfg.pairingAddress}"
+      else
+        ''
+          # The address to advertise, read off the tunnel rather than written
+          # down twice. wg-quick records the real utun behind each interface in
+          # /var/run/wireguard/<name>.name, and the address is then on that
+          # interface — both readable without root, which matters because this
+          # runs as the user while /etc/wireguard/*.conf is 0600 root.
+          #
+          # Waiting rather than failing: this agent starts when the session is
+          # created and the tunnel comes up at boot, so the order is usually
+          # right — but "usually" is not a thing to depend on, and a runtime that
+          # advertised the wrong address would look like it worked.
+          addr=""
+          waited=0
+          while [ "$waited" -lt 60 ]; do
+            for namefile in /var/run/wireguard/*.name; do
+              [ -f "$namefile" ] || continue
+              utun=$(/bin/cat "$namefile" 2>/dev/null) || continue
+              [ -n "$utun" ] || continue
+              addr=$(/sbin/ifconfig "$utun" 2>/dev/null | /usr/bin/awk '/inet /{print $2; exit}')
+              [ -n "$addr" ] && break
+            done
+            [ -n "$addr" ] && break
+            sleep 2
+            waited=$((waited + 2))
+          done
+
+          if [ -z "$addr" ]; then
+            # Non-zero on purpose: KeepAlive brings this back, which is the
+            # right behaviour for a tunnel that has not come up yet. A runtime
+            # advertising nothing would be worse than one that keeps trying.
+            echo "orca-serve: no WireGuard address after ''${waited}s, so there is" >&2
+            echo "orca-serve: nothing to advertise. Is /etc/wireguard/*.conf in place?" >&2
+            echo "orca-serve: see /var/log/wireguard.log." >&2
+            exit 1
+          fi
+        ''
+    }
+
+    ${orca} serve --port ${toString cfg.port} --pairing-address "$addr" --json
     status=$?
 
     # Exit 3 means another process already owns the Orca profile — the desktop
@@ -77,10 +117,7 @@ in
   # changes the address handed to clients — so what keeps this off other
   # networks is the network, not the runtime. Upstream is explicit that the port
   # must not be forwarded to the public internet.
-  #
-  # A machine that has not said where it is reached does not start a runtime at
-  # all, rather than starting one that advertises a guess.
-  launchd.agents.orca-serve = lib.mkIf (cfg.pairingAddress != null) {
+  launchd.agents.orca-serve = lib.mkIf cfg.enable {
     enable = true;
 
     # The `gui` domain, which is home-manager's default and so is not written

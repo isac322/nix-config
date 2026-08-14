@@ -13,7 +13,7 @@ modules/           시스템 레벨
   common.nix         모든 OS 공통
   darwin.nix         모든 macOS
   nixos.nix          모든 NixOS
-  orca.nix           `local.*` 옵션 선언. 설정은 없다 — hosts/ 가 값을 준다
+  orca.nix           `local.*` 옵션 선언. 광고 주소는 터널에서 읽는다
   wireguard.nix      서버 맥의 터널. 앱이 아니라 wg-quick 을 도는 루트 데몬
   auto-login.nix     kcpassword 생성 + FileVault 끄기. Orca 하나 때문에 있다
   mas-apps.nix       App Store 전용 앱이 없을 때 switch 가 알리게 한다
@@ -22,7 +22,7 @@ modules/           시스템 레벨
     darwin-server.nix   서버 macOS
 hosts/             기기 고유
   bhyoo-macbook-air/
-  bhyoo-macbook-pro/   + Orca 광고 주소
+  bhyoo-macbook-pro/
   server/            + hardware-configuration.nix
 home/              사용자 레벨 (home-manager)
   common.nix         모든 기기 공통 — 설정의 대부분이 여기 있다
