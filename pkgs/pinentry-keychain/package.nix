@@ -147,7 +147,13 @@ writeScriptBin "pinentry-keychain" ''
     my $pid = open(my $fh, "|-", $SECURITY, "add-generic-password",
                    "-a", $keygrip, "-s", $SERVICE, "-U", "-A", "-w");
     return unless $pid;
-    print {$fh} "$pw\n";
+
+    # Twice, because `security` asks twice — "password data for new item:" and
+    # then "retype password for new item:". Sending it once looks like it works
+    # and does not: the retype reads EOF, security says "passwords don't match",
+    # and the item is never created. Which is a silent failure of exactly the
+    # kind this file exists to avoid, so it is worth the sentence.
+    print {$fh} "$pw\n$pw\n";
     close $fh;
   }
 
