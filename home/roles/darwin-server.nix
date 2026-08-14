@@ -47,10 +47,10 @@ let
       else
         ''
           # The address to advertise, read off the tunnel rather than written
-          # down twice. wg-quick records the real utun behind each interface in
-          # /var/run/wireguard/<name>.name, and the address is then on that
-          # interface — both readable without root, which matters because this
-          # runs as the user while /etc/wireguard/*.conf is 0600 root.
+          # down twice. The WireGuard daemon publishes it to a readable file
+          # after bringing the interfaces up (modules/wireguard.nix) — nothing
+          # wg-quick leaves behind is readable without root, so going to the
+          # source directly is not an option for an agent that runs as the user.
           #
           # Waiting rather than failing: this agent starts when the session is
           # created and the tunnel comes up at boot, so the order is usually
@@ -59,14 +59,10 @@ let
           addr=""
           waited=0
           while [ "$waited" -lt 60 ]; do
-            for namefile in /var/run/wireguard/*.name; do
-              [ -f "$namefile" ] || continue
-              utun=$(/bin/cat "$namefile" 2>/dev/null) || continue
-              [ -n "$utun" ] || continue
-              addr=$(/sbin/ifconfig "$utun" 2>/dev/null | /usr/bin/awk '/inet /{print $2; exit}')
+            if [ -s /var/run/wireguard-addresses ]; then
+              addr=$(/usr/bin/head -n 1 /var/run/wireguard-addresses)
               [ -n "$addr" ] && break
-            done
-            [ -n "$addr" ] && break
+            fi
             sleep 2
             waited=$((waited + 2))
           done
@@ -76,8 +72,7 @@ let
             # right behaviour for a tunnel that has not come up yet. A runtime
             # advertising nothing would be worse than one that keeps trying.
             echo "orca-serve: no WireGuard address after ''${waited}s, so there is" >&2
-            echo "orca-serve: nothing to advertise. Is /etc/wireguard/*.conf in place?" >&2
-            echo "orca-serve: see /var/log/wireguard.log." >&2
+            echo "orca-serve: nothing to advertise. See /var/log/wireguard.log." >&2
             exit 1
           fi
         ''

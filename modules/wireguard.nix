@@ -30,6 +30,9 @@ let
   cfg = config.local.wireguard;
   confDir = "/etc/wireguard";
 
+  # Readable by everyone on purpose — see where it is written, below.
+  addressFile = "/var/run/wireguard-addresses";
+
   up = pkgs.writeShellScript "wireguard-up" ''
     set -u
 
@@ -62,7 +65,33 @@ let
       echo "wireguard: no ${confDir}/*.conf, so no tunnel is started." >&2
       echo "wireguard: a configuration holds this machine's private key and is" >&2
       echo "wireguard: placed by hand; see docs/operations.md." >&2
+      rm -f ${addressFile}
+      exit 0
     fi
+
+    # The addresses, written where a process without root can read them.
+    #
+    # Everything wg-quick leaves behind is root-only: the configuration is 0600
+    # root, and /var/run/wireguard/<name>.name — which maps an interface to its
+    # real utun — is 0400 root:daemon. A user agent that wants to know what
+    # address this machine answers on has nowhere to look, and the Orca runtime
+    # is exactly such an agent (home/roles/darwin-server.nix).
+    #
+    # Read off the interface rather than out of the configuration, so what is
+    # published is what is actually up.
+    : > ${addressFile}.new
+    for conf in ${confDir}/*.conf; do
+      [ -f "$conf" ] || continue
+      iface=''${conf##*/}
+      iface=''${iface%.conf}
+      namefile=/var/run/wireguard/"$iface".name
+      [ -f "$namefile" ] || continue
+      utun=$(cat "$namefile" 2>/dev/null) || continue
+      [ -n "$utun" ] || continue
+      /sbin/ifconfig "$utun" 2>/dev/null | /usr/bin/awk '/inet /{print $2; exit}' >> ${addressFile}.new
+    done
+    chmod 0644 ${addressFile}.new
+    mv -f ${addressFile}.new ${addressFile}
   '';
 in
 {
@@ -104,6 +133,14 @@ in
 
       serviceConfig = {
         RunAtLoad = true;
+
+        # Without this the tunnel comes up and is killed seconds later.
+        # `wg-quick up` starts `wireguard-go` detached and then exits, and
+        # launchd, seeing the job's main process gone, kills everything left in
+        # its process group. The log showed the whole successful bring-up —
+        # address, routes, "Backgrounding route monitor" — for an interface that
+        # no longer existed by the time anyone looked.
+        AbandonProcessGroup = true;
 
         # `wg-quick up` exits as soon as the interface is up — there is no
         # process to supervise, and KeepAlive would raise the tunnel in a loop.
