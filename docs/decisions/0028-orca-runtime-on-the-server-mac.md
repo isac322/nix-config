@@ -1,7 +1,8 @@
 # 0028. 서버 맥에서 Orca 런타임을 계속 띄운다
 
-**결정** — `orca serve` 를 LaunchAgent 로 돌린다. 세션 타입은 `Background`,
-포트는 6768, 광고 주소는 그 기계의 WireGuard 주소. exit 3 은 재시작하지 않는다.
+**결정** — `orca serve` 를 LaunchAgent 로 돌리고, 그것을 위해 이 역할에만 자동
+로그인을 켠다. 포트는 6768, 광고 주소는 그 기계의 WireGuard 주소. exit 3 은
+재시작하지 않는다.
 
 Orca 는 [양쪽 맥 다 깔린다](0015-gui-apps-come-from-homebrew.md). 랩탑에서는
 사람이 앱을 열지만 서버 맥에는 열 창이 없고, 그런데도 런타임은 계속 있어야 한다
@@ -18,41 +19,44 @@ Orca 는 [양쪽 맥 다 깔린다](0015-gui-apps-come-from-homebrew.md). 랩탑
 를 따로 띄우면 안 된다. 서버 맥에서 앱이 뜰 일은 없지만, 그 상황을 런타임이
 exit 3 으로 알려주므로 아래에서 그걸 다룬다.
 
-## `Background` 가 이 결정의 핵심이다
+## Aqua 세션이 필요하고, 그래서 자동 로그인을 켠다
 
-LaunchAgent 는 `LimitLoadToSessionType` 을 안 주면 기본이 `Aqua` 다. **콘솔 GUI
-로그인 때만 뜨고 SSH 로그인으로는 안 뜬다는 뜻이다.** 맥에서 확인했다:
+이 파일의 나머지가 전부 "데몬으로 만들면 로그인이 필요 없다" 는 쪽인데
+([0029](0029-wireguard-as-a-daemon-on-the-server-mac.md) 가 그 예다) Orca 만은
+안 된다. Electron 앱이라 LaunchAgent 여야 하고, LaunchAgent 는 콘솔 로그인에서만
+뜬다.
+
+먼저 `LimitLoadToSessionType = "Background"` + `domain = "user"` 로 피해 보려
+했다. `user/<uid>` 도메인이 윈도우 서버에 안 묶여 있다는 근거였고, 근거 자체는
+맞다:
 
 ```
-gui/501/org.nix-community.home.gpg-agent-ssh   있음   (session = Aqua)
-user/501/org.nix-community.home.gpg-agent-ssh  없음   (session = Background)
+gui/501/…gpg-agent-ssh   있음   (session = Aqua)
+user/501/…gpg-agent-ssh  없음   (session = Background)
 ```
 
-반대 방향도 같다. `LimitLoadToSessionType = Background` 가 박힌 애플의
-`com.apple.cfprefsd.xpc.agent` 는 `user/501` 에만 있고 `gui/501` 에는 없다.
+반대 방향도 같다 — `Background` 가 박힌 애플의 `com.apple.cfprefsd.xpc.agent` 는
+`user/501` 에만 있고 `gui/501` 에는 없다.
 
-그래서 `Background` 를 준다. `user/<uid>` 도메인은 윈도우 서버에 안 묶여 있다.
+**그런데 재부팅을 못 넘긴다.** `~/Library/LaunchAgents` 는 **세션이 만들어질 때**
+읽히는 디렉터리다. 아무도 로그인하지 않으면 읽어줄 세션이 없다. 그 기계에서
+확인했다 — 무인 재부팅 뒤에 plist 는 제자리에 있고
+`launchctl print user/<uid>/…orca-serve` 는 서비스를 못 찾았다.
 
-**그런데 그 키만으로는 안 된다.** home-manager 는 plist 를 두고 마는 것이 아니라
-`launchctl bootstrap <domain>/$UID` 를 직접 부르고, `launchd.agents.<name>.domain`
-의 기본값이 `gui` 다. 세션 타입만 `Background` 로 주면 자기 타입이 배제하는 바로
-그 세션에 부트스트랩된다. `domain = "user"` 가 같이 있어야 한다. 두 줄은 같은
-말이 아니다 — 하나는 activation 이 어디에 넣느냐고, 다른 하나는 그 뒤에 launchd
-가 파일을 어떻게 다루느냐다.
+그래서 Aqua 세션을 만들어야 하고, 그게 자동 로그인이다. 세션이 있는 것을 전제로
+하면 도메인은 home-manager 의 기본값 `gui` 가 맞다 — 검증된 경로이고,
+gpg-agent-ssh 가 이미 거기서 돈다.
 
-후자도 여전히 필요하다. plist 는 어느 도메인으로 가든 `~/Library/LaunchAgents`
-에 설치되고, 콘솔 로그인 때 launchd 가 그 디렉터리를 Aqua 세션으로 자동
-로드한다. `LimitLoadToSessionType` 이 없으면 user 도메인의 것과 별개로 한 벌이
-더 뜨고, 둘째는 프로필이 이미 잡혀 있어 exit 3 을 받는다.
+**자동 로그인은 공짜가 아니다.** 두 조각이 레포 밖에 있다. nix-darwin 은
+`com.apple.loginwindow` 의 `autoLoginUser` 키만 쓰고 `/etc/kcpassword` 는 건드리지
+않는다 — 소스 전체에 그 단어가 없다. 비밀이라 공개 레포에서 나올 수도 없다.
+그리고 **FileVault 이 켜져 있으면 아예 불가능하다.** 사전 부팅 잠금 해제가
+네트워크보다 먼저라, 무인 재부팅은 없는 키보드를 기다리며 멈춘다. 무인 복구와
+디스크 암호화의 맞바꿈이고, 물리적으로 안전한 기계에서만 할 만한 거래다.
 
-**증명하지 못한 것 하나** — 아무도 로그인하지 않은 부팅 직후에 `user/<uid>`
-도메인이 올라오는지는 로그인해 있는 기계에서 확인할 수 없었다. 그 기계에서
-재부팅 후 한 번 확인하는 절차를 [운영](../operations.md) 에 적어 뒀고, 안 되면
-남는 답은 자동 로그인이다.
-
-대안이던 LaunchDaemon 은 로그인 없이 뜨는 대신 GUI 세션도 로그인 keychain 도
-없다. Electron 기동과 Claude·Codex 계정 인증이 거기서 깨진다. 로그인 없이 뜨는
-것이 목적인데 뜬 다음 아무것도 못 하면 의미가 없다.
+둘 중 하나라도 없으면 activation 이 말한다. LaunchDaemon 으로 가는 길도 있었지만
+GUI 세션도 로그인 keychain 도 없어서 Electron 기동과 에이전트 계정 인증이
+거기서 깨진다 — 뜬 다음 아무것도 못 하면 의미가 없다.
 
 ## 주소는 기기에 속한다
 

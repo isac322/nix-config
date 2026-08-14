@@ -67,15 +67,11 @@ in
   # worktrees, terminals and agent processes, and uses this machine's PATH,
   # home directory and credentials rather than the client's.
   #
-  # LimitLoadToSessionType = "Background" is the load-bearing line. A LaunchAgent
-  # with no session type defaults to Aqua, which means it starts at console GUI
-  # login and at no other time — an SSH login does not do it. Verified on a Mac
-  # here: home-manager's gpg-agent-ssh agent appears in `gui/501` and is absent
-  # from `user/501`, while Apple's own Background-typed agents are the exact
-  # reverse. "Background" puts this in `user/<uid>`, which is not tied to the
-  # window server. See docs/operations.md for how to confirm it survives a
-  # reboot with nobody logged in, which is the one claim that could not be
-  # tested from another machine.
+  # It is an Electron application, so it needs an Aqua session — and a
+  # LaunchAgent gets one only at console login. That is the whole reason
+  # automatic login is turned on for this role
+  # (modules/roles/darwin-server.nix); everything else this machine runs is a
+  # root daemon precisely so it does not need any of that.
   #
   # It binds 0.0.0.0. There is no flag to narrow that — --pairing-address only
   # changes the address handed to clients — so what keeps this off other
@@ -87,15 +83,21 @@ in
   launchd.agents.orca-serve = lib.mkIf (cfg.pairingAddress != null) {
     enable = true;
 
-    # The half that actually decides this. home-manager runs
-    # `launchctl bootstrap <domain>/$UID` itself, and its default domain is
-    # `gui` — so an agent typed Background but bootstrapped into gui is
-    # bootstrapped into the one session its own type excludes. Both lines are
-    # needed and they are not saying the same thing: this one is where
-    # activation puts it, and LimitLoadToSessionType below is what launchd does
-    # with the file afterwards.
-    domain = "user";
-
+    # The `gui` domain, which is home-manager's default and so is not written
+    # here — this comment is.
+    #
+    # `domain = "user"` with `LimitLoadToSessionType = "Background"` was the
+    # first attempt, on the reasoning that the user domain is not tied to the
+    # window server. It loads at switch time and does not survive a reboot:
+    # ~/Library/LaunchAgents is read when a session is created, and with nobody
+    # logged in there is no session to read it. Verified on the machine — after
+    # an unattended reboot the plist was in place and `launchctl print
+    # user/<uid>/…orca-serve` found no such service.
+    #
+    # So the Aqua session has to exist, which is what automatic login is for
+    # (modules/roles/darwin-server.nix). Given that it does exist, the default
+    # domain is the known-good path: it is where home-manager's own gpg-agent-ssh
+    # agent lives and demonstrably works.
     config = {
       # No /bin/wait4path here. home-manager wraps ProgramArguments in exactly
       # that guard already (`waitForNixStore`, on by default), and writing it
@@ -104,14 +106,6 @@ in
       # reason.
       ProgramArguments = [ "${orcaServe}" ];
       RunAtLoad = true;
-
-      # The plist is installed to ~/Library/LaunchAgents whichever domain it is
-      # bootstrapped into, and launchd auto-loads that directory into the Aqua
-      # session at console login. Without this key a GUI login would start a
-      # second copy alongside the one in the user domain, and the second would
-      # take exit 3 — the profile is already owned. This says the file does not
-      # apply to Aqua at all.
-      LimitLoadToSessionType = "Background";
 
       # Restart on failure, not on a clean stop. The wrapper turns the one
       # failure worth not retrying into a clean stop.

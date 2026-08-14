@@ -122,6 +122,33 @@ cat /var/log/wireguard.log
 않는다. `wg-quick up` 은 인터페이스를 올리고 끝나므로 데몬이 계속 떠 있지 않는
 것이 정상이다. 살아 있게 하는 것은 wg-quick 이 떼어 놓는 `wireguard-go` 다.
 
+## 자동 로그인 (서버 맥)
+
+Orca 런타임이 Electron 이라 Aqua 세션을 요구하고, LaunchAgent 는 콘솔 로그인에서만
+뜬다 ([0028](decisions/0028-orca-runtime-on-the-server-mac.md)). sshd·WireGuard·키
+매핑은 전부 루트 데몬이라 이게 필요 없다 — 자동 로그인은 Orca 하나 때문이다.
+
+nix-darwin 은 `autoLoginUser` 키만 쓴다. 나머지 두 조각은 손으로 한다.
+
+**1. FileVault 을 끈다.** 켜져 있으면 자동 로그인은 불가능하다. 사전 부팅 잠금
+해제가 네트워크보다 먼저라 무인 재부팅이 없는 키보드를 기다리며 멈춘다. 물리적으로
+안전한 기계에서만 할 거래다.
+
+```sh
+fdesetup status          # "FileVault is Off." 여야 한다
+sudo fdesetup disable    # 켜져 있다면
+```
+
+**2. 비밀번호를 등록한다.** macOS 는 `/etc/kcpassword` 에서 읽고 nix-darwin 은 그
+파일을 안 만든다 — 비밀이고, 이 레포는 공개다. **그 기계의 콘솔에서** 시스템 설정을
+통해 한다. `defaults write` 로 하는 방법은 최근 macOS 에서 여러 번 깨졌다.
+
+```
+System Settings > Users & Groups > Automatic log in as
+```
+
+둘 중 하나라도 안 돼 있으면 switch 가 매번 알린다.
+
 ## Orca 런타임 (서버 맥)
 
 `orca serve` 가 LaunchAgent 로 돈다
@@ -140,23 +167,19 @@ Servers > Add Server 에 붙인다. **URL 자체가 접근 권한**이니 비밀
 페어링한 기기의 키는 프로필에 남아서 재시작해도 다시 안 해도 된다.
 
 ```sh
-launchctl print user/$(id -u)/org.nix-community.home.orca-serve   # 상태
-orca status --json                                                # 런타임 쪽에서 본 상태
+launchctl print gui/$(id -u)/org.nix-community.home.orca-serve   # 상태
+orca status --json                                               # 런타임 쪽에서 본 상태
 ```
 
-**부팅 확인 — 한 번은 해야 한다.** `LimitLoadToSessionType = "Background"` 는
-콘솔 로그인 없이도 뜨라는 뜻인데, 아무도 로그인하지 않은 부팅 직후에
-`user/<uid>` 도메인이 올라오는지는 그 기계에서만 확인된다. 재부팅하고, **콘솔에
-로그인하지 말고** SSH 로만 들어와서:
+**부팅 확인.** 자동 로그인이 실제로 걸렸는지가 곧 Orca 가 뜨는지다. 재부팅하고,
+**아무것도 안 하고**, 랩탑에서:
 
 ```sh
-launchctl print user/$(id -u)/org.nix-community.home.orca-serve | head -5
+ssh bhyoo@<주소> 'launchctl print gui/$(id -u)/org.nix-community.home.orca-serve | head -5'
 ```
 
-`state = running` 이면 끝이다. `Could not find service` 면 그 도메인이 부팅 때
-안 올라온 것이고, 그때는 자동 로그인
-(`system.defaults.loginwindow.autoLoginUser` + 손으로 넣는 `/etc/kcpassword`)
-이 남은 방법이다.
+`state = running` 이면 끝이다. `Could not find service` 면 Aqua 세션이 안 생긴
+것이므로 위의 자동 로그인 두 조각을 다시 본다.
 
 **에이전트 계정은 서버 쪽에서.** 원격 세션은 서버의 PATH·홈·자격증명을 쓰고
 클라이언트의 것을 안 쓴다. 그래서 원격 클라이언트에서는 Add account 가 아예
