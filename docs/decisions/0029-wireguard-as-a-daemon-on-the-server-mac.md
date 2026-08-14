@@ -48,6 +48,38 @@ launchctl print system      WireGuard 관련 잡 0개
 
 패키지가 주는 서비스 통합은 systemd 유닛뿐이라 launchd plist 는 우리가 쓴다.
 
+## 부팅 때 안 뜨던 두 가지
+
+선언만으로는 안 됐다. 실제로 그 기계에서 잡은 것 둘.
+
+**`wait4path` 가 없었다.** nix-darwin 의 `command`/`script` 옵션은
+ProgramArguments 를 `/bin/sh -c '/bin/wait4path /nix/store && exec …'` 로 만들어
+주는데, `serviceConfig.ProgramArguments` 를 손으로 쓰면 그 래퍼가 안 붙는다.
+`/nix/store` 는 데몬이 시작될 때 아직 안 붙은 볼륨이라 맨 store 경로는 exec 자체가
+실패한다. **조용히** 실패한다 — `StandardErrorPath` 에 쓸 프로세스가 뜨기 전이라
+로그도 안 남는다. 로그의 마지막 줄이 부팅보다 두 시간 앞서 있는 것으로 드러났다.
+
+**launchd 가 `wireguard-go` 를 죽였다.** `wg-quick up` 은 `wireguard-go` 를 떼어
+놓고 자신은 끝난다. launchd 는 잡의 메인 프로세스가 사라지면 그 프로세스 그룹에
+남은 것을 죽인다. 로그에는 성공적인 bring-up 이 전부 찍혀 있는데 — 주소, 경로
+19개, "Backgrounding route monitor" — 정작 그 인터페이스가 없었다.
+`AbandonProcessGroup = true` 가 그것을 막는 키다.
+
+두 증상 모두 "설정이 틀렸다" 처럼 보이지 않는다는 점이 같다. 하나는 아무 흔적도
+안 남기고, 다른 하나는 성공한 흔적만 남긴다.
+
+## 주소는 읽을 수 있는 곳에 따로 발행한다
+
+wg-quick 이 남기는 것은 전부 root 전용이다. 설정은 0600 root, 그리고 인터페이스와
+실제 utun 을 잇는 `/var/run/wireguard/<name>.name` 은 0400 root:daemon 이다.
+
+그래서 사용자 권한으로 도는 것은 이 기계가 어느 주소로 답하는지 알 방법이 없다.
+[Orca 런타임](0028-orca-runtime-on-the-server-mac.md)이 정확히 그런 처지라, 데몬이
+인터페이스를 올린 뒤 주소를 `/var/run/wireguard-addresses` (0644) 에 쓴다. 설정
+파일이 아니라 **인터페이스에서** 읽어서, 적힌 것이 실제로 올라온 것이 되게 한다.
+터널이 하나도 없으면 그 파일을 지운다 — 낡은 주소가 남아 있는 것이 없는 것보다
+나쁘다.
+
 ## KeepAlive 를 안 켠 이유
 
 `wg-quick up` 은 인터페이스를 올리고 **끝난다**. 감시할 프로세스가 없다.

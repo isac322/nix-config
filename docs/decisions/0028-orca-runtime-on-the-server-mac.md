@@ -77,15 +77,13 @@ LaunchDaemon 으로 가는 길도 있었지만 GUI 세션도 로그인 keychain 
 `.7` 이었고, 설정은 멀쩡해 보이는 채로 아무데도 안 닿는 페어링 URL 을 냈다. 같은
 숫자를 두 곳에 두면 언젠가 갈라진다.
 
-그래서 실행 시점에 읽는다. wg-quick 은 인터페이스 뒤의 진짜 utun 이름을
-`/var/run/wireguard/<name>.name` 에 남기고, 주소는 그 인터페이스에 붙어 있다.
-둘 다 root 없이 읽힌다 — 에이전트는 사용자 권한으로 도는데
-`/etc/wireguard/*.conf` 는 0600 root 라 그쪽은 못 읽는다.
+그래서 실행 시점에 읽는다. 처음에는 `/var/run/wireguard/<name>.name` 을 읽어 utun 을 찾고 거기서 주소를
+꺼내게 했다. 그것도 틀렸다 — 그 파일은 **0400 root:daemon** 이고 에이전트는 사용자
+권한으로 돈다. wg-quick 이 남기는 것 중 root 없이 읽히는 것은 없다.
 
-```sh
-utun=$(cat /var/run/wireguard/wg0.name)
-ifconfig "$utun" | awk '/inet /{print $2; exit}'
-```
+그래서 WireGuard 데몬이 인터페이스를 올린 뒤 주소를
+`/var/run/wireguard-addresses` (0644) 로 발행하고
+([0029](0029-wireguard-as-a-daemon-on-the-server-mac.md)), 이쪽은 그 파일만 본다.
 
 찾을 때까지 최대 60초 기다린다. 에이전트는 세션이 만들어질 때 뜨고 터널은 부팅
 때 올라오니 순서는 대개 맞지만, "대개" 에 기대는 것이 이 파일이 피하려는 것이다.

@@ -27,3 +27,19 @@ SSH 로 몰기 때문이다. `/etc/zshenv` 는 모든 zsh 가 읽지만 home-man
 랩탑에서 환경변수를 nix 크롬으로 덮어씌워도 캐스크 경로를 계속 찍는다. 표시만
 그럴 뿐 실행에는 환경변수가 이긴다: 없는 경로를 넣으면 `Launch test` 가
 `Failed to launch Chrome at "…"` 로 떨어지고, nix 크롬을 넣으면 통과한다.
+
+## 그 뒤 — `systemPackages` 에서 뺐다
+
+크롬은 `environment.systemPackages` 에 있었는데 거기서 뺐다. 절대경로로 지목한다는
+위의 결론이 바뀐 것이 아니라, **오히려 그 결론 덕분에 뺄 수 있었다.**
+
+`systemPackages` 에 있으면 nix-darwin 이 `/Applications/Nix Apps` 에 번들을 만든다.
+그리고 nix-darwin 의 검사는 그 디렉터리 아래 번들마다 `touch` 를 시도해 수정 권한을
+확인하는데, SSH 세션에는 그 권한이 없다 — "Allow full disk access for remote users"
+를 손으로 켜야 하고, 상류 주석은 그걸 켜도 "will still fail sometimes" 라고 적어
+두었다. 즉 번들 하나 때문에 **헤드리스 기계가 원격으로 switch 불가능**해진다.
+
+거기 있던 번들은 크롬 하나뿐이었다. 빼면 검사할 것이 없어 루프가 통과한다. 잃는
+것도 없다 — agent-browser 는 PATH 도 `/Applications` 도 안 보고, 패키지는
+`AGENT_BROWSER_EXECUTABLE_PATH` 가 `/etc/zshenv` 에 박히면서 클로저에 남는다.
+Nix 가 출력에서 store 경로 문자열을 훑기 때문이다.

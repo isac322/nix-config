@@ -117,6 +117,7 @@ sudo launchctl kickstart -k system/org.nixos.wireguard
 ```sh
 sudo wg show
 cat /var/log/wireguard.log
+cat /var/run/wireguard-addresses   # 데몬이 발행한 주소. Orca 가 이걸 읽는다
 ```
 
 파일이 없으면 데몬은 터널을 안 올리고 그 사실을 로그에 남긴다 — 설정이 깨지지는
