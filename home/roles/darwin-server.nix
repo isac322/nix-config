@@ -17,6 +17,61 @@ let
   # host this home-manager generation belongs to — home-manager's nix-darwin
   # module passes it in under that name.
   cfg = osConfig.local.orca;
+  autoLogin = osConfig.local.autoLogin;
+
+  # The bill for automatic login, and the thing that pays it.
+  #
+  # When a person types their password at the login window, that keystroke does
+  # two jobs: it logs them in and it unlocks their login keychain. An automatic
+  # login through /etc/kcpassword does only the first. The keychain stays
+  # locked, and everything that needs a secret out of it stops — for this
+  # machine that means gpg-agent, whose pinentry-mac holds the GPG passphrase
+  # there.
+  #
+  # The failure is invisible in the worst way. `ssh-add -L` still answers,
+  # because listing keys needs no secret; the *signing* step is what blocks. So
+  # `ssh -T git@github.com` gets as far as "Server accepts key" and then stops
+  # forever, and so does every commit signature. Seen on this machine with a
+  # pinentry-mac process 49 minutes old, waiting on a dialog drawn on a console
+  # nobody is sitting at.
+  #
+  # `security -i` takes its command on standard input, so the password is never
+  # an argument and never appears in `ps`.
+  unlockKeychain = pkgs.writeShellScript "unlock-login-keychain" ''
+    set -u
+
+    pwFile=${lib.escapeShellArg autoLogin.passwordFile}
+    keychain="$HOME/Library/Keychains/login.keychain-db"
+
+    if [ ! -r "$pwFile" ]; then
+      echo "unlock-login-keychain: cannot read $pwFile; keychain left as it is." >&2
+      exit 0
+    fi
+    [ -f "$keychain" ] || exit 0
+
+    # `security -i` splits its input the way a shell would, so a password
+    # holding a quote or a backslash has to survive that. Built in perl rather
+    # than with shell expansions — the same reason the rest of this repository's
+    # secret handling is in perl: it is one place and it is readable.
+    /usr/bin/perl -e '
+      my $kc = $ARGV[0];
+      my $pw = <STDIN>;
+      $pw = "" unless defined $pw;
+      $pw =~ s/\r?\n\z//;
+      for ($pw, $kc) { s/(["\\])/\\$1/g }
+      print qq{unlock-keychain -p "$pw" "$kc"\n};
+    ' "$keychain" < "$pwFile" |
+      /usr/bin/security -i >/dev/null 2>&1
+
+    # Say something only when it did not work, which is the only case a person
+    # can do anything about.
+    if ! /usr/bin/security show-keychain-info "$keychain" >/dev/null 2>&1; then
+      echo "unlock-login-keychain: the login keychain is still locked." >&2
+      echo "unlock-login-keychain: gpg-agent will hang on its first signature," >&2
+      echo "unlock-login-keychain: which stops commit signing and SSH. Does the" >&2
+      echo "unlock-login-keychain: password in $pwFile still match the account?" >&2
+    fi
+  '';
 
   # Homebrew's, because the cask is where Orca comes from (see
   # docs/decisions/0015-gui-apps-come-from-homebrew.md). This is a symlink brew
@@ -149,6 +204,27 @@ in
       # nowhere else to read it on a machine with no window.
       StandardOutPath = "${config.home.homeDirectory}/Library/Logs/orca-serve.log";
       StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/orca-serve.log";
+    };
+  };
+
+  # Unlock the login keychain that automatic login leaves locked. See the
+  # script above for why this is needed at all.
+  #
+  # An agent rather than a daemon, and in the default `gui` domain: a keychain
+  # is unlocked for a session, and the session this has to reach is the Aqua one
+  # that automatic login just created. RunAtLoad and nothing else — it is one
+  # command, and there is no process to keep alive.
+  #
+  # Not covered: the keychain locks again on sleep if that setting is on. The
+  # machine this runs on is configured never to sleep on power, so that has not
+  # come up.
+  launchd.agents.unlock-login-keychain = lib.mkIf autoLogin.enable {
+    enable = true;
+    config = {
+      ProgramArguments = [ "${unlockKeychain}" ];
+      RunAtLoad = true;
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/unlock-login-keychain.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/unlock-login-keychain.log";
     };
   };
 

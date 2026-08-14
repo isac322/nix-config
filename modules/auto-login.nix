@@ -99,6 +99,11 @@ in
         Path to a file whose first line is that account's password. Placed once
         per machine, outside this repository, mode 0600.
 
+        Activation gives it to that account rather than to root. It is the
+        user's own password, so they can read it anyway, and the agent that
+        unlocks their login keychain after an automatic login has to be able to
+        read it too — see home/roles/darwin-server.nix.
+
         Its absence is not an error — it means automatic login has not been set
         up here, and activation says what to write. Its presence is what
         authorises turning FileVault off.
@@ -124,13 +129,20 @@ in
         echo "    sudo tee ${cfg.passwordFile} >/dev/null <<'EOF'" >&2
         echo "    <${cfg.user}'s login password>" >&2
         echo "    EOF" >&2
+        echo "    sudo chown ${cfg.user} ${cfg.passwordFile}" >&2
         echo "    sudo chmod 0600 ${cfg.passwordFile}" >&2
         echo "" >&2
         echo "  Writing it also authorises turning FileVault off, which automatic" >&2
         echo "  login requires. Nothing does that on its own." >&2
         echo "" >&2
       else
-        # Root-only, and never wider than the file it came from.
+        # Owned by the account whose password it is, and readable by nobody
+        # else. Re-applied every switch so a file placed as root still ends up
+        # right.
+        chown ${cfg.user} ${lib.escapeShellArg cfg.passwordFile}
+        chmod 0600 ${lib.escapeShellArg cfg.passwordFile}
+
+        # /etc/kcpassword stays root-only, and never wider than what wrote it.
         umask 077
 
         /usr/bin/perl -e ${lib.escapeShellArg kcpasswordPerl} \
