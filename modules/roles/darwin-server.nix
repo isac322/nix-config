@@ -139,6 +139,13 @@ in
   # modules/auto-login.nix.
   local.autoLogin.enable = true;
 
+  # The tunnel this machine is reached through, as a root daemon rather than the
+  # App Store client — see
+  # docs/decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md. Which
+  # tunnels exist is decided by which configuration files are on the machine,
+  # not by anything here.
+  local.wireguard.enable = true;
+
   # Come back without someone pressing the button.
   #
   # `power.restartAfterPowerFailure` is deliberately absent. Apple Silicon
