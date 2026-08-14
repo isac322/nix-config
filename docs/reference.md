@@ -15,6 +15,7 @@ modules/           시스템 레벨
   nixos.nix          모든 NixOS
   orca.nix           `local.*` 옵션 선언. 설정은 없다 — hosts/ 가 값을 준다
   wireguard.nix      서버 맥의 터널. 앱이 아니라 wg-quick 을 도는 루트 데몬
+  auto-login.nix     kcpassword 생성 + FileVault 끄기. Orca 하나 때문에 있다
   mas-apps.nix       App Store 전용 앱이 없을 때 switch 가 알리게 한다
   roles/
     darwin-laptop.nix   랩탑 macOS

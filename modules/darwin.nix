@@ -28,6 +28,7 @@ in
 
     ./mas-apps.nix
     ./wireguard.nix
+    ./auto-login.nix
   ];
 
   # Determinate Nix owns the Nix install, the nix-daemon and /etc/nix/nix.conf,

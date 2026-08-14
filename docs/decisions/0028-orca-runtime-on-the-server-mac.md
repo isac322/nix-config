@@ -47,16 +47,24 @@ user/501/…gpg-agent-ssh  없음   (session = Background)
 하면 도메인은 home-manager 의 기본값 `gui` 가 맞다 — 검증된 경로이고,
 gpg-agent-ssh 가 이미 거기서 돈다.
 
-**자동 로그인은 공짜가 아니다.** 두 조각이 레포 밖에 있다. nix-darwin 은
-`com.apple.loginwindow` 의 `autoLoginUser` 키만 쓰고 `/etc/kcpassword` 는 건드리지
-않는다 — 소스 전체에 그 단어가 없다. 비밀이라 공개 레포에서 나올 수도 없다.
-그리고 **FileVault 이 켜져 있으면 아예 불가능하다.** 사전 부팅 잠금 해제가
-네트워크보다 먼저라, 무인 재부팅은 없는 키보드를 기다리며 멈춘다. 무인 복구와
-디스크 암호화의 맞바꿈이고, 물리적으로 안전한 기계에서만 할 만한 거래다.
+**자동 로그인은 공짜가 아니다.** nix-darwin 은 `com.apple.loginwindow` 의
+`autoLoginUser` 키만 쓴다. macOS 는 `/etc/kcpassword` 에서 비밀번호를 읽고,
+FileVault 가 켜져 있으면 아예 성립하지 않는다 — 사전 부팅 잠금 해제가 네트워크보다
+먼저라 무인 재부팅이 없는 키보드를 기다리며 멈춘다. 무인 복구와 디스크 암호화의
+맞바꿈이고, 물리적으로 안전한 기계에서만 할 만한 거래다.
 
-둘 중 하나라도 없으면 activation 이 말한다. LaunchDaemon 으로 가는 길도 있었지만
-GUI 세션도 로그인 keychain 도 없어서 Electron 기동과 에이전트 계정 인증이
-거기서 깨진다 — 뜬 다음 아무것도 못 하면 의미가 없다.
+두 조각 다 `modules/auto-login.nix` 가 스크립트로 한다. 사람이 하는 것은 비밀번호
+파일 하나를 놓는 것뿐이고, 그건 원리상 자동화할 수 없다 — 자동 로그인은 곧
+비밀번호를 디스크에 두는 것이고, 이 레포는 공개다. **그 파일이 있는 것 자체가
+FileVault 를 끄는 동의**다. 없는 기계에서는 아무것도 건드리지 않는다.
+
+kcpassword 인코딩은 독립 구현과 바이트 단위로 대조했다 — 12자 경계에서 NUL 12개를
+더 붙이는 예외까지 포함해서. `fdesetup disable` 은 비대화형 인자가 없어 stdin 으로
+plist 를 넣고 30초 알람으로 감쌌다. 답할 수 없는 프롬프트에서 activation 이 멈추는
+것이 보고하고 넘어가는 것보다 나쁘다.
+
+LaunchDaemon 으로 가는 길도 있었지만 GUI 세션도 로그인 keychain 도 없어서 Electron
+기동과 에이전트 계정 인증이 거기서 깨진다 — 뜬 다음 아무것도 못 하면 의미가 없다.
 
 ## 주소는 기기에 속한다
 

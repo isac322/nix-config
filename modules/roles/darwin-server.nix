@@ -55,54 +55,6 @@ let
     fi
   '';
 
-  # Auto-login is declared below, and declaring it is not the same as it
-  # working. Both of its other halves are outside this repository — FileVault
-  # has to be off, and /etc/kcpassword has to hold the obfuscated password — so
-  # this reports whichever is missing. Silent when there is nothing to do.
-  autoLoginCheck = ''
-    autoLoginMissing=""
-    if /usr/bin/fdesetup isactive >/dev/null 2>&1; then
-      autoLoginMissing="filevault"
-    fi
-    if [ ! -f /etc/kcpassword ]; then
-      autoLoginMissing="''${autoLoginMissing:+$autoLoginMissing }kcpassword"
-    fi
-
-    if [ -n "$autoLoginMissing" ]; then
-      echo "" >&2
-      echo "  Automatic login is declared but cannot happen yet, so this machine" >&2
-      echo "  comes back from a reboot without an Aqua session — and the Orca" >&2
-      echo "  runtime needs one." >&2
-      echo "" >&2
-      case "$autoLoginMissing" in
-        *filevault*)
-          echo "  FileVault is on. Its pre-boot unlock runs before the network" >&2
-          echo "  does, so an unattended reboot stops at a keyboard that is not" >&2
-          echo "  there. Turning it off trades disk encryption for unattended" >&2
-          echo "  recovery — only worth it if the machine is physically secure:" >&2
-          echo "" >&2
-          echo "    sudo fdesetup disable" >&2
-          echo "" >&2
-          ;;
-      esac
-      case "$autoLoginMissing" in
-        *kcpassword*)
-          echo "  /etc/kcpassword is missing. macOS reads the password from there" >&2
-          echo "  and nix-darwin does not write it — it is a secret, and this" >&2
-          echo "  repository is public. Set it through the interface that writes" >&2
-          echo "  both halves, at this machine's own console:" >&2
-          echo "" >&2
-          echo "    System Settings > Users & Groups > Automatic log in as" >&2
-          echo "" >&2
-          echo "  Doing it there rather than with \`defaults write\` also avoids" >&2
-          echo "  the question of whether the scripted path still works on this" >&2
-          echo "  release; recent macOS has broken it more than once." >&2
-          echo "" >&2
-          ;;
-      esac
-    fi
-  '';
-
 in
 
 {
@@ -177,33 +129,15 @@ in
 
   # Log in without someone being there to do it.
   #
-  # This exists for exactly one thing: the Orca runtime is an Electron
-  # application, so it needs an Aqua session and nothing else will give it one
-  # (0028). Everything else this machine runs is a root daemon on purpose —
-  # sshd, WireGuard, the keyboard mapping — and a daemon needs none of this.
-  # That is the general rule and this is the exception to it, not the pattern.
+  # For exactly one thing: the Orca runtime is an Electron application, so it
+  # needs an Aqua session and nothing else will give it one (0028). Everything
+  # else this machine runs is a root daemon on purpose — sshd, WireGuard, the
+  # keyboard mapping — and a daemon needs none of this. That is the general
+  # rule; this is the exception to it, not the pattern.
   #
-  # Two halves, and nix-darwin only writes one. This option sets the
-  # `autoLoginUser` key in com.apple.loginwindow; macOS also wants the user's
-  # password obfuscated into /etc/kcpassword, which nix-darwin never touches —
-  # `kcpassword` does not appear anywhere in its source. A secret cannot come
-  # from a public repository anyway, so that half is placed by hand once, like
-  # the WARP token and the WireGuard config.
-  #
-  # And it cannot work at all while FileVault is on, which is the default on
-  # Apple Silicon. FileVault's pre-boot unlock happens before the network comes
-  # up, so a reboot leaves the machine waiting on a keyboard that is not there —
-  # unattended reboot recovery and full-disk encryption are the trade, and the
-  # trade is only worth taking on a machine that is physically secure. The check
-  # below says so when the two disagree.
-  system.defaults.loginwindow.autoLoginUser = config.system.primaryUser;
-
-  # The tunnel this machine is reached through, as a root daemon rather than
-  # the App Store client — see
-  # docs/decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md. Which
-  # tunnels exist is decided by which configurations are on the machine, not by
-  # anything here.
-  local.wireguard.enable = true;
+  # What it costs, and the one file that has to exist for it to work, is in
+  # modules/auto-login.nix.
+  local.autoLogin.enable = true;
 
   # Come back without someone pressing the button.
   #
@@ -245,7 +179,6 @@ in
     /usr/bin/pmset -b sleep 10 disksleep 10 displaysleep 2
 
     ${sshdEnsureListening}
-    ${autoLoginCheck}
   '';
 
   # Clamshell — keep running with the lid shut, but only while on power.

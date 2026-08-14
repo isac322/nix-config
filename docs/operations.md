@@ -125,30 +125,39 @@ cat /var/log/wireguard.log
 
 ## 자동 로그인 (서버 맥)
 
-Orca 런타임이 Electron 이라 Aqua 세션을 요구하고, LaunchAgent 는 콘솔 로그인에서만
-뜬다 ([0028](decisions/0028-orca-runtime-on-the-server-mac.md)). sshd·WireGuard·키
-매핑은 전부 루트 데몬이라 이게 필요 없다 — 자동 로그인은 Orca 하나 때문이다.
+Orca 런타임이 Electron 이라 Aqua 세션을 요구하고, LaunchAgent 는 세션이 만들어질
+때만 뜬다 ([0028](decisions/0028-orca-runtime-on-the-server-mac.md)).
+sshd·WireGuard·키 매핑은 전부 루트 데몬이라 이게 필요 없다 — 자동 로그인은 Orca
+하나 때문이다.
 
-nix-darwin 은 `autoLoginUser` 키만 쓴다. 나머지 두 조각은 손으로 한다.
-
-**1. FileVault 을 끈다.** 켜져 있으면 자동 로그인은 불가능하다. 사전 부팅 잠금
-해제가 네트워크보다 먼저라 무인 재부팅이 없는 키보드를 기다리며 멈춘다. 물리적으로
-안전한 기계에서만 할 거래다.
+**손으로 하는 것은 파일 하나다.** 나머지는 switch 가 한다 — `/etc/kcpassword`
+생성과 FileVault 끄기 둘 다.
 
 ```sh
-fdesetup status          # "FileVault is Off." 여야 한다
-sudo fdesetup disable    # 켜져 있다면
+sudo install -d -m 0700 /var/lib/nix-darwin
+sudo tee /var/lib/nix-darwin/login-password >/dev/null <<'EOF'
+<그 계정의 로그인 비밀번호>
+EOF
+sudo chmod 0600 /var/lib/nix-darwin/login-password
 ```
 
-**2. 비밀번호를 등록한다.** macOS 는 `/etc/kcpassword` 에서 읽고 nix-darwin 은 그
-파일을 안 만든다 — 비밀이고, 이 레포는 공개다. **그 기계의 콘솔에서** 시스템 설정을
-통해 한다. `defaults write` 로 하는 방법은 최근 macOS 에서 여러 번 깨졌다.
+그리고 switch. 이 파일이 있는 것 자체가 **FileVault 를 끄는 동의**다 — 파일이
+없는 기계에서는 activation 이 무엇을 쓰라고만 말하고 아무것도 건드리지 않는다.
 
-```
-System Settings > Users & Groups > Automatic log in as
-```
+FileVault 는 켜져 있으면 자동 로그인이 불가능하다. 사전 부팅 잠금 해제가
+네트워크보다 먼저라 무인 재부팅이 없는 키보드를 기다리며 멈춘다. 물리적으로
+안전한 기계에서만 할 거래다.
 
-둘 중 하나라도 안 돼 있으면 switch 가 매번 알린다.
+`fdesetup disable` 은 man 페이지에 비대화형 인자가 없어서 stdin 으로 plist 를
+넣는다. **30초 알람으로 감싸 두었다** — 답할 수 없는 프롬프트에서 activation 이
+멈추는 것이 보고하고 넘어가는 것보다 나쁘기 때문이다. 실패하면 콘솔에서 할
+명령을 낸다.
+
+```sh
+fdesetup status              # "FileVault is Off." 가 목표
+defaults read /Library/Preferences/com.apple.loginwindow autoLoginUser
+ls -l /etc/kcpassword
+```
 
 ## Orca 런타임 (서버 맥)
 
