@@ -88,8 +88,21 @@ in
     environment.systemPackages = [ pkgs.wireguard-tools ];
 
     launchd.daemons.wireguard = {
+      # `command` rather than `serviceConfig.ProgramArguments`, and the
+      # difference is not cosmetic. nix-darwin turns `command` into
+      # `/bin/sh -c '/bin/wait4path /nix/store && exec …'`; a ProgramArguments
+      # written by hand gets no such guard.
+      #
+      # Which matters at exactly the moment this daemon exists for. /nix/store
+      # is on a volume that is not mounted yet when daemons start, so a bare
+      # store path fails to exec — silently, because the failure happens before
+      # the process that would have written to StandardErrorPath. With
+      # KeepAlive off nothing retries, and the machine comes up with no tunnel
+      # and an empty log. Seen exactly that way: the log's last line predated
+      # the boot by two hours.
+      command = "${up}";
+
       serviceConfig = {
-        ProgramArguments = [ "${up}" ];
         RunAtLoad = true;
 
         # `wg-quick up` exits as soon as the interface is up — there is no
