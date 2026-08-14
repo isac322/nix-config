@@ -91,8 +91,9 @@ chmod 600 ~/.ssh/authorized_keys
 이 `wg-quick` 을 돌리고, 그 설정 파일만 손으로 놓는다 — **개인키가 들어 있어서
 레포에 안 들어간다.**
 
-`hosts/<name>/` 의 `local.wireguard.interface` 가 이름을 정하고, 그게 곧 파일
-이름이다.
+인터페이스 이름은 레포에 안 적는다 — **파일 이름이 곧 인터페이스 이름**이고,
+데몬은 `/etc/wireguard/*.conf` 를 전부 올린다. 이름을 양쪽에 두면 갈라질 자리만
+생긴다.
 
 ```sh
 sudo install -d -m 0700 /etc/wireguard

@@ -31,6 +31,30 @@ let
   # on a machine that is already fine. Testing for a running sshd would not
   # work: the daemon is socket-activated, launchd holds 22 on its behalf, and
   # `state = not running` is its normal resting state.
+  sshdEnsureListening = ''
+    if ! /usr/sbin/lsof -nP -iTCP:22 -sTCP:LISTEN >/dev/null 2>&1; then
+      /bin/launchctl enable system/com.openssh.sshd
+
+      # Already-loaded is the expected answer whenever `enable` was the missing
+      # half, and it is not a failure. Anything else is, and says so rather than
+      # aborting a switch that has otherwise finished.
+      if ! bootstrapOut=$(/bin/launchctl bootstrap system /System/Library/LaunchDaemons/ssh.plist 2>&1); then
+        case "$bootstrapOut" in
+          *"Input/output error"* | *already*) ;;
+          *)
+            echo "" >&2
+            echo "  sshd is not listening on 22 and could not be started:" >&2
+            echo "    $bootstrapOut" >&2
+            echo "" >&2
+            echo "  This machine is reached over SSH, so that is worth looking at" >&2
+            echo "  from its own console before the session you are in ends." >&2
+            echo "" >&2
+            ;;
+        esac
+      fi
+    fi
+  '';
+
   # Auto-login is declared below, and declaring it is not the same as it
   # working. Both of its other halves are outside this repository — FileVault
   # has to be off, and /etc/kcpassword has to hold the obfuscated password — so
@@ -79,29 +103,6 @@ let
     fi
   '';
 
-  sshdEnsureListening = ''
-    if ! /usr/sbin/lsof -nP -iTCP:22 -sTCP:LISTEN >/dev/null 2>&1; then
-      /bin/launchctl enable system/com.openssh.sshd
-
-      # Already-loaded is the expected answer whenever `enable` was the missing
-      # half, and it is not a failure. Anything else is, and says so rather than
-      # aborting a switch that has otherwise finished.
-      if ! bootstrapOut=$(/bin/launchctl bootstrap system /System/Library/LaunchDaemons/ssh.plist 2>&1); then
-        case "$bootstrapOut" in
-          *"Input/output error"* | *already*) ;;
-          *)
-            echo "" >&2
-            echo "  sshd is not listening on 22 and could not be started:" >&2
-            echo "    $bootstrapOut" >&2
-            echo "" >&2
-            echo "  This machine is reached over SSH, so that is worth looking at" >&2
-            echo "  from its own console before the session you are in ends." >&2
-            echo "" >&2
-            ;;
-        esac
-      fi
-    fi
-  '';
 in
 
 {
@@ -196,6 +197,13 @@ in
   # trade is only worth taking on a machine that is physically secure. The check
   # below says so when the two disagree.
   system.defaults.loginwindow.autoLoginUser = config.system.primaryUser;
+
+  # The tunnel this machine is reached through, as a root daemon rather than
+  # the App Store client — see
+  # docs/decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md. Which
+  # tunnels exist is decided by which configurations are on the machine, not by
+  # anything here.
+  local.wireguard.enable = true;
 
   # Come back without someone pressing the button.
   #

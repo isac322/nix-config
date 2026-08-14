@@ -21,7 +21,7 @@ modules/           시스템 레벨
     darwin-server.nix   서버 macOS
 hosts/             기기 고유
   bhyoo-macbook-air/
-  bhyoo-macbook-pro/   + Orca 광고 주소, WireGuard 인터페이스 이름
+  bhyoo-macbook-pro/   + Orca 광고 주소
   server/            + hardware-configuration.nix
 home/              사용자 레벨 (home-manager)
   common.nix         모든 기기 공통 — 설정의 대부분이 여기 있다

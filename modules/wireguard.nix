@@ -28,7 +28,7 @@
 
 let
   cfg = config.local.wireguard;
-  conf = "/etc/wireguard/${toString cfg.interface}.conf";
+  confDir = "/etc/wireguard";
 
   up = pkgs.writeShellScript "wireguard-up" ''
     set -u
@@ -38,40 +38,50 @@ let
     # rest are Apple's and a daemon starts with almost no PATH at all.
     export PATH=${pkgs.wireguard-tools}/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
-    if [ ! -f ${conf} ]; then
-      echo "wireguard: ${conf} is missing, so no tunnel is started." >&2
-      echo "wireguard: it holds this machine's private key and is placed by hand;" >&2
-      echo "wireguard: see docs/operations.md." >&2
-      exit 0
-    fi
+    # Every tunnel this machine has been given, rather than a name from the
+    # repository. The interface name is the basename of its own configuration,
+    # so the file already carries it — asking for it twice would only create
+    # somewhere for the two to disagree, and the configuration is placed by hand
+    # anyway because it holds a private key.
+    started=0
+    for conf in ${confDir}/*.conf; do
+      [ -f "$conf" ] || continue
 
-    # Idempotent on purpose. A switch reloads this daemon while the previous
-    # tunnel may still be up, and wg-quick refuses to raise an interface that
-    # already exists. Tearing down first makes reload mean reload.
-    wg-quick down ${lib.escapeShellArg (toString cfg.interface)} >/dev/null 2>&1 || true
-    exec wg-quick up ${lib.escapeShellArg (toString cfg.interface)}
+      iface=''${conf##*/}
+      iface=''${iface%.conf}
+
+      # Idempotent on purpose. A switch reloads this daemon while the previous
+      # tunnel may still be up, and wg-quick refuses to raise an interface that
+      # already exists. Tearing down first makes reload mean reload.
+      wg-quick down "$iface" >/dev/null 2>&1 || true
+      wg-quick up "$iface" || echo "wireguard: $iface failed to come up." >&2
+      started=$((started + 1))
+    done
+
+    if [ "$started" -eq 0 ]; then
+      echo "wireguard: no ${confDir}/*.conf, so no tunnel is started." >&2
+      echo "wireguard: a configuration holds this machine's private key and is" >&2
+      echo "wireguard: placed by hand; see docs/operations.md." >&2
+    fi
   '';
 in
 {
-  options.local.wireguard.interface = lib.mkOption {
-    type = lib.types.nullOr lib.types.str;
-    default = null;
-    example = "wg0";
-    description = ''
-      Name of the WireGuard interface to bring up at boot, which is also the
-      basename of its configuration: `/etc/wireguard/<name>.conf`.
+  options.local.wireguard.enable =
+    lib.mkEnableOption ''
+      bringing up every tunnel in ${confDir} at boot, as a root daemon.
 
-      `null` — the default — means this machine runs no tunnel of its own. That
-      is the right answer for a Mac someone sits at, where the App Store client
-      is both nicer and able to work, since it has the login session it needs.
+      Which tunnels those are is not declared here. The interface name is the
+      basename of its own configuration file, and that file is placed by hand
+      because it holds a private key — so naming it in the repository as well
+      would add a second source of truth and nothing else.
 
-      The configuration file is never in this repository. It carries the private
-      key, and it is installed once per machine the same way the WARP service
-      token is.
-    '';
-  };
+      Off by default, which is right for a Mac someone sits at: there the App
+      Store client is nicer and, having a login session, able to work at all''
+    // {
+      example = true;
+    };
 
-  config = lib.mkIf (cfg.interface != null) {
+  config = lib.mkIf cfg.enable {
     # `wg` for looking at a tunnel that is misbehaving. wg-quick itself is
     # reached through the store path above rather than PATH, so this is for the
     # person, not for the daemon.
