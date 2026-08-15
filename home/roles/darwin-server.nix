@@ -133,18 +133,35 @@ let
         ''
     }
 
-    ${orca} serve --port ${toString cfg.port} --pairing-address "$addr" --json
-    status=$?
+    # Exit 3 means another process already owns the Orca profile. Upstream's own
+    # systemd unit refuses to retry that (RestartPreventExitStatus=3) and for the
+    # case it means — the desktop app is sharing this machine — refusing is
+    # right.
+    #
+    # But it also happens for a few seconds during our own restart. `launchctl
+    # kickstart -k` kills this script; Electron takes longer to let go of the
+    # profile lock, so the replacement starts into a profile that is still held.
+    # Treating that as terminal leaves the machine with no runtime at all, which
+    # is how a restart-on-upgrade turned into an outage.
+    #
+    # So retry a few times before believing it. A restart clears in seconds; a
+    # desktop app that genuinely owns the profile is still there a minute later,
+    # and then we stop and say so.
+    attempt=0
+    while :; do
+      ${orca} serve --port ${toString cfg.port} --pairing-address "$addr" --json
+      status=$?
 
-    # Exit 3 means another process already owns the Orca profile — the desktop
-    # app, or a serve started by hand. Restarting cannot help, and upstream's
-    # own systemd unit says so with RestartPreventExitStatus=3. launchd has no
-    # equivalent, so the wrapper reports it as a clean exit and KeepAlive
-    # (SuccessfulExit = false) stops there.
-    if [ "$status" -eq 3 ]; then
-      echo "orca-serve: exit 3 — another process already owns the Orca profile. Not restarting." >&2
-      exit 0
-    fi
+      [ "$status" -ne 3 ] && break
+
+      attempt=$((attempt + 1))
+      if [ "$attempt" -ge 6 ]; then
+        echo "orca-serve: exit 3 after $attempt tries — another process owns the" >&2
+        echo "orca-serve: Orca profile and is not letting go. Not restarting." >&2
+        exit 0
+      fi
+      sleep 10
+    done
 
     exit "$status"
   '';
