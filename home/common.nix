@@ -1,7 +1,12 @@
 # home-manager configuration shared by every host, macOS and NixOS alike.
 # This is the bulk of the setup; the per-platform files add only what genuinely
 # cannot be expressed the same way on both.
-{ pkgs, inputs, ... }:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
 let
   # llm-agents' own build of its own packages, not its overlay.
@@ -26,6 +31,19 @@ let
   # modules/common.nix because it is still what makes the name evaluable if
   # anything here ever refers to nixpkgs' own claude-code.
   agents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
+
+  # The plugins pkgs/omp-plugins builds, by the name each one takes inside
+  # node_modules.
+  ompPlugins = [
+    "pi-anthropic-web-fetch"
+    "pi-google-url-context"
+    "pi-anthropic-web-search"
+    "pi-google-google-search"
+    "@isac322/pi-codegraph"
+    "pi-agent-browser-native"
+    "context-mode"
+    "omp-openai-provider-tools"
+  ];
 in
 {
   home.stateVersion = "26.05";
@@ -70,20 +88,6 @@ in
     pkgs.agent-browser
     pkgs.gws
   ];
-
-  # omp's plugins, decided here rather than by `omp plugin install`.
-  #
-  # omp discovers plugins by scanning ~/.omp/plugins/node_modules, and an entry
-  # there may be a symlink — checked on a machine, where a linked package showed
-  # up in `omp plugin list` while ~/.omp/plugins/package.json stayed empty. So
-  # pointing the whole directory at a tree Nix built is enough, and which
-  # plugins exist becomes something flake.lock and pkgs/omp-plugins/ decide
-  # rather than whatever a machine last downloaded.
-  #
-  # The trade is stated in that package: this directory becomes a store path, so
-  # `omp plugin install` no longer works here. Adding a plugin is a line in
-  # pkgs/omp-plugins/default.nix.
-  home.file.".omp/plugins/node_modules".source = "${pkgs.omp-plugins}/node_modules";
 
   programs.git = {
     enable = true;
@@ -199,10 +203,34 @@ in
     '';
   };
 
-  # Vim does not create these itself; without them undo/swap/backup silently fail.
+  # omp's plugins, decided here rather than by `omp plugin install`.
+  #
+  # One symlink per plugin, not one for the whole directory, and the difference
+  # is not stylistic. omp counts an entry under ~/.omp/plugins/node_modules only
+  # when it is a symlink — the shape `omp plugin link` leaves behind. Pointing
+  # the directory itself at a store tree put all 144 packages in place and
+  # `omp plugin list` reported none of them, because they were then ordinary
+  # directories.
+  #
+  # Their dependencies still resolve: Node walks up from the *real* path of the
+  # importing file, which is inside the store tree, where every dependency the
+  # lockfile pinned is a sibling. That is why pkgs/omp-plugins builds one tree
+  # rather than one derivation per plugin.
+  #
+  # The trade, unchanged: these entries are store paths, so `omp plugin install`
+  # cannot replace them. Adding a plugin is a line in
+  # pkgs/omp-plugins/default.nix and a line here.
   home.file = {
+    # Vim does not create these itself; without them undo/swap/backup silently
+    # fail.
     ".vim/undo/.keep".text = "";
     ".vim/swap/.keep".text = "";
     ".vim/backup/.keep".text = "";
-  };
+  }
+  // builtins.listToAttrs (
+    map (name: {
+      name = ".omp/plugins/node_modules/${name}";
+      value.source = "${pkgs.omp-plugins}/node_modules/${name}";
+    }) ompPlugins
+  );
 }
