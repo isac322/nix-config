@@ -39,6 +39,7 @@ let
     "pi-google-url-context" = "0.1.0";
     "pi-anthropic-web-search" = "0.1.0";
     "pi-google-google-search" = "0.1.0";
+    "pi-openai-web-search" = "0.1.0";
     "@isac322/pi-codegraph" = "0.3.1";
     "pi-agent-browser-native" = "0.3.0";
     "context-mode" = "1.0.169";
@@ -59,6 +60,30 @@ let
   };
 in
 {
+  # Clear what would otherwise make the plugin links below fail on a machine
+  # that has run omp before, or that carries an older generation of this
+  # configuration. Both cases cost a second switch to notice and a third to fix.
+  #
+  # `node_modules` has to be a real directory, because each plugin is linked
+  # *inside* it. An earlier version of this pointed the directory itself at the
+  # store, and a symlink left there makes every per-plugin link fail silently.
+  #
+  # The register is written by omp on its first run, and home-manager never
+  # overwrites a file it did not create — so a machine that has already run omp
+  # keeps omp's copy, and every plugin declared here stays invisible. Removing
+  # it first is what makes this work from an untouched machine in one switch.
+  home.activation.ompPluginsPrepare = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+    plugins="$HOME/.omp/plugins"
+
+    if [ -L "$plugins/node_modules" ]; then
+      $DRY_RUN_CMD rm -f "$plugins/node_modules"
+    fi
+
+    if [ -e "$plugins/omp-plugins.lock.json" ] && [ ! -L "$plugins/omp-plugins.lock.json" ]; then
+      $DRY_RUN_CMD rm -f "$plugins/omp-plugins.lock.json"
+    fi
+  '';
+
   home.stateVersion = "26.05";
 
   home.packages = [

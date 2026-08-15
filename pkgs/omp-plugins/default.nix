@@ -1,11 +1,11 @@
 # omp's plugins, as one node_modules tree that Nix builds.
 #
-# omp finds plugins by scanning `~/.omp/plugins/node_modules`, and an entry
-# there may be a symlink — verified on a machine: `omp plugin link` writes a
-# symlink and `omp plugin list` reports the package. Nothing records the set
-# anywhere else; `~/.omp/plugins/package.json` stayed `{"dependencies": {}}`
-# with a plugin linked and listed. So a tree built here and symlinked into
-# place is a complete answer, not a trick.
+# omp takes two things to consider a plugin installed: an entry under
+# `~/.omp/plugins/node_modules`, and a matching line in
+# `~/.omp/plugins/omp-plugins.lock.json`. Found by watching what `omp plugin
+# link` writes — the link alone left `omp plugin list` empty, and
+# `~/.omp/plugins/package.json` stayed `{"dependencies": {}}` throughout, so it
+# is not the register it looks like. home/common.nix writes both halves.
 #
 # `omp plugin install` fetches from npm at run time, which makes the plugins on
 # a machine whatever it last downloaded rather than what this flake pins — the
@@ -19,7 +19,7 @@
 #
 # Two shapes, because the plugins come in two shapes.
 #
-#   Six have no runtime dependencies at all — their manifests declare
+#   All but one have no runtime dependencies at all — their manifests declare
 #   `dependencies: {}` and only peer dependencies, which omp itself provides.
 #   Those are just source trees, so they are fetched and placed.
 #
@@ -88,6 +88,12 @@ let
       hash = "sha256-Qa6sAPRTYuYfasOdAsVeMHAYacecRXaAvgNu0Df155U=";
     };
 
+    "pi-openai-web-search" = fromGitHub {
+      repo = "pi-openai-web-search";
+      rev = "39643380682f";
+      hash = "sha256-mxurTHanCTkS94wneMYmSY/aNH2m20YSaE/4v4cGXiU=";
+    };
+
     "pi-google-google-search" = fromGitHub {
       repo = "pi-google-google-search";
       rev = "476db958f413";
@@ -143,7 +149,7 @@ stdenvNoCC.mkDerivation {
     mkdir -p $out/node_modules
 
     # The dependency tree first, then the standalone packages on top. They
-    # cannot collide: nothing in the lockfile is one of the six.
+    # cannot collide: nothing in the lockfile is one of the standalone ones.
     cp -R ${withDeps}/node_modules/. $out/node_modules/
     chmod -R u+w $out/node_modules
 
