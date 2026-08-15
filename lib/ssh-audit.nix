@@ -8,14 +8,15 @@
 # same either way.
 #
 # Source: ssh-audit 3.9.0's built-in policy "Hardened OpenSSH Server v10.3
-# (version 1)", cross-checked against the Ubuntu 26.04 hardening guide, with one
-# deliberate compatibility override for KexAlgorithms. Both machines run an
-# OpenSSH in that range: macOS 26 ships 10.3p1 and nixpkgs is at 10.4p1.
+# (version 1)", cross-checked against the Ubuntu 26.04 hardening guide, with
+# deliberate compatibility overrides for KexAlgorithms and
+# PubkeyAcceptedAlgorithms. Both machines run an OpenSSH in that range: macOS
+# 26 ships 10.3p1 and nixpkgs is at 10.4p1.
 #
 # Following the guide by hand is the thing this file exists to avoid, and
 # .claude/skills/ssh-audit/ is how it is re-derived when upstream moves.
 #
-# Two guide differences are deliberate:
+# Three guide differences are deliberate:
 #
 #   `GSSAPIKexAlgorithms` is not an OpenSSH directive. GSSAPI key exchange is a
 #   Debian/Ubuntu patch, so the line only parses on their builds — on ours it is
@@ -31,6 +32,13 @@
 #   availability from an older or borrowed client wins over matching that one
 #   upstream line. Keep the list explicit: Apple's crypto.conf otherwise
 #   prepends vendor defaults before it.
+#
+#   PubkeyAcceptedAlgorithms keeps plain `ecdsa-sha2-nistp256` because two
+#   enrolled client keys use it. ssh-audit rejects NIST ECDSA as a conservative
+#   policy choice, not because OpenSSH has deprecated P-256 or a practical break
+#   is known. Keep this one compatibility entry last so ED25519 and RSA-SHA2
+#   remain the preferred choices; the unused certificate, security-key, WebAuthn,
+#   P-384 and P-521 forms stay excluded.
 {
   # Rendered as-is on both platforms. The NixOS option is spelled `Macs` rather
   # than the directive's `MACs`; sshd_config keywords are case-insensitive, so
@@ -93,6 +101,7 @@
       "ssh-ed25519"
       "rsa-sha2-512"
       "rsa-sha2-256"
+      "ecdsa-sha2-nistp256"
     ];
 
     HostbasedAcceptedAlgorithms = [

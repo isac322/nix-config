@@ -32,10 +32,11 @@ DEFAULT_GUIDE = "Ubuntu 26.04 Server"
 # that its absence never reads as drift.
 NOT_UPSTREAM = {"GSSAPIKexAlgorithms"}
 
-# The upstream OpenSSH 10.x policy is post-quantum-only. This repository keeps
-# the previously deployed compatibility set so an older or borrowed client can
-# still reach an unattended machine. The exact local value remains checked;
-# only its known difference from the guide is suppressed.
+# The upstream profile deliberately differs from this repository in two places:
+# KEX keeps the previously deployed recovery-compatible set, and user
+# authentication keeps plain NIST P-256 because two enrolled clients use it.
+# Exact local values remain checked; only their known guide differences are
+# suppressed.
 LOCAL_OVERRIDES = {
     "KexAlgorithms": (
         "sntrup761x25519-sha512@openssh.com,"
@@ -44,7 +45,18 @@ LOCAL_OVERRIDES = {
         "diffie-hellman-group16-sha512,"
         "diffie-hellman-group18-sha512,"
         "diffie-hellman-group-exchange-sha256"
-    )
+    ),
+    "PubkeyAcceptedAlgorithms": (
+        "sk-ssh-ed25519-cert-v01@openssh.com,"
+        "ssh-ed25519-cert-v01@openssh.com,"
+        "rsa-sha2-512-cert-v01@openssh.com,"
+        "rsa-sha2-256-cert-v01@openssh.com,"
+        "sk-ssh-ed25519@openssh.com,"
+        "ssh-ed25519,"
+        "rsa-sha2-512,"
+        "rsa-sha2-256,"
+        "ecdsa-sha2-nistp256"
+    ),
 }
 
 # HostKey lines appear in some guides (Rocky) and not others (Debian, Ubuntu).

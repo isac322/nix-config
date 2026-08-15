@@ -1,8 +1,9 @@
 # 0027. ssh-audit 권장값을 프로파일 하나로, 세 기기 전부에
 
 **결정** — [ssh-audit](https://github.com/jtesta/ssh-audit) 권장값을
-`lib/ssh-audit.nix` 에 공통 데이터로 두되, `KexAlgorithms` 만은 원격 복구 가능성을
-위해 기존 호환 목록을 유지한다. 맥과 NixOS 양쪽에 같은 값을 적용하고, 가이드와의
+`lib/ssh-audit.nix` 에 공통 데이터로 두되, `KexAlgorithms` 는 원격 복구 호환
+목록을 유지하고 `PubkeyAcceptedAlgorithms` 에는 실제 등록된 클라이언트를 위해
+일반 P-256 ECDSA 하나를 남긴다. 맥과 NixOS 양쪽에 같은 값을 적용하고, 가이드와의
 의도한 차이까지 `.claude/skills/ssh-audit/` 에서 대조한다.
 
 [0026](0026-sshd-on-the-server-mac.md) 이 "누가 들어올 수 있나" 라면 이건 "들어올
@@ -17,8 +18,8 @@ nix run nixpkgs#ssh-audit -- --get-hardening-guide "Ubuntu 26.04 Server"
 ```
 
 출력의 본문이 곧 sshd_config 텍스트라서 사람이 옮겨 적을 여지가 없다. 스킬은 이
-본문과 레포의 프로파일을 다시 대조하되, 아래 KEX 호환 목록은 정확한 로컬 override
-값으로 따로 검사한다. 레포에 든 것은 사본이고, 사본은 상하니까.
+본문과 레포의 프로파일을 다시 대조하되, 아래 KEX와 공개키 호환 값은 정확한 로컬
+override 로 따로 검사한다. 레포에 든 것은 사본이고, 사본은 상하니까.
 
 가이드는 OS 별로 있지만 지시자 목록은 현대 OS 셋이 전부 같다. 다른 것은 파일을 어디
 두고 서비스를 어떻게 재시작하느냐뿐이고, 그 부분은 우리 둘 다에 해당하지 않는다.
@@ -46,6 +47,19 @@ sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.or
 post-quantum hybrid 를 첫 순서로 두되 Curve25519 와 SHA-512/SHA-256 finite-field
 fallback 을 남긴다. 이는 drift 가 아니라 의도한 로컬 정책이며, 검사기는 이 줄을
 무시하는 대신 위 값과 정확히 같은지 별도로 확인한다.
+
+## P-256 사용자 키는 왜 남기나
+
+ssh-audit 는 NIST 곡선에 대한 보수적 신뢰 판단과 ECDSA nonce 난수 실패 가능성을
+이유로 P-256/384/521 사용자 키를 권장 목록에서 전부 뺀다. 이는 OpenSSH 가 P-256을
+폐기했거나 실용적인 공격이 확인됐다는 뜻은 아니다. OpenSSH 10.3 기본값도 여전히
+P-256 사용자 인증을 허용한다.
+
+이 서버의 `authorized_keys` 다섯 개 중 두 개가 일반
+`ecdsa-sha2-nistp256`이다. 가이드와 정확히 맞추면 두 클라이언트가 즉시 잠기므로,
+그 한 형식만 허용 목록의 마지막에 남긴다. ED25519와 RSA-SHA2의 우선순위는
+유지하고, 사용하지 않는 ECDSA 인증서, security-key, WebAuthn, P-384, P-521
+형식은 추가하지 않는다. 이것도 검사기가 정확한 로컬 override 값으로 고정한다.
 
 ## 왜 `extraConfig` 가 아니라 `010-` 파일인가
 
@@ -93,7 +107,7 @@ terminating, 1 bad configuration options
 ```
 
 사람이 없는 맥에서 그건 문을 잠그고 열쇠를 안에 두는 것이다. 그래서 뺐고,
-`KexAlgorithms` 호환 override 와 함께 `lib/ssh-audit.nix` 와 스킬의 예외 목록
+KEX 및 공개키 호환 override 와 함께 `lib/ssh-audit.nix` 와 스킬의 예외 목록
 양쪽에 적어 두었다. 이유 없이 달라진 항목은 대조할 때마다 drift 로 잡힌다.
 
 ## RSA 호스트 키 4096 은 왜 메시지인가

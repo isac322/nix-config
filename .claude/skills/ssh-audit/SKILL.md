@@ -7,10 +7,10 @@ description: Re-check this repo's sshd hardening against what ssh-audit recommen
 
 [ssh-audit](https://github.com/jtesta/ssh-audit) publishes a hardening
 recommendation that moves. This repo uses it as the common baseline in
-`lib/ssh-audit.nix`, with one deliberate compatibility override for
-`KexAlgorithms`, and applies that profile to all three hosts. Both the upstream
-copy and the local override can go stale, so this is how they are re-derived
-and re-checked.
+`lib/ssh-audit.nix`, with deliberate compatibility overrides for
+`KexAlgorithms` and `PubkeyAcceptedAlgorithms`, and applies that profile to all
+three hosts. Both the upstream copy and the local overrides can go stale, so
+this is how they are re-derived and re-checked.
 
 Two separate questions, and both are worth asking:
 
@@ -54,6 +54,9 @@ the commit.
 - `KexAlgorithms` deliberately keeps the deployed compatibility set rather
   than upstream's post-quantum-only list. Do not replace it merely to make a
   policy scan green; re-evaluate the remote-recovery tradeoff first.
+- `PubkeyAcceptedAlgorithms` appends plain `ecdsa-sha2-nistp256` because two
+  enrolled clients use it. Keep it last, and do not broaden the exception to
+  unused ECDSA certificate, security-key, WebAuthn, P-384 or P-521 forms.
 
 Change shared directives in `lib/ssh-audit.nix`. Both platforms read it —
 `modules/darwin.nix` renders it into
@@ -80,6 +83,10 @@ The policy scan is expected to report a KEX mismatch: upstream requires its
 post-quantum-only list, while this repository deliberately keeps the pinned
 compatibility list. Verify that the actual list exactly matches
 `lib/ssh-audit.nix`; do not treat arbitrary additional algorithms as expected.
+
+The public-key authentication override is not visible in a network policy
+scan. Verify it with `sshd -T` and confirm the exact rendered
+`PubkeyAcceptedAlgorithms` value instead.
 
 The laptop leaves `services.openssh.enable` at null, so it usually has no
 daemon to scan. That is deliberate (ADR 0026), not an omission — but the crypto
@@ -113,8 +120,9 @@ nix eval --json '.#nixosConfigurations.server.config.services.openssh.settings'
 
 After an ssh-audit release, after an OpenSSH bump on either platform, or when
 touching sshd config for any reason. Quarterly is enough otherwise. Upstream
-recommendations move slowly, but the deliberate KEX compatibility override
-must also be reconsidered as the oldest recovery client changes.
+recommendations move slowly, but both compatibility overrides must be
+reconsidered when the oldest recovery client or enrolled authentication keys
+change.
 
 ## What this does not cover
 
