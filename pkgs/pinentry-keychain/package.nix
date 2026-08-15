@@ -37,6 +37,19 @@ writeScriptBin "pinentry-keychain" ''
   $| = 1;
 
   my $SECURITY = "/usr/bin/security";
+
+  # A trace, because everything this program does happens where no one can see
+  # it: as a child of gpg-agent, with stdout owned by the Assuan protocol and
+  # stderr going wherever gpg-agent's log goes. When the passphrase silently
+  # fails to be stored, this file is the only place the reason exists.
+  my $LOG = ($ENV{HOME} // "/tmp") . "/Library/Logs/pinentry-keychain.log";
+  sub note {
+    open(my $lf, ">>", $LOG) or return;
+    my @t = localtime;
+    printf {$lf} "%04d-%02d-%02d %02d:%02d:%02d %s\n",
+      $t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0], shift;
+    close $lf;
+  }
   my $SERVICE  = "GnuPG";
   my $FALLBACK = "${lib.getExe pinentry-tty}";
 
@@ -118,13 +131,15 @@ writeScriptBin "pinentry-keychain" ''
       kill "TERM", $pid;
       waitpid($pid, 0);
       close $fh;
+      note("get $keygrip: timed out, treating as a miss");
       return undef;
     }
 
     close $fh;
-    return undef if $? != 0;
+    if ($? != 0) { note("get $keygrip: not found"); return undef }
     return undef unless defined $pw;
     $pw =~ s/\r?\n\z//;
+    note("get $keygrip: " . (length($pw) ? "hit" : "empty"));
     return length($pw) ? $pw : undef;
   }
 
@@ -144,9 +159,21 @@ writeScriptBin "pinentry-keychain" ''
     # such a machine is already only as strong as /etc/kcpassword, which
     # automatic login made trivially reversible, so this gives up less than it
     # appears to.
-    my $pid = open(my $fh, "|-", $SECURITY, "add-generic-password",
-                   "-a", $keygrip, "-s", $SERVICE, "-U", "-A", "-w");
-    return unless $pid;
+    # stderr kept this time, and reported: a store that fails is the whole
+    # reason this program can look like it worked and not have.
+    my ($rd, $wr);
+    pipe($rd, $wr) or return;
+    my $pid = open(my $fh, "|-", "-");
+    unless (defined $pid) { note("put $keygrip: fork failed"); return }
+    unless ($pid) {
+      close $rd;
+      open(STDERR, ">&", $wr);
+      close $wr;
+      exec($SECURITY, "add-generic-password", "-a", $keygrip, "-s", $SERVICE,
+           "-U", "-A", "-w");
+      exit 127;
+    }
+    close $wr;
 
     # Twice, because `security` asks twice — "password data for new item:" and
     # then "retype password for new item:". Sending it once looks like it works
@@ -155,6 +182,14 @@ writeScriptBin "pinentry-keychain" ''
     # kind this file exists to avoid, so it is worth the sentence.
     print {$fh} "$pw\n$pw\n";
     close $fh;
+    my $status = $?;
+
+    my $err = do { local $/; <$rd> };
+    close $rd;
+    $err = "" unless defined $err;
+    $err =~ s/\s+/ /g;
+
+    note($status == 0 ? "put $keygrip: stored" : "put $keygrip: failed ($status) $err");
   }
 
   print "OK Pleased to meet you\n";
@@ -167,6 +202,7 @@ writeScriptBin "pinentry-keychain" ''
       # "x/<keygrip>", where x is the cache mode. The mode is not part of the
       # key's identity, so an ssh request and a signing request find one item.
       $keygrip = ($info =~ m{^./(.+)$}) ? $1 : $info;
+      note("keygrip $keygrip");
       push @replay, $line;
       print "OK\n";
     }
@@ -181,6 +217,7 @@ writeScriptBin "pinentry-keychain" ''
         print "OK\n";
       } else {
         my ($ok, $typed) = fallbackAsk("GETPIN");
+        note("fallback: ok=$ok pin=" . (defined $typed ? "yes" : "no"));
         keychainPut($typed) if $ok;
       }
     }
