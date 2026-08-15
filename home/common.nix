@@ -34,16 +34,30 @@ let
 
   # The plugins pkgs/omp-plugins builds, by the name each one takes inside
   # node_modules.
-  ompPlugins = [
-    "pi-anthropic-web-fetch"
-    "pi-google-url-context"
-    "pi-anthropic-web-search"
-    "pi-google-google-search"
-    "@isac322/pi-codegraph"
-    "pi-agent-browser-native"
-    "context-mode"
-    "omp-openai-provider-tools"
-  ];
+  ompPlugins = {
+    "pi-anthropic-web-fetch" = "0.1.0";
+    "pi-google-url-context" = "0.1.0";
+    "pi-anthropic-web-search" = "0.1.0";
+    "pi-google-google-search" = "0.1.0";
+    "@isac322/pi-codegraph" = "0.3.1";
+    "pi-agent-browser-native" = "0.3.0";
+    "context-mode" = "1.0.169";
+    "omp-openai-provider-tools" = "0.1.9";
+  };
+
+  # omp keeps its own register of which plugins exist, and a package under
+  # node_modules is invisible without an entry here. Found by watching what
+  # `omp plugin link` writes: the symlink alone left `omp plugin list` empty,
+  # and `~/.omp/plugins/package.json` stayed `{"dependencies": {}}` throughout —
+  # this file is the whole registry.
+  ompPluginsLock = {
+    plugins = lib.mapAttrs (_: version: {
+      inherit version;
+      enabledFeatures = null;
+      enabled = true;
+    }) ompPlugins;
+    settings = { };
+  };
 in
 {
   home.stateVersion = "26.05";
@@ -227,10 +241,16 @@ in
     ".vim/swap/.keep".text = "";
     ".vim/backup/.keep".text = "";
   }
+  // {
+    # The register, next to the links it describes. Written whole, so it also
+    # decides what is *not* installed — a plugin dropped from the set above
+    # leaves omp on the next switch rather than lingering.
+    ".omp/plugins/omp-plugins.lock.json".text = builtins.toJSON ompPluginsLock;
+  }
   // builtins.listToAttrs (
     map (name: {
       name = ".omp/plugins/node_modules/${name}";
       value.source = "${pkgs.omp-plugins}/node_modules/${name}";
-    }) ompPlugins
+    }) (builtins.attrNames ompPlugins)
   );
 }
