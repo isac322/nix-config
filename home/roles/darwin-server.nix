@@ -227,6 +227,48 @@ in
   services.gpg-agent.pinentry.package = lib.mkForce pkgs.pinentry-keychain;
   services.gpg-agent.pinentry.program = lib.mkForce "pinentry-keychain";
 
+  # Restart the runtime when Homebrew has replaced it underneath.
+  #
+  # Orca comes from a cask and `onActivation.upgrade` is on, so a switch is also
+  # when it gets a new version — `brew bundle` runs before home-manager's part
+  # of activation. But the LaunchAgent's plist does not change when the
+  # application does, so home-manager sees nothing to reload and the old binary
+  # keeps running. The machine then reports a version it is not running, which
+  # is the kind of wrong that is only noticed much later.
+  #
+  # The bundle's own version string is the signal, compared against a stamp from
+  # last time. No stamp means this is the first switch since this existed:
+  # record it and leave the agent alone, because restarting something that was
+  # just bootstrapped is noise.
+  #
+  # `kickstart -k` rather than bootout and bootstrap: it is one call, it works on
+  # a job that is already running, and the -k asks for the current instance to be
+  # killed first. Sessions are on disk, so the clients reconnect.
+  home.activation.orcaRestartOnUpgrade = lib.mkIf cfg.enable (
+    lib.hm.dag.entryAfter [ "setupLaunchAgents" ] ''
+      orcaPlist=/Applications/Orca.app/Contents/Info.plist
+      stamp=${config.home.homeDirectory}/.local/state/nix-darwin/orca-version
+
+      if [ -f "$orcaPlist" ]; then
+        version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$orcaPlist" 2>/dev/null || true)
+
+        if [ -n "$version" ]; then
+          previous=""
+          [ -f "$stamp" ] && previous=$(/usr/bin/head -n 1 "$stamp")
+
+          if [ -n "$previous" ] && [ "$previous" != "$version" ]; then
+            $DRY_RUN_CMD /bin/launchctl kickstart -k \
+              "gui/$(/usr/bin/id -u)/org.nix-community.home.orca-serve" || true
+            echo "  Orca $previous -> $version; the runtime was restarted." >&2
+          fi
+
+          $DRY_RUN_CMD /usr/bin/install -d -m 0700 "$(dirname "$stamp")"
+          $DRY_RUN_CMD printf '%s\n' "$version" > "$stamp"
+        fi
+      fi
+    ''
+  );
+
   # Unlock the login keychain that automatic login leaves locked. See the
   # script above for why this is needed at all.
   #
