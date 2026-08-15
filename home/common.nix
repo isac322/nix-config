@@ -42,7 +42,6 @@ let
     "@isac322/pi-codegraph" = "0.3.1";
     "pi-agent-browser-native" = "0.3.0";
     "context-mode" = "1.0.169";
-    "omp-openai-provider-tools" = "0.1.9";
   };
 
   # omp keeps its own register of which plugins exist, and a package under

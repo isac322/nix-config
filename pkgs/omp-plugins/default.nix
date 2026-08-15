@@ -23,11 +23,11 @@
 #   `dependencies: {}` and only peer dependencies, which omp itself provides.
 #   Those are just source trees, so they are fetched and placed.
 #
-#   `context-mode` and `omp-openai-provider-tools` do have dependencies, so
-#   those come from `buildNpmPackage` against a committed lockfile, and their
-#   `node_modules` is merged into the same tree. One tree matters: Node resolves
-#   a dependency by walking up from the *real* path of the importing file, so a
-#   package and the things it imports have to share a directory.
+#   `context-mode` does have dependencies, so it comes from `buildNpmPackage`
+#   against a committed lockfile, and that `node_modules` is merged into the
+#   same tree. One tree matters: Node resolves a dependency by walking up from
+#   the *real* path of the importing file, so a package and the things it
+#   imports have to share a directory.
 {
   lib,
   stdenvNoCC,
@@ -109,17 +109,17 @@ let
     };
   };
 
-  # The two that bring dependencies. `npmDepsHash` is the hash of everything the
+  # The one that brings dependencies. `npmDepsHash` is the hash of everything the
   # lockfile resolves to; regenerate it with `nix build` and the hash it prints
   # when the lockfile changes.
   withDeps = buildNpmPackage {
     pname = "omp-plugins-npm";
     version = "0";
     src = ./npm;
-    npmDepsHash = "sha256-Ok70zVvDZAp+30FijKh3bZ3bI/JGECOVZto2otd/Zjw=";
+    npmDepsHash = "sha256-fsUC40omBVFjl9QmZ7qVrJx+gEMkKnsy5sorrl2CKDo=";
 
     # There is nothing to compile — this exists only to resolve and place
-    # dependencies — and the packages have no build scripts of their own.
+    # dependencies — and the package has no build script of its own.
     dontNpmBuild = true;
 
     installPhase = ''
