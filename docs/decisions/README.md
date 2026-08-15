@@ -20,6 +20,7 @@
 - [0026. 서버 맥의 sshd](0026-sshd-on-the-server-mac.md) — 키 전용, 그리고 열쇠는 레포에 안 넣는다
 - [0027. ssh-audit 권장값을 프로파일 하나로](0027-ssh-audit-profile-shared-by-every-host.md) — KEX와 P-256 공개키 호환 override
 - [0029. 서버 맥의 WireGuard 는 앱이 아니라 루트 데몬](0029-wireguard-as-a-daemon-on-the-server-mac.md) — 앱은 콘솔 로그인이 있어야 한다
+- [0030. 콘솔 없는 맥에서 GPG passphrase 를](0030-gpg-passphrase-without-a-console.md) — pinentry-mac 을 빼고 키체인을 직접 읽는다
 
 ## 전원 · 하드웨어
 

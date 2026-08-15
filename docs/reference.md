@@ -32,6 +32,7 @@ home/              사용자 레벨 (home-manager)
     darwin-laptop.nix   데스크톱 앱
     darwin-server.nix   Rust · 언어 서버
 pkgs/              nixpkgs 에 없거나 쓸 수 없는 형태인 패키지 + overlay.nix
+  pinentry-keychain/  키체인을 읽는 pinentry. 콘솔 없는 맥용
 .claude/skills/    이 레포에 대해 되풀이하는 절차
   ssh-audit/         sshd 권장값이 움직였는지 다시 대조한다
 ```
@@ -69,7 +70,8 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 | [sshd — 키 전용, root 금지](decisions/0026-sshd-on-the-server-mac.md) | ✖ | ✅ |
 | [전원 연결 중엔 뚜껑을 닫아도 안 잠](decisions/0006-clamshell-only-while-on-power.md) · 전원별 유휴 타이머 | ✖ | ✅ |
 | [크롬](decisions/0024-chrome-for-agent-browser-on-the-server.md)(agent-browser 용) · Rust · 언어 서버 | ✖ | ✅ |
-| [Orca 런타임을 계속 띄우는 LaunchAgent](decisions/0028-orca-runtime-on-the-server-mac.md) | ✖ | ✅ |
+| [Orca 런타임을 계속 띄우는 LaunchAgent](decisions/0028-orca-runtime-on-the-server-mac.md) · 자동 로그인 | ✖ | ✅ |
+| [GPG pinentry](decisions/0030-gpg-passphrase-without-a-console.md) | pinentry-mac | 키체인 + tty |
 | [WireGuard — 앱(랩탑) 대 루트 데몬(서버)](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md) | 앱 | 데몬 |
 
 두 맥 다 MacBook Pro 급 하드웨어이고 Touch ID 센서도 둘 다 달려 있다. 랩탑에만

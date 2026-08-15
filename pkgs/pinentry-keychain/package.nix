@@ -38,10 +38,17 @@ writeScriptBin "pinentry-keychain" ''
 
   my $SECURITY = "/usr/bin/security";
 
-  # A trace, because everything this program does happens where no one can see
-  # it: as a child of gpg-agent, with stdout owned by the Assuan protocol and
-  # stderr going wherever gpg-agent's log goes. When the passphrase silently
-  # fails to be stored, this file is the only place the reason exists.
+  # A trace of what went wrong, and only that.
+  #
+  # Everything this program does happens where no one can see it: as a child of
+  # gpg-agent, with stdout owned by the Assuan protocol and stderr going
+  # wherever gpg-agent's log goes. Two silent failures cost a day of guessing
+  # before this existed.
+  #
+  # Nothing is written when a passphrase comes back from the keychain, which is
+  # every ordinary signature and would otherwise be a line per commit forever.
+  # An empty file means it is working — the same rule the activation scripts
+  # follow.
   my $LOG = ($ENV{HOME} // "/tmp") . "/Library/Logs/pinentry-keychain.log";
   sub note {
     open(my $lf, ">>", $LOG) or return;
@@ -139,7 +146,7 @@ writeScriptBin "pinentry-keychain" ''
     if ($? != 0) { note("get $keygrip: not found"); return undef }
     return undef unless defined $pw;
     $pw =~ s/\r?\n\z//;
-    note("get $keygrip: " . (length($pw) ? "hit" : "empty"));
+    note("get $keygrip: found but empty") unless length($pw);
     return length($pw) ? $pw : undef;
   }
 
@@ -189,7 +196,7 @@ writeScriptBin "pinentry-keychain" ''
     $err = "" unless defined $err;
     $err =~ s/\s+/ /g;
 
-    note($status == 0 ? "put $keygrip: stored" : "put $keygrip: failed ($status) $err");
+    note("put $keygrip: failed ($status) $err") unless $status == 0;
   }
 
   print "OK Pleased to meet you\n";
@@ -202,7 +209,6 @@ writeScriptBin "pinentry-keychain" ''
       # "x/<keygrip>", where x is the cache mode. The mode is not part of the
       # key's identity, so an ssh request and a signing request find one item.
       $keygrip = ($info =~ m{^./(.+)$}) ? $1 : $info;
-      note("keygrip $keygrip");
       push @replay, $line;
       print "OK\n";
     }
@@ -217,7 +223,8 @@ writeScriptBin "pinentry-keychain" ''
         print "OK\n";
       } else {
         my ($ok, $typed) = fallbackAsk("GETPIN");
-        note("fallback: ok=$ok pin=" . (defined $typed ? "yes" : "no"));
+        note("$keygrip: not in the keychain, asked instead — ok=$ok pin="
+             . (defined $typed ? "yes" : "no"));
         keychainPut($typed) if $ok;
       }
     }

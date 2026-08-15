@@ -160,6 +160,33 @@ defaults read /Library/Preferences/com.apple.loginwindow autoLoginUser
 ls -l /etc/kcpassword
 ```
 
+## GPG passphrase (서버 맥)
+
+서버 역할의 맥만 해당한다. 자동 로그인이 로그인 키체인을 잠긴 채로 두고, 잠긴
+키체인은 서명과 SSH 를 통째로 멈춰 세운다
+([0030](decisions/0030-gpg-passphrase-without-a-console.md)). 그래서 두 가지가
+자동으로 돈다 — LaunchAgent 가 키체인을 열고, `pinentry-keychain` 이 거기서
+passphrase 를 읽는다.
+
+**딱 한 번**, 키체인에 값을 넣어줘야 한다. 대화형 SSH 세션에서 한다 — 비대화형은
+`~/.zshrc` 를 안 읽어서 `GPG_TTY` 가 없고, 그러면 프롬프트가 안 뜬다.
+
+```sh
+ssh <서버>
+echo x | gpg --yes -o /dev/null -s -     # Passphrase: 가 뜨면 입력
+```
+
+친 값은 그 자리에서 키체인에 저장되고, 그 뒤로는 재부팅을 넘겨서도 조용히 쓰인다.
+
+확인:
+
+```sh
+security find-generic-password -s GnuPG | grep acct   # 항목
+cat ~/Library/Logs/pinentry-keychain.log              # 비어 있으면 정상
+```
+
+그 로그는 **문제가 있을 때만** 쓴다. 조회 실패, tty 없음, 저장 실패가 남는다.
+
 ## Orca 런타임 (서버 맥)
 
 `orca serve` 가 LaunchAgent 로 돈다
