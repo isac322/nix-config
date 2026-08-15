@@ -71,6 +71,20 @@ in
     pkgs.gws
   ];
 
+  # omp's plugins, decided here rather than by `omp plugin install`.
+  #
+  # omp discovers plugins by scanning ~/.omp/plugins/node_modules, and an entry
+  # there may be a symlink — checked on a machine, where a linked package showed
+  # up in `omp plugin list` while ~/.omp/plugins/package.json stayed empty. So
+  # pointing the whole directory at a tree Nix built is enough, and which
+  # plugins exist becomes something flake.lock and pkgs/omp-plugins/ decide
+  # rather than whatever a machine last downloaded.
+  #
+  # The trade is stated in that package: this directory becomes a store path, so
+  # `omp plugin install` no longer works here. Adding a plugin is a line in
+  # pkgs/omp-plugins/default.nix.
+  home.file.".omp/plugins/node_modules".source = "${pkgs.omp-plugins}/node_modules";
+
   programs.git = {
     enable = true;
     settings.user = {

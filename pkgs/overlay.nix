@@ -15,6 +15,10 @@ final: prev: {
   # repository's programs live.
   pinentry-keychain = final.callPackage ./pinentry-keychain/package.nix { };
 
+  # omp's plugins as one node_modules tree, pinned here rather than fetched at
+  # run time by `omp plugin install`.
+  omp-plugins = final.callPackage ./omp-plugins { };
+
   # This one replaces an existing attribute rather than adding one: nixpkgs'
   # `slack-cli` is a different project that took the name first. The reasoning
   # is in the package, since that is where it would be read.
