@@ -84,13 +84,11 @@ in
   # the directives the module has no named option for pass straight through.
   #
   # nixpkgs already curates some of this through
-  # `services.openssh.enableRecommendedAlgorithms`, on by default, and it is
-  # close but not the same list: its KexAlgorithms keeps curve25519-sha256 and
-  # diffie-hellman-group-exchange-sha256 alongside the post-quantum three, and
-  # its Ciphers put aes128-gcm ahead of aes256-ctr. Those are reasonable defaults
-  # for a distribution that cannot assume the client. Here every client is a
-  # machine in this repo, so the profile wins and the defaults are overridden
-  # rather than trusted.
+  # `services.openssh.enableRecommendedAlgorithms`, on by default, but its
+  # algorithm membership and ordering are not this repository's selected
+  # compatibility policy. These settings override the defaults explicitly so
+  # both platforms keep the same reviewed answer rather than inheriting changes
+  # from either vendor.
   #
   # `hostKeys` happens to already match the nixpkgs default — rsa 4096 and
   # ed25519, no ecdsa. Declared anyway, so the answer comes from one place and

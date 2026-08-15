@@ -18,7 +18,7 @@
 - [0004. 열쇠 하나로 셋 다](0004-one-gpg-key-for-ssh-signing-packaging.md) — SSH · 커밋 서명 · 패키징
 - [0017. WARP 조직 등록은 mdm.xml 로](0017-warp-enrollment-via-mdm-xml.md)
 - [0026. 서버 맥의 sshd](0026-sshd-on-the-server-mac.md) — 키 전용, 그리고 열쇠는 레포에 안 넣는다
-- [0027. ssh-audit 권장값을 프로파일 하나로](0027-ssh-audit-profile-shared-by-every-host.md) — post-quantum 전환과 `010-` 파일
+- [0027. ssh-audit 권장값을 프로파일 하나로](0027-ssh-audit-profile-shared-by-every-host.md) — 공통 프로파일과 KEX 호환 override
 - [0029. 서버 맥의 WireGuard 는 앱이 아니라 루트 데몬](0029-wireguard-as-a-daemon-on-the-server-mac.md) — 앱은 콘솔 로그인이 있어야 한다
 
 ## 전원 · 하드웨어

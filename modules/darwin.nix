@@ -211,10 +211,9 @@ in
   #
   # So the obvious placement loses, silently and only for the directives that
   # matter. Written as extraConfig, `sshd -T` reports kexalgorithms starting
-  # with ecdh-sha2-nistp256 and running through curve25519 and two more NIST
-  # curves — the exact opposite of the intent, with the file looking correct.
-  # The identical text under this name yields `kexalgorithms
-  # mlkem768x25519-sha256` and nothing else.
+  # with ecdh-sha2-nistp256 and includes vendor defaults we did not choose.
+  # The identical text under this name yields exactly the explicit compatibility
+  # list in lib/ssh-audit.nix, beginning with sntrup761x25519-sha512@openssh.com.
   #
   # 010- rather than 000- leaves room to wedge something in front, and sits
   # clear of 099-host-keys.conf, which nix-darwin owns.

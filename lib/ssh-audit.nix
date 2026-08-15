@@ -8,15 +8,14 @@
 # same either way.
 #
 # Source: ssh-audit 3.9.0's built-in policy "Hardened OpenSSH Server v10.3
-# (version 1)", which is byte-identical to the v10.4 one, cross-checked against
-# the Debian 13 hardening guide (revision 1, 2025-09-01) that ssh-audit
-# generates from the same data. Both machines run an OpenSSH in that range:
-# macOS 26 ships 10.3p1 and nixpkgs is at 10.4p1.
+# (version 1)", cross-checked against the Ubuntu 26.04 hardening guide, with one
+# deliberate compatibility override for KexAlgorithms. Both machines run an
+# OpenSSH in that range: macOS 26 ships 10.3p1 and nixpkgs is at 10.4p1.
 #
 # Following the guide by hand is the thing this file exists to avoid, and
 # .claude/skills/ssh-audit/ is how it is re-derived when upstream moves.
 #
-# Two things the Debian guide does that are deliberately not here:
+# Two guide differences are deliberate:
 #
 #   `GSSAPIKexAlgorithms` is not an OpenSSH directive. GSSAPI key exchange is a
 #   Debian/Ubuntu patch, so the line only parses on their builds — on ours it is
@@ -25,16 +24,13 @@
 #   Apple's 10.3p1 and nixpkgs' 10.4p1 reject it, and neither lists a `gss-*`
 #   entry in `ssh -Q kex`.
 #
-#   Filtering /etc/ssh/moduli is no longer part of the guide, and there is
-#   nothing left here for it to matter to. The moduli file is only read for
-#   diffie-hellman-group-exchange-*, and the kex list below is post-quantum
-#   hybrids only — every group-exchange algorithm is gone.
-#
-# The kex list is the one line here that can lock someone out, because it is
-# exclusively post-quantum. `sntrup761x25519-sha512@openssh.com` needs an OpenSSH
-# 8.5 or newer client and `mlkem768x25519-sha256` needs 10.0; anything older
-# fails the handshake outright rather than negotiating down. Every machine here
-# is well past that, and a phone SSH client or a borrowed laptop may not be.
+#   Upstream's KexAlgorithms list is exclusively post-quantum and requires a
+#   recent client. This profile deliberately keeps the compatibility list that
+#   was already deployed: one hybrid post-quantum exchange, both Curve25519
+#   spellings, and the SHA-512/SHA-256 finite-field fallbacks. Remote
+#   availability from an older or borrowed client wins over matching that one
+#   upstream line. Keep the list explicit: Apple's crypto.conf otherwise
+#   prepends vendor defaults before it.
 {
   # Rendered as-is on both platforms. The NixOS option is spelled `Macs` rather
   # than the directive's `MACs`; sshd_config keywords are case-insensitive, so
@@ -42,9 +38,12 @@
   # directive twice.
   sshdSettings = {
     KexAlgorithms = [
-      "mlkem768x25519-sha256"
-      "sntrup761x25519-sha512"
       "sntrup761x25519-sha512@openssh.com"
+      "curve25519-sha256"
+      "curve25519-sha256@libssh.org"
+      "diffie-hellman-group16-sha512"
+      "diffie-hellman-group18-sha512"
+      "diffie-hellman-group-exchange-sha256"
     ];
 
     # Ordered by key size rather than by speed: the larger keys come first as a

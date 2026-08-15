@@ -1,9 +1,9 @@
 # 0027. ssh-audit 권장값을 프로파일 하나로, 세 기기 전부에
 
-**결정** — [ssh-audit](https://github.com/jtesta/ssh-audit) 가 지금 권장하는
-알고리즘 목록 전부를 `lib/ssh-audit.nix` 에 데이터로 두고 맥과 NixOS 양쪽에
-적용한다. 가이드를 베껴 넣지 않고, 도구에서 뽑아내 옮긴 뒤 그 대조를
-`.claude/skills/ssh-audit/` 로 자동화한다.
+**결정** — [ssh-audit](https://github.com/jtesta/ssh-audit) 권장값을
+`lib/ssh-audit.nix` 에 공통 데이터로 두되, `KexAlgorithms` 만은 원격 복구 가능성을
+위해 기존 호환 목록을 유지한다. 맥과 NixOS 양쪽에 같은 값을 적용하고, 가이드와의
+의도한 차이까지 `.claude/skills/ssh-audit/` 에서 대조한다.
 
 [0026](0026-sshd-on-the-server-mac.md) 이 "누가 들어올 수 있나" 라면 이건 "들어올
 때 무엇으로 말하나" 다. 겹치지 않고, 파일도 갈라져 있다.
@@ -16,32 +16,36 @@ sshaudit.com 의 OS별 가이드 페이지를 읽는 대신 도구가 직접 뱉
 nix run nixpkgs#ssh-audit -- --get-hardening-guide "Ubuntu 26.04 Server"
 ```
 
-출력의 본문이 곧 sshd_config 텍스트라서 사람이 옮겨 적을 여지가 없고, 같은 표에서
-`-P` 정책도 생성되므로 스캔 기준과 설정 기준이 어긋나지 않는다. 그리고 이게 스킬이
-매번 다시 돌리는 그 명령이다 — 레포에 든 것은 사본이고, 사본은 상하니까.
+출력의 본문이 곧 sshd_config 텍스트라서 사람이 옮겨 적을 여지가 없다. 스킬은 이
+본문과 레포의 프로파일을 다시 대조하되, 아래 KEX 호환 목록은 정확한 로컬 override
+값으로 따로 검사한다. 레포에 든 것은 사본이고, 사본은 상하니까.
 
 가이드는 OS 별로 있지만 지시자 목록은 현대 OS 셋이 전부 같다. 다른 것은 파일을 어디
 두고 서비스를 어떻게 재시작하느냐뿐이고, 그 부분은 우리 둘 다에 해당하지 않는다.
 macOS 용 공식 가이드는 없다 (커뮤니티 위키에 Ventura·Sonoma 것이 있을 뿐이다).
 맥이 돌리는 것은 10.3p1, NixOS 는 10.4p1 이고 정책은 v10.0–v10.4 가 전부 동일하다.
 
-## 무엇이 바뀌었나
+## KEX 는 왜 권장값과 다른가
 
-가장 큰 변화는 키 교환이 **전부 post-quantum 으로 갈렸다**는 것이다. Debian 12 →
-13 개정에서 고전 알고리즘이 하나도 남지 않았다.
+현재 ssh-audit 권장값은 키 교환을 post-quantum 세 개로만 제한한다.
 
 ```
-KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512,sntrup761x25519-sha512@openssh.com
+mlkem768x25519-sha256,sntrup761x25519-sha512,sntrup761x25519-sha512@openssh.com
 ```
 
-여기 딸려오는 것 둘. `/etc/ssh/moduli` 를 걸러내는 절차가 사라졌다 — moduli 는
-group-exchange 에서만 읽히는데 그게 목록에 없다. DHEat 대비 연결수 제한도 사라졌다
-— OpenSSH 가 기본으로 막는다. 즉 이 결정에는 **손으로 할 일이 붙지 않는다**.
+이 목록은 오래된 클라이언트와 협상해서 내려오지 않는다. ML-KEM 은 OpenSSH 10.0+,
+OpenSSH 이름이 붙은 sntrup hybrid 는 8.5+가 필요하다. 서버가 무인 기기인 만큼,
+빌린 노트북이나 오래된 복구 환경에서 아예 접속하지 못하는 위험을 더 크게 봤다.
 
-대신 이 한 줄이 사람을 잠글 수 있는 유일한 줄이기도 하다. 협상해서 내려오지 않고
-핸드셰이크가 그냥 실패한다. `sntrup761x25519-sha512@openssh.com` 은 클라이언트
-OpenSSH 8.5+, `mlkem768x25519-sha256` 은 10.0+ 를 요구한다. 여기 있는 기계는 전부
-한참 위지만, 빌린 노트북이나 폰의 SSH 앱은 아닐 수 있다.
+그래서 이미 배포되어 검증된 다음 호환 목록을 유지한다.
+
+```
+sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha256
+```
+
+post-quantum hybrid 를 첫 순서로 두되 Curve25519 와 SHA-512/SHA-256 finite-field
+fallback 을 남긴다. 이는 drift 가 아니라 의도한 로컬 정책이며, 검사기는 이 줄을
+무시하는 대신 위 값과 정확히 같은지 별도로 확인한다.
 
 ## 왜 `extraConfig` 가 아니라 `010-` 파일인가
 
@@ -55,10 +59,9 @@ nix-darwin 은 `services.openssh.extraConfig` 를 `100-nix-darwin.conf` 에 쓴�
 `100-macos` 가 `100-nix-darwin` 보다 앞선다.
 
 그래서 제일 그럴듯한 자리가 진다. `extraConfig` 로 넣고 `sshd -T` 를 돌리면
-`kexalgorithms ecdh-sha2-nistp256,…` 로 시작해서 curve25519 와 NIST 곡선 둘이
-따라오는 목록이 나온다. 의도의 정반대인데 파일만 보면 멀쩡하다. 같은 내용을
-`010-ssh-audit-hardening.conf` 로 옮기면 `kexalgorithms mlkem768x25519-sha256`
-하나만 남는다.
+`kexalgorithms ecdh-sha2-nistp256,…` 로 시작해 선택하지 않은 vendor 기본값이
+끼어든다. 같은 내용을 `010-ssh-audit-hardening.conf` 로 옮기면
+`sntrup761x25519-sha512@openssh.com` 으로 시작하는 위 호환 목록만 남는다.
 
 인증 세 줄은 `crypto.conf` 가 건드리지 않으므로 `extraConfig` 에 그대로 둔다.
 같은 파일에 몰아넣지 않은 것은 그게 역할별 결정이기 때문이다 — 아래.
@@ -89,9 +92,9 @@ Debian/Ubuntu 패치다. 애플의 10.3p1 도 nixpkgs 의 10.4p1 도 이 지시�
 terminating, 1 bad configuration options
 ```
 
-사람이 없는 맥에서 그건 문을 잠그고 열쇠를 안에 두는 것이다. 그래서 뺐고, 뺀
-사실과 이유를 `lib/ssh-audit.nix` 와 스킬의 무시 목록 양쪽에 적어 두었다 — 이유
-없이 빠진 항목은 대조할 때마다 drift 로 되살아난다.
+사람이 없는 맥에서 그건 문을 잠그고 열쇠를 안에 두는 것이다. 그래서 뺐고,
+`KexAlgorithms` 호환 override 와 함께 `lib/ssh-audit.nix` 와 스킬의 예외 목록
+양쪽에 적어 두었다. 이유 없이 달라진 항목은 대조할 때마다 drift 로 잡힌다.
 
 ## RSA 호스트 키 4096 은 왜 메시지인가
 

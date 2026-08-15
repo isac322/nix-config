@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Diff lib/ssh-audit.nix against what ssh-audit recommends today.
+"""Check lib/ssh-audit.nix for unintended drift from ssh-audit.
 
 ssh-audit's hardening guides are generated from the same table that drives its
 built-in policies, and `--get-hardening-guide` prints one as a shell script
 whose payload is the literal sshd_config text. That payload is the machine
 readable form of "what is recommended right now", so this reads it rather than
-a web page, and compares it to the profile we actually ship.
+a web page, compares it to the profile we actually ship, and accounts for the
+small set of deliberate local overrides below.
 
-Exit status is 0 when they agree, 1 when they drift, 2 when something went
-wrong enough that no comparison was made. Drift is not a failure — it is the
-whole point of running this — but it does mean a human has to decide.
+Exit status is 0 when there is no unintended drift, 1 when review is needed,
+and 2 when something went wrong enough that no comparison was made.
 """
 
 import argparse
@@ -31,6 +31,21 @@ DEFAULT_GUIDE = "Ubuntu 26.04 Server"
 # nixpkgs' — see lib/ssh-audit.nix. Ignored on both sides of the comparison so
 # that its absence never reads as drift.
 NOT_UPSTREAM = {"GSSAPIKexAlgorithms"}
+
+# The upstream OpenSSH 10.x policy is post-quantum-only. This repository keeps
+# the previously deployed compatibility set so an older or borrowed client can
+# still reach an unattended machine. The exact local value remains checked;
+# only its known difference from the guide is suppressed.
+LOCAL_OVERRIDES = {
+    "KexAlgorithms": (
+        "sntrup761x25519-sha512@openssh.com,"
+        "curve25519-sha256,"
+        "curve25519-sha256@libssh.org,"
+        "diffie-hellman-group16-sha512,"
+        "diffie-hellman-group18-sha512,"
+        "diffie-hellman-group-exchange-sha256"
+    )
+}
 
 # HostKey lines appear in some guides (Rocky) and not others (Debian, Ubuntu).
 # We express host keys through the platform's own `hostKeys` option, which
@@ -115,9 +130,24 @@ def compare(guide_d, ours_d, guide_k, ours_k):
 
     # Directive spelling is ours to choose — sshd_config keywords are
     # case-insensitive, and NixOS names the MACs option `Macs`. Compare on a
-    # normalised key so that choice does not register as drift.
-    g = {k.lower(): (k, v) for k, v in guide_d.items() if k not in NOT_UPSTREAM}
-    o = {k.lower(): (k, v) for k, v in ours_d.items()}
+    # normalised key so that choice does not register as drift. Deliberate local
+    # overrides are checked against their pinned values instead of the guide.
+    override_keys = {k.lower() for k in LOCAL_OVERRIDES}
+    g = {
+        k.lower(): (k, v)
+        for k, v in guide_d.items()
+        if k not in NOT_UPSTREAM and k.lower() not in override_keys
+    }
+    o = {
+        k.lower(): (k, v)
+        for k, v in ours_d.items()
+        if k.lower() not in override_keys
+    }
+
+    for name, want in LOCAL_OVERRIDES.items():
+        have = ours_d.get(name)
+        if have != want:
+            problems.append(f"local override changed: {name}\n    want: {want}\n    have: {have}")
 
     for k in sorted(set(g) - set(o)):
         name, value = g[k]
@@ -175,10 +205,14 @@ def main():
 
     problems = compare(guide_d, ours_d, guide_k, ours_k)
     if not problems:
-        print(f"No drift. {len(ours_d)} directives and {len(ours_k)} host key types agree.")
-        if NOT_UPSTREAM & set(guide_d):
-            skipped = ", ".join(sorted(NOT_UPSTREAM & set(guide_d)))
-            print(f"({skipped} deliberately not ported — see lib/ssh-audit.nix.)")
+        print(
+            f"No unintended drift. {len(ours_d) - len(LOCAL_OVERRIDES)} guide "
+            f"directives, {len(LOCAL_OVERRIDES)} local override, and "
+            f"{len(ours_k)} host key types agree."
+        )
+        skipped = sorted((NOT_UPSTREAM & set(guide_d)) | set(LOCAL_OVERRIDES))
+        if skipped:
+            print(f"({', '.join(skipped)} deliberately differs — see lib/ssh-audit.nix.)")
         return 0
 
     print(f"{len(problems)} difference(s):\n")
