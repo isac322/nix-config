@@ -188,6 +188,36 @@ cat ~/Library/Logs/pinentry-keychain.log              # 비어 있으면 정상
 
 그 로그는 **문제가 있을 때만** 쓴다. 조회 실패, tty 없음, 저장 실패가 남는다.
 
+## Linear MCP (모든 호스트)
+
+Home Manager 가 `~/.omp/agent/mcp.json`에 Linear의 공식 remote MCP endpoint
+`https://mcp.linear.app/mcp`를 항상 선언한다. transport는 streamable HTTP이고,
+인증은 Linear의 OAuth 2.1 흐름을 쓴다. API key나 access token을 Nix 설정, Nix
+store, `mcp.json`에 넣지 않는다.
+
+처음 한 번 OMP 안에서 인증한다.
+
+```text
+/mcp reauth linear
+/mcp test linear
+```
+
+첫 명령은 Linear 로그인·승인 페이지를 열고, 성공한 OAuth credential은 OMP의 auth
+storage에 endpoint URL 기준으로 저장한다. 서버 맥에서 실행했다면 noVNC로 그 Aqua
+세션의 브라우저를 열어 승인한다. 이후 OMP 재시작과 Home Manager switch를 넘어
+재사용하며, definition-only MCP 선언이라 OMP 17.3.4는 read-only Home Manager
+symlink에 auth stanza를 다시 쓰지 않는다.
+
+계정을 바꾸거나 권한을 완전히 초기화할 때만 다음을 실행한다.
+
+```text
+/mcp unauth linear
+/mcp reauth linear
+```
+
+`/mcp list`에서 `linear`가 보이고 `/mcp test linear`가 연결과 tool 목록을 반환하면
+끝이다.
+
 ## Orca 런타임 (서버 맥)
 
 `orca serve` 가 LaunchAgent 로 돈다

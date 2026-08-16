@@ -212,44 +212,8 @@ let
     exec ${pkgs.camofox-browser}/bin/camofox-browser
   '';
 
-  # OMP's native MCP loader starts this stdio adapter per agent session. The
-  # session wrapper derives OMP's durable UUID from its per-terminal transcript
-  # breadcrumb, keeps CAMOFOX_USER_ID fixed for shared login state, and gives
-  # each OMP conversation a distinct sessionKey/tab namespace. The underlying
-  # adapter remains only an HTTP client: it forwards its eleven Camofox tools
-  # to the launchd-owned singleton above and never launches another browser.
-  #
-  # Keep context-mode in the same declarative file. It created the original
-  # mutable mcp.json; `force` performs the one-time migration to a Home Manager
-  # symlink and means future MCP additions belong in this configuration.
-  ompMcpConfig = {
-    "$schema" =
-      "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json";
-    mcpServers = {
-      "context-mode" = {
-        type = "stdio";
-        command = lib.getExe pkgs.nodejs;
-        args = [ "${pkgs.omp-plugins}/node_modules/context-mode/server.bundle.mjs" ];
-      };
-
-      camofox = {
-        type = "stdio";
-        command = lib.getExe pkgs.camofox-mcp-session;
-        args = [ "omp" ];
-        timeout = 120000;
-        env = {
-          CAMOFOX_BASE_URL = "http://127.0.0.1:${toString camofoxCfg.apiPort}";
-          CAMOFOX_USER_ID = "omp";
-        };
-      };
-    };
-  };
 in
 {
-  home.file.".omp/agent/mcp.json" = lib.mkIf camofoxCfg.enable {
-    text = builtins.toJSON ompMcpConfig;
-    force = true;
-  };
 
   # The Orca runtime, headless, for the whole time the machine is up.
   #

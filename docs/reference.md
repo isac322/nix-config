@@ -88,6 +88,25 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 세 층 어디에도 안 맞는 것은 `extraModules` / `extraHomeModules`로 넘긴다 —
 한 기계가 미디어 서버를 겸하는 식의 경우.
 
+## OMP MCP registry (모든 호스트)
+
+`home/common.nix`가 `~/.omp/agent/mcp.json` 전체를 Home Manager symlink로 만든다.
+기본 registry에는 local stdio server인 `context-mode`와 Linear의 공식 remote MCP
+server가 들어간다. 서버 역할에서 `local.camofox.enable`이 켜진 경우에만
+session-aware `camofox` stdio bridge가 같은 registry에 추가된다.
+
+| 이름 | transport | endpoint / command | 인증 |
+|---|---|---|---|
+| `context-mode` | stdio | Nix로 고정한 plugin bundle | 없음 |
+| `linear` | streamable HTTP | `https://mcp.linear.app/mcp` | OAuth 2.1 |
+| `camofox` | stdio | `camofox-browser-mcp-session omp` | loopback API |
+
+Linear 항목에는 token을 넣지 않는다. OMP가 endpoint의 OAuth metadata를 발견하고,
+승인 뒤 credential을 endpoint URL 기준의 auth storage에 별도로 저장한다. 따라서
+Home Manager switch는 MCP server 정의만 갱신하고 로그인 상태를 지우거나 Nix
+store에 비밀을 복사하지 않는다. 최초 인증과 검증 절차는
+[운영](operations.md#linear-mcp-모든-호스트)에 있다.
+
 ## Camofox 원격 브라우저 (서버 맥)
 
 `local.camofox.enable` 이 Camofox API, macOS Screen Sharing, noVNC 를 한 묶음으로

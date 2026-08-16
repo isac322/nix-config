@@ -5,6 +5,7 @@
   lib,
   pkgs,
   inputs,
+  osConfig,
   ...
 }:
 
@@ -31,6 +32,54 @@ let
   # modules/common.nix because it is still what makes the name evaluable if
   # anything here ever refers to nixpkgs' own claude-code.
   agents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
+
+  camofoxCfg = lib.attrByPath [ "local" "camofox" ] {
+    enable = false;
+    apiPort = 9377;
+  } osConfig;
+
+  # OMP reads one user-level MCP registry on every host. Remote services stay
+  # here beside plugin-backed stdio servers so a switch produces the complete
+  # registry and removes entries that are no longer declared.
+  #
+  # Linear is a definition-only remote entry. OMP discovers OAuth metadata from
+  # the endpoint, stores the resulting credential outside this file under the
+  # deterministic server-URL key, and therefore does not need to write an auth
+  # stanza back into this Home Manager symlink.
+  ompMcpServers = {
+    "context-mode" = {
+      type = "stdio";
+      command = lib.getExe pkgs.nodejs;
+      args = [ "${pkgs.omp-plugins}/node_modules/context-mode/server.bundle.mjs" ];
+    };
+
+    linear = {
+      type = "http";
+      url = "https://mcp.linear.app/mcp";
+      timeout = 120000;
+    };
+  }
+  // lib.optionalAttrs camofoxCfg.enable {
+    # The session wrapper derives OMP's durable UUID from its per-terminal
+    # transcript breadcrumb. The underlying adapter remains only an HTTP
+    # client to the launchd-owned Camofox singleton.
+    camofox = {
+      type = "stdio";
+      command = lib.getExe pkgs.camofox-mcp-session;
+      args = [ "omp" ];
+      timeout = 120000;
+      env = {
+        CAMOFOX_BASE_URL = "http://127.0.0.1:${toString camofoxCfg.apiPort}";
+        CAMOFOX_USER_ID = "omp";
+      };
+    };
+  };
+
+  ompMcpConfig = {
+    "$schema" =
+      "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json";
+    mcpServers = ompMcpServers;
+  };
 
   # The plugins pkgs/omp-plugins builds, by the name each one takes inside
   # node_modules.
@@ -309,6 +358,15 @@ in
     ".vim/backup/.keep".text = "";
   }
   // {
+    # The complete user-level MCP registry. `force` performs the one-time
+    # migration from the mutable file that context-mode originally created.
+    # OAuth credentials are stored separately, so remote authentication never
+    # puts secrets in this world-readable Nix store file.
+    ".omp/agent/mcp.json" = {
+      text = builtins.toJSON ompMcpConfig;
+      force = true;
+    };
+
     # The register, next to the links it describes. Written whole, so it also
     # decides what is *not* installed — a plugin dropped from the set above
     # leaves omp on the next switch rather than lingering.
