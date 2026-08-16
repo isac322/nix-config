@@ -124,6 +124,23 @@ in
     pkgs.stripe-cli
     pkgs.agent-browser
     pkgs.gws
+
+    # Every machine, because a cluster is reached from wherever someone happens
+    # to be — including the NixOS server, which is a machine that runs services
+    # and therefore a machine where something goes wrong.
+    #
+    # It carries no cluster configuration and none belongs here: k9s reads
+    # whatever kubeconfig the environment already points at and talks to the API
+    # server itself.
+    #
+    # One thing it needs that this file cannot give it. Kubernetes dropped the
+    # in-tree GCP auth provider in 1.26, so a kubeconfig written by `gcloud
+    # container clusters get-credentials` names an external credential plugin,
+    # and without gke-gcloud-auth-plugin on PATH k9s fails with "no Auth
+    # Provider found" — an error naming neither gcloud nor the plugin. That
+    # plugin comes with google-cloud-sdk in home/darwin.nix, so GKE works on the
+    # Macs and not on the NixOS server. Other clusters are unaffected.
+    pkgs.k9s
   ];
 
   programs.git = {

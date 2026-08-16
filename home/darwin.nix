@@ -270,15 +270,15 @@ in
   # it deliberately does not reuse the SSH key set up above: `gh` speaks the
   # REST API over HTTPS, which is a different credential from the one `git`
   # pushes with.
-  # k9s reads whatever kubeconfig the environment already points at and talks
-  # to the API server itself, so it carries no cluster configuration and none
-  # belongs here. It is on both Macs for the same reason `gh` is: this is where
-  # someone is looking at things. Note that `kubectl` on these machines is
-  # /usr/local/bin/kubectl, put there by something outside nix — k9s never
-  # calls it, but anything that does still gets that one rather than a pinned
-  # version. stern is the same shape of tool and the same absence of
-  # configuration: it tails logs across pods and containers by regex, which is
-  # the one thing k9s is awkward at, and it reads the same kubeconfig.
+  # k9s moved to home/common.nix — it is wanted on the NixOS server too. stern
+  # stays here: it is the same shape of tool and the same absence of
+  # configuration — it tails logs across pods and containers by regex, which is
+  # the one thing k9s is awkward at, and it reads the same kubeconfig — but
+  # nobody has asked for it away from a Mac.
+  #
+  # Note that `kubectl` on the Macs is /usr/local/bin/kubectl, put there by
+  # something outside nix. k9s never calls it, but anything that does still gets
+  # that one rather than a pinned version.
   #
   # Two of the cloud three are not named what they are called.
   #
@@ -383,7 +383,6 @@ in
     ])
     gpgSshAuthorize
     pkgs.hadolint
-    pkgs.k9s
     pkgs.kubernetes-helm
     pkgs.nodejs_24
     pkgs.pnpm
