@@ -170,29 +170,10 @@ let
   camofox = pkgs.writeShellScript "camofox-browser" ''
     set -u
 
-    # The API and the tunnel start independently. Wait for the address the root
-    # WireGuard daemon publishes, then fail so launchd retries if it never
-    # appears. Camofox's unset bind-host default is all interfaces, so leaving
-    # the variable empty is never a fallback.
-    address=""
-    waited=0
-    while [ "$waited" -lt 60 ]; do
-      if [ -s /var/run/wireguard-addresses ]; then
-        address=$(/usr/bin/head -n 1 /var/run/wireguard-addresses)
-        case "$address" in
-          "" | 0.0.0.0 | ::) address="" ;;
-        esac
-        [ -n "$address" ] && break
-      fi
-      /bin/sleep 2
-      waited=$((waited + 2))
-    done
-
-    if [ -z "$address" ]; then
-      echo "camofox-browser: no usable WireGuard address after ''${waited}s." >&2
-      echo "camofox-browser: refusing the all-interfaces default; retrying." >&2
-      exit 1
-    fi
+    # OMP runs on this Mac and reaches the API through loopback.  Remote
+    # observation remains noVNC over WireGuard; the browser control API has no
+    # reason to cross a network interface at all.  Setting the host explicitly
+    # is mandatory because Camofox's unset default is every interface.
 
     # Session persistence and cookie import both live under ~/.camofox. Make
     # the complete private shape before the server starts rather than allowing
@@ -204,7 +185,7 @@ let
       "$stateRoot/profiles" \
       "$stateRoot/traces"
 
-    export CAMOFOX_BIND_HOST="$address"
+    export CAMOFOX_BIND_HOST=127.0.0.1
     export CAMOFOX_PORT=${lib.escapeShellArg (toString camofoxCfg.apiPort)}
     export CAMOFOX_COOKIES_DIR="$stateRoot/cookies"
     export CAMOFOX_PROFILE_DIR="$stateRoot/profiles"
@@ -230,8 +211,43 @@ let
 
     exec ${pkgs.camofox-browser}/bin/camofox-browser
   '';
+
+  # OMP's native MCP loader starts this stdio adapter per agent session.  The
+  # adapter is only an HTTP client: it forwards its eleven Camofox tools to the
+  # launchd-owned singleton above and never launches another browser.
+  #
+  # Keep context-mode in the same declarative file.  It created the original
+  # mutable mcp.json; `force` performs the one-time migration to a Home Manager
+  # symlink and means future MCP additions belong in this configuration.
+  ompMcpConfig = {
+    "$schema" =
+      "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json";
+    mcpServers = {
+      "context-mode" = {
+        type = "stdio";
+        command = lib.getExe pkgs.nodejs;
+        args = [ "${pkgs.omp-plugins}/node_modules/context-mode/server.bundle.mjs" ];
+      };
+
+      camofox = {
+        type = "stdio";
+        command = "${pkgs.camofox-browser}/bin/camofox-browser-mcp";
+        timeout = 120000;
+        env = {
+          CAMOFOX_BASE_URL = "http://127.0.0.1:${toString camofoxCfg.apiPort}";
+          CAMOFOX_USER_ID = "omp";
+          CAMOFOX_SESSION_KEY = "default";
+        };
+      };
+    };
+  };
 in
 {
+  home.file.".omp/agent/mcp.json" = lib.mkIf camofoxCfg.enable {
+    text = builtins.toJSON ompMcpConfig;
+    force = true;
+  };
+
   # The Orca runtime, headless, for the whole time the machine is up.
   #
   # `orca serve` is upstream's answer for a host that should run without a
@@ -300,8 +316,8 @@ in
       ProgramArguments = [ "${camofox}" ];
       RunAtLoad = true;
 
-      # A missing WireGuard address and an unexpected server exit are both
-      # retryable. Throttling prevents a bad tunnel or package from spinning.
+      # An unexpected server exit is retryable. Throttling prevents a bad
+      # package from spinning.
       KeepAlive.SuccessfulExit = false;
       ThrottleInterval = 10;
 

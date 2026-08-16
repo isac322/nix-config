@@ -103,15 +103,17 @@ BrowserContext는 쿠키와 웹 스토리지를 나누지만 Camoufox 프로세�
 
 | 용도 | 주소 | 주체 |
 |---|---|---|
-| Camofox API listener | `<WireGuard 주소>:9377` | `@askjo/camofox-browser` |
+| Camofox API listener | `127.0.0.1:9377` | `@askjo/camofox-browser` |
+| OMP control bridge | stdio → `127.0.0.1:9377` | `camofox-browser-mcp` |
 | noVNC listener | `<WireGuard 주소>:6080` | nixpkgs `novnc`의 웹 프런트엔드와 WebSocket 프록시 |
 | noVNC 의 VNC backend target | `127.0.0.1:5900` | macOS 내장 `screensharingd` |
 
-Camofox 와 noVNC 는 `/var/run/wireguard-addresses`의 첫 줄만 바인딩한다. 파일이나
-주소가 아직 없으면 fallback 주소를 열지 않고 실패하며 launchd 가 다시 부른다.
-VNC 는 `VNCOnlyLocalConnections=true`라 loopback 밖의 클라이언트를 인증 전에
-거부한다. OS 버전에 따라 listening socket 자체는 wildcard 로 보일 수 있어서
-소켓 주소만으로 이 경계를 판정하지 않는다.
+Camofox API 는 loopback 전용이고 OMP 의 MCP 어댑터가 기존 데몬으로 전달한다.
+어댑터는 두 번째 브라우저를 실행하지 않는다. noVNC 만
+`/var/run/wireguard-addresses`의 첫 줄에 바인딩하며, 파일이나 주소가 아직 없으면
+fallback 주소를 열지 않고 실패한다. VNC 는 `VNCOnlyLocalConnections=true`라
+loopback 밖의 클라이언트를 인증 전에 거부한다. OS 버전에 따라 listening socket
+자체는 wildcard 로 보일 수 있어서 소켓 주소만으로 이 경계를 판정하지 않는다.
 
 `/var/lib/nix-darwin/camofox-vnc-password`는 activation 이 처음 한 번 만든 정확히
 8자의 영숫자이고 `root:wheel 0600`이다. **noVNC 의 비밀번호가 아니다.** macOS 의

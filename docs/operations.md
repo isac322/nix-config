@@ -247,17 +247,20 @@ noVNC 는 Camofox 창 하나가 아니라 `bhyoo`의 **Aqua 데스크톱 전체*
 Camoufox 프로세스와 데스크톱에서 실행되므로 쿠키·웹 스토리지 외의 화면, 포커스,
 키보드, 마우스, 클립보드는 공유된다. 사용자별 noVNC 접속점으로 제공하지 않는다.
 
-**주소.** 둘 다 WireGuard 데몬이 발행한 첫 주소만 쓴다. 아래가 그대로 접속점이다.
+**주소.** API 는 이 Mac 안에서만 열고, 원격 화면만 WireGuard 로 연다.
 
 ```sh
 wg_ip=$(sed -n '1p' /var/run/wireguard-addresses)
-printf 'Camofox API: http://%s:9377\n' "$wg_ip"
+printf 'Camofox API: http://127.0.0.1:9377\n'
 printf 'noVNC:       http://%s:6080/vnc.html\n' "$wg_ip"
 ```
 
-두 URL 은 WireGuard 피어에서만 열린다. 주소 파일이 없거나 첫 줄이 비어 있으면
-Camofox 와 noVNC 는 `0.0.0.0`이나 LAN 주소로 물러서지 않고 실패한다. launchd 가
-10초 간격으로 다시 부르므로 터널이 뒤에 올라오면 그때 정확한 주소에 바인딩한다.
+Camofox API 는 loopback 밖에서 접근할 수 없다. OMP 가
+`~/.omp/agent/mcp.json`에 선언된 `camofox-browser-mcp` stdio 어댑터를 시작하면
+그 어댑터가 기존 API 로 전달한다. noVNC 는 WireGuard 주소만 사용하고, 주소 파일이
+없거나 첫 줄이 비어 있으면 `0.0.0.0`이나 LAN 주소로 물러서지 않고 실패한다.
+launchd 가 10초 간격으로 다시 부르므로 터널이 뒤에 올라오면 그때 정확한 주소에
+바인딩한다.
 
 **VNC 비밀번호.** activation 이 처음 한 번만 만든 정확히 8자의 영숫자다.
 
@@ -288,9 +291,9 @@ sudo launchctl kickstart -k system/org.nixos.camofox-novnc
 sudo launchctl kickstart -k system/com.apple.screensharing
 ```
 
-Camofox 로그에서 WireGuard 주소가 없다는 줄은 넓은 주소로 열린 것이 아니라
-의도적인 실패다. noVNC 로그의 `refusing noVNC's all-interfaces default`도 같다.
-터널과 `/var/run/wireguard-addresses`를 먼저 확인한다.
+Camofox 는 WireGuard 와 무관하게 loopback 에서 시작한다. noVNC 로그의
+`refusing noVNC's all-interfaces default`는 넓은 주소로 열린 것이 아니라 의도적인
+실패다. 터널과 `/var/run/wireguard-addresses`를 확인한다.
 
 **바인딩과 VNC 경계 확인.**
 
@@ -310,12 +313,16 @@ printf 'WireGuard VNC: '
 nc -w 2 "$wg_ip" 5900 | head -1
 ```
 
-앞의 `lsof` 두 줄에는 각각 **`$wg_ip:9377`과 `$wg_ip:6080`만** 있어야 한다.
+앞의 `lsof` 두 줄에는 각각 **`127.0.0.1:9377`과 `$wg_ip:6080`만** 있어야 한다.
 두 `defaults` 값은 모두 `1`이다. loopback VNC 는 `RFB ...` 배너를 내지만 같은
 5900 포트를 WireGuard 주소로 물으면 배너가 없어야 한다. `screensharingd`가 OS
 버전에 따라 wildcard listening socket 을 소유해도 `VNCOnlyLocalConnections`가
 인증 전에 non-loopback VNC 를 거부하므로, TCP 소켓 모양만 보고 이 경계를
 판정하지 않는다.
+
+OMP 안에서는 `/mcp list`로 `camofox`의 출처를 확인하고 `/mcp test camofox`로
+stdio 어댑터와 loopback REST 데몬의 연결을 검사한다. 노출되는 도구 이름은
+`mcp__camofox_*` 형태다. 어댑터는 브라우저를 새로 실행하지 않는다.
 
 8자 제한은 macOS legacy VNC 호환의 한계다. 그래서 5900은 loopback 전용이고,
 그 앞의 6080만 WireGuard 주소에 연다. 이 두 경계가 빠지면 이 비밀번호 길이는

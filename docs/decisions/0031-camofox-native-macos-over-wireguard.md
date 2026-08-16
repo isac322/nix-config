@@ -2,8 +2,10 @@
 
 **결정** — 서버 맥에서 `@askjo/camofox-browser` API 를 Aqua LaunchAgent 로
 headful 실행하고, 브라우저 코어는 `daijro/camoufox` 의 macOS arm64 릴리스를 쓴다.
-화면은 macOS 내장 `screensharingd` 가 loopback VNC 로 내고, nixpkgs 의 noVNC 가
-그것을 WireGuard 주소의 웹소켓으로만 중계한다. 실행 중에는 아무것도 받지 않는다.
+API 는 loopback 에만 열고 OMP 는 패키지의 stdio MCP 어댑터로 그 기존 데몬을
+제어한다. 화면은 macOS 내장 `screensharingd` 가 loopback VNC 로 내고, nixpkgs 의
+noVNC 가 그것을 WireGuard 주소의 웹소켓으로만 중계한다. 실행 중에는 아무것도
+받지 않는다.
 
 ## macOS 코어는 추측이 아니라 그 기계에서 확인했다
 
@@ -38,6 +40,12 @@ BrowserContext를 만든다. 쿠키와 웹 스토리지는 격리되지만 모�
 Aqua 데스크톱에 나타나므로 화면, 포커스, 키보드, 마우스, 클립보드는 공유된다.
 따라서 noVNC 는 신뢰된 운영자의 공용 관리 콘솔이며 사용자별 화면 경계가 아니다.
 
+OMP 는 `${pkgs.camofox-browser}/bin/camofox-browser-mcp`를 stdio MCP 서버로
+실행한다. 이 어댑터는 `http://127.0.0.1:9377`의 REST API 로 요청을 전달할 뿐
+브라우저를 띄우지 않으므로, launchd 가 소유한 Camoufox 프로세스 하나만 존재한다.
+고정한 `CAMOFOX_USER_ID=omp`의 BrowserContext를 OMP 세션들이 함께 쓰며 탭은
+`tabId`로 구분한다.
+
 **VNC 비밀번호를 만들거나 소유하는 것은 noVNC 가 아니다.** activation 이 만든 값을
 macOS 의 VNC 설정 형식으로 넣고, `screensharingd` 가 그 자격증명을 검사한다.
 
@@ -64,9 +72,9 @@ macOS legacy VNC 호환 경로는 **정확히 8자**만 쓴다. 더 긴 비밀�
   socket 은 wildcard 로 보여도 LAN 과 WireGuard 클라이언트는 VNC 를 쓸 수 없다.
 - noVNC 는 `/var/run/wireguard-addresses` 첫 줄의 주소에만 `:6080` 을 연다.
   `0.0.0.0`, LAN 주소, 주소가 없을 때의 fallback 은 없다.
-- Camofox API 도 같은 WireGuard 주소에만 `:9377` 을 연다. 터널 주소가 아직 없으면
-  둘 다 실패하고 launchd 재시작을 기다린다. 넓게 열어서 먼저 살아나는 것보다
-  닫힌 채 재시도하는 쪽이 맞다.
+- Camofox API 는 `127.0.0.1:9377`에만 연다. OMP 의 stdio MCP 어댑터만 로컬에서
+  접근하며 WireGuard, LAN, wildcard listener 는 만들지 않는다. 원격 관찰은 noVNC
+  로 충분하고 브라우저 제어 API 를 네트워크에 하나 더 열 이유가 없다.
 
 비밀번호 원문은 `/var/lib/nix-darwin/camofox-vnc-password` 에 `root:wheel 0600`으로
 한 번만 만들고, 이미 있으면 바꾸지 않는다. Screen Sharing 쪽의

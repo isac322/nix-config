@@ -5,10 +5,11 @@
 # Screen Sharing daemon, its VNC password, and the noVNC bridge in front of its
 # loopback-only legacy VNC connection.
 #
-# Nothing listens on an ordinary interface by accident. screensharingd rejects
-# legacy VNC anywhere except loopback, noVNC is the only process that connects
-# to 127.0.0.1:5900, and both noVNC and the Camofox API refuse to start until
-# WireGuard has published the address they are allowed to bind.
+# The browser API is loopback-only so local OMP can control it without exposing
+# it on any network interface. screensharingd rejects legacy VNC anywhere
+# except loopback, noVNC is the only process that connects to 127.0.0.1:5900,
+# and noVNC refuses to start until WireGuard has published the one address it
+# may bind.
 {
   config,
   lib,
@@ -99,7 +100,7 @@ in
     apiPort = lib.mkOption {
       type = lib.types.port;
       default = 9377;
-      description = "TCP port for the Camofox browser API.";
+      description = "Loopback TCP port for the Camofox browser API.";
     };
 
     novncPort = lib.mkOption {
@@ -132,9 +133,8 @@ in
       {
         assertion = config.local.wireguard.enable;
         message = ''
-          local.camofox.enable requires local.wireguard.enable: neither the
-          Camofox API nor noVNC is allowed to fall back to an ordinary network
-          interface.
+          local.camofox.enable requires local.wireguard.enable: noVNC is not
+          allowed to fall back to an ordinary network interface.
         '';
       }
     ];
