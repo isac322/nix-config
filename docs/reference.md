@@ -95,21 +95,30 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 자동 로그인으로 생긴 `bhyoo`의 Aqua 세션에서 headful LaunchAgent 로 돌고,
 noVNC 는 root LaunchDaemon 이다. 상류의 Linux/Xvfb VNC 플러그인은 쓰지 않는다.
 
-`userId`는 macOS 계정이 아니라 Camofox 세션 식별자다. 각 `userId`의
-BrowserContext는 쿠키와 웹 스토리지를 나누지만 Camoufox 프로세스와 Aqua
-데스크톱은 공유한다. Screen Sharing/noVNC 는 Camofox 창 하나가 아니라 데스크톱
+`userId`는 macOS 계정이 아니라 Camofox의 로그인 상태 identity다. 이 구성은
+`CAMOFOX_USER_ID=omp`를 OMP, Claude Code, Codex가 함께 써서 쿠키와 웹 스토리지를
+공유한다. 그 안의 `sessionKey`는 `camofox-browser-mcp-session` wrapper가 클라이언트
+세션별로 정하며, 탭 목록과 조작 권한을 서로 다른 namespace로 가른다. OMP는 transcript
+UUID, Claude Code는 `CLAUDE_CODE_SESSION_ID`를 쓰고, 세션 ID를 MCP 자식에게 주지
+않는 클라이언트는 adapter 프로세스별 임시 UUID로 격리한다.
+상류 1.13.1의 `sessionKey`는 생성 group만 정하고 list와 기존 탭 조작은 제한하지
+않는다. 이 패키지는 MCP의 모든 탭 요청에 key를 전달하고 서버의 lookup과 list를
+그 group으로 제한한다. wrapper의 UUID만으로 격리된 척하지 않는다.
+
+각 `userId`의 BrowserContext는 쿠키와 웹 스토리지를 나누지만 Camoufox 프로세스와
+Aqua 데스크톱은 공유한다. Screen Sharing/noVNC 는 Camofox 창 하나가 아니라 데스크톱
 전체를 내보내며, 화면·포커스·키보드·마우스·클립보드도 공유한다. 따라서 noVNC 는
 신뢰된 운영자용 공용 관리 콘솔이지 사용자별 격리 경계가 아니다.
 
 | 용도 | 주소 | 주체 |
 |---|---|---|
 | Camofox API listener | `127.0.0.1:9377` | `@askjo/camofox-browser` |
-| OMP control bridge | stdio → `127.0.0.1:9377` | `camofox-browser-mcp` |
+| OMP/Claude/Codex control bridge | session-aware stdio → `127.0.0.1:9377` | `camofox-browser-mcp-session` → `camofox-browser-mcp` |
 | noVNC listener | `<WireGuard 주소>:6080` | nixpkgs `novnc`의 웹 프런트엔드와 WebSocket 프록시 |
 | noVNC 의 VNC backend target | `127.0.0.1:5900` | macOS 내장 `screensharingd` |
 
-Camofox API 는 loopback 전용이고 OMP 의 MCP 어댑터가 기존 데몬으로 전달한다.
-어댑터는 두 번째 브라우저를 실행하지 않는다. noVNC 만
+Camofox API 는 loopback 전용이고 각 클라이언트의 MCP 어댑터가 기존 데몬으로
+전달한다. wrapper와 어댑터 어느 쪽도 두 번째 브라우저를 실행하지 않는다. noVNC 만
 `/var/run/wireguard-addresses`의 첫 줄에 바인딩하며, 파일이나 주소가 아직 없으면
 fallback 주소를 열지 않고 실패한다. VNC 는 `VNCOnlyLocalConnections=true`라
 loopback 밖의 클라이언트를 인증 전에 거부한다. OS 버전에 따라 listening socket

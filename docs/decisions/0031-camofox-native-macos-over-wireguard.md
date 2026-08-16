@@ -40,11 +40,26 @@ BrowserContext를 만든다. 쿠키와 웹 스토리지는 격리되지만 모�
 Aqua 데스크톱에 나타나므로 화면, 포커스, 키보드, 마우스, 클립보드는 공유된다.
 따라서 noVNC 는 신뢰된 운영자의 공용 관리 콘솔이며 사용자별 화면 경계가 아니다.
 
-OMP 는 `${pkgs.camofox-browser}/bin/camofox-browser-mcp`를 stdio MCP 서버로
-실행한다. 이 어댑터는 `http://127.0.0.1:9377`의 REST API 로 요청을 전달할 뿐
-브라우저를 띄우지 않으므로, launchd 가 소유한 Camoufox 프로세스 하나만 존재한다.
-고정한 `CAMOFOX_USER_ID=omp`의 BrowserContext를 OMP 세션들이 함께 쓰며 탭은
-`tabId`로 구분한다.
+OMP, Claude Code, Codex는 같은 `camofox-browser-mcp-session` wrapper를 stdio MCP
+서버로 실행한다. wrapper는 `CAMOFOX_USER_ID=omp`를 유지해 로그인 쿠키와 웹
+스토리지를 공유하고, 클라이언트 세션 식별자를 `sessionKey`로 넣어 탭 namespace와
+조작 권한을 분리한 뒤 패키지의 `camofox-browser-mcp`를 실행한다. 그 어댑터는
+`http://127.0.0.1:9377`의 REST API 로 요청을 전달할 뿐 브라우저를 띄우지 않으므로,
+launchd 가 소유한 Camoufox 프로세스 하나만 존재한다.
+
+상류 1.13.1은 `sessionKey`로 탭 생성 group만 골랐고, list와 `tabId` 조작은 같은
+`userId`의 모든 group을 검색했다. 따라서 wrapper만 추가하면 namespace 이름만 다를
+뿐 실제 격리가 아니다. Nix 패키지는 MCP 어댑터가 모든 탭 요청에 `sessionKey`를
+전달하도록 하고, REST 서버의 list와 lookup이 그 group 밖을 보거나 조작하지 못하게
+함께 패치한다. session A가 session B의 `tabId`를 알아도 조작은 404로 거부된다.
+
+OMP 17.3.4는 세션 UUID를 MCP 환경에 직접 내보내지 않으므로 wrapper가 현재 terminal
+breadcrumb의 transcript 파일명에서 UUID를 읽는다. 같은 transcript를 resume하면
+같은 namespace를 되찾는다. Claude Code 2.1.233은 `CLAUDE_CODE_SESSION_ID`를 MCP
+자식에게 전달하고 resume에서도 보존한다. Codex 0.147.0은 thread ID를 MCP 자식에게
+전달하지 않으므로 현재는 adapter 프로세스별 자동 UUID가 경계다. 이는 동시 프로세스
+간 격리는 제공하지만 종료 후 resume 안정성은 제공하지 않으며, 그 보장에는 Codex
+상류 변경이나 패키지 패치가 필요하다.
 
 **VNC 비밀번호를 만들거나 소유하는 것은 noVNC 가 아니다.** activation 이 만든 값을
 macOS 의 VNC 설정 형식으로 넣고, `screensharingd` 가 그 자격증명을 검사한다.

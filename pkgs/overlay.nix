@@ -14,6 +14,7 @@ final: prev: {
   # immutable browser instead of its npm postinstall download.
   camoufox = final.callPackage ./camoufox/package.nix { };
   camofox-browser = final.callPackage ./camofox-browser/package.nix { };
+  camofox-mcp-session = final.callPackage ./camofox-mcp-session/package.nix { };
 
   # macOS only in practice — it shells out to /usr/bin/security. Declared here
   # rather than in a role file because it is a program, and this is where this

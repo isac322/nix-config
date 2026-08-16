@@ -212,11 +212,14 @@ let
     exec ${pkgs.camofox-browser}/bin/camofox-browser
   '';
 
-  # OMP's native MCP loader starts this stdio adapter per agent session.  The
-  # adapter is only an HTTP client: it forwards its eleven Camofox tools to the
-  # launchd-owned singleton above and never launches another browser.
+  # OMP's native MCP loader starts this stdio adapter per agent session. The
+  # session wrapper derives OMP's durable UUID from its per-terminal transcript
+  # breadcrumb, keeps CAMOFOX_USER_ID fixed for shared login state, and gives
+  # each OMP conversation a distinct sessionKey/tab namespace. The underlying
+  # adapter remains only an HTTP client: it forwards its eleven Camofox tools
+  # to the launchd-owned singleton above and never launches another browser.
   #
-  # Keep context-mode in the same declarative file.  It created the original
+  # Keep context-mode in the same declarative file. It created the original
   # mutable mcp.json; `force` performs the one-time migration to a Home Manager
   # symlink and means future MCP additions belong in this configuration.
   ompMcpConfig = {
@@ -231,12 +234,12 @@ let
 
       camofox = {
         type = "stdio";
-        command = "${pkgs.camofox-browser}/bin/camofox-browser-mcp";
+        command = lib.getExe pkgs.camofox-mcp-session;
+        args = [ "omp" ];
         timeout = 120000;
         env = {
           CAMOFOX_BASE_URL = "http://127.0.0.1:${toString camofoxCfg.apiPort}";
           CAMOFOX_USER_ID = "omp";
-          CAMOFOX_SESSION_KEY = "default";
         };
       };
     };
@@ -458,6 +461,7 @@ in
   # MPL-2.0 — so it needs no allowUnfreePredicate entry. It shells out to
   # `terraform` for validation, and finds the one from home/darwin.nix.
   home.packages = [
+    pkgs.camofox-mcp-session
     pkgs.cargo
     pkgs.rust-analyzer
     pkgs.rustc

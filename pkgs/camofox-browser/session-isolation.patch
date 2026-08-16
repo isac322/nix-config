@@ -1,0 +1,219 @@
+--- a/server.js
++++ b/server.js
+@@ -1579,7 +1579,12 @@
+   return true;
+ }
+ 
+-function findTab(session, tabId) {
++function findTab(session, tabId, sessionKey) {
++  if (sessionKey) {
++    const group = session.tabGroups.get(sessionKey);
++    const tabState = group?.get(tabId);
++    return tabState ? { tabState, listItemId: sessionKey, group } : null;
++  }
+   for (const [listItemId, group] of session.tabGroups) {
+     if (group.has(tabId)) {
+       const tabState = group.get(tabId);
+@@ -2916,13 +2921,14 @@
+     if (!userId) return res.status(400).json({ error: 'userId required' });
+ 
+     let session = sessions.get(normalizeUserId(userId));
+-    const found = session && findTab(session, tabId);
++    const requestedSessionKey = sessionKey || listItemId;
++    const found = session && findTab(session, tabId, requestedSessionKey);
+     if (!found) return tabNotFoundResponse(res, tabId);
+     session.lastAccess = Date.now();
+ 
+     const result = await withUserLimit(userId, () => withTimeout((async () => {
+       await ensureBrowser();
+-      const resolvedSessionKey = sessionKey || listItemId || found.listItemId || 'default';
++      const resolvedSessionKey = requestedSessionKey || found.listItemId || 'default';
+       let tabState = found.tabState;
+       tabState.toolCalls++; tabState.consecutiveTimeouts = 0; tabState.consecutiveFailures = 0;
+       
+@@ -3139,11 +3145,12 @@
+ app.get('/tabs/:tabId/snapshot', async (req, res) => {
+   try {
+     const userId = req.query.userId;
++    const sessionKey = req.query.sessionKey;
+     if (!userId) return res.status(400).json({ error: 'userId required' });
+     const format = req.query.format || 'text';
+     const offset = parseInt(req.query.offset) || 0;
+     const session = sessions.get(normalizeUserId(userId));
+-    const found = session && findTab(session, req.params.tabId);
++    const found = session && findTab(session, req.params.tabId, sessionKey);
+     if (!found) return tabNotFoundResponse(res, req.params.tabId || req.body?.tabId);
+     session.lastAccess = Date.now();
+     
+@@ -3411,7 +3418,7 @@
+     const { userId, ref, selector } = req.body;
+     if (!userId) return res.status(400).json({ error: 'userId required' });
+     const session = sessions.get(normalizeUserId(userId));
+-    const found = session && findTab(session, tabId);
++    const found = session && findTab(session, tabId, req.body.sessionKey);
+     if (!found) return tabNotFoundResponse(res, req.params.tabId || req.body?.tabId);
+     session.lastAccess = Date.now();
+     
+@@ -3575,7 +3582,7 @@
+     if (err.message?.includes('timed out')) {
+       try {
+         const session = sessions.get(normalizeUserId(req.body.userId));
+-        const found = session && findTab(session, tabId);
++        const found = session && findTab(session, tabId, req.body.sessionKey);
+         if (found?.tabState?.page && !found.tabState.page.isClosed()) {
+           found.tabState.refs = await refreshTabRefs(found.tabState, { reason: 'click_timeout' });
+           found.tabState.lastSnapshot = null;
+@@ -3884,7 +3891,7 @@
+   try {
+     const { userId, ref, selector, text, mode = 'fill', delay = 30, submit = false, pressEnter = false } = req.body;
+     const session = sessions.get(normalizeUserId(userId));
+-    const found = session && findTab(session, tabId);
++    const found = session && findTab(session, tabId, req.body.sessionKey);
+     if (!found) return tabNotFoundResponse(res, req.params.tabId || req.body?.tabId);
+     session.lastAccess = Date.now();
+     
+@@ -3943,7 +3950,7 @@
+     if (err.message?.includes('timed out') || err.message?.includes('not an <input>')) {
+       try {
+         const session = sessions.get(normalizeUserId(req.body.userId));
+-        const found = session && findTab(session, tabId);
++        const found = session && findTab(session, tabId, req.body.sessionKey);
+         if (found?.tabState?.page && !found.tabState.page.isClosed()) {
+           found.tabState.refs = await refreshTabRefs(found.tabState, { reason: 'type_timeout' });
+           found.tabState.lastSnapshot = null;
+@@ -4083,7 +4090,7 @@
+   try {
+     const { userId, direction = 'down', amount = 500 } = req.body;
+     const session = sessions.get(normalizeUserId(userId));
+-    const found = session && findTab(session, req.params.tabId);
++    const found = session && findTab(session, req.params.tabId, req.body.sessionKey);
+     if (!found) return tabNotFoundResponse(res, req.params.tabId || req.body?.tabId);
+     session.lastAccess = Date.now();
+     
+@@ -4680,9 +4687,10 @@
+ app.get('/tabs/:tabId/screenshot', async (req, res) => {
+   try {
+     const userId = req.query.userId;
++    const sessionKey = req.query.sessionKey;
+     const fullPage = req.query.fullPage === 'true';
+     const session = sessions.get(normalizeUserId(userId));
+-    const found = session && findTab(session, req.params.tabId);
++    const found = session && findTab(session, req.params.tabId, sessionKey);
+     if (!found) return tabNotFoundResponse(res, req.params.tabId || req.body?.tabId);
+     session.lastAccess = Date.now();
+     
+@@ -4840,7 +4848,7 @@
+     if (!expression) return res.status(400).json({ error: 'expression is required' });
+ 
+     const session = sessions.get(normalizeUserId(userId));
+-    const found = session && findTab(session, req.params.tabId);
++    const found = session && findTab(session, req.params.tabId, req.body.sessionKey);
+     if (!found) return tabNotFoundResponse(res, req.params.tabId || req.body?.tabId);
+ 
+     session.lastAccess = Date.now();
+@@ -5049,7 +5057,7 @@
+     const userId = req.query.userId || req.body?.userId;
+     if (!userId) return res.status(400).json({ error: 'userId required (query or body)' });
+     const session = sessions.get(normalizeUserId(userId));
+-    const found = session && findTab(session, req.params.tabId);
++    const found = session && findTab(session, req.params.tabId, req.query.sessionKey || req.body?.sessionKey);
+     if (found) {
+       if (found.tabState.navigateAbort) found.tabState.navigateAbort.abort();
+       await clearTabDownloads(found.tabState);
+@@ -5664,6 +5672,7 @@
+ app.get('/tabs', async (req, res) => {
+   try {
+     const userId = req.query.userId;
++    const sessionKey = req.query.sessionKey;
+     const session = sessions.get(normalizeUserId(userId));
+     
+     if (!session) {
+@@ -5671,7 +5680,11 @@
+     }
+     
+     const tabs = [];
+-    for (const [listItemId, group] of session.tabGroups) {
++    const groups = sessionKey
++      ? [[sessionKey, session.tabGroups.get(sessionKey)]]
++      : session.tabGroups;
++    for (const [listItemId, group] of groups) {
++      if (!group) continue;
+       for (const [tabId, tabState] of group) {
+         tabs.push({
+           targetId: tabId,
+--- a/mcp/lib/tool-contracts.mjs
++++ b/mcp/lib/tool-contracts.mjs
+@@ -262,7 +262,7 @@
+         body: { url: args.url, userId, sessionKey },
+       };
+     case 'camofox_snapshot': {
+-      const params = new URLSearchParams({ userId, includeScreenshot: 'true' });
++      const params = new URLSearchParams({ userId, sessionKey, includeScreenshot: 'true' });
+       if (args.offset != null && args.offset !== '') params.set('offset', String(args.offset));
+       return {
+         method: 'GET',
+@@ -277,7 +277,7 @@
+         path: `/tabs/${args.tabId}/click`,
+         auth: 'accessKey',
+         responseKind: 'json',
+-        body: { ...without(args), userId },
++        body: { ...without(args), userId, sessionKey },
+       };
+     case 'camofox_type':
+       return {
+@@ -285,7 +285,7 @@
+         path: `/tabs/${args.tabId}/type`,
+         auth: 'accessKey',
+         responseKind: 'json',
+-        body: { ...without(args), userId },
++        body: { ...without(args), userId, sessionKey },
+       };
+     case 'camofox_navigate':
+       return {
+@@ -293,7 +293,7 @@
+         path: `/tabs/${args.tabId}/navigate`,
+         auth: 'accessKey',
+         responseKind: 'json',
+-        body: { ...without(args), userId },
++        body: { ...without(args), userId, sessionKey },
+       };
+     case 'camofox_scroll':
+       return {
+@@ -301,19 +301,19 @@
+         path: `/tabs/${args.tabId}/scroll`,
+         auth: 'accessKey',
+         responseKind: 'json',
+-        body: { ...without(args), userId },
++        body: { ...without(args), userId, sessionKey },
+       };
+     case 'camofox_screenshot':
+       return {
+         method: 'GET',
+-        path: `/tabs/${args.tabId}/screenshot?${new URLSearchParams({ userId })}`,
++        path: `/tabs/${args.tabId}/screenshot?${new URLSearchParams({ userId, sessionKey })}`,
+         auth: 'accessKey',
+         responseKind: 'image',
+       };
+     case 'camofox_close_tab':
+       return {
+         method: 'DELETE',
+-        path: `/tabs/${args.tabId}?${new URLSearchParams({ userId })}`,
++        path: `/tabs/${args.tabId}?${new URLSearchParams({ userId, sessionKey })}`,
+         auth: 'accessKey',
+         responseKind: 'json',
+       };
+@@ -323,12 +323,12 @@
+         path: `/tabs/${args.tabId}/evaluate`,
+         auth: 'accessKey',
+         responseKind: 'json',
+-        body: { userId, expression: args.expression },
++        body: { userId, sessionKey, expression: args.expression },
+       };
+     case 'camofox_list_tabs':
+       return {
+         method: 'GET',
+-        path: `/tabs?${new URLSearchParams({ userId })}`,
++        path: `/tabs?${new URLSearchParams({ userId, sessionKey })}`,
+         auth: 'accessKey',
+         responseKind: 'json',
+       };

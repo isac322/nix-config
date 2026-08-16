@@ -32,6 +32,13 @@ buildNpmPackage (finalAttrs: {
   # explicit Darwin headful path: Linux still disables headless whenever its
   # existing virtual display starts, while a missing Linux display and every
   # unset environment retain the upstream true default.
+
+  # Upstream's sessionKey only selected the group used when a tab was created.
+  # Listing and every tabId operation still searched all groups under userId,
+  # so clients sharing cookies also shared tab visibility and control. Keep the
+  # REST compatibility path when no sessionKey is supplied, but make the MCP
+  # adapter send it on every operation and enforce that group on the server.
+  patches = [ ./session-isolation.patch ];
   postPatch = ''
     cp ${./package.json} package.json
     cp ${./package-lock.json} package-lock.json
