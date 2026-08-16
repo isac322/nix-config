@@ -156,6 +156,18 @@ in
     # OrbStack's own cluster tracks its bundled version, so the gap is worth
     # watching if that cluster is the one being used.
     pkgs.kubectl
+
+    # Workflow files are edited from whichever machine the work is on, and a
+    # broken one is only found by pushing it. actionlint reads them statically —
+    # it parses the workflow schema, checks `runs-on` labels and `${{ }}`
+    # expressions, and runs shellcheck over `run:` blocks — so the mistake is
+    # caught before a commit rather than by a red run afterwards.
+    #
+    # It needs no configuration and no repository state, which is why it belongs
+    # next to the other tools here rather than in a devshell. hadolint is the
+    # same shape of tool for Dockerfiles and is still Mac-only in
+    # home/darwin.nix; nobody has asked for it away from a Mac.
+    pkgs.actionlint
   ];
 
   programs.git = {
