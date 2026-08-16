@@ -141,6 +141,21 @@ in
     # plugin comes with google-cloud-sdk in home/darwin.nix, so GKE works on the
     # Macs and not on the NixOS server. Other clusters are unaffected.
     pkgs.k9s
+
+    # And the client itself, which until now was not declared anywhere. On the
+    # Macs `kubectl` was /usr/local/bin/kubectl, a symlink OrbStack installs into
+    # its own app bundle — so the version moved when OrbStack did, and the NixOS
+    # server had none at all. That is the same objection this repository makes to
+    # rustup and to `omp plugin install`: the tool on a machine was whatever
+    # something else last put there rather than what flake.lock pins.
+    #
+    # This changes which binary answers on the Macs. Nix profiles come before
+    # /usr/local/bin on the PATH nix-darwin installs, so `kubectl` becomes the
+    # pinned one — 1.36.3 here against OrbStack's 1.33.9. kubectl supports one
+    # minor version of skew in either direction against the API server, and
+    # OrbStack's own cluster tracks its bundled version, so the gap is worth
+    # watching if that cluster is the one being used.
+    pkgs.kubectl
   ];
 
   programs.git = {
