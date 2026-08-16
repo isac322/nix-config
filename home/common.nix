@@ -41,7 +41,6 @@ let
     "pi-google-google-search" = "0.1.0";
     "pi-openai-web-search" = "0.1.0";
     "@isac322/pi-codegraph" = "0.3.1";
-    "pi-agent-browser-native" = "0.3.0";
     "context-mode" = "1.0.169";
   };
 

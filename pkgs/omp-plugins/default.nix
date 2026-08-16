@@ -107,12 +107,6 @@ let
       hash = "sha256-kMetzmQqqYbLTX550FuRBto8JMtk9M+aehdcrOSSgqE=";
     };
 
-    "pi-agent-browser-native" = fromNpm {
-      pname = "pi-agent-browser-native";
-      version = "0.3.0";
-      url = "https://registry.npmjs.org/pi-agent-browser-native/-/pi-agent-browser-native-0.3.0.tgz";
-      hash = "sha256-beS3DWbEOyNt6klfmJNYJtOOKUQG1YI6NNW4UJTgoRY=";
-    };
   };
 
   # The one that brings dependencies. `npmDepsHash` is the hash of everything the
