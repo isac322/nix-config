@@ -22,9 +22,10 @@ in
     ./appearance.nix
     ./warp.nix
 
-    # Options only, no configuration. Every Mac can declare where its Orca
-    # runtime is reached; only the server role acts on it.
+    # Options and conditional services. Every Mac knows the shape of these
+    # settings; only the server role enables either runtime.
     ./orca.nix
+    ./camofox.nix
 
     ./mas-apps.nix
     ./wireguard.nix

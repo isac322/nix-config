@@ -41,10 +41,11 @@
     let
       user = "bhyoo";
 
-      # Systems the locally packaged CLIs are offered for. Two of these are
-      # machines that exist here; x86_64-linux is included because it costs
-      # nothing to evaluate and is what anyone else consuming this flake is
-      # most likely to be on.
+      # Systems the locally packaged cross-platform tools are offered for. Two
+      # of these are machines that exist here; x86_64-linux is included because
+      # it costs nothing to evaluate and is what anyone else consuming this
+      # flake is most likely to be on. The native browser packages are added to
+      # aarch64-darwin only below.
       forAllSystems = nixpkgs.lib.genAttrs [
         "aarch64-darwin"
         "aarch64-linux"
@@ -163,6 +164,9 @@
             tempo-cli
             ;
         }
+        // nixpkgs.lib.optionalAttrs (system == "aarch64-darwin") {
+          inherit (pkgs) camoufox camofox-browser;
+        }
       );
 
       # `nix run .#cache-push -- <cache>` builds the packages above and uploads
@@ -170,13 +174,15 @@
       # exist nowhere else, and slack-cli and tempo-cli replace nixpkgs
       # attributes, so their derivations differ from what cache.nixos.org built
       # under those names. Everything else in a system closure still comes from
-      # upstream caches, so there is nothing else worth pushing — the bun
-      # override in pkgs/overlay.nix is also built locally, but building it is
-      # unpacking a zip upstream published and pushing it would save nothing.
+      # upstream caches, so there is nothing else worth pushing. The browser
+      # packages and the bun override in pkgs/overlay.nix are also built locally,
+      # but building each is chiefly unpacking upstream-published artifacts and
+      # pushing them would save nothing.
       #
-      # It is the same list, read out of packages rather than written twice —
-      # a package added there and forgotten here would be one that quietly gets
-      # compiled on every machine.
+      # The browser packages are deliberately removed from this target set; the
+      # remaining list is read out of packages rather than written a second
+      # time, so a cross-platform package added there and forgotten here would
+      # be one that quietly gets compiled on every machine.
       #
       # The store paths are baked in rather than resolved from `.#` at run
       # time: building this app builds precisely what it will push, and it
@@ -186,7 +192,12 @@
         let
           pkgs = nixpkgs.legacyPackages.${system}.extend (import ./pkgs/overlay.nix);
           inherit (nixpkgs) lib;
-          targets = builtins.attrValues self.packages.${system};
+          targets = builtins.attrValues (
+            builtins.removeAttrs self.packages.${system} [
+              "camoufox"
+              "camofox-browser"
+            ]
+          );
         in
         {
           cache-push = {

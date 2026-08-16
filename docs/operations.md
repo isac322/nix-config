@@ -117,7 +117,7 @@ sudo launchctl kickstart -k system/org.nixos.wireguard
 ```sh
 sudo wg show
 cat /var/log/wireguard.log
-cat /var/run/wireguard-addresses   # 데몬이 발행한 주소. Orca 가 이걸 읽는다
+cat /var/run/wireguard-addresses   # 데몬이 발행한 주소. Orca·Camofox·noVNC 가 읽는다
 ```
 
 파일이 없으면 데몬은 터널을 안 올리고 그 사실을 로그에 남긴다 — 설정이 깨지지는
@@ -126,10 +126,11 @@ cat /var/run/wireguard-addresses   # 데몬이 발행한 주소. Orca 가 이걸
 
 ## 자동 로그인 (서버 맥)
 
-Orca 런타임이 Electron 이라 Aqua 세션을 요구하고, LaunchAgent 는 세션이 만들어질
-때만 뜬다 ([0028](decisions/0028-orca-runtime-on-the-server-mac.md)).
-sshd·WireGuard·키 매핑은 전부 루트 데몬이라 이게 필요 없다 — 자동 로그인은 Orca
-하나 때문이다.
+Orca 런타임과 headful Camofox 가 Aqua 세션을 요구하고, LaunchAgent 는 세션이
+만들어질 때만 뜬다
+([0028](decisions/0028-orca-runtime-on-the-server-mac.md),
+[0031](decisions/0031-camofox-native-macos-over-wireguard.md)).
+sshd·WireGuard·키 매핑·noVNC 는 루트 데몬이라 이게 필요 없다.
 
 **손으로 하는 것은 파일 하나다.** 나머지는 switch 가 한다 — `/etc/kcpassword`
 생성과 FileVault 끄기 둘 다.
@@ -234,6 +235,92 @@ orca account list
 있으므로, 막는 것은 런타임이 아니라 네트워크 쪽 일이다. 공개 인터넷으로
 포워딩하지 않는다.
 
+## Camofox + noVNC (서버 맥)
+
+Camofox API 는 `bhyoo`의 Aqua LaunchAgent 로 headful 실행되고, macOS 내장
+`screensharingd`의 화면을 root noVNC LaunchDaemon 이 웹으로 중계한다
+([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 상류의
+Linux/Xvfb VNC 플러그인은 꺼져 있다.
+
+noVNC 는 Camofox 창 하나가 아니라 `bhyoo`의 **Aqua 데스크톱 전체**를 공유하는
+신뢰된 관리자 콘솔이다. 여러 `userId`는 각각 별도 BrowserContext를 쓰지만 같은
+Camoufox 프로세스와 데스크톱에서 실행되므로 쿠키·웹 스토리지 외의 화면, 포커스,
+키보드, 마우스, 클립보드는 공유된다. 사용자별 noVNC 접속점으로 제공하지 않는다.
+
+**주소.** 둘 다 WireGuard 데몬이 발행한 첫 주소만 쓴다. 아래가 그대로 접속점이다.
+
+```sh
+wg_ip=$(sed -n '1p' /var/run/wireguard-addresses)
+printf 'Camofox API: http://%s:9377\n' "$wg_ip"
+printf 'noVNC:       http://%s:6080/vnc.html\n' "$wg_ip"
+```
+
+두 URL 은 WireGuard 피어에서만 열린다. 주소 파일이 없거나 첫 줄이 비어 있으면
+Camofox 와 noVNC 는 `0.0.0.0`이나 LAN 주소로 물러서지 않고 실패한다. launchd 가
+10초 간격으로 다시 부르므로 터널이 뒤에 올라오면 그때 정확한 주소에 바인딩한다.
+
+**VNC 비밀번호.** activation 이 처음 한 번만 만든 정확히 8자의 영숫자다.
+
+```sh
+sudo stat -f '%Sp %Su:%Sg %N' /var/lib/nix-darwin/camofox-vnc-password
+sudo sh -c 'wc -c < /var/lib/nix-darwin/camofox-vnc-password'
+sudo cat /var/lib/nix-darwin/camofox-vnc-password; printf '\n'
+```
+
+첫 줄은 `-rw------- root:wheel`, 둘째 줄은 `8`이어야 한다. 마지막 값은 noVNC
+페이지의 VNC Password 칸에 넣는다. **이것은 noVNC 가 소유하거나 검사하는
+비밀번호가 아니다.** macOS `screensharingd`의 legacy VNC 자격증명이고, noVNC 는
+브라우저와 `127.0.0.1:5900` 사이에서 프로토콜을 중계할 뿐이다.
+
+**상태·로그·재시작.**
+
+```sh
+launchctl print gui/$(id -u)/org.nix-community.home.camofox-browser
+sudo launchctl print system/org.nixos.camofox-novnc
+sudo launchctl print system/com.apple.screensharing
+
+tail -f ~/Library/Logs/camofox-browser.log
+sudo tail -f /var/log/camofox-novnc.log
+sudo log stream --info --predicate 'process == "screensharingd"'
+
+launchctl kickstart -k gui/$(id -u)/org.nix-community.home.camofox-browser
+sudo launchctl kickstart -k system/org.nixos.camofox-novnc
+sudo launchctl kickstart -k system/com.apple.screensharing
+```
+
+Camofox 로그에서 WireGuard 주소가 없다는 줄은 넓은 주소로 열린 것이 아니라
+의도적인 실패다. noVNC 로그의 `refusing noVNC's all-interfaces default`도 같다.
+터널과 `/var/run/wireguard-addresses`를 먼저 확인한다.
+
+**바인딩과 VNC 경계 확인.**
+
+```sh
+wg_ip=$(sed -n '1p' /var/run/wireguard-addresses)
+sudo lsof -nP -iTCP:9377 -sTCP:LISTEN
+sudo lsof -nP -iTCP:6080 -sTCP:LISTEN
+
+sudo defaults read /Library/Preferences/com.apple.RemoteManagement \
+  VNCLegacyConnectionsEnabled
+sudo defaults read /Library/Preferences/com.apple.RemoteManagement \
+  VNCOnlyLocalConnections
+
+printf 'loopback VNC:  '
+nc -w 2 127.0.0.1 5900 | head -1
+printf 'WireGuard VNC: '
+nc -w 2 "$wg_ip" 5900 | head -1
+```
+
+앞의 `lsof` 두 줄에는 각각 **`$wg_ip:9377`과 `$wg_ip:6080`만** 있어야 한다.
+두 `defaults` 값은 모두 `1`이다. loopback VNC 는 `RFB ...` 배너를 내지만 같은
+5900 포트를 WireGuard 주소로 물으면 배너가 없어야 한다. `screensharingd`가 OS
+버전에 따라 wildcard listening socket 을 소유해도 `VNCOnlyLocalConnections`가
+인증 전에 non-loopback VNC 를 거부하므로, TCP 소켓 모양만 보고 이 경계를
+판정하지 않는다.
+
+8자 제한은 macOS legacy VNC 호환의 한계다. 그래서 5900은 loopback 전용이고,
+그 앞의 6080만 WireGuard 주소에 연다. 이 두 경계가 빠지면 이 비밀번호 길이는
+인터넷에 직접 노출할 만한 보안 수준이 아니다.
+
 ## RSA 호스트 키가 3072 비트일 때
 
 sshd 를 켠 기계만 해당하고, 프로파일보다 먼저 만들어진 키가 있을 때만 해당한다.
@@ -284,9 +371,9 @@ agenix나 sops-nix로 레포에 암호화해 넣으면 이 한 단계도 사라�
 [0017](decisions/0017-warp-enrollment-via-mdm-xml.md).
 
 ## 캐시 푸시
-
-`pkgs/` 의 여섯은 어떤 공개 캐시에도 없어서 기기마다 새로 컴파일한다. 그것만 Cachix
-에 올린다 ([0018](decisions/0018-cachix-not-flakehub-cache.md)).
+`pkgs/`의 브라우저 둘을 뺀 CLI 여섯은 어떤 공개 캐시에도 없어서 기기마다 새로
+컴파일한다. 그것만 Cachix 에 올린다
+([0018](decisions/0018-cachix-not-flakehub-cache.md)).
 
 처음 한 번:
 

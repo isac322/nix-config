@@ -166,6 +166,11 @@ in
   # already decided (0028).
   local.orca.enable = true;
 
+  # The headful browser API and the view of its automatic Aqua session. Both
+  # endpoints learn their bind address from WireGuard at run time; there is no
+  # ordinary-interface fallback written here or in modules/camofox.nix.
+  local.camofox.enable = true;
+
   # Come back without someone pressing the button.
   #
   # `power.restartAfterPowerFailure` is deliberately absent. Apple Silicon

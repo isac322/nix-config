@@ -14,8 +14,9 @@ modules/           시스템 레벨
   darwin.nix         모든 macOS
   nixos.nix          모든 NixOS
   orca.nix           `local.*` 옵션 선언. 광고 주소는 터널에서 읽는다
+  camofox.nix        서버 맥의 Camofox API + Screen Sharing/noVNC 브리지
   wireguard.nix      서버 맥의 터널. 앱이 아니라 wg-quick 을 도는 루트 데몬
-  auto-login.nix     kcpassword 생성 + FileVault 끄기. Orca 하나 때문에 있다
+  auto-login.nix     kcpassword 생성 + FileVault 끄기. Aqua 서비스 때문에 있다
   mas-apps.nix       App Store 전용 앱이 없을 때 switch 가 알리게 한다
   roles/
     darwin-laptop.nix   랩탑 macOS
@@ -33,6 +34,8 @@ home/              사용자 레벨 (home-manager)
     darwin-server.nix   Rust · 언어 서버
 pkgs/              nixpkgs 에 없거나 쓸 수 없는 형태인 패키지 + overlay.nix
   pinentry-keychain/  키체인을 읽는 pinentry. 콘솔 없는 맥용
+  camoufox/          고정한 macOS arm64 브라우저 코어
+  camofox-browser/   @askjo/camofox-browser API 서버
 .claude/skills/    이 레포에 대해 되풀이하는 절차
   ssh-audit/         sshd 권장값이 움직였는지 다시 대조한다
 ```
@@ -73,6 +76,7 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 | [Orca 런타임을 계속 띄우는 LaunchAgent](decisions/0028-orca-runtime-on-the-server-mac.md) · 자동 로그인 | ✖ | ✅ |
 | [GPG pinentry](decisions/0030-gpg-passphrase-without-a-console.md) | pinentry-mac | 키체인 + tty |
 | [WireGuard — 앱(랩탑) 대 루트 데몬(서버)](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md) | 앱 | 데몬 |
+| [Camofox API · 내장 Screen Sharing + noVNC](decisions/0031-camofox-native-macos-over-wireguard.md) | ✖ | ✅ |
 
 두 맥 다 MacBook Pro 급 하드웨어이고 Touch ID 센서도 둘 다 달려 있다. 랩탑에만
 있는 이유는 하드웨어가 아니라 역할이다 — 서버 맥은 뚜껑을 닫은 채 SSH 로만
@@ -84,11 +88,43 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 세 층 어디에도 안 맞는 것은 `extraModules` / `extraHomeModules`로 넘긴다 —
 한 기계가 미디어 서버를 겸하는 식의 경우.
 
+## Camofox 원격 브라우저 (서버 맥)
+
+`local.camofox.enable` 이 Camofox API, macOS Screen Sharing, noVNC 를 한 묶음으로
+켠다 ([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). Camofox 는
+자동 로그인으로 생긴 `bhyoo`의 Aqua 세션에서 headful LaunchAgent 로 돌고,
+noVNC 는 root LaunchDaemon 이다. 상류의 Linux/Xvfb VNC 플러그인은 쓰지 않는다.
+
+`userId`는 macOS 계정이 아니라 Camofox 세션 식별자다. 각 `userId`의
+BrowserContext는 쿠키와 웹 스토리지를 나누지만 Camoufox 프로세스와 Aqua
+데스크톱은 공유한다. Screen Sharing/noVNC 는 Camofox 창 하나가 아니라 데스크톱
+전체를 내보내며, 화면·포커스·키보드·마우스·클립보드도 공유한다. 따라서 noVNC 는
+신뢰된 운영자용 공용 관리 콘솔이지 사용자별 격리 경계가 아니다.
+
+| 용도 | 주소 | 주체 |
+|---|---|---|
+| Camofox API listener | `<WireGuard 주소>:9377` | `@askjo/camofox-browser` |
+| noVNC listener | `<WireGuard 주소>:6080` | nixpkgs `novnc`의 웹 프런트엔드와 WebSocket 프록시 |
+| noVNC 의 VNC backend target | `127.0.0.1:5900` | macOS 내장 `screensharingd` |
+
+Camofox 와 noVNC 는 `/var/run/wireguard-addresses`의 첫 줄만 바인딩한다. 파일이나
+주소가 아직 없으면 fallback 주소를 열지 않고 실패하며 launchd 가 다시 부른다.
+VNC 는 `VNCOnlyLocalConnections=true`라 loopback 밖의 클라이언트를 인증 전에
+거부한다. OS 버전에 따라 listening socket 자체는 wildcard 로 보일 수 있어서
+소켓 주소만으로 이 경계를 판정하지 않는다.
+
+`/var/lib/nix-darwin/camofox-vnc-password`는 activation 이 처음 한 번 만든 정확히
+8자의 영숫자이고 `root:wheel 0600`이다. **noVNC 의 비밀번호가 아니다.** macOS 의
+legacy VNC 자격증명이고, noVNC 는 그것을 검사하지 않고 VNC 바이트를 중계한다.
+이 짧은 legacy 비밀번호를 허용하는 대신 backend 를 loopback 에 가두고 frontend 는
+WireGuard 주소 하나에만 연다. 조회와 검증 절차는
+[운영](operations.md#camofox--novnc-서버-맥)에 있다.
+
 ## GUI 앱
 
 nixpkgs 가 아니라 Homebrew 에서 온다
 ([0015](decisions/0015-gui-apps-come-from-homebrew.md)). `onActivation.upgrade` 가
-켜져 있어 최신 유지도 Homebrew 가 한다. 예외 셋:
+켜져 있어 최신 유지도 Homebrew 가 한다. 예외 넷:
 
 - **Orca** (Stably) — homebrew-cask가 아니라 자체 tap에 있어서 `homebrew.taps`에
   `stablyai/orca`를 같이 선언한다. nix-homebrew가 tap을 기본적으로 mutable로
@@ -102,6 +138,9 @@ nixpkgs 가 아니라 Homebrew 에서 온다
   랩탑에만 있는 것은 Dock 타일뿐이다.
 - **서버 맥의 크롬** — 유일하게 nixpkgs 에서 온다
   ([0024](decisions/0024-chrome-for-agent-browser-on-the-server.md)).
+- **서버 맥의 Camoufox** — custom `pkgs.camoufox`의 고정한 macOS arm64 `.app`이다.
+  `/Applications`에 설치하지 않고 Camofox LaunchAgent 가 store 안 실행파일을
+  직접 가리킨다 ([0031](decisions/0031-camofox-native-macos-over-wireguard.md)).
 - **KakaoTalk · WireGuard** — Mac App Store 전용이라 손으로 깐다
   ([0016](decisions/0016-mas-only-apps-installed-by-hand.md)). 둘 다 랩탑 전용이
   됐다: 서버 맥은 WireGuard 앱 대신 `wireguard-tools` 를 루트 데몬으로 돌린다
@@ -335,11 +374,11 @@ home-manager는 `home.packages`의 폰트를 `~/Library/Fonts/HomeManager`로 rs
 
 ## `pkgs/`
 
-`posthog-cli`, `axiom-cli`, `langfuse-cli`, `vercel-cli` 는 nixpkgs 에 아예 없다.
-`slack-cli` 는 있는데 **다른 프로그램**이고
+`posthog-cli`, `axiom-cli`, `langfuse-cli`, `vercel-cli`, `camoufox`,
+`camofox-browser`는 nixpkgs 에 아예 없다. `slack-cli` 는 있는데 **다른 프로그램**이고
 ([0020](decisions/0020-slack-cli-attribute-replaced.md)), `tempo-cli` 는 nixpkgs
 것을 잘라 쓴다. `pkgs/overlay.nix` 가 오버레이로 얹으므로, 이 디렉터리를 볼 일 없는
-home-manager 모듈에서도 그냥 `pkgs.posthog-cli` 로 쓴다.
+모듈에서도 그냥 `pkgs.posthog-cli`나 `pkgs.camofox-browser`로 쓴다.
 
 | attribute | 출처 | 메모 |
 |---|---|---|
@@ -350,10 +389,14 @@ home-manager 모듈에서도 그냥 `pkgs.posthog-cli` 로 쓴다.
 | `slack-cli` | GitHub 타르볼 | nixpkgs 의 동명 attribute 를 갈아끼운다 |
 | `bun` | nixpkgs override | 필요한 버전이 한 릴리스 앞 |
 | `tempo-cli` | nixpkgs override | `subPackages` 를 하나로 줄인다 |
+| `camoufox` | GitHub macOS arm64 zip | 152.0.4-beta.28 코어. aarch64-darwin 전용 |
+| `camofox-browser` | npm 타르볼 | `@askjo/camofox-browser` 1.13.1 + package-time headful opt-out |
 
-패키징 결정과 각 패키지의 함정은
-[0019](decisions/0019-package-from-published-artifacts.md) 에 있다. 여섯은 어떤
-공개 캐시에도 없어서 [Cachix 로 올린다](operations.md#캐시-푸시).
+CLI 패키징 결정과 각 패키지의 함정은
+[0019](decisions/0019-package-from-published-artifacts.md), Camofox 쪽 결정은
+[0031](decisions/0031-camofox-native-macos-over-wireguard.md)에 있다. 앞의 CLI
+여섯만 [Cachix 로 올린다](operations.md#캐시-푸시). 브라우저 둘은 고정한 상류
+아티팩트에서 풀고 서버 맥 하나만 소비하므로 cache-push 대상에서 뺐다.
 
 ## 이 레포를 패키지 저장소로 쓰기
 
@@ -370,7 +413,8 @@ environment.systemPackages = [ inputs.bhyoo.packages.${system}.posthog-cli ];
 
 `overlays.default` 와 `packages.<system>` 둘 다 `pkgs/overlay.nix` **같은 파일**을
 읽는다. 여기 있는 설정들도 같은 파일을 import 하므로 정의가 둘로 갈라져 어긋날
-일이 없다. 제공 시스템은 `aarch64-darwin`, `aarch64-linux`, `x86_64-linux` 셋이다.
+일이 없다. 공통 패키지는 `aarch64-darwin`, `aarch64-linux`, `x86_64-linux` 셋에
+제공하고, `camoufox`와 `camofox-browser`는 `packages.aarch64-darwin`에만 제공한다.
 
 Nix 에서 "저장소" 는 AUR 처럼 중앙 집중이 아니다. 레포가 이 두 출력을 갖는 순간
 그것이 곧 패키지 저장소이고, 등록 절차도 심사도 없다. 남이 **발견**하게 하려면

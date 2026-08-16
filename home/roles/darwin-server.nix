@@ -13,10 +13,11 @@
 }:
 
 let
-  # Declared in modules/orca.nix. `osConfig` is the system configuration of the
+  # Declared by system modules. `osConfig` is the system configuration of the
   # host this home-manager generation belongs to — home-manager's nix-darwin
   # module passes it in under that name.
   cfg = osConfig.local.orca;
+  camofoxCfg = osConfig.local.camofox;
   autoLogin = osConfig.local.autoLogin;
 
   # The bill for automatic login, and the thing that pays it.
@@ -165,6 +166,70 @@ let
 
     exit "$status"
   '';
+
+  camofox = pkgs.writeShellScript "camofox-browser" ''
+    set -u
+
+    # The API and the tunnel start independently. Wait for the address the root
+    # WireGuard daemon publishes, then fail so launchd retries if it never
+    # appears. Camofox's unset bind-host default is all interfaces, so leaving
+    # the variable empty is never a fallback.
+    address=""
+    waited=0
+    while [ "$waited" -lt 60 ]; do
+      if [ -s /var/run/wireguard-addresses ]; then
+        address=$(/usr/bin/head -n 1 /var/run/wireguard-addresses)
+        case "$address" in
+          "" | 0.0.0.0 | ::) address="" ;;
+        esac
+        [ -n "$address" ] && break
+      fi
+      /bin/sleep 2
+      waited=$((waited + 2))
+    done
+
+    if [ -z "$address" ]; then
+      echo "camofox-browser: no usable WireGuard address after ''${waited}s." >&2
+      echo "camofox-browser: refusing the all-interfaces default; retrying." >&2
+      exit 1
+    fi
+
+    # Session persistence and cookie import both live under ~/.camofox. Make
+    # the complete private shape before the server starts rather than allowing
+    # one request to race another while lazily creating it.
+    stateRoot=${lib.escapeShellArg "${config.home.homeDirectory}/.camofox"}
+    /usr/bin/install -d -m 0700 \
+      "$stateRoot" \
+      "$stateRoot/cookies" \
+      "$stateRoot/profiles" \
+      "$stateRoot/traces"
+
+    export CAMOFOX_BIND_HOST="$address"
+    export CAMOFOX_PORT=${lib.escapeShellArg (toString camofoxCfg.apiPort)}
+    export CAMOFOX_COOKIES_DIR="$stateRoot/cookies"
+    export CAMOFOX_PROFILE_DIR="$stateRoot/profiles"
+    export CAMOFOX_TRACES_DIR="$stateRoot/traces"
+
+    # v1.13.1 is patched at package time so false means an ordinary headed
+    # Camoufox process in this Aqua session. The upstream ENABLE_VNC plugin is
+    # Linux/Xvfb machinery and stays explicitly off; Apple Screen Sharing and
+    # the root noVNC daemon in modules/camofox.nix provide the view instead.
+    export CAMOFOX_HEADLESS=false
+    export ENABLE_VNC=0
+
+    # The packaged browser executable is fixed in the generation, and Camoufox
+    # must not replace it with a runtime download. Default addons retain their
+    # upstream behavior.
+    export CAMOUFOX_EXECUTABLE=${lib.escapeShellArg "${pkgs.camoufox}/Applications/Camoufox.app/Contents/MacOS/camoufox"}
+    export CAMOUFOX_SKIP_DOWNLOAD=1
+
+    # Upstream sends anonymized crash and hang reports by default. This machine
+    # is unattended, but that is not consent to send its failures elsewhere.
+    export CAMOFOX_CRASH_REPORT_ENABLED=false
+    export SENTRY_DSN=""
+
+    exec ${pkgs.camofox-browser}/bin/camofox-browser
+  '';
 in
 {
   # The Orca runtime, headless, for the whole time the machine is up.
@@ -221,6 +286,27 @@ in
       # nowhere else to read it on a machine with no window.
       StandardOutPath = "${config.home.homeDirectory}/Library/Logs/orca-serve.log";
       StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/orca-serve.log";
+    };
+  };
+
+  # Camofox must be in the same automatically-created Aqua session as the
+  # browser window it launches. This is the same known-good default `gui`
+  # LaunchAgent domain as Orca above, not a Background user-domain agent that
+  # disappears across an unattended reboot.
+  launchd.agents.camofox-browser = lib.mkIf camofoxCfg.enable {
+    enable = true;
+    config = {
+      # home-manager supplies the /nix/store readiness wrapper itself.
+      ProgramArguments = [ "${camofox}" ];
+      RunAtLoad = true;
+
+      # A missing WireGuard address and an unexpected server exit are both
+      # retryable. Throttling prevents a bad tunnel or package from spinning.
+      KeepAlive.SuccessfulExit = false;
+      ThrottleInterval = 10;
+
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/camofox-browser.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/camofox-browser.log";
     };
   };
 
