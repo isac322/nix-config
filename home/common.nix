@@ -44,10 +44,9 @@ let
         # zinit's single-file OMZP snippet downloader.
         source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/macos/macos.plugin.zsh
 
-        # Narrow third-party addition: completions only, no aliases or PATH
-        # mutation. It is loaded before the single shared compinit barrier.
-        zinit ice blockf
-        zinit light vitkabele/complete-mac
+        # Maintained MacAdmins completions only; its plugin entrypoint adds the
+        # macOS command definitions to fpath before the shared compinit barrier.
+        zinit light scriptingosx/mac-zsh-completions
       ''
     else if pkgs.stdenv.hostPlatform.isLinux then
       ''
