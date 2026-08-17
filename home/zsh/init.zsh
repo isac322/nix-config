@@ -6,8 +6,8 @@ fi
 # Suppress asynchronous output warnings from zinit turbo mode.
 typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
 
-# zinit itself is installed by Nix on every host. Plugin checkouts remain
-# user-writable runtime state under zinit's normal data directory.
+# Zinit itself and the Oh My Zsh sources below are installed by Nix. Only the
+# third-party plugin checkouts remain in Zinit's user-writable data directory.
 source @zinit@/share/zinit/zinit.zsh
 
 # Powerlevel10k.
@@ -42,67 +42,72 @@ zinit light MichaelAquilina/zsh-you-should-use
 zinit ice wait lucid
 zinit light zdharma-continuum/history-search-multi-word
 
-# Several Oh My Zsh plugins generate completion files here at load time. Zinit
-# does not create Oh My Zsh's cache tree for snippets, so create it before pip,
-# Poetry and other generators try to write into it.
+# Oh My Zsh is sourced from nixpkgs' flake-pinned tree. Using OMZL::/OMZP::
+# snippets here made every shell retry GitHub downloads whenever Zinit's
+# snippet cache was incomplete, which is exactly how the MBP reached HTTP 429.
+typeset -g ZSH="@oh-my-zsh@"
 typeset -g ZSH_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/oh-my-zsh"
 mkdir -p "$ZSH_CACHE_DIR/completions"
-fpath=("$ZSH_CACHE_DIR/completions" $fpath)
 
-# Shared Oh My Zsh libraries and snippets. SSH_AUTH_SOCK, gpg-agent startup and
-# GPG_TTY are owned by the platform Home Manager modules, so the gpg-agent and
-# ssh-agent snippets are deliberately absent.
-zinit for \
-  OMZL::functions.zsh \
-  OMZL::git.zsh \
-  OMZL::misc.zsh \
-  OMZL::key-bindings.zsh \
-  OMZL::directories.zsh \
-  OMZL::termsupport.zsh \
-  OMZP::sudo \
-  OMZP::extract \
-  OMZP::safe-paste \
-  OMZP::encode64 \
-  OMZP::urltools \
-  OMZP::jsontools \
-  OMZP::docker \
-  OMZP::kubectl \
-  OMZP::dotenv \
-  OMZP::git \
-  OMZP::npm \
-  OMZP::docker-compose \
-  OMZP::python \
-  OMZP::pip \
-  OMZP::poetry \
-  OMZP::virtualenv \
-  OMZP::gitignore \
-  atload'
-    alias l="eza -1 --icons"
-    alias la="eza -la --icons --group-directories-first --header --git"
-    alias ll="eza -l --icons --group-directories-first --header --git"
-    alias ls="eza --icons --group-directories-first"
-    alias lt="eza --tree --icons --level=2"
-    alias lr="eza -lrRs=mod"
-    alias ldot="eza -ld .*"
-    alias lS="eza -lrs=size"
-    alias lart="eza -1as=mod"
-    alias lrt="eza -1rs=mod"
-    alias -g CA="2>&1 | bat -A"
-    alias -g G="| rg"
-    alias -g L="| bat"
-    alias -g LL="2>&1 | bat"
-    alias help="tldr"
-  ' \
-  OMZP::aliases \
-  OMZP::alias-finder \
-  OMZP::aws \
-  OMZP::golang \
-  OMZP::helm \
-  OMZP::history \
-  OMZP::rsync \
-  OMZP::gh \
-  OMZP::terraform \
-  OMZP::azure
+# Generated completions take precedence. Plugin directories with static
+# completion definitions must also be visible before the deferred compinit.
+fpath=(
+  "$ZSH_CACHE_DIR/completions"
+  "$ZSH/plugins/extract"
+  "$ZSH/plugins/docker-compose"
+  "$ZSH/plugins/pip"
+  "$ZSH/plugins/golang"
+  "$ZSH/plugins/terraform"
+  $fpath
+)
+
+# Zinit intercepts compdef only while it loads a plugin itself. These pinned
+# sources are loaded directly, so queue their compdef calls for zicdreplay.
+typeset -gi _nix_omz_compdef_shim=0
+if (( ! $+functions[compdef] )); then
+  compdef() { zicompdef "$@"; }
+  _nix_omz_compdef_shim=1
+fi
+
+source "$ZSH/lib/functions.zsh"
+source "$ZSH/lib/git.zsh"
+source "$ZSH/lib/misc.zsh"
+source "$ZSH/lib/key-bindings.zsh"
+source "$ZSH/lib/directories.zsh"
+source "$ZSH/lib/termsupport.zsh"
+
+source "$ZSH/plugins/sudo/sudo.plugin.zsh"
+source "$ZSH/plugins/extract/extract.plugin.zsh"
+source "$ZSH/plugins/safe-paste/safe-paste.plugin.zsh"
+source "$ZSH/plugins/encode64/encode64.plugin.zsh"
+source "$ZSH/plugins/urltools/urltools.plugin.zsh"
+source "$ZSH/plugins/jsontools/jsontools.plugin.zsh"
+source "$ZSH/plugins/docker/docker.plugin.zsh"
+source "$ZSH/plugins/kubectl/kubectl.plugin.zsh"
+source "$ZSH/plugins/dotenv/dotenv.plugin.zsh"
+source "$ZSH/plugins/git/git.plugin.zsh"
+source "$ZSH/plugins/npm/npm.plugin.zsh"
+source "$ZSH/plugins/docker-compose/docker-compose.plugin.zsh"
+source "$ZSH/plugins/python/python.plugin.zsh"
+source "$ZSH/plugins/pip/pip.plugin.zsh"
+source "$ZSH/plugins/poetry/poetry.plugin.zsh"
+source "$ZSH/plugins/virtualenv/virtualenv.plugin.zsh"
+source "$ZSH/plugins/gitignore/gitignore.plugin.zsh"
+source "$ZSH/plugins/aliases/aliases.plugin.zsh"
+source "$ZSH/plugins/alias-finder/alias-finder.plugin.zsh"
+source "$ZSH/plugins/aws/aws.plugin.zsh"
+source "$ZSH/plugins/golang/golang.plugin.zsh"
+source "$ZSH/plugins/helm/helm.plugin.zsh"
+source "$ZSH/plugins/history/history.plugin.zsh"
+source "$ZSH/plugins/rsync/rsync.plugin.zsh"
+source "$ZSH/plugins/gh/gh.plugin.zsh"
+source "$ZSH/plugins/terraform/terraform.plugin.zsh"
+source "$ZSH/plugins/azure/azure.plugin.zsh"
+
+if (( _nix_omz_compdef_shim )); then
+  unfunction compdef
+fi
+unset _nix_omz_compdef_shim
 
 # @platform-zsh@
 
