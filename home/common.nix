@@ -291,7 +291,6 @@ in
       ignorecase = true;
       smartcase = true;
       hidden = true;
-      mouse = "a";
       # Not left to vim-sensible: `set nocompatible` on line 2 of the generated
       # vimrc already moves 'history' to its non-vi default of 200, and because
       # that line lives under /nix/store, sensible's `s:MaySet` treats it as
@@ -311,6 +310,9 @@ in
       " (listchars below), otherwise those values are reinterpreted.
       set encoding=utf-8
       set fileformats=unix,dos,mac
+
+      " Keep mouse events in the terminal so dragging selects terminal text.
+      set mouse=
 
       syntax enable
       filetype plugin indent on
