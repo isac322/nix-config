@@ -1,11 +1,38 @@
-# home-manager configuration for the Macs someone sits in front of.
+# home-manager configuration for the edge Macs someone sits in front of.
 #
-# The desktop applications, and nothing else. Everything shared by every Mac
-# is in home/darwin.nix; everything shared by every machine is in
-# home/common.nix.
-{ pkgs, ... }:
+# Desktop applications and interactive desktop integrations live here.
+# Everything shared by every Mac is in home/darwin.nix; everything shared by
+# every machine is in home/common.nix.
+{ lib, pkgs, ... }:
 
 {
+  # Notifications are a desktop concern. The shared shell initialization uses
+  # mkAfter (order 1500); order 1600 keeps this after zinit itself is loaded
+  # while excluding unattended server Macs and NixOS hosts entirely.
+  programs.zsh.initContent = lib.mkOrder 1600 ''
+    export AUTO_NOTIFY_ENABLE_SSH=1
+    export AUTO_NOTIFY_ENABLE_TRANSIENT=0
+    AUTO_NOTIFY_IGNORE=(
+      'vim'
+      'nvim'
+      'less'
+      'more'
+      'man'
+      'tig'
+      'watch'
+      'git commit'
+      'top'
+      'htop'
+      'ssh'
+      'nano'
+      'claude'
+      'codex'
+    )
+
+    zinit ice wait lucid
+    zinit light MichaelAquilina/zsh-auto-notify
+  '';
+
   # Firefox is the clearest case of "same option, different implementation".
   # On macOS the package is a plain .app bundle from the nixpkgs-firefox-darwin
   # overlay, which home-manager cannot wrap, so the policies have to be

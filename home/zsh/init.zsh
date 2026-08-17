@@ -39,29 +39,6 @@ zinit light hlissner/zsh-autopair
 zinit ice wait lucid
 zinit light MichaelAquilina/zsh-you-should-use
 
-# zsh-auto-notify settings must be defined before the plugin loads.
-export AUTO_NOTIFY_ENABLE_SSH=1
-export AUTO_NOTIFY_ENABLE_TRANSIENT=0
-AUTO_NOTIFY_IGNORE=(
-  'vim'
-  'nvim'
-  'less'
-  'more'
-  'man'
-  'tig'
-  'watch'
-  'git commit'
-  'top'
-  'htop'
-  'ssh'
-  'nano'
-  'claude'
-  'codex'
-)
-
-zinit ice wait lucid
-zinit light MichaelAquilina/zsh-auto-notify
-
 zinit ice wait lucid
 zinit light zdharma-continuum/history-search-multi-word
 
