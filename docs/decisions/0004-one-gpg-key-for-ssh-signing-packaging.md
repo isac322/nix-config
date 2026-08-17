@@ -116,4 +116,5 @@ in the key files"* 라고 명시하고 있다. 동작은 둘 다 하지만, 남�
 
 OrbStack 은 `~/.ssh/config` 맨 위에 자기 `Include` 를 넣고 지우면 다시 넣는다.
 `programs.ssh.includes` 로 선언해 두면 home-manager 가 그 줄을 직접 맨 앞에 쓰므로
-서로 싸우지 않는다. OrbStack 이 랩탑 전용이라 이 선언도 랩탑 역할에만 있다.
+서로 싸우지 않는다. 이제 두 Mac 모두 OrbStack 을 쓰므로 선언은 공통
+`home/darwin.nix` 에 있고 NixOS 호스트에는 적용되지 않는다.

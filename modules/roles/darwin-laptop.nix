@@ -48,8 +48,8 @@ in
   # and Karabiner are casks. Homebrew is also what keeps them current, since
   # `onActivation.upgrade` is on.
   #
-  # Orca is not here: it is the one application both Macs run, so its cask and
-  # tap are in modules/darwin.nix. Only its Dock tile below is laptop-only.
+  # Orca and OrbStack are not here: both Macs run them, so their casks are in
+  # modules/darwin.nix. Only their Dock tiles below are laptop-only.
   homebrew.casks = [
     "1password" # the desktop app; the `op` CLI is in home/darwin.nix
     "ente-auth"
@@ -59,7 +59,6 @@ in
     "kde-connect"
     "linear"
     "notion"
-    "orbstack"
     "slack"
     # `auto_updates true` in the cask, so Spotify replaces itself in place and
     # onActivation.upgrade rarely has anything to do — which is fine, and the

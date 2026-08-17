@@ -80,14 +80,19 @@ in
       # a console session approving its driver extension and Input Monitoring.
       # The remapping it would have done is in modules/keyboard.nix via hidutil.
 
-      # The one GUI application both Macs get. Orca drives coding agents in
+      # The GUI applications both Macs get. Orca drives coding agents in
       # parallel, each in its own git worktree, and the `orca` CLI that comes
       # in the bundle is the half that matters on a headless machine — the
       # laptop additionally keeps it in the Dock, in the laptop role.
       #
-      # The tap prefix is not optional. Plain `orca` in homebrew-cask is
+      # OrbStack is the Docker engine on both Macs. The server starts it from
+      # its automatically-created Aqua session in home/roles/darwin-server.nix;
+      # the laptop lets the application manage its own interactive lifecycle.
+      #
+      # The tap prefix on Orca is not optional. Plain `orca` in homebrew-cask is
       # plotly's chart renderer, an unrelated package that is deprecated for
       # failing Gatekeeper.
+      "orbstack"
       "stablyai/orca/orca"
     ];
   };

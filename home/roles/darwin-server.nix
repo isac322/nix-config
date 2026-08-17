@@ -80,6 +80,60 @@ let
   # inside the bundle keeps this working if the bundle is rearranged.
   orca = "/opt/homebrew/bin/orca";
 
+  # Homebrew installs both the app and this stable shim. It may not exist yet
+  # when the LaunchAgent first runs: nix-darwin does not promise an ordering
+  # between its Homebrew activation and home-manager's user activation.
+  orb = "/opt/homebrew/bin/orb";
+
+  orbstackStart = pkgs.writeShellScript "orbstack-start" ''
+    set -u
+
+    # launchd supplies almost no PATH. Include OrbStack's Homebrew shim first,
+    # then the same declarative profiles used by the other server agents.
+    export PATH=/opt/homebrew/bin:/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin:/usr/bin:/bin:/usr/sbin:/sbin
+
+    # The cask creates the shim, but neither the app nor the shim is safe to
+    # assume during the first switch. A failed first attempt is retryable by the
+    # LaunchAgent and must never abort home-manager activation.
+    if ! command -v orb >/dev/null 2>&1; then
+      if [ ! -d /Applications/OrbStack.app ]; then
+        echo "orbstack-start: OrbStack is not installed yet; retrying." >&2
+        exit 1
+      fi
+
+      # First launch performs OrbStack's per-user bootstrap. Keep it in the
+      # background; this server already has an Aqua session through auto-login.
+      /usr/bin/open -gj -a OrbStack
+
+      waited=0
+      while [ "$waited" -lt 60 ] && ! command -v orb >/dev/null 2>&1; do
+        /bin/sleep 1
+        waited=$((waited + 1))
+      done
+    fi
+
+    if ! command -v orb >/dev/null 2>&1; then
+      echo "orbstack-start: orb CLI unavailable after 60s; retrying." >&2
+      exit 1
+    fi
+
+    # Headless setup must not stop at an invisible administrator prompt. Leave
+    # one CPU and 8 GiB to macOS, Orca and Camofox; the rest is available to the
+    # Docker VM. Rosetta keeps unavoidable amd64 builds and images off QEMU,
+    # while Kubernetes stays off because this host only asked for Docker.
+    ${orb} config set setup.use_admin false
+    ${orb} config set cpu 10
+    ${orb} config set memory_mib 28672
+    ${orb} config set rosetta true
+    ${orb} config set k8s.enable false
+    ${orb} config set docker.set_context true
+
+    # Resource and Rosetta changes take effect after a restart. A missing
+    # runtime is harmless here; the start below is the desired final state.
+    ${orb} stop >/dev/null 2>&1 || true
+    exec ${orb} start
+  '';
+
   orcaServe = pkgs.writeShellScript "orca-serve" ''
     set -u
 
@@ -215,6 +269,22 @@ let
 in
 {
 
+  # OrbStack is a user application, not a root daemon. The server already
+  # creates an Aqua session automatically for Orca and Camofox, so a LaunchAgent
+  # is the reliable reboot path here as well. The wrapper tolerates either side
+  # of the Homebrew/home-manager activation order and retries only failures.
+  launchd.agents.orbstack = {
+    enable = true;
+    config = {
+      ProgramArguments = [ "${orbstackStart}" ];
+      RunAtLoad = true;
+      KeepAlive.SuccessfulExit = false;
+      ThrottleInterval = 30;
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/orbstack.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/orbstack.log";
+    };
+  };
+
   # The Orca runtime, headless, for the whole time the machine is up.
   #
   # `orca serve` is upstream's answer for a host that should run without a
@@ -232,6 +302,7 @@ in
   # changes the address handed to clients — so what keeps this off other
   # networks is the network, not the runtime. Upstream is explicit that the port
   # must not be forwarded to the public internet.
+
   launchd.agents.orca-serve = lib.mkIf cfg.enable {
     enable = true;
 

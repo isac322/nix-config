@@ -110,6 +110,11 @@ in
     enable = true;
     enableDefaultConfig = false;
 
+    # OrbStack writes this Include at the top of ~/.ssh/config and restores it
+    # when removed. Declaring the same line through home-manager keeps ownership
+    # on one side and prevents the next activation from fighting OrbStack.
+    includes = [ "~/.orbstack/ssh/config" ];
+
     settings."*" = {
       # Measure one. ssh reads this file no matter who launched it, so this
       # covers anything that shells out to the ssh binary — including the GUI
