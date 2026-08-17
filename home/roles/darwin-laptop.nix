@@ -5,6 +5,17 @@
 # every machine is in home/common.nix.
 { lib, pkgs, ... }:
 
+let
+  # Laptop-only desktop notification plugin. fetchgit uses Git's smart
+  # protocol rather than GitHub's archive endpoint, which is rate-limited on
+  # this network; the revision and recursive source hash still make it a fixed
+  # Nix input.
+  zshAutoNotify = pkgs.fetchgit {
+    url = "https://github.com/MichaelAquilina/zsh-auto-notify.git";
+    rev = "b51c934d88868e56c1d55d0a2a36d559f21cb2ee";
+    hash = "sha256-s3TBAsXOpmiXMAQkbaS5de0t0hNC1EzUUb0ZG+p9keE=";
+  };
+in
 {
   # Notifications are a desktop concern. The shared shell initialization uses
   # mkAfter (order 1500); order 1600 keeps this after zinit itself is loaded
@@ -30,7 +41,7 @@
     )
 
     zinit ice wait lucid
-    zinit light MichaelAquilina/zsh-auto-notify
+    zinit light ${zshAutoNotify}
   '';
 
   # Firefox is the clearest case of "same option, different implementation".

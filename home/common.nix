@@ -51,6 +51,54 @@ let
     poetryPackages.poetry-plugin-shell
   ]);
 
+  # Zinit remains the loader, but every plugin it loads comes from the
+  # flake-pinned nixpkgs closure. Absolute Nix store paths are treated as local
+  # plugins, so opening a shell never clones, fetches, updates or writes plugin
+  # state. The unpackaged forgit, pnpm-alias and better-npm-completion plugins
+  # are intentionally omitted: lazygit already covers forgit's workflow, the
+  # pnpm command needs no alias plugin, and zsh already ships npm completion.
+  zinitPluginInit = ''
+    zinit ice depth=1
+    zinit light ${pkgs.zsh-powerlevel10k}/share/zsh/themes/powerlevel10k
+
+    zinit ice wait lucid atload"_zsh_autosuggest_start"
+    zinit light ${pkgs.zsh-autosuggestions}/share/zsh/plugins/zsh-autosuggestions
+
+    # Upstream otherwise downloads this secondary theme on the first shell
+    # startup. Seed its writable cache from the same pinned source as the Nix
+    # package before the plugin loads, preserving theme behavior without
+    # runtime network access.
+    typeset -g FAST_WORK_DIR="''${XDG_CACHE_HOME:-$HOME/.cache}/fast-syntax-highlighting"
+    command mkdir -p "$FAST_WORK_DIR"
+    if [[ ! -e "$FAST_WORK_DIR/secondary_theme.zsh" ]]; then
+      command rm -f "$FAST_WORK_DIR/secondary_theme.zsh"
+      command ln -s ${pkgs.zsh-fast-syntax-highlighting.src}/share/free_theme.zsh \
+        "$FAST_WORK_DIR/secondary_theme.zsh"
+    fi
+
+    zinit ice wait"0c" lucid
+    zinit light ${pkgs.zsh-fast-syntax-highlighting}/share/zsh/plugins/fast-syntax-highlighting
+
+    zinit ice wait lucid
+    zinit light ${pkgs.zsh-history-substring-search}/share/zsh/plugins/zsh-history-substring-search
+
+    zinit ice wait lucid
+    zinit light ${pkgs.zsh-fzf-tab}/share/fzf-tab
+
+    zinit ice wait lucid
+    zinit light ${pkgs.zsh-autopair}/share/zsh/zsh-autopair
+
+    zinit ice wait lucid
+    zinit light ${pkgs.zsh-you-should-use}/share/zsh/plugins/you-should-use
+
+    zinit ice wait lucid
+    zinit light ${pkgs.zsh-history-search-multi-word}/share/zsh/zsh-history-search-multi-word
+  '';
+
+  # The deferred compinit barrier needs a plugin-shaped no-op, not another
+  # mutable Git checkout.
+  zinitNull = pkgs.writeTextDir "null.plugin.zsh" "";
+
   # Platform plugins are injected before the shared compinit barrier. Keeping
   # the selection at evaluation time means each generated ~/.zshrc contains
   # only plugins valid for its target OS, with no runtime OSTYPE branches.
@@ -66,10 +114,9 @@ let
         source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/copypath/copypath.plugin.zsh
         source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/copyfile/copyfile.plugin.zsh
 
-        # Maintained MacAdmins completions only; unlike the removed `macos`
-        # plugin, these complete administrative commands rather than control
-        # Finder, Music, Spotify, Preview, Bluetooth or other GUI applications.
-        zinit light scriptingosx/mac-zsh-completions
+        # No additional plugin checkout is needed on Darwin. zsh's packaged
+        # completion set already includes launchctl and the standard macOS
+        # command definitions.
       ''
     else if pkgs.stdenv.hostPlatform.isLinux then
       ''
@@ -86,10 +133,20 @@ let
   # generated ~/.zshrc source the exact zinit package pinned by flake.lock.
   zshInit =
     builtins.replaceStrings
-      [ "@zinit@" "@oh-my-zsh@" "# @platform-zsh@" ]
+      [
+        "@zinit@"
+        "@oh-my-zsh@"
+        "# @zinit-plugins@"
+        "@zsh-completions@"
+        "@zinit-null@"
+        "# @platform-zsh@"
+      ]
       [
         "${pkgs.zinit}"
         "${pkgs.oh-my-zsh}/share/oh-my-zsh"
+        zinitPluginInit
+        "${pkgs.zsh-completions}"
+        "${zinitNull}"
         platformZshInit
       ]
       (builtins.readFile ./zsh/init.zsh);

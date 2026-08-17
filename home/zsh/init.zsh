@@ -6,41 +6,11 @@ fi
 # Suppress asynchronous output warnings from zinit turbo mode.
 typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
 
-# Zinit itself and the Oh My Zsh sources below are installed by Nix. Only the
-# third-party plugin checkouts remain in Zinit's user-writable data directory.
+# Zinit itself and every plugin source below are installed by Nix. Zinit keeps
+# its load ordering and compdef replay behavior without owning mutable clones.
 source @zinit@/share/zinit/zinit.zsh
 
-# Powerlevel10k.
-zinit ice depth=1
-zinit light romkatv/powerlevel10k
-
-# Plugins loaded through zinit turbo mode.
-zinit ice wait lucid atload"_zsh_autosuggest_start"
-zinit light zsh-users/zsh-autosuggestions
-
-zinit ice wait"0c" lucid
-zinit light zdharma-continuum/fast-syntax-highlighting
-
-zinit ice wait lucid blockf
-zinit light zsh-users/zsh-completions
-
-zinit ice wait lucid
-zinit light zsh-users/zsh-history-substring-search
-
-zinit ice wait lucid
-zinit light Aloxaf/fzf-tab
-
-zinit ice wait lucid
-zinit light wfxr/forgit
-
-zinit ice wait lucid
-zinit light hlissner/zsh-autopair
-
-zinit ice wait lucid
-zinit light MichaelAquilina/zsh-you-should-use
-
-zinit ice wait lucid
-zinit light zdharma-continuum/history-search-multi-word
+# @zinit-plugins@
 
 # Oh My Zsh is sourced from nixpkgs' flake-pinned tree. Using OMZL::/OMZP::
 # snippets here made every shell retry GitHub downloads whenever Zinit's
@@ -53,6 +23,7 @@ mkdir -p "$ZSH_CACHE_DIR/completions"
 # completion definitions must also be visible before the deferred compinit.
 fpath=(
   "$ZSH_CACHE_DIR/completions"
+  "@zsh-completions@/share/zsh/site-functions"
   "$ZSH/plugins/extract"
   "$ZSH/plugins/docker-compose"
   "$ZSH/plugins/pip"
@@ -111,17 +82,11 @@ unset _nix_omz_compdef_shim
 
 # @platform-zsh@
 
-# Third-party plugins.
-zinit ice wait lucid
-zinit light ntnyq/omz-plugin-pnpm
-
-zinit ice wait lucid
-zinit light lukechilds/zsh-better-npm-completion
 
 # compinit compatible with zinit turbo mode. Home Manager's eager compinit is
 # disabled so completion is initialized exactly once here.
 zinit ice wait lucid atinit"zicompinit; zicdreplay" as"null"
-zinit light zdharma-continuum/null
+zinit light @zinit-null@
 
 # History settings. These intentionally override Home Manager's baseline after
 # the Oh My Zsh history library has loaded.
