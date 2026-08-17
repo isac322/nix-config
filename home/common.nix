@@ -33,6 +33,12 @@ let
   # anything here ever refers to nixpkgs' own claude-code.
   agents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
 
+  # Keep the readable source independent of a store hash while making the
+  # generated ~/.zshrc source the exact zinit package pinned by flake.lock.
+  zshInit = builtins.replaceStrings [ "@zinit@" ] [ "${pkgs.zinit}" ] (
+    builtins.readFile ./zsh/init.zsh
+  );
+
   camofoxCfg = lib.attrByPath [ "local" "camofox" ] {
     enable = false;
     apiPort = 9377;
@@ -135,9 +141,25 @@ in
   home.stateVersion = "26.05";
 
   home.packages = [
-    pkgs.ripgrep
-    pkgs.htop
+    # Every command invoked directly by the managed zshrc. Keeping this set
+    # beside the configuration makes a fresh machine usable on its first shell
+    # rather than after a second round of "command not found" fixes.
+    pkgs.bat
+    pkgs.bottom
+    pkgs.doggo
+    pkgs.duf
+    pkgs.dust
+    pkgs.eza
+    pkgs.fd
     pkgs.fzf
+    pkgs.htop
+    pkgs.lazygit
+    pkgs.navi
+    pkgs.procs
+    pkgs.ripgrep
+    pkgs.tealdeer
+    pkgs.zinit
+    pkgs.zoxide
     # From llm-agents rather than nixpkgs: it tracks upstream daily, while the
     # nixpkgs-unstable channel lags master by several days. It builds for
     # aarch64-darwin, x86_64-linux and aarch64-linux, so this line is portable.
@@ -227,10 +249,17 @@ in
     };
   };
 
-  # Bare on purpose. The prompt, colours, completion styling and plugins are
-  # not configured here — that is coming separately, through zinit — so
-  # nothing in this repo should write shell interactive setup into ~/.zshrc.
-  programs.zsh.enable = true;
+  # zinit and every command this initialization invokes are installed above.
+  # The plugins themselves remain ordinary user-writable zinit state, while
+  # the initialization and prompt configuration are immutable Home Manager
+  # inputs. Completion is initialized by zicompinit in the managed file; an
+  # eager Home Manager compinit would do the same work twice and race turbo
+  # plugins that contribute completion functions.
+  programs.zsh = {
+    enable = true;
+    enableCompletion = false;
+    initContent = lib.mkAfter zshInit;
+  };
 
   # On macOS this shadows Apple's /usr/bin/vim, which cannot be touched: it
   # lives on the sealed read-only system volume. Nix profiles come first on the
@@ -351,6 +380,13 @@ in
   # cannot replace them. Adding a plugin is a line in
   # pkgs/omp-plugins/default.nix and a line here.
   home.file = {
+    # Generated once by p10k's wizard, then shared unchanged by every host.
+    # `force` migrates an existing mutable ~/.p10k.zsh to the declarative copy.
+    ".p10k.zsh" = {
+      source = ./zsh/p10k.zsh;
+      force = true;
+    };
+
     # Vim does not create these itself; without them undo/swap/backup silently
     # fail.
     ".vim/undo/.keep".text = "";

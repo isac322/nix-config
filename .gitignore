@@ -15,4 +15,8 @@
 # Direnv, if it is ever used here.
 /.direnv/
 
+# Orca's drop area is an input inbox, not repository state. Files incorporated
+# into the configuration are copied under home/ before they are committed.
+/.orca/
+
 .DS_Store
