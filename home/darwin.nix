@@ -387,6 +387,7 @@ in
     pkgs.nodejs_24
     pkgs.pnpm
     pkgs.slack-cli
+    pkgs.sops
     pkgs.stern
     pkgs.terraform
     pkgs.uv
