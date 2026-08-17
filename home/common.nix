@@ -33,6 +33,24 @@ let
   # anything here ever refers to nixpkgs' own claude-code.
   agents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
 
+  # Runtime dependencies for the shared Zinit/Oh My Zsh configuration.
+  # These names are kept here so the package list and shell initialization use
+  # the same derivations rather than independently reconstructing them.
+  googleCloudSdk = pkgs.google-cloud-sdk.withExtraComponents [
+    pkgs.google-cloud-sdk.components.gke-gcloud-auth-plugin
+  ];
+  # nixpkgs also installs `_gcloud` under share/zsh/site-functions, which Home
+  # Manager adds to fpath. The OMZ gcloud plugin is intentionally absent: it
+  # only searches mutable SDK layouts and misses this packaged completion.
+  python = pkgs.python3.withPackages (pythonPackages: [
+    pythonPackages.pip
+    pythonPackages.virtualenv
+  ]);
+  poetry = pkgs.poetry.withPlugins (poetryPackages: [
+    poetryPackages.poetry-plugin-export
+    poetryPackages.poetry-plugin-shell
+  ]);
+
   # Platform plugins are injected before the shared compinit barrier. Keeping
   # the selection at evaluation time means each generated ~/.zshrc contains
   # only plugins valid for its target OS, with no runtime OSTYPE branches.
@@ -44,13 +62,24 @@ let
         # zinit's single-file OMZP snippet downloader.
         source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/macos/macos.plugin.zsh
 
+        # Clipboard support is useful on the interactive Macs and has a native
+        # pbcopy/pbpaste backend there. The headless NixOS server has no display
+        # or clipboard provider, so do not install functions that can only fail.
+        source ${pkgs.oh-my-zsh}/share/oh-my-zsh/lib/clipboard.zsh
+        source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/copybuffer/copybuffer.plugin.zsh
+        source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/copypath/copypath.plugin.zsh
+        source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/copyfile/copyfile.plugin.zsh
+
         # Maintained MacAdmins completions only; its plugin entrypoint adds the
         # macOS command definitions to fpath before the shared compinit barrier.
         zinit light scriptingosx/mac-zsh-completions
       ''
     else if pkgs.stdenv.hostPlatform.isLinux then
       ''
-        # systemd aliases for the NixOS host, from the same pinned tree.
+        # Keep systemd aliases on the platform that actually provides systemd.
+        # The command-not-found plugin is intentionally omitted: this flake has
+        # no package-search database, so loading a handler would only turn a
+        # normal missing-command error into a broken database lookup.
         source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/systemd/systemd.plugin.zsh
       ''
     else
@@ -188,6 +217,49 @@ in
     pkgs.tealdeer
     pkgs.zinit
     pkgs.zoxide
+
+    # External commands used by the shared Zinit and Oh My Zsh plugins. A
+    # plugin that only defines aliases is still broken if its target command is
+    # absent, so these travel with the shell configuration on every host.
+    pkgs.awscli2
+    pkgs.azure-cli
+    pkgs.curl
+    pkgs.docker-client
+    pkgs.docker-compose
+    pkgs.gh
+    pkgs.go
+    googleCloudSdk
+    pkgs.kubernetes-helm
+    pkgs.nodejs_24
+    pkgs.pnpm
+    poetry
+    python
+    pkgs.rsync
+    pkgs.terraform
+
+    # Backends advertised by OMZ's `extract` function. macOS and NixOS already
+    # provide tar and bzip2; these make the remaining archive formats and
+    # accelerated paths explicit. gzip also supplies the `uncompress` command
+    # used for legacy .Z files; nixpkgs' ncompress renames that binary.
+    pkgs.binutils
+    pkgs.cabextract
+    pkgs.cpio
+    pkgs.gzip
+    pkgs.lzip
+    pkgs.lz4
+    pkgs.lrzip
+    pkgs.p7zip
+    pkgs.pbzip2
+    pkgs.pigz
+    pkgs.pixz
+    pkgs.qpdf
+    pkgs.rpm
+    pkgs.unar
+    pkgs.unzip
+    pkgs.xz
+    pkgs.zpaq
+    pkgs.zstd
+
     # From llm-agents rather than nixpkgs: it tracks upstream daily, while the
     # nixpkgs-unstable channel lags master by several days. It builds for
     # aarch64-darwin, x86_64-linux and aarch64-linux, so this line is portable.
@@ -228,17 +300,10 @@ in
     # to be — including the NixOS server, which is a machine that runs services
     # and therefore a machine where something goes wrong.
     #
-    # It carries no cluster configuration and none belongs here: k9s reads
-    # whatever kubeconfig the environment already points at and talks to the API
-    # server itself.
-    #
-    # One thing it needs that this file cannot give it. Kubernetes dropped the
-    # in-tree GCP auth provider in 1.26, so a kubeconfig written by `gcloud
-    # container clusters get-credentials` names an external credential plugin,
-    # and without gke-gcloud-auth-plugin on PATH k9s fails with "no Auth
-    # Provider found" — an error naming neither gcloud nor the plugin. That
-    # plugin comes with google-cloud-sdk in home/darwin.nix, so GKE works on the
-    # Macs and not on the NixOS server. Other clusters are unaffected.
+    # It carries no cluster configuration and none belongs here. The same
+    # shared package set includes gcloud with gke-gcloud-auth-plugin, so a
+    # kubeconfig generated by `gcloud container clusters get-credentials`
+    # remains usable by k9s and kubectl on every host.
     pkgs.k9s
 
     # And the client itself, which until now was not declared anywhere. On the

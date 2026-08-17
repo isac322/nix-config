@@ -42,12 +42,17 @@ zinit light MichaelAquilina/zsh-you-should-use
 zinit ice wait lucid
 zinit light zdharma-continuum/history-search-multi-word
 
+# Several Oh My Zsh plugins generate completion files here at load time. Zinit
+# does not create Oh My Zsh's cache tree for snippets, so create it before pip,
+# Poetry and other generators try to write into it.
+typeset -g ZSH_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/oh-my-zsh"
+mkdir -p "$ZSH_CACHE_DIR/completions"
+
 # Shared Oh My Zsh libraries and snippets. SSH_AUTH_SOCK, gpg-agent startup and
 # GPG_TTY are owned by the platform Home Manager modules, so the gpg-agent and
 # ssh-agent snippets are deliberately absent.
 zinit for \
   OMZL::functions.zsh \
-  OMZL::clipboard.zsh \
   OMZL::git.zsh \
   OMZL::misc.zsh \
   OMZL::key-bindings.zsh \
@@ -55,11 +60,6 @@ zinit for \
   OMZL::termsupport.zsh \
   OMZP::sudo \
   OMZP::extract \
-  OMZP::copybuffer \
-  OMZP::copypath \
-  OMZP::copyfile \
-  OMZP::colored-man-pages \
-  OMZP::command-not-found \
   OMZP::safe-paste \
   OMZP::encode64 \
   OMZP::urltools \
@@ -92,8 +92,6 @@ zinit for \
     alias -g LL="2>&1 | bat"
     alias help="tldr"
   ' \
-  OMZP::common-aliases \
-  OMZP::rust \
   OMZP::aliases \
   OMZP::alias-finder \
   OMZP::aws \
@@ -103,8 +101,7 @@ zinit for \
   OMZP::rsync \
   OMZP::gh \
   OMZP::terraform \
-  OMZP::azure \
-  OMZP::gcloud
+  OMZP::azure
 
 # @platform-zsh@
 

@@ -256,140 +256,44 @@ in
     tag.gpgsign = true;
   };
 
-  # The 1Password CLI, on every Mac including the headless one. `op` is a
-  # single binary with no system integration, so unlike the desktop app it can
-  # come from nixpkgs and be pinned by flake.lock. It does not need the app to
-  # work: a service account token authenticates it non-interactively, which is
-  # what a machine with nobody at it has to use.
-  # gpg-ssh-authorize is on PATH as well as wired into activation, so a key
+  # The 1Password CLI is on every Mac, including the headless one. `op` is a
+  # standalone binary and can use a service-account token without the desktop
+  # app. gpg-ssh-authorize is on PATH as well as wired into activation, so a key
   # imported between switches can be put to work immediately.
-  # `gh` sits here rather than in home/common.nix because the two Macs are
-  # where repositories are worked on; the Linux server runs services and has
-  # nothing to open a pull request about. It authenticates on its own — a
-  # keyring entry or GH_TOKEN — so nothing about it belongs in this file, and
-  # it deliberately does not reuse the SSH key set up above: `gh` speaks the
-  # REST API over HTTPS, which is a different credential from the one `git`
-  # pushes with.
-  # k9s moved to home/common.nix — it is wanted on the NixOS server too. stern
-  # stays here: it is the same shape of tool and the same absence of
-  # configuration — it tails logs across pods and containers by regex, which is
-  # the one thing k9s is awkward at, and it reads the same kubeconfig — but
-  # nobody has asked for it away from a Mac.
   #
-  # Note that `kubectl` on the Macs is /usr/local/bin/kubectl, put there by
-  # something outside nix. k9s never calls it, but anything that does still gets
-  # that one rather than a pinned version.
+  # The shared Zsh configuration now owns the CLIs its plugins invoke: gh, Go,
+  # Node/npm, pnpm, cloud CLIs, Helm, Terraform, Python, Poetry and archive
+  # tools live in home/common.nix. This list is only for Mac-specific workflow
+  # tools or tools intentionally requested on the Macs.
   #
-  # Two of the cloud three are not named what they are called.
+  # golangci-lint is the Go project linter: one binary running govet,
+  # staticcheck, errcheck and several dozen others from .golangci.yml. Version
+  # 2 cannot read a v1 configuration; `golangci-lint migrate` converts one.
   #
-  # `gcloud` is the main program of google-cloud-sdk; there is no gcloud
-  # attribute. Bare, the package is the CLI and nothing else, and GKE is the
-  # one thing that wants more than the CLI: Kubernetes dropped the in-tree GCP
-  # auth provider in 1.26, so a kubeconfig written by `gcloud container
-  # clusters get-credentials` names an external credential plugin instead.
-  # Without gke-gcloud-auth-plugin on PATH, kubectl and k9s fail with "no Auth
-  # Provider found" — an error that mentions neither gcloud nor the plugin.
-  # Google ships it as a gcloud component, and the documented way to get one is
-  # `gcloud components install`, which writes into the package's own directory:
-  # impossible against a read-only store path. withExtraComponents is the
-  # declarative form and builds the component into the package instead.
+  # hadolint statically checks Dockerfiles and embedded RUN shell fragments. It
+  # needs neither a daemon nor network access.
   #
-  # `helm` is a different program entirely — a GPL-3.0 tool at 0.9.0 that has
-  # nothing to do with Kubernetes. Helm the chart manager is kubernetes-helm,
-  # whose mainProgram is nonetheless `helm`, so the wrong one installs quietly
-  # and only looks wrong when it runs.
+  # bun vendors its own JavaScriptCore and remains alongside Node rather than
+  # replacing it. pkgs/overlay.nix pins the requested upstream binary version.
   #
-  # terraform is unfree; see the note in modules/common.nix.
-  # home-manager.useGlobalPkgs is on, so that predicate covers these packages
-  # as much as it does the system ones.
+  # uv remains the per-project Python runtime manager. The shared shell now has
+  # a Nix-pinned Python for its Python, pip, virtualenv and aliases plugins, but
+  # `uv python install` deliberately manages separate project runtimes under
+  # ~/.local/share/uv.
   #
-  # The language toolchains sit here rather than in home/common.nix because the
-  # Macs are where code gets written; the Linux server runs services and has no
-  # use for a compiler. Rust is not in this list — only the server Mac was asked
-  # for it, so it lives in home/roles/darwin-server.nix.
-  #
-  # `go` is the whole toolchain — compiler, module tooling, gofmt — and follows
-  # whatever nixpkgs currently treats as current, which is what naming it `go`
-  # rather than `go_1_26` buys.
-  #
-  # golangci-lint is what Go projects mean by "the linter": one binary running
-  # govet, staticcheck, errcheck and several dozen others from a single
-  # .golangci.yml, which is why it is here instead of each of them. It is
-  # version 2, and that matters to any repository still carrying an older
-  # config — the v2 binary cannot read a v1 file at all, and stops with
-  # "unsupported version of the configuration" rather than linting.
-  # `golangci-lint migrate` converts one in place.
-  #
-  # hadolint is the same idea for Dockerfiles, and a linter in the strict
-  # sense: it parses the file into a syntax tree rather than building it, so it
-  # wants neither a daemon nor a network. Findings arrive under two prefixes —
-  # DL for its own rules about how a Dockerfile should be written, SC for
-  # ShellCheck, which it hands the body of every RUN to.
-  #
-  # `nodejs_24` rather than plain `nodejs`, even though the two are the same
-  # derivation today. nixpkgs already carries nodejs_25 and nodejs_26, so the
-  # default will move off 24 on its own schedule; asking by version means that
-  # happens when this line changes and not before.
-  #
-  # pnpm is the package manager half of that, and is listed rather than left to
-  # Corepack: `corepack enable` writes shims into the Node installation's own
-  # bin directory, which here is a read-only store path, and the versions it
-  # would then fetch come from each project's packageManager field at run time
-  # — the same unpinned shape as rustup, for the same reason it is not used
-  # either. The nixpkgs package carries its own nodejs-slim, so it does not
-  # depend on the `nodejs_24` above and does not shadow it; what lands on PATH
-  # is `pnpm` and `pnpx`.
-  #
-  # bun is upstream's own binary, not a build from source — nixpkgs marks it
-  # binaryNativeCode — because it vendors a patched JavaScriptCore that nothing
-  # else here builds. It sits alongside Node rather than replacing it: the two
-  # read the same package.json and neither supplies the other. It is also the
-  # one package here that does not come from nixpkgs as it stands: nixpkgs is a
-  # release behind and the version that was wanted is 1.3.14, so it is
-  # overridden in pkgs/overlay.nix, which is where the reasoning lives.
-  #
-  # uv is the Python half, and the reason no Python interpreter is listed
-  # beside it: uv fetches its own, standalone CPython builds under
-  # ~/.local/share/uv, and manages virtualenvs against those. That is outside
-  # nix by design — it is per-project, moves with pyproject.toml and does not
-  # belong in a system closure — but it does mean `uv python install` writes
-  # binaries this configuration did not put there. They are ordinary
-  # relocatable macOS builds, so unlike on NixOS they simply run.
-  #
-  # The last two are the two platform CLIs, and neither comes from nixpkgs as
-  # it stands.
-  #
-  # slack-cli is the one name here that is a trap. `pkgs.slack-cli` in nixpkgs
-  # is a different project — a bash script from 2023 that posts to an incoming
-  # webhook — and pkgs/overlay.nix replaces the attribute with
-  # slackapi/slack-cli, the Go tool for creating, running and deploying Slack
-  # apps. Both install a binary called `slack`, so the wrong one is not a build
-  # failure; it is `slack app` reporting an unknown argument.
-  #
-  # vercel-cli is in nixpkgs under no name at all, so it is built here from the
-  # published npm tarball. pkgs/vercel-cli/ has the reasoning, including why
-  # its manifest arrives edited and why the platform-native binaries upstream
-  # ships alongside the JavaScript are left out. It authenticates itself —
-  # `vercel login` writes a token under the user's own config directory — so
-  # nothing about the account belongs in this file.
+  # slack-cli is the name trap: pkgs/overlay.nix replaces nixpkgs' unrelated
+  # webhook script with slackapi/slack-cli. vercel-cli is also packaged locally
+  # from its published npm tarball. Both authenticate under the user's own
+  # configuration directory.
   home.packages = [
     pkgs._1password-cli
     pkgs.bun
-    pkgs.gh
-    pkgs.go
     pkgs.golangci-lint
-    (pkgs.google-cloud-sdk.withExtraComponents [
-      pkgs.google-cloud-sdk.components.gke-gcloud-auth-plugin
-    ])
     gpgSshAuthorize
     pkgs.hadolint
-    pkgs.kubernetes-helm
-    pkgs.nodejs_24
-    pkgs.pnpm
     pkgs.slack-cli
     pkgs.sops
     pkgs.stern
-    pkgs.terraform
     pkgs.uv
     pkgs.vercel-cli
   ];
