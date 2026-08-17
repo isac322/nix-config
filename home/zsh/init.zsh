@@ -47,6 +47,7 @@ zinit light zdharma-continuum/history-search-multi-word
 # Poetry and other generators try to write into it.
 typeset -g ZSH_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/oh-my-zsh"
 mkdir -p "$ZSH_CACHE_DIR/completions"
+fpath=("$ZSH_CACHE_DIR/completions" $fpath)
 
 # Shared Oh My Zsh libraries and snippets. SSH_AUTH_SOCK, gpg-agent startup and
 # GPG_TTY are owned by the platform Home Manager modules, so the gpg-agent and

@@ -60,7 +60,19 @@ let
         # The official macOS plugin sources sibling Music and Spotify helpers,
         # so use nixpkgs' complete, flake-pinned Oh My Zsh tree rather than
         # zinit's single-file OMZP snippet downloader.
+        # Zinit temporarily replaces compdef only while it loads a snippet.
+        # This plugin is sourced directly from the Nix store, so forward its
+        # compdef calls into Zinit's replay queue until zicompinit runs below.
+        typeset -gi _nix_darwin_compdef_shim=0
+        if (( ! $+functions[compdef] )); then
+          compdef() { zicompdef "$@"; }
+          _nix_darwin_compdef_shim=1
+        fi
         source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/macos/macos.plugin.zsh
+        if (( _nix_darwin_compdef_shim )); then
+          unfunction compdef
+        fi
+        unset _nix_darwin_compdef_shim
 
         # Clipboard support is useful on the interactive Macs and has a native
         # pbcopy/pbpaste backend there. The headless NixOS server has no display
