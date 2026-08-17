@@ -33,11 +33,40 @@ let
   # anything here ever refers to nixpkgs' own claude-code.
   agents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
 
-  # Keep the readable source independent of a store hash while making the
+  # Platform plugins are injected before the shared compinit barrier. Keeping
+  # the selection at evaluation time means each generated ~/.zshrc contains
+  # only plugins valid for its target OS, with no runtime OSTYPE branches.
+  platformZshInit =
+    if pkgs.stdenv.hostPlatform.isDarwin then
+      ''
+        # The official macOS plugin sources sibling Music and Spotify helpers,
+        # so use nixpkgs' complete, flake-pinned Oh My Zsh tree rather than
+        # zinit's single-file OMZP snippet downloader.
+        source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/macos/macos.plugin.zsh
+
+        # Narrow third-party addition: completions only, no aliases or PATH
+        # mutation. It is loaded before the single shared compinit barrier.
+        zinit ice blockf
+        zinit light vitkabele/complete-mac
+      ''
+    else if pkgs.stdenv.hostPlatform.isLinux then
+      ''
+        # systemd aliases for the NixOS host, from the same pinned tree.
+        source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/systemd/systemd.plugin.zsh
+      ''
+    else
+      "";
+
+  # Keep the readable source independent of store hashes while making the
   # generated ~/.zshrc source the exact zinit package pinned by flake.lock.
-  zshInit = builtins.replaceStrings [ "@zinit@" ] [ "${pkgs.zinit}" ] (
-    builtins.readFile ./zsh/init.zsh
-  );
+  zshInit =
+    builtins.replaceStrings
+      [ "@zinit@" "# @platform-zsh@" ]
+      [
+        "${pkgs.zinit}"
+        platformZshInit
+      ]
+      (builtins.readFile ./zsh/init.zsh);
 
   camofoxCfg = lib.attrByPath [ "local" "camofox" ] {
     enable = false;

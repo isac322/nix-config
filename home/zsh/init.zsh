@@ -106,12 +106,7 @@ zinit for \
   OMZP::azure \
   OMZP::gcloud
 
-# systemd is meaningful on the NixOS host and absent on macOS. The old
-# Arch-specific snippet is not valid on any host managed by this repository.
-if [[ "$OSTYPE" == linux* ]]; then
-  zinit ice wait lucid
-  zinit snippet OMZP::systemd
-fi
+# @platform-zsh@
 
 # Third-party plugins.
 zinit ice wait lucid
@@ -188,27 +183,5 @@ lg() {
 source <(fzf --zsh)
 eval "$(zoxide init zsh)"
 eval "$(navi widget zsh)"
-
-# These wrappers protect the KDE session on Linux. They are not installed on
-# macOS, where kwin_wayland does not exist and the native commands stay intact.
-if [[ "$OSTYPE" == linux* ]]; then
-  killall() {
-    if [[ "$*" == *"kwin_wayland"* ]]; then
-      echo "ERROR: DO NOT use killall on kwin_wayland; it will crash the KDE Plasma desktop."
-      echo "Use kill-virtual-kwin for virtual KWin sessions."
-      return 1
-    fi
-    command killall "$@"
-  }
-
-  pkill() {
-    if [[ "$*" == "kwin_wayland" || "$*" == "-9 kwin_wayland" ]]; then
-      echo "ERROR: DO NOT use pkill on kwin_wayland; it will crash the KDE Plasma desktop."
-      echo "Use kill-virtual-kwin for virtual KWin sessions."
-      return 1
-    fi
-    command pkill "$@"
-  }
-fi
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
