@@ -199,6 +199,21 @@ let
     mcpServers = ompMcpServers;
   };
 
+  # Claude Code reads one user-level settings file on every host. Keep only the
+  # explicitly shared UI and safety controls here: machine-local hooks,
+  # credentials, marketplaces and model selection remain outside this file.
+  claudeSettings = {
+    "$schema" = "https://json.schemastore.org/claude-code-settings.json";
+    statusLine = {
+      type = "command";
+      command = "bash ~/.claude/statusline-command.sh";
+    };
+    language = "한국어";
+    alwaysThinkingEnabled = true;
+    tui = "fullscreen";
+    skipDangerousModePermissionPrompt = true;
+  };
+
   # The plugins pkgs/omp-plugins builds, by the name each one takes inside
   # node_modules.
   ompPlugins = {
@@ -314,6 +329,13 @@ in
     pkgs.xz
     pkgs.zpaq
     pkgs.zstd
+
+    # The managed Claude status line requires a modern Bash for its SOH field
+    # splitting and jq for the single-pass JSON parse. Declare both explicitly
+    # so `bash ~/.claude/statusline-command.sh` resolves identically on every
+    # node rather than falling back to macOS /bin/bash 3.2.
+    pkgs.bash
+    pkgs.jq
 
     # From llm-agents rather than nixpkgs: it tracks upstream daily, while the
     # nixpkgs-unstable channel lags master by several days. It builds for
@@ -534,6 +556,19 @@ in
     # `force` migrates an existing mutable ~/.p10k.zsh to the declarative copy.
     ".p10k.zsh" = {
       source = ./zsh/p10k.zsh;
+      force = true;
+    };
+
+    # Shared Claude Code UI behavior. `force` replaces mutable settings written
+    # by previous Claude/Orca runs, leaving exactly the selected keys above.
+    ".claude/settings.json" = {
+      text = builtins.toJSON claudeSettings;
+      force = true;
+    };
+
+    ".claude/statusline-command.sh" = {
+      source = ./claude/statusline-command.sh;
+      executable = true;
       force = true;
     };
 
