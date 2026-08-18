@@ -378,6 +378,7 @@ in
     pkgs.docker-client
     pkgs.docker-compose
     pkgs.gh
+    pkgs.git-crypt
     pkgs.go
     googleCloudSdk
     pkgs.kubernetes-helm
