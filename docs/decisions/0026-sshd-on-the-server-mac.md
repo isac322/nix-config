@@ -53,6 +53,10 @@ PAM 이 keyboard-interactive 를 통해 암호 인증을 **한 번 더** 제공�
 `010-` 로 시작하는 별도 파일로 나가고, 그 이야기는
 [0027](0027-ssh-audit-profile-shared-by-every-host.md) 에 있다.
 
+로케일은 별도 조각인 `011-locale.conf`로 공통 선언한다. 서버를 켜는 역할별
+결정과 세션 환경을 정하는 공통 결정은 분리되어 있으며, 자세한 내용은
+[0032](0032-macos-locale-over-ssh.md)에 있다.
+
 ## 열쇠는 왜 선언하지 않나
 
 `users.users.<name>.openssh.authorizedKeys` 로 선언할 수 있고, 공개키가 비밀도

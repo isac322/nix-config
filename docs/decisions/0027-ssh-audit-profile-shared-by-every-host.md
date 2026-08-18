@@ -83,6 +83,12 @@ nix-darwin 은 `services.openssh.extraConfig` 를 `100-nix-darwin.conf` 에 쓴�
 NixOS 에는 이 문제가 없다. sshd_config 전체를 자기가 렌더링하니 앞서 읽히는
 남의 조각이 없다.
 
+같은 순서 규칙으로 로케일은 `011-locale.conf`에 둔다. `010-` 암호화 프로파일
+뒤에 오고 Apple 및 nix-darwin의 `100-` 조각보다 앞에 오므로, SSH 세션의
+`SetEnv LANG=ko_KR.UTF-8 LC_ALL=ko_KR.UTF-8`가 안정적으로 적용된다.
+이 결정의 배경과 클라이언트 `SendEnv` 설정은
+[0032](0032-macos-locale-over-ssh.md)에 기록한다.
+
 ## 왜 랩탑에도 거는가
 
 sshd 를 켜는 것은 서버 역할뿐이지만 (0026), 알고리즘 프로파일은

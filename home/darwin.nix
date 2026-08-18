@@ -14,7 +14,6 @@ let
     pkgs.google-cloud-sdk.components.gke-gcloud-auth-plugin
   ];
 
-
   # One key does everything: SSH authentication, git commit signing, and the
   # PGP signing that Arch packaging needs. The GPG key's authentication subkey
   # is served to SSH by gpg-agent, so there is no separate SSH keypair to
@@ -136,6 +135,13 @@ in
       ControlMaster = "no";
       ControlPath = "~/.ssh/master-%r@%n:%p";
       ControlPersist = "no";
+
+      # Forward the same UTF-8 locale when this Mac connects to another SSH
+      # server. Managed Macs pin their own value server-side with SetEnv.
+      SendEnv = [
+        "LANG"
+        "LC_*"
+      ];
     };
   };
 

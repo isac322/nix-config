@@ -191,6 +191,28 @@ in
     WindowManager.HideDesktop = lib.mkDefault true;
   };
 
+  # Keep the POSIX locale explicit for every Mac. `AppleLocale` controls macOS
+  # user-facing locale defaults; these variables cover shells and non-login SSH
+  # commands, where Home Manager session variables are not read.
+  environment.variables = {
+    LANG = "ko_KR.UTF-8";
+    LC_ALL = "ko_KR.UTF-8";
+  };
+
+  # Apple's 100-macos.conf accepts client locale variables, but accepting them
+  # alone leaves the result dependent on the connecting machine. Set the Mac's
+  # own UTF-8 locale for every sshd child; SetEnv deliberately wins over
+  # client-supplied AcceptEnv values.
+  environment.etc."ssh/sshd_config.d/011-locale.conf".text = ''
+    SetEnv LANG=ko_KR.UTF-8 LC_ALL=ko_KR.UTF-8
+  '';
+
+  # The POSIX form is what shells and libc consume; macOS defaults use the
+  # language/region identifier without the encoding suffix. This key is not in
+  # nix-darwin's typed NSGlobalDomain schema, so use its arbitrary preference
+  # escape hatch.
+  system.defaults.CustomUserPreferences."NSGlobalDomain".AppleLocale = lib.mkDefault "ko_KR";
+
   # The crypto half of the sshd configuration, on every Mac. Whether sshd
   # actually answers is a separate question decided per role — the laptop leaves
   # `services.openssh.enable` at null, which hands the daemon back to macOS.
