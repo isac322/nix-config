@@ -138,6 +138,13 @@ let
       echo "orbstack-start: Docker engine config is not installed; deferred." >&2
       exit 0
     fi
+    # Do not add another spawn attempt behind a helper already stuck in
+    # macOS's exit state. `kill -9`, even as root, cannot advance that state.
+    if /bin/ps -axo state=,command= |
+      /usr/bin/awk '$1 ~ /E/ && index($0, "(OrbStack Helper)") { found = 1 } END { exit !found }'; then
+      echo "orbstack-start: stale exiting OrbStack Helper found; deferred until reboot." >&2
+      exit 0
+    fi
 
     # OrbStack enables Rosetta by default and otherwise opens a GUI installer
     # that blocks forever on this headless session. softwareupdate is
@@ -182,13 +189,6 @@ let
       exit 0
     fi
 
-    # Do not add another spawn attempt behind a helper already stuck in
-    # macOS's exit state. `kill -9`, even as root, cannot advance that state.
-    if /bin/ps -axo state=,command= |
-      /usr/bin/awk '$1 ~ /E/ && index($0, "(OrbStack Helper)") { found = 1 } END { exit !found }'; then
-      echo "orbstack-start: stale exiting OrbStack Helper found; deferred until reboot." >&2
-      exit 0
-    fi
 
     if ! ${timeout} -k 5 60 ${orb} start; then
       # OrbStack's spawn helper double-forks out of timeout's process group.
