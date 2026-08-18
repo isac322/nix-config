@@ -124,6 +124,79 @@ cat /var/run/wireguard-addresses   # 데몬이 발행한 주소. Orca·Camofox·
 않는다. `wg-quick up` 은 인터페이스를 올리고 끝나므로 데몬이 계속 떠 있지 않는
 것이 정상이다. 살아 있게 하는 것은 wg-quick 이 떼어 놓는 `wireguard-go` 다.
 
+## SkillClaw 공유 스킬 (모든 노드)
+
+`skillclaw` 클라이언트와 5분 주기 동기화는 모든 노드에 설치된다. 저장소는 이
+repository가 새로 띄우지 않고 사용자가 이미 운영하는 S3-compatible backend를
+사용한다. 모든 노드에서 같은 endpoint, bucket, region과 자격증명을 다음 0600 파일에
+넣는다.
+
+```sh
+mkdir -p ~/.config/skillclaw
+cat > ~/.config/skillclaw/shared.env <<'EOF'
+SKILLCLAW_STORAGE_ENDPOINT=https://s3.example.com
+SKILLCLAW_STORAGE_BUCKET=<existing bucket>
+SKILLCLAW_STORAGE_REGION=<region>
+SKILLCLAW_STORAGE_ACCESS_KEY=<access key>
+SKILLCLAW_STORAGE_SECRET_KEY=<secret key>
+EOF
+chmod 600 ~/.config/skillclaw/shared.env
+```
+
+bucket은 미리 존재해야 하며 자격증명에는 그 bucket의 object read/write 권한이
+필요하다. endpoint와 실제 자격증명은 Nix store에 넣지 않는다.
+
+모든 노드와 evolve worker가 **같은 bucket 하나**와 group `omp`를 사용한다. 노드별
+bucket은 만들지 않는다.
+
+각 노드에서 로컬 proxy까지 쓰려면 별도로 0600인
+`~/.config/skillclaw/llm.env`를 둔다. 이 파일은 노드마다 달라도 된다.
+
+```sh
+cat > ~/.config/skillclaw/llm.env <<'EOF'
+SKILLCLAW_LLM_PROVIDER=custom
+SKILLCLAW_LLM_API_BASE=https://example.invalid/v1
+SKILLCLAW_LLM_API_KEY=<API key>
+SKILLCLAW_LLM_MODEL_ID=<model id>
+SKILLCLAW_LLM_API_MODE=responses
+# 선택: evolve worker만 다른 모델을 쓸 때
+# SKILLCLAW_EVOLVE_MODEL=<model id>
+EOF
+chmod 600 ~/.config/skillclaw/llm.env
+```
+
+`responses`를 받지 않는 OpenAI-compatible endpoint면 마지막 값을 `chat`으로 바꾼다.
+Nix store에는 어느 비밀도 들어가지 않는다. 런타임 wrapper가 두 파일을 읽어
+`~/.skillclaw/config.yaml`을 0600으로 다시 만들며, SkillClaw의 로컬 스킬 디렉터리는
+여러 하네스가 읽는 Agent Skills 표준 위치 `~/.agents/skills`다. Claude Code 전용
+디렉터리는 만들거나 동기화하지 않는다.
+
+확인:
+
+```sh
+skillclaw config show
+skillclaw skills list-remote
+skillclaw skills sync
+curl http://127.0.0.1:30000/healthz   # llm.env를 둔 노드
+```
+
+서버 맥은 같은 외부 S3 backend를 사용하는 evolve worker 하나만 추가로 실행한다.
+
+```sh
+launchctl print gui/$(id -u)/org.nix-community.home.skillclaw-evolve
+tail -f ~/Library/Logs/skillclaw-evolve.log
+```
+
+SkillClaw의 `auto_pull_on_start`와 원격 reload polling은 끈다. 둘은 cloud manifest에
+없는 로컬 디렉터리를 mirror 삭제하는 경로라, 다음 5분 동기화 전에 OMP가 만든 스킬을
+잃을 수 있다. 여기서는 `skills sync`의 incremental pull 뒤 push만 사용하고, proxy는
+각 요청에서 로컬 디렉터리 변경을 다시 읽는다.
+
+동기화는 upstream의 `pull` 뒤 `push` 의미를 그대로 쓴다. 서로 다른 노드에서 **같은
+이름의 스킬을 동시에 수정하면 자동 merge하지 않고 마지막 업로드가 이긴다.** 같은
+스킬을 병렬 편집하지 않는 것이 운영 규칙이다.
+
+
 ## 자동 로그인 (서버 맥)
 
 Orca 런타임과 headful Camofox 가 Aqua 세션을 요구하고, LaunchAgent 는 세션이

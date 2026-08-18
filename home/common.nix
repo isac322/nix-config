@@ -300,6 +300,13 @@ let
   };
 in
 {
+  imports = [ ./skillclaw.nix ];
+
+  # Every node runs a local SkillClaw client and synchronizes the cross-harness
+  # Agent Skills directory through the user's external S3 backend. Only the
+  # unattended server role enables the evolve worker.
+  local.skillclaw.enable = true;
+
   # Clear what would otherwise make the plugin links below fail on a machine
   # that has run omp before, or that carries an older generation of this
   # configuration. Both cases cost a second switch to notice and a third to fix.

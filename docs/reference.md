@@ -204,6 +204,24 @@ x86_64-linux·aarch64-linux 를 모두 빌드해서 리눅스 서버에서도 �
 **Orca 는 여기 없다.** GUI 앱이라 cask 로 오고, 그래서 맥 둘에만 있다 —
 위 [GUI 앱](#gui-앱) 을 보라.
 
+### SkillClaw — 로컬 클라이언트 셋, 공유 백엔드는 하나
+
+`home/skillclaw.nix`가 `skillclaw` 0.4.0을 flake input의 고정한 소스에서 Python
+application으로 빌드해 모든 노드에 둔다. 각 노드는 loopback proxy와 5분 주기
+`skills sync`를 가지며, 동기화 대상은 하네스별 사본이 아니라 공통 Agent Skills
+위치 `~/.agents/skills`다. Claude Code 전용 skill 위치는 대상에서 제외한다.
+
+공유 저장소는 사용자가 이미 운영하는 외부 S3-compatible backend다. 이 repository는
+object-store daemon을 설치하지 않는다. 모든 client와 서버 맥의 단일 evolve worker가
+하나의 동일한 bucket과 `omp` group을 사용한다.
+
+endpoint, bucket, region과 S3 자격증명은
+`~/.config/skillclaw/shared.env`에, LLM 자격증명은 `llm.env`에 두며 둘 다 Nix store
+밖에 남는다. evolve worker는 `home/roles/darwin-server.nix`에서 서버 맥에만
+활성화한다. 파일 생성과 확인 절차는
+[운영](operations.md#skillclaw-공유-스킬-모든-노드)에 있다.
+
+
 ## 관측 CLI — 에이전트가 직접 조회하게
 
 `tempo-cli`, `promtool`, `sentry-cli`, `posthog-cli`, `axiom`, `langfuse` 여섯을

@@ -410,7 +410,24 @@
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",
         "nixpkgs": "nixpkgs_4",
-        "nixpkgs-firefox-darwin": "nixpkgs-firefox-darwin"
+        "nixpkgs-firefox-darwin": "nixpkgs-firefox-darwin",
+        "skillclaw": "skillclaw"
+      }
+    },
+    "skillclaw": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786956487,
+        "narHash": "sha256-a4uQQYZhQpqfA9SzoTHF8HopVkwXeY9qBmA+Ck6K9co=",
+        "owner": "AMAP-ML",
+        "repo": "SkillClaw",
+        "rev": "3938f7537645c961d94498a0a79fc0a977019595",
+        "type": "github"
+      },
+      "original": {
+        "owner": "AMAP-ML",
+        "repo": "SkillClaw",
+        "type": "github"
       }
     },
     "systems": {

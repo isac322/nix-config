@@ -23,6 +23,13 @@
     # which is what the overlay was doing. See home/common.nix.
     llm-agents.url = "github:numtide/llm-agents.nix";
 
+    # SkillClaw is not a flake. Pin its source here so the Python package and
+    # every node's client/server processes use one reviewed revision.
+    skillclaw = {
+      url = "github:AMAP-ML/SkillClaw";
+      flake = false;
+    };
+
     # Lets nix-darwin manage /etc/nix/nix.custom.conf declaratively. It forces
     # `nix.enable = false`, leaving /etc/nix/nix.conf to Determinate Nix.
     # No `follows` here either: upstream advises against it (FlakeHub cache).

@@ -291,6 +291,9 @@ let
 
 in
 {
+  # The server Mac runs the single evolve worker. Storage is the user's
+  # existing external S3 backend; this role does not deploy an object store.
+  local.skillclaw.evolve.enable = true;
 
   # OrbStack is a user application, not a root daemon. The server already
   # creates an Aqua session automatically for Orca and Camofox, so a LaunchAgent
