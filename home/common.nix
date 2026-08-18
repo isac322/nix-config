@@ -676,6 +676,12 @@ in
     ".vim/undo/.keep".text = "";
     ".vim/swap/.keep".text = "";
     ".vim/backup/.keep".text = "";
+
+    # Shared Agent Skills
+    ".agents/skills/gcloud-camofox-adc-auth/SKILL.md" = {
+      source = ./skills/gcloud-camofox-adc-auth/SKILL.md;
+      force = true;
+    };
   }
   // {
     # The complete user-level MCP registry. `force` performs the one-time
