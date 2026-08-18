@@ -166,6 +166,27 @@ in
     };
   };
 
+  # Periodically verify Google Cloud ADC token validity every 6 hours
+  launchd.agents.gcloud-adc-check = {
+    enable = true;
+    config = {
+      ProgramArguments = [
+        "/bin/sh"
+        "-c"
+        "/bin/wait4path /nix/store && exec ${pkgs.writeShellScript "gcloud-adc-check" ''
+          if ${pkgs.google-cloud-sdk}/bin/gcloud auth application-default print-access-token >/dev/null 2>&1; then
+            exit 0
+          fi
+          /usr/bin/osascript -e 'display notification "Google Cloud ADC 인증이 만료되었습니다. 터미널에서 갱신을 진행해주세요." with title "Google Cloud ADC"'
+        ''}"
+      ];
+      RunAtLoad = true;
+      StartInterval = 21600;
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/gcloud-adc-check.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/gcloud-adc-check.log";
+    };
+  };
+
   # See the note on sshAuthSock: this LaunchAgent cannot work on macOS, and its
   # sockets are worse than absent because connecting to one hangs. Everything
   # else services.gpg-agent does — writing gpg-agent.conf, exporting
