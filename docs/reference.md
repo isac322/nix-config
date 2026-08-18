@@ -204,6 +204,18 @@ x86_64-linux·aarch64-linux 를 모두 빌드해서 리눅스 서버에서도 �
 **Orca 는 여기 없다.** GUI 앱이라 cask 로 오고, 그래서 맥 둘에만 있다 —
 위 [GUI 앱](#gui-앱) 을 보라.
 
+### BearDrive — 실행 파일은 공통, 동기화 대상은 노드별
+
+`bdrive` 0.15.0을 **모든 기기**에 둔다. nixpkgs에는 아직 없으므로
+`pkgs/beardrive/package.nix`가 상류의 동일한 공식 release binary를 고정 hash로
+가져오고, `pkgs/overlay.nix`가 `pkgs.beardrive`로 노출한다.
+
+Nix가 하는 일은 CLI 설치까지다. `bdrive init`은 동기화할 로컬 directory와 hub
+project를 고르고 로그인한 뒤 agent hook과 로그인 시 재개할 사용자 service를
+등록하는 mutable onboarding이라, 모든 노드에 임의의 folder를 추측해서 실행하지
+않는다. 실제 project를 연결할 때 각 노드에서 대상 directory를 정한 뒤 한 번씩
+`bdrive init`을 실행한다.
+
 ### Agent Skills — 검토한 공개 소스는 Nix가 고정
 
 `home/agent-skills.nix`는 검토한 공개 skill repository를 `flake = false` input으로

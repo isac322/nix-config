@@ -9,6 +9,7 @@ final: prev: {
   axiom-cli = final.callPackage ./axiom-cli/package.nix { };
   langfuse-cli = final.callPackage ./langfuse-cli/package.nix { };
   vercel-cli = final.callPackage ./vercel-cli/package.nix { };
+  beardrive = final.callPackage ./beardrive/package.nix { };
 
   # Native Apple Silicon Camoufox, plus the Camofox server pinned to that
   # immutable browser instead of its npm postinstall download.

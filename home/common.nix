@@ -425,6 +425,12 @@ in
     agents.codex
     agents.omp
 
+    # BearDrive's CLI is useful on every node, but joining a project is mutable
+    # per-user state: `bdrive init` selects a folder and hub, authenticates, and
+    # installs the upstream login item. Nix supplies the pinned executable only
+    # and never guesses which local directory a machine should synchronize.
+    pkgs.beardrive
+
     # Observability CLIs, for the coding agents above to query telemetry with
     # rather than being handed screenshots of dashboards. They go on every
     # machine for the same reason claude-code does: the agent runs wherever
