@@ -85,6 +85,20 @@ let
   # between its Homebrew activation and home-manager's user activation.
   orb = "/opt/homebrew/bin/orb";
   timeout = lib.getExe' pkgs.coreutils "timeout";
+  orbstackDockerConfig = pkgs.writeText "orbstack-docker.json" (
+    builtins.toJSON {
+      "log-driver" = "local";
+      builder.gc = {
+        enabled = true;
+        policy = [
+          {
+            all = true;
+            reservedSpace = "50GB";
+          }
+        ];
+      };
+    }
+  );
 
   orbstackStart = pkgs.writeShellScript "orbstack-start" ''
     set -u
@@ -113,6 +127,15 @@ let
 
     if ! command -v orb >/dev/null 2>&1; then
       echo "orbstack-start: orb CLI unavailable after 60s; deferred." >&2
+      exit 0
+    fi
+
+    # Home Manager installs the daemon configuration before it loads user
+    # agents. Referencing the generated store file here also changes this
+    # script's path when the JSON changes, which makes launchd reload the agent.
+    if ! /usr/bin/cmp -s ${orbstackDockerConfig} \
+      ${config.home.homeDirectory}/.orbstack/config/docker.json; then
+      echo "orbstack-start: Docker engine config is not installed; deferred." >&2
       exit 0
     fi
 
@@ -149,9 +172,16 @@ let
       exit 0
     fi
 
-    # Resource and Rosetta changes take effect after a restart. Both operations
-    # are bounded so a wedged VM manager cannot outlive this LaunchAgent.
-    run_orb stop >/dev/null 2>&1 || true
+    # Never stop a running VM from activation. OrbStack can leave its helper in
+    # an unkillable macOS exit state when a bounded client interrupts shutdown;
+    # that blocks every later start until reboot. A running instance keeps
+    # serving containers and picks up changed engine settings on its next
+    # ordinary reboot. Only a stopped instance is started here.
+    if run_orb status >/dev/null 2>&1; then
+      echo "orbstack-start: already running; settings apply on the next restart." >&2
+      exit 0
+    fi
+
     if ! ${timeout} -k 5 60 ${orb} start; then
       echo "orbstack-start: startup failed or timed out." >&2
     fi
@@ -308,6 +338,16 @@ in
       StandardOutPath = "${config.home.homeDirectory}/Library/Logs/orbstack.log";
       StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/orbstack.log";
     };
+  };
+
+  # OrbStack reads standard dockerd configuration from this path. The local
+  # logging driver rotates compact container logs by default, and the BuildKit
+  # GC reserve keeps 50 GB of reusable build cache while still allowing the
+  # daemon to reclaim everything above it under pressure. `force` replaces the
+  # mutable empty file created by OrbStack.
+  home.file.".orbstack/config/docker.json" = {
+    source = orbstackDockerConfig;
+    force = true;
   };
 
   # The Orca runtime, headless, for the whole time the machine is up.
