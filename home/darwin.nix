@@ -10,6 +10,10 @@
 }:
 
 let
+  googleCloudSdk = pkgs.google-cloud-sdk.withExtraComponents [
+    pkgs.google-cloud-sdk.components.gke-gcloud-auth-plugin
+  ];
+
 
   # One key does everything: SSH authentication, git commit signing, and the
   # PGP signing that Arch packaging needs. The GPG key's authentication subkey
@@ -174,7 +178,7 @@ in
         "/bin/sh"
         "-c"
         "/bin/wait4path /nix/store && exec ${pkgs.writeShellScript "gcloud-adc-check" ''
-          if ${pkgs.google-cloud-sdk}/bin/gcloud auth application-default print-access-token >/dev/null 2>&1; then
+          if ${googleCloudSdk}/bin/gcloud auth application-default print-access-token >/dev/null 2>&1; then
             exit 0
           fi
           /usr/bin/osascript -e 'display notification "Google Cloud ADC 인증이 만료되었습니다. 터미널에서 갱신을 진행해주세요." with title "Google Cloud ADC"'
