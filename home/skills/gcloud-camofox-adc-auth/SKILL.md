@@ -37,7 +37,7 @@ Retrieve the OAuth authorization URL from process stdout/logs (`https://accounts
      ```bash
      security find-generic-password -a "isac@runbear.io" -s "google-login" -w
      ```
-     *(Fallback: read `~/.pass` if Keychain lookup is unavailable).*
+     *(If Keychain is locked or lookup fails with error code 36, prompt the user to unlock the keychain or enter password).*
    - Type into `input[type="password"]` and submit.
 4. **2-Step Verification (2FA)**:
    - **DO NOT** attempt to bypass or simulate hardware 2FA / push notifications.
