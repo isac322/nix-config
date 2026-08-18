@@ -1,0 +1,420 @@
+# Borg exclude patterns for disposable build products, caches, metadata, and logs.
+# Patterns are relative to the directory being archived.  Keep source, config,
+# lockfiles, credentials, and user data unless a narrower disposable pattern is listed.
+# Borg's sh: syntax is used so '*' does not cross path separators unexpectedly.
+
+# -----------------------------------------------------------------------------
+# JavaScript / TypeScript / Node.js
+# -----------------------------------------------------------------------------
+sh:node_modules
+sh:**/node_modules
+sh:.npm/_cacache
+sh:.npm/_logs
+sh:.yarn/cache
+sh:.yarn/install-state.gz
+sh:.pnp.cjs
+sh:.pnp.loader.mjs
+sh:.pnpm-store
+sh:.cache/yarn
+sh:.cache/pnpm
+sh:.parcel-cache
+sh:.turbo
+sh:.next/cache
+sh:.nuxt
+sh:.output
+sh:.svelte-kit
+sh:.angular/cache
+sh:.vite
+sh:**/coverage
+sh:.eslintcache
+sh:.stylelintcache
+sh:.tsbuildinfo
+sh:**/*.tsbuildinfo
+sh:.storybook/cache
+sh:.webpack
+sh:.rollup.cache
+sh:.swc
+sh:.rpt2_cache
+sh:.nyc_output
+sh:*.log
+sh:**/*.log
+
+# -----------------------------------------------------------------------------
+# Rust / Cargo
+# -----------------------------------------------------------------------------
+sh:target
+sh:**/target
+sh:.cargo/registry/cache
+sh:.cargo/registry/index
+sh:.cargo/git/checkouts
+sh:.cargo/git/db
+sh:.rustup/tmp
+sh:.rustup/downloads
+sh:**/.fingerprint
+sh:**/incremental
+
+# -----------------------------------------------------------------------------
+# Go
+# -----------------------------------------------------------------------------
+sh:go/pkg/mod/cache
+sh:go/pkg/sumdb
+sh:.cache/go-build
+sh:.cache/golangci-lint
+sh:**/vendor/cache
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
+sh:__pycache__
+sh:**/__pycache__
+sh:*.py[cod]
+sh:**/*.py[cod]
+sh:.pytest_cache
+sh:**/.pytest_cache
+sh:.mypy_cache
+sh:**/.mypy_cache
+sh:.ruff_cache
+sh:**/.ruff_cache
+sh:.tox
+sh:**/.tox
+sh:.nox
+sh:**/.nox
+sh:.hypothesis
+sh:**/.hypothesis
+sh:.venv
+sh:**/.venv
+sh:venv
+sh:**/venv
+sh:*.egg-info
+sh:**/*.egg-info
+sh:.coverage
+sh:**/.coverage
+sh:htmlcov
+sh:**/htmlcov
+sh:.ipynb_checkpoints
+sh:**/.ipynb_checkpoints
+sh:.cache/pip
+sh:.cache/pypoetry
+sh:.cache/uv
+sh:.cache/pytest
+sh:.cache/huggingface
+
+# -----------------------------------------------------------------------------
+# JVM / Gradle / Maven / Kotlin
+# -----------------------------------------------------------------------------
+sh:.gradle/caches
+sh:.gradle/daemon
+sh:.gradle/native
+sh:.gradle/wrapper/dists
+sh:.m2/repository
+sh:.m2/wrapper
+sh:.ivy2/cache
+sh:.sbt/boot
+sh:.sbt/1.0/zinc
+sh:.kotlin/daemon
+
+# -----------------------------------------------------------------------------
+# C / C++ / CMake / Bazel / build systems
+# -----------------------------------------------------------------------------
+sh:CMakeFiles
+sh:**/CMakeFiles
+sh:CMakeCache.txt
+sh:**/CMakeCache.txt
+sh:cmake-build-*
+sh:**/cmake-build-*
+sh:.ccls-cache
+sh:**/.ccls-cache
+sh:.cache/ccache
+sh:.cache/sccache
+sh:.cache/bazel
+sh:**/.bazel
+sh:**/.bazel-*
+sh:bazel-out
+sh:**/bazel-out
+sh:bazel-bin
+sh:**/bazel-bin
+sh:bazel-testlogs
+sh:**/bazel-testlogs
+
+# -----------------------------------------------------------------------------
+# Swift / Xcode / iOS / Apple build products
+# -----------------------------------------------------------------------------
+sh:DerivedData
+sh:**/DerivedData
+sh:.build
+sh:**/.build
+sh:*.xcuserstate
+sh:**/*.xcuserstate
+sh:*.xcscmblueprint
+sh:**/*.xcscmblueprint
+sh:Pods
+sh:**/Pods
+sh:.swiftpm/cache
+sh:.swiftpm/xcode
+sh:**/*.playground/xcuserdata
+
+# -----------------------------------------------------------------------------
+# Android / Gradle
+# -----------------------------------------------------------------------------
+sh:.gradle
+sh:**/.gradle
+sh:.android/cache
+sh:.android/build-cache
+sh:.android/avd/*.avd/snapshots
+sh:**/.cxx
+sh:**/captures
+sh:**/externalNativeBuild
+
+# -----------------------------------------------------------------------------
+# .NET / NuGet
+# -----------------------------------------------------------------------------
+sh:obj
+sh:**/obj
+sh:.nuget/packages
+sh:.nuget/plugins-cache
+sh:.dotnet/tools/.store
+sh:.vs
+sh:**/.vs
+
+# -----------------------------------------------------------------------------
+# Ruby / Bundler / Rails
+# -----------------------------------------------------------------------------
+sh:.bundle/cache
+sh:.bundle/plugin
+sh:vendor/bundle
+sh:**/vendor/bundle
+sh:.gem/cache
+sh:.rbenv/cache
+sh:tmp/cache
+sh:**/tmp/cache
+sh:log/*.log
+sh:tmp/*.pid
+
+# PHP / Composer
+# -----------------------------------------------------------------------------
+sh:.composer/cache
+sh:.composer/cache-files
+
+# -----------------------------------------------------------------------------
+# Dart / Flutter
+# -----------------------------------------------------------------------------
+sh:.pub-cache
+sh:.dart_tool
+sh:**/.dart_tool
+sh:.flutter-plugins
+sh:.flutter-plugins-dependencies
+sh:.packages
+sh:**/.packages
+sh:.pub
+
+# -----------------------------------------------------------------------------
+# Elixir / Erlang
+# -----------------------------------------------------------------------------
+sh:_build
+sh:**/_build
+sh:deps
+sh:**/deps
+sh:.mix
+sh:erl_crash.dump
+sh:**/erl_crash.dump
+
+# -----------------------------------------------------------------------------
+# Haskell / Cabal / Stack
+# -----------------------------------------------------------------------------
+sh:.stack-work
+sh:**/.stack-work
+sh:.cabal-sandbox
+sh:**/.cabal-sandbox
+sh:.ghc.environment.*
+sh:**/.ghc.environment.*
+sh:.cabal/packages
+sh:.cache/cabal
+sh:.cache/stack
+
+# -----------------------------------------------------------------------------
+# Julia
+# -----------------------------------------------------------------------------
+sh:.julia/compiled
+sh:.julia/logs
+sh:.julia/artifacts/lock
+sh:**/.julia/compiled
+sh:**/.julia/logs
+
+# R
+# -----------------------------------------------------------------------------
+sh:.Rproj.user
+sh:**/.Rproj.user
+sh:.Rhistory
+sh:**/.Rhistory
+sh:.RDataTmp
+sh:**/.RDataTmp
+sh:.cache/R
+
+# -----------------------------------------------------------------------------
+# Terraform / OpenTofu / Ansible
+# -----------------------------------------------------------------------------
+sh:.terraform
+sh:**/.terraform
+sh:.terraform.d/plugin-cache
+sh:.terraform.d/checkpoint_cache
+sh:.tofu.d/plugin-cache
+sh:**/.terraform.lock.hcl.tmp
+sh:*.tfstate.lock.info
+sh:**/*.tfstate.lock.info
+sh:.ansible/tmp
+sh:.ansible/cp
+sh:**/.ansible/tmp
+sh:**/.ansible/cp
+sh:*.retry
+sh:**/*.retry
+
+# -----------------------------------------------------------------------------
+# Docker / Podman / OrbStack disposable local state
+# -----------------------------------------------------------------------------
+sh:.docker/buildx/cache
+sh:.docker/contexts/meta
+sh:.local/share/containers/storage/overlay-containers
+sh:.local/share/containers/storage/overlay-layers
+sh:.local/share/containers/cache
+sh:.config/containers/cache
+sh:Library/Containers/com.docker.docker/Data/vms
+sh:Library/Containers/com.docker.docker/Data/log
+sh:Library/Group Containers/group.com.docker
+sh:Library/Application Support/OrbStack/logs
+sh:Library/Application Support/OrbStack/cache
+sh:.orbstack/cache
+
+# -----------------------------------------------------------------------------
+# AI / ML tooling caches and generated checkpoints (not user datasets/config)
+# -----------------------------------------------------------------------------
+sh:.cache/huggingface/hub
+sh:.cache/huggingface/datasets
+sh:.cache/torch
+sh:.cache/whisper
+sh:.cache/llama.cpp
+sh:.cache/ollama
+sh:.ollama/models/blobs
+sh:.ollama/models/manifests
+sh:.cache/tensorflow
+sh:.cache/jax
+sh:.cache/pip
+sh:.cache/wandb
+sh:.wandb
+sh:**/.wandb
+sh:.cache/kaggle
+sh:.cache/transformers
+
+# -----------------------------------------------------------------------------
+# IDE/editor indexes, language-server state, and local metadata
+# -----------------------------------------------------------------------------
+sh:.idea/workspace.xml
+sh:.idea/caches
+sh:.idea/index
+sh:.idea/shelf
+sh:**/.vscode/.ropeproject
+sh:**/.vscode/ipch
+sh:**/.vscode/extensions
+sh:.cache/JetBrains
+sh:.cache/Code
+sh:.cache/code-cache
+sh:.cache/clangd/index
+sh:.cache/clangd/background-index
+sh:.cache/language-server
+sh:.local/share/zed/db
+sh:.local/share/zed/logs
+sh:Library/Caches/JetBrains
+sh:Library/Caches/com.microsoft.VSCode
+sh:Library/Application Support/Code/Cache
+sh:Library/Application Support/Code/CachedData
+sh:Library/Application Support/Code/logs
+sh:Library/Application Support/Cursor/Cache
+sh:Library/Application Support/Cursor/CachedData
+sh:Library/Application Support/Cursor/logs
+sh:Library/Developer/Xcode/DerivedData
+sh:Library/Developer/Xcode/DocumentationCache
+sh:Library/Developer/Xcode/iOS DeviceSupport
+sh:Library/Developer/CoreSimulator/Caches
+sh:Library/Developer/CoreSimulator/Devices/*/data/Library/Caches
+sh:Library/Developer/CoreSimulator/Devices/*/data/tmp
+
+# -----------------------------------------------------------------------------
+# VCS metadata and generated review/build data (preserve working-tree files)
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Logs, diagnostics, coverage, profiling, and test artifacts
+# -----------------------------------------------------------------------------
+sh:*.log
+sh:**/*.trace
+sh:test-results
+sh:**/test-results
+sh:test-results.xml
+sh:**/test-results.xml
+sh:crash-reports
+sh:**/crash-reports
+
+# -----------------------------------------------------------------------------
+# OS trash, thumbnails, and disposable per-user caches (specific locations only)
+# -----------------------------------------------------------------------------
+sh:.Trash
+sh:**/.Trash
+sh:.local/share/Trash/files
+sh:.local/share/Trash/info
+sh:.cache/thumbnails
+sh:.cache/fontconfig
+sh:.cache/mesa_shader_cache
+sh:.cache/mesa_shader_cache_db
+sh:.cache/dconf
+sh:.cache/evolution
+sh:.cache/gstreamer-1.0
+sh:.cache/mozilla
+sh:.cache/chromium
+sh:.cache/google-chrome
+sh:.cache/BraveSoftware
+sh:.cache/spotify
+sh:Library/Logs
+sh:Library/Saved Application State
+sh:Library/Application Support/CrashReporter
+sh:Library/Application Support/Google/Chrome/Crashpad
+sh:Library/Application Support/Firefox/Profiles/*/cache2
+sh:Library/Application Support/Firefox/Profiles/*/startupCache
+sh:.DS_Store
+sh:**/.DS_Store
+sh:Thumbs.db
+sh:**/Thumbs.db
+sh:desktop.ini
+sh:**/desktop.ini
+
+# -----------------------------------------------------------------------------
+# Package-manager and language-tool caches (targeted; do not exclude ~/.cache)
+# -----------------------------------------------------------------------------
+sh:.cache/npm
+sh:.cache/node-gyp
+sh:.cache/nodeenv
+sh:.cache/deno
+sh:.cache/bun
+sh:.cache/go-build
+sh:.cache/cargo
+sh:.cache/gradle
+sh:.cache/maven
+sh:.cache/composer
+sh:.cache/gem
+sh:.cache/ruby
+sh:.cache/dart
+sh:.cache/flutter
+sh:.cache/elixir
+sh:.cache/erlang
+sh:.cache/haskell
+sh:.cache/julia
+sh:.cache/terraform
+sh:.cache/ansible
+sh:Library/Caches/Homebrew
+sh:Library/Caches/pip
+sh:Library/Caches/npm
+sh:Library/Caches/yarn
+sh:Library/Caches/go-build
+sh:Library/Caches/CocoaPods
+sh:Library/Caches/org.swift.swiftpm
+sh:Library/Logs/Homebrew
+sh:.cache/uv
+sh:.cache/pypoetry

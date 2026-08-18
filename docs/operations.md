@@ -29,6 +29,71 @@ determinateNixd.builder = {
 };
 ```
 
+## 선언형 Borg 서버 백업
+
+NixOS 서버와 Darwin 서버는 둘 다 Borg를 설치하고 같은
+`local.borgBackup` 모듈을 쓴다. `local.borgBackup.repository`의 기본값은 `null`이며,
+이 값이 `null`인 동안에는 systemd timer나 launchd daemon을 만들지 않는다. 모듈은
+저장소도 자동으로 초기화하지 않는다.
+
+저장소 주소와 비밀 파일 경로는 호스트마다 다르므로 각 서버의 호스트 설정에 넣는다.
+아래 자리표시자를 실제 운영 값으로 바꾼다.
+
+```nix
+# NixOS server의 호스트 설정
+local.borgBackup = {
+  repository = "<NixOS 서버가 사용할 Borg repository>";
+  scheduleTime = "03:00";
+  passphraseFile = "<NixOS 서버의 런타임 passphrase 파일 경로>";
+  sshIdentityFile = "<NixOS 서버의 SSH 개인키 파일 경로>";
+  keepDaily = 7;
+  keepWeekly = 4;
+  keepMonthly = 6;
+};
+```
+
+```nix
+# Darwin server의 호스트 설정
+local.borgBackup = {
+  repository = "<Darwin 서버가 사용할 Borg repository>";
+  scheduleTime = "03:00";
+  passphraseFile = "<Darwin 서버의 런타임 passphrase 파일 경로>";
+  sshIdentityFile = "<Darwin 서버의 SSH 개인키 파일 경로>";
+  keepDaily = 7;
+  keepWeekly = 4;
+  keepMonthly = 6;
+};
+```
+
+`scheduleTime`은 서버 현지 시각의 24시간제 `HH:MM` 값이다. 보존 기본값은
+`keepDaily = 7`, `keepWeekly = 4`, `keepMonthly = 6`이며 호스트별로 바꿀 수 있다.
+`passphraseFile`과 `sshIdentityFile`에는 런타임 파일 경로만 선언한다. passphrase와
+SSH 개인키의 내용은 Nix 설정이나 Nix store에 들어가지 않는다. 해당 파일은 Borg를
+실행하는 사용자가 읽을 수 있는 권한으로 서버에 따로 배치한다.
+
+처음 활성화하기 전에 선언한 `repository`를 같은 자격증명으로 **직접 `borg init`**
+한다. 암호화 방식과 저장소 주소는 운영자가 정하며, 이 레포는 어느 값도 미리
+정하지 않는다. 초기화와 비밀 파일 배치를 마친 뒤 해당 서버에서 switch 한다.
+
+```sh
+# NixOS server
+sudo nixos-rebuild switch --flake /etc/nix-darwin#server
+
+# Darwin server
+sudo darwin-rebuild switch --flake /etc/nix-darwin#bhyoo-macbook-pro
+```
+
+활성화 뒤에는 매일 `scheduleTime`에 홈 디렉터리에서 `.`을 아카이브한다. 따라서
+공유 제외 목록 `/etc/borg-exclude`의 홈 기준 패턴이 그대로 적용된다. `create`가
+성공한 경우에만 같은 실행에서 `prune`을 `keepDaily`, `keepWeekly`, `keepMonthly`
+값으로 적용하고, 이어서 `compact`를 실행한다. `create`가 실패하면 `prune`과
+`compact`는 실행하지 않는다.
+
+MBA의 Vorta는 서버 job과 별개다. Nix activation은
+`~/Library/Application Support/Vorta/settings.db`가 없을 때만 첫 실행용
+`~/.vorta-init.json`을 놓는다. `settings.db`가 이미 있으면 기존 Vorta profile과
+설정을 보존하며 bootstrap으로 덮어쓰지 않는다.
+
 ## GPG 키 가져오기
 
 커밋 서명과 SSH 접속과 Arch 패키징이 [모두 이 키 하나를

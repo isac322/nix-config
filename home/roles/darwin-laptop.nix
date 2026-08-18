@@ -15,8 +15,98 @@ let
     rev = "b51c934d88868e56c1d55d0a2a36d559f21cb2ee";
     hash = "sha256-s3TBAsXOpmiXMAQkbaS5de0t0hNC1EzUUb0ZG+p9keE=";
   };
+
+  # Vorta imports this profile export once from ~/.vorta-init.json. Keep the
+  # export repository-less so first launch never needs a URL, password, or
+  # keychain entry. Exclusions use ProfileExport's supported ExclusionModel
+  # rows; comments and blank lines in the shared Borg file are not patterns.
+  borgExcludePatterns = builtins.filter (line: line != "" && !lib.hasPrefix "#" line) (
+    lib.splitString "\n" (builtins.readFile ../files/borg-exclude)
+  );
+
+  vortaBootstrap = pkgs.writeText "vorta-init.json" (
+    builtins.toJSON {
+      id = 1;
+      name = "Default";
+      repo = null;
+      ssh_key = null;
+      compression = "zstd,3";
+      schedule_mode = "off";
+      validation_on = true;
+      validation_weeks = 3;
+      compaction_on = false;
+      compaction_weeks = 3;
+      prune_on = false;
+      new_archive_name = "{hostname}-{now:%Y-%m-%d-%H%M%S}";
+      prune_prefix = "{hostname}-";
+      pre_backup_cmd = "";
+      post_backup_cmd = "";
+      dont_run_on_metered_networks = true;
+
+      SourceFileModel = [ ];
+      ExclusionModel = map (pattern: {
+        name = pattern;
+        enabled = true;
+        source = "custom";
+      }) borgExcludePatterns;
+      WifiSettingModel = [ ];
+      SchemaVersion = {
+        id = 1;
+        version = 23;
+        changed_at = "2026-08-18 00:00:00";
+      };
+      SettingsModel = [
+        {
+          key = "autostart";
+          value = true;
+          str_value = "";
+          label = "Automatically start Vorta at login";
+          group = "Startup";
+          tooltip = "Add Vorta to the systems autostart list";
+          type = "checkbox";
+        }
+        {
+          key = "foreground";
+          value = false;
+          str_value = "";
+          label = "Show main window of Vorta on launch";
+          group = "Startup";
+          tooltip = "Make Vorta appear on screen instead of minimizing to system tray";
+          type = "checkbox";
+        }
+        {
+          key = "check_for_updates";
+          value = false;
+          str_value = "";
+          label = "Check for updates on startup";
+          group = "Updates";
+          tooltip = "Uses Sparkle to find new updates published on Github.";
+          type = "checkbox";
+        }
+      ];
+    }
+  );
 in
 {
+  # Do not link ~/.vorta-init.json with home.file: Vorta unlinks a successful
+  # import, and Home Manager would recreate it on every activation. Copy it
+  # only before Vorta has a database. If a previous managed copy survived a
+  # failed or interrupted import, discard it once a database exists so Vorta's
+  # overwrite import path can never replace established profiles or settings.
+  home.activation.installVortaBootstrap = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    vorta_db="$HOME/Library/Application Support/Vorta/settings.db"
+    bootstrap="$HOME/.vorta-init.json"
+
+    if [ -e "$vorta_db" ]; then
+      if [ -e "$bootstrap" ] && ${pkgs.diffutils}/bin/cmp --silent ${lib.escapeShellArg vortaBootstrap} "$bootstrap"; then
+        $DRY_RUN_CMD ${pkgs.coreutils}/bin/rm -f "$bootstrap"
+      fi
+    elif [ ! -e "$bootstrap" ]; then
+      $DRY_RUN_CMD ${pkgs.coreutils}/bin/cp ${lib.escapeShellArg vortaBootstrap} "$bootstrap"
+      $DRY_RUN_CMD ${pkgs.coreutils}/bin/chmod 600 "$bootstrap"
+    fi
+  '';
+
   # Notifications are a desktop concern. The shared shell initialization uses
   # mkAfter (order 1500); order 1600 keeps this after zinit itself is loaded
   # while excluding unattended server Macs and NixOS hosts entirely.

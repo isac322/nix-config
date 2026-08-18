@@ -287,11 +287,15 @@
         "bhyoo-macbook-pro" = mkDarwin {
           hostname = "bhyoo-macbook-pro";
           role = "server";
+          extraModules = [ (import ./modules/borg-backup.nix { platform = "darwin"; }) ];
         };
       };
 
       nixosConfigurations = {
-        server = mkNixos { hostname = "server"; };
+        server = mkNixos {
+          hostname = "server";
+          extraModules = [ (import ./modules/borg-backup.nix { platform = "linux"; }) ];
+        };
       };
     };
 }
