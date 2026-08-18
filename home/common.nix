@@ -675,13 +675,6 @@ in
       force = true;
     };
 
-    # The register, next to the links it describes. Written whole, so it also
-    # decides what is *not* installed — a plugin dropped from the set above
-    # leaves omp on the next switch rather than lingering.
-    ".omp/plugins/omp-plugins.lock.json".text = builtins.toJSON ompPluginsLock;
-  }
-  // builtins.listToAttrs (
-    map (name: {
     # Orca drops this user-level OMP configuration outside the flake's tracked
     # source tree. Keep the reviewed copy under home/files so every macOS and
     # NixOS generation can install it without depending on ignored local state.
@@ -690,6 +683,13 @@ in
       force = true;
     };
 
+    # The register, next to the links it describes. Written whole, so it also
+    # decides what is *not* installed — a plugin dropped from the set above
+    # leaves omp on the next switch rather than lingering.
+    ".omp/plugins/omp-plugins.lock.json".text = builtins.toJSON ompPluginsLock;
+  }
+  // builtins.listToAttrs (
+    map (name: {
       name = ".omp/plugins/node_modules/${name}";
       value.source = "${pkgs.omp-plugins}/node_modules/${name}";
     }) (builtins.attrNames ompPlugins)
