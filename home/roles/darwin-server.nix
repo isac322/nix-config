@@ -173,16 +173,30 @@ let
     fi
 
     # Never stop a running VM from activation. OrbStack can leave its helper in
-    # an unkillable macOS exit state when a bounded client interrupts shutdown;
-    # that blocks every later start until reboot. A running instance keeps
-    # serving containers and picks up changed engine settings on its next
-    # ordinary reboot. Only a stopped instance is started here.
+    # an unkillable macOS exit state when shutdown is interrupted; that blocks
+    # every later start until reboot. A running instance keeps serving
+    # containers and picks up changed engine settings on its next ordinary
+    # reboot.
     if run_orb status >/dev/null 2>&1; then
       echo "orbstack-start: already running; settings apply on the next restart." >&2
       exit 0
     fi
 
+    # Do not add another spawn attempt behind a helper already stuck in
+    # macOS's exit state. `kill -9`, even as root, cannot advance that state.
+    if /bin/ps -axo state=,command= |
+      /usr/bin/awk '$1 ~ /E/ && index($0, "(OrbStack Helper)") { found = 1 } END { exit !found }'; then
+      echo "orbstack-start: stale exiting OrbStack Helper found; deferred until reboot." >&2
+      exit 0
+    fi
+
     if ! ${timeout} -k 5 60 ${orb} start; then
+      # OrbStack's spawn helper double-forks out of timeout's process group.
+      # Remove only that failed start helper so it cannot accumulate behind a
+      # later attempt; the VM manager and running containers do not match.
+      /usr/bin/pkill -9 -f \
+        "/Applications/OrbStack.app/Contents/Frameworks/OrbStack Helper.app/Contents/MacOS/OrbStack Helper spawn-daemon" \
+        >/dev/null 2>&1 || true
       echo "orbstack-start: startup failed or timed out." >&2
     fi
   '';
