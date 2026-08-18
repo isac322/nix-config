@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "agent-toolkit": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1772729184,
+        "narHash": "sha256-1q4IP55kvZhJibTLJct0SSifw46lBmAQhp9nSmDzYxs=",
+        "owner": "softaworks",
+        "repo": "agent-toolkit",
+        "rev": "3027f20f3181758385a1bb8c022d4041dfb4de84",
+        "type": "github"
+      },
+      "original": {
+        "owner": "softaworks",
+        "repo": "agent-toolkit",
+        "type": "github"
+      }
+    },
     "brew-src": {
       "flake": false,
       "locked": {
@@ -165,6 +181,22 @@
         "type": "github"
       }
     },
+    "gentle-ai": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787049459,
+        "narHash": "sha256-9cHrUM3pF+nHRKJOldaFWVFRnaMLYzyZnuTTdvwDADA=",
+        "owner": "Gentleman-Programming",
+        "repo": "gentle-ai",
+        "rev": "a245f2605841fbaf68c140b584f5fb4b9a5aa4aa",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Gentleman-Programming",
+        "repo": "gentle-ai",
+        "type": "github"
+      }
+    },
     "git-hooks-nix": {
       "inputs": {
         "flake-compat": "flake-compat",
@@ -209,6 +241,22 @@
         "owner": "nix-community",
         "ref": "master",
         "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "humanizer": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787014743,
+        "narHash": "sha256-Ksnqw7f8USPoh9GA1Jer9bfu1UfW8m8MfHpMEdCzYHY=",
+        "owner": "blader",
+        "repo": "humanizer",
+        "rev": "ebf637bdae86b62a7b006c447bb98cfa0ccc979d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "blader",
+        "repo": "humanizer",
         "type": "github"
       }
     },
@@ -408,14 +456,18 @@
     },
     "root": {
       "inputs": {
+        "agent-toolkit": "agent-toolkit",
         "determinate": "determinate",
+        "gentle-ai": "gentle-ai",
         "home-manager": "home-manager",
+        "humanizer": "humanizer",
         "llm-agents": "llm-agents",
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",
         "nixpkgs": "nixpkgs_4",
         "nixpkgs-firefox-darwin": "nixpkgs-firefox-darwin",
-        "skillclaw": "skillclaw"
+        "skillclaw": "skillclaw",
+        "superpowers": "superpowers"
       }
     },
     "skillclaw": {
@@ -431,6 +483,22 @@
       "original": {
         "owner": "AMAP-ML",
         "repo": "SkillClaw",
+        "type": "github"
+      }
+    },
+    "superpowers": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786553601,
+        "narHash": "sha256-EsGNO0dULWf5Bx6bGrCv2kI2Z8aKH0kRvGiuN23wChQ=",
+        "owner": "obra",
+        "repo": "superpowers",
+        "rev": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+        "type": "github"
+      },
+      "original": {
+        "owner": "obra",
+        "repo": "superpowers",
         "type": "github"
       }
     },

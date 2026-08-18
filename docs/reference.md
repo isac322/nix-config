@@ -204,6 +204,20 @@ x86_64-linux·aarch64-linux 를 모두 빌드해서 리눅스 서버에서도 �
 **Orca 는 여기 없다.** GUI 앱이라 cask 로 오고, 그래서 맥 둘에만 있다 —
 위 [GUI 앱](#gui-앱) 을 보라.
 
+### Agent Skills — 검토한 공개 소스는 Nix가 고정
+
+`home/agent-skills.nix`는 검토한 공개 skill repository를 `flake = false` input으로
+받고 `flake.lock`의 revision을 모든 노드에 동일하게 배포한다. switch 때 선택한
+skill directory를 `skills add --global --agent amp --copy`와 같은 형태로
+`~/.agents/skills/<name>`에 복사하므로, 하네스가 보는 파일 배치는 수동 설치와 같다.
+업데이트와 rollback은 시스템 generation을 따른다.
+
+이 이름들은 SkillClaw가 공유 backend로 push하지만 pull에서는 보호한다. 그래서
+cloud의 이전 복사본이 방금 switch한 Nix revision을 덮지 못한다. mutable하게 생성한
+나머지 스킬만 일반적인 pull-then-push 및 evolve 대상이다. 목록과 업데이트 절차는
+[운영](operations.md#nix-고정-agent-skills-모든-노드)에 있다.
+
+
 ### SkillClaw — 로컬 클라이언트 셋, 공유 백엔드는 하나
 
 `home/skillclaw.nix`가 `skillclaw` 0.4.0을 flake input의 고정한 소스에서 Python

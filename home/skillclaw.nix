@@ -16,6 +16,18 @@ let
     src = inputs.skillclaw;
     pyproject = true;
 
+    # Upstream pulls before it pushes. Nix-managed skills must not be
+    # replaced by an older remote copy just before their pinned revision is
+    # uploaded, so every pull merges names from this environment variable into
+    # its explicit skip set. Local-only skills retain the normal pull-then-push
+    # flow.
+    postPatch = ''
+      substituteInPlace skillclaw/skill_hub.py \
+        --replace-fail \
+        '        skip_set = {str(name or "").strip() for name in (skip_names or []) if str(name or "").strip()}' \
+        '        skip_set = {str(name or "").strip() for name in (skip_names or []) if str(name or "").strip()}; skip_set.update(name.strip() for name in os.environ.get("SKILLCLAW_SYNC_SKIP_PULL", "").split(",") if name.strip())'
+    '';
+
     build-system = [
       py.setuptools
       py.wheel
@@ -38,6 +50,7 @@ let
     doCheck = false;
     pythonImportsCheck = [
       "skillclaw"
+      "skillclaw.skill_hub"
       "evolve_server"
     ];
 
@@ -177,6 +190,7 @@ let
     runtimeInputs = [ skillclaw ];
     text = ''
       ${lib.getExe configure}
+      export SKILLCLAW_SYNC_SKIP_PULL=${lib.escapeShellArg (lib.concatStringsSep "," cfg.syncSkipPullNames)}
       exec skillclaw skills sync
     '';
   };
@@ -270,6 +284,12 @@ in
       type = lib.types.ints.positive;
       default = 300;
       description = "Seconds between bidirectional shared-skill syncs.";
+    };
+
+    syncSkipPullNames = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Local skill names preserved during the pull half of bidirectional synchronization.";
     };
 
     evolve = {

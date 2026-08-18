@@ -30,6 +30,25 @@
       flake = false;
     };
 
+    # Public Agent Skills are source trees, not flakes. flake.lock pins the
+    # exact revisions installed by home/agent-skills.nix on every node.
+    gentle-ai = {
+      url = "github:Gentleman-Programming/gentle-ai";
+      flake = false;
+    };
+    humanizer = {
+      url = "github:blader/humanizer";
+      flake = false;
+    };
+    superpowers = {
+      url = "github:obra/superpowers";
+      flake = false;
+    };
+    agent-toolkit = {
+      url = "github:softaworks/agent-toolkit";
+      flake = false;
+    };
+
     # Lets nix-darwin manage /etc/nix/nix.custom.conf declaratively. It forces
     # `nix.enable = false`, leaving /etc/nix/nix.conf to Determinate Nix.
     # No `follows` here either: upstream advises against it (FlakeHub cache).

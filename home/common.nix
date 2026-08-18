@@ -300,7 +300,10 @@ let
   };
 in
 {
-  imports = [ ./skillclaw.nix ];
+  imports = [
+    ./agent-skills.nix
+    ./skillclaw.nix
+  ];
 
   # Every node runs a local SkillClaw client and synchronizes the cross-harness
   # Agent Skills directory through the user's external S3 backend. Only the
@@ -677,11 +680,6 @@ in
     ".vim/swap/.keep".text = "";
     ".vim/backup/.keep".text = "";
 
-    # Shared Agent Skills
-    ".agents/skills/gcloud-camofox-adc-auth/SKILL.md" = {
-      source = ./skills/gcloud-camofox-adc-auth/SKILL.md;
-      force = true;
-    };
   }
   // {
     # The complete user-level MCP registry. `force` performs the one-time

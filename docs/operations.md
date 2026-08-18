@@ -124,6 +124,40 @@ cat /var/run/wireguard-addresses   # 데몬이 발행한 주소. Orca·Camofox·
 않는다. `wg-quick up` 은 인터페이스를 올리고 끝나므로 데몬이 계속 떠 있지 않는
 것이 정상이다. 살아 있게 하는 것은 wg-quick 이 떼어 놓는 `wireguard-go` 다.
 
+## Nix 고정 Agent Skills (모든 노드)
+
+검토한 공개 스킬은 `skills update`가 아니라 `flake.lock`으로 버전을 고정한다.
+`home/agent-skills.nix`가 switch 때 `skills add --global --agent amp --copy`와 같은
+디렉터리 내용을 `~/.agents/skills`에 복사한다.
+
+- `Gentleman-Programming/gentle-ai`: `comment-writer`
+- `blader/humanizer`: `humanizer`
+- `obra/superpowers`: `receiving-code-review`
+- `softaworks/agent-toolkit`: `writing-clearly-and-concisely`
+
+`humanizer`는 repository root의 `SKILL.md`가 canonical entrypoint라서 repository
+전체가 설치된다. 나머지는 각 repository의 선택한 skill directory만 설치된다.
+
+네 upstream만 갱신하고 배포하는 절차:
+
+```sh
+nix flake update gentle-ai humanizer superpowers agent-toolkit
+nix flake check
+darwin-rebuild build --flake .#<hostname>
+sudo darwin-rebuild switch --flake .#<hostname>
+```
+
+새 input을 처음 추가할 때는 `nix flake lock`이 기존 input을 재해석하지 않고 누락된
+lock node만 만든다. 이후에는 위처럼 이름을 지정해 갱신한다. 설치 내용의 최종
+authority는 `flake.lock`이므로 이 네 이름을 `skills update`나 evolve worker로 직접
+수정하지 않는다.
+
+SkillClaw의 주기 sync와 로그인 shell은 이 이름들을
+`SKILLCLAW_SYNC_SKIP_PULL`로 **pull에서만 제외하고 push에는 포함한다.** 따라서
+cloud에 남은 이전 revision이 switch 직후의 Nix 복사본을 되돌리지 않으며, 새로
+고정한 revision은 다음 sync에서 공유 backend로 올라간다.
+
+
 ## SkillClaw 공유 스킬 (모든 노드)
 
 `skillclaw` 클라이언트와 5분 주기 동기화는 모든 노드에 설치된다. 저장소는 이
@@ -176,7 +210,7 @@ Nix store에는 어느 비밀도 들어가지 않는다. 런타임 wrapper가 �
 ```sh
 skillclaw config show
 skillclaw skills list-remote
-skillclaw skills sync
+skillclaw-sync
 curl http://127.0.0.1:30000/healthz   # llm.env를 둔 노드
 ```
 
