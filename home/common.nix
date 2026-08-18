@@ -333,16 +333,16 @@ in
 
   home.stateVersion = "26.05";
 
-  # GOPATH contains durable user data as well as caches, so its XDG home is
-  # data rather than cache. Keep downloaded modules in the disposable cache
-  # tree, and put `go install` executables in the conventional user bin path.
-  # Session variables leave Go's own mutable GOENV file available for unrelated
-  # `go env -w` settings instead of replacing it with a read-only store symlink.
+  # In module-aware Go, GOPATH is the root for module and checksum caches.
+  # Keep that root under XDG_CACHE_HOME. GOMODCACHE then needs no override:
+  # Go derives it as $GOPATH/pkg/mod. `go install` output is durable, so GOBIN
+  # stays in the conventional user bin path instead of under the cache root.
+  # Session variables also leave Go's mutable GOENV file available for
+  # unrelated `go env -w` settings.
   home.sessionPath = [ "${config.home.homeDirectory}/.local/bin" ];
   home.sessionVariables = {
     GOBIN = "${config.home.homeDirectory}/.local/bin";
-    GOMODCACHE = "${config.home.homeDirectory}/.cache/go/mod";
-    GOPATH = "${config.home.homeDirectory}/.local/share/go";
+    GOPATH = "${config.home.homeDirectory}/.cache/go";
   };
 
   home.packages = [
