@@ -33,7 +33,11 @@ Retrieve the OAuth authorization URL from process stdout/logs (`https://accounts
    - Snapshot ref IDs (e.g. `e1`, `e2`) change per session; inspect snapshot output dynamically to find the email input field (or use selector `input[type="email"]` / `#identifierId`).
    - Type email (`isac@runbear.io`) and submit (press Enter or click Next).
 3. **Password Entry**:
-   - Read password from `~/.pass`.
+   - Retrieve password from macOS Keychain:
+     ```bash
+     security find-generic-password -a "isac@runbear.io" -s "google-login" -w
+     ```
+     *(Fallback: read `~/.pass` if Keychain lookup is unavailable).*
    - Type into `input[type="password"]` and submit.
 4. **2-Step Verification (2FA)**:
    - **DO NOT** attempt to bypass or simulate hardware 2FA / push notifications.
