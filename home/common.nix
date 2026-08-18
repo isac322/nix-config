@@ -602,6 +602,14 @@ in
   }
   // builtins.listToAttrs (
     map (name: {
+    # Orca drops this user-level OMP configuration outside the flake's tracked
+    # source tree. Keep the reviewed copy under home/files so every macOS and
+    # NixOS generation can install it without depending on ignored local state.
+    ".omp/agent/config.yml" = {
+      source = ./files/omp-agent-config.yml;
+      force = true;
+    };
+
       name = ".omp/plugins/node_modules/${name}";
       value.source = "${pkgs.omp-plugins}/node_modules/${name}";
     }) (builtins.attrNames ompPlugins)

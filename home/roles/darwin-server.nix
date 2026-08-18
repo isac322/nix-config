@@ -84,6 +84,7 @@ let
   # when the LaunchAgent first runs: nix-darwin does not promise an ordering
   # between its Homebrew activation and home-manager's user activation.
   orb = "/opt/homebrew/bin/orb";
+  timeout = lib.getExe' pkgs.coreutils "timeout";
 
   orbstackStart = pkgs.writeShellScript "orbstack-start" ''
     set -u
@@ -92,17 +93,15 @@ let
     # then the same declarative profiles used by the other server agents.
     export PATH=/opt/homebrew/bin:/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
-    # The cask creates the shim, but neither the app nor the shim is safe to
-    # assume during the first switch. A failed first attempt is retryable by the
-    # LaunchAgent and must never abort home-manager activation.
+    # The cask and home-manager activations have no ordering contract. Missing
+    # prerequisites are therefore a clean one-shot deferral, never a retry loop
+    # that can keep an unattended login session busy forever.
     if ! command -v orb >/dev/null 2>&1; then
       if [ ! -d /Applications/OrbStack.app ]; then
-        echo "orbstack-start: OrbStack is not installed yet; retrying." >&2
-        exit 1
+        echo "orbstack-start: OrbStack is not installed yet; deferred." >&2
+        exit 0
       fi
 
-      # First launch performs OrbStack's per-user bootstrap. Keep it in the
-      # background; this server already has an Aqua session through auto-login.
       /usr/bin/open -gj -a OrbStack
 
       waited=0
@@ -113,25 +112,49 @@ let
     fi
 
     if ! command -v orb >/dev/null 2>&1; then
-      echo "orbstack-start: orb CLI unavailable after 60s; retrying." >&2
-      exit 1
+      echo "orbstack-start: orb CLI unavailable after 60s; deferred." >&2
+      exit 0
     fi
 
-    # Headless setup must not stop at an invisible administrator prompt. Leave
-    # one CPU and 8 GiB to macOS, Orca and Camofox; the rest is available to the
-    # Docker VM. Rosetta keeps unavoidable amd64 builds and images off QEMU,
-    # while Kubernetes stays off because this host only asked for Docker.
-    ${orb} config set setup.use_admin false
-    ${orb} config set cpu 10
-    ${orb} config set memory_mib 28672
-    ${orb} config set rosetta true
-    ${orb} config set k8s.enable false
-    ${orb} config set docker.set_context true
+    # OrbStack enables Rosetta by default and otherwise opens a GUI installer
+    # that blocks forever on this headless session. softwareupdate is
+    # non-interactive with --agree-to-license, and the store-pinned timeout
+    # kills its whole command group if Apple’s updater stops making progress.
+    if ! /usr/sbin/pkgutil --pkg-info com.apple.pkg.RosettaUpdateAuto >/dev/null 2>&1; then
+      if ! ${timeout} -k 5 180 /usr/sbin/softwareupdate \
+        --install-rosetta --agree-to-license; then
+        echo "orbstack-start: Rosetta installation failed or timed out; deferred." >&2
+        exit 0
+      fi
+    fi
 
-    # Resource and Rosetta changes take effect after a restart. A missing
-    # runtime is harmless here; the start below is the desired final state.
-    ${orb} stop >/dev/null 2>&1 || true
-    exec ${orb} start
+    run_orb() {
+      ${timeout} -k 5 30 ${orb} "$@"
+    }
+
+    # Leave one CPU and 8 GiB to macOS, Orca and Camofox. Every command is
+    # bounded separately; a failed setting leaves a diagnostic and stops this
+    # one-shot agent rather than spawning another invisible retry.
+    configure_orbstack() {
+      run_orb config set setup.use_admin false &&
+        run_orb config set cpu 10 &&
+        run_orb config set memory_mib 28672 &&
+        run_orb config set rosetta true &&
+        run_orb config set k8s.enable false &&
+        run_orb config set docker.set_context true
+    }
+
+    if ! configure_orbstack; then
+      echo "orbstack-start: configuration failed or timed out; deferred." >&2
+      exit 0
+    fi
+
+    # Resource and Rosetta changes take effect after a restart. Both operations
+    # are bounded so a wedged VM manager cannot outlive this LaunchAgent.
+    run_orb stop >/dev/null 2>&1 || true
+    if ! ${timeout} -k 5 60 ${orb} start; then
+      echo "orbstack-start: startup failed or timed out." >&2
+    fi
   '';
 
   orcaServe = pkgs.writeShellScript "orca-serve" ''
@@ -271,15 +294,14 @@ in
 
   # OrbStack is a user application, not a root daemon. The server already
   # creates an Aqua session automatically for Orca and Camofox, so a LaunchAgent
-  # is the reliable reboot path here as well. The wrapper tolerates either side
-  # of the Homebrew/home-manager activation order and retries only failures.
+  # is the reliable reboot path here as well. It is deliberately one-shot:
+  # every external operation in the wrapper is bounded, and a prerequisite
+  # failure waits for the next login or switch instead of retrying forever.
   launchd.agents.orbstack = {
     enable = true;
     config = {
       ProgramArguments = [ "${orbstackStart}" ];
       RunAtLoad = true;
-      KeepAlive.SuccessfulExit = false;
-      ThrottleInterval = 30;
       StandardOutPath = "${config.home.homeDirectory}/Library/Logs/orbstack.log";
       StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/orbstack.log";
     };

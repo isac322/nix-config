@@ -1,0 +1,123 @@
+providers:
+  webSearchGeminiModel: gemini-3.5-flash-lite
+  anthropic:
+    serverSideFallback: false
+  kimiApiFormat: openai
+retry:
+  fallbackChains:
+    {}
+setupVersion: 1
+statusLine:
+  preset: nerd
+  separator: powerline
+  transparent: false
+  compactThinkingLevel: false
+  showHookStatus: true
+  sessionAccent: true
+terminal:
+  showProgress: true
+tui:
+  textSizing: false
+  renderMermaid: true
+  tight: true
+  scrollbackRebuild: true
+  codexResetFireworks: true
+  imeSafeCursor: true
+display:
+  showTokenUsage: true
+  shimmer: classic
+  cacheMissMarker: true
+  collapseCompacted: false
+memory:
+  backend: hindsight
+autolearn:
+  enabled: true
+  autoContinue: true
+bash:
+  autoBackground:
+    enabled: true
+bashInterceptor:
+  enabled: true
+astGrep:
+  enabled: true
+checkpoint:
+  enabled: true
+github:
+  enabled: true
+task:
+  eager: default
+  isolation:
+    mode: auto
+    merge: patch
+    commits: ai
+  showResolvedModelBadge: true
+  agentAdvisor:
+    task: "off"
+  agentModelOverrides:
+    librarian: anthropic/claude-sonnet-5:medium
+    sonic: openai-codex/gpt-5.6-luna:low
+    security-reviewer: "@slow"
+modelRoles:
+  slow: anthropic/claude-opus-5:xhigh
+  designer: anthropic/claude-opus-5:xhigh
+  task: openai-codex/gpt-5.6-sol
+  plan: anthropic/claude-opus-5:xhigh
+  vision: google/gemini-3.7-flash:high
+  commit: openai-codex/gpt-5.6-luna:low
+  advisor: anthropic/claude-opus-5:high
+  tiny: google/gemini-3.5-flash-lite:minimal
+  smol: google/gemini-3.7-flash:medium
+  default: openai-codex/gpt-5.6-sol:high
+  TRIVIAL: openai-codex/gpt-5.6-terra:high
+enabledModels:
+  []
+hideThinkingBlock: false
+read:
+  summarize:
+    enabled: true
+    prose: false
+lsp:
+  formatOnWrite: false
+edit:
+  mode: hashline
+hindsight:
+  apiUrl: https://hindsight-api.bhyoo.com
+  scoping: per-project
+compaction:
+  strategy: snapcompact
+worktree:
+  base: ""
+stt:
+  enabled: true
+  modelName: parakeet
+  submitTrigger: never
+advisor:
+  enabled: true
+tier:
+  advisor: inherit
+  openai: auto
+  anthropic: none
+  google: priority
+  subagent: inherit
+textVerbosity: medium
+prewalk:
+  enabled: false
+cycleOrder:
+  - default
+  - TRIVIAL
+browser:
+  headless: true
+  enabled: false
+snapcompact:
+  toolResults: true
+web_search:
+  enabled: false
+tts:
+  localModel: kokoro
+symbolPreset: nerd
+dev:
+  autoqaConsent: granted
+error:
+  notify: "off"
+features:
+  unexpectedStopDetection: true
