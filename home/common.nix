@@ -104,6 +104,28 @@ let
     };
   };
 
+  # Go has two independent caches. Keep the module cache in GOPATH so it is
+  # persistent user state, and put disposable compiler outputs in each OS's
+  # native cache directory. Writing Go's own environment file makes these
+  # defaults apply to GUI-launched agents and daemons as well as shells.
+  goPath = "${config.home.homeDirectory}/go";
+  goModCache = "${goPath}/pkg/mod";
+  goBuildCache =
+    if pkgs.stdenv.hostPlatform.isDarwin then
+      "${config.home.homeDirectory}/Library/Caches/go-build"
+    else
+      "${config.home.homeDirectory}/.cache/go-build";
+  goEnvTarget =
+    if pkgs.stdenv.hostPlatform.isDarwin then
+      "Library/Application Support/go/env"
+    else
+      ".config/go/env";
+  goEnv = ''
+    GOCACHE=${goBuildCache}
+    GOMODCACHE=${goModCache}
+    GOPATH=${goPath}
+  '';
+
   # Zinit remains the loader, but every plugin it loads comes from the
   # flake-pinned nixpkgs closure. Absolute Nix store paths are treated as local
   # plugins, so opening a shell never clones, fetches, updates or writes plugin
@@ -656,6 +678,14 @@ in
     # cache makes clean worktrees and branch changes reusable without a daemon.
     "${sccacheConfigTarget}" = {
       source = tomlFormat.generate "sccache-config.toml" sccacheConfig;
+      force = true;
+    };
+
+    # This is the file `go env -w` would mutate. Managing it here keeps cache
+    # placement identical outside interactive shells while project or process
+    # environment variables remain free to override these user-level defaults.
+    "${goEnvTarget}" = {
+      text = goEnv;
       force = true;
     };
 
