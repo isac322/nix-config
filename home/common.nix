@@ -2,6 +2,7 @@
 # This is the bulk of the setup; the per-platform files add only what genuinely
 # cannot be expressed the same way on both.
 {
+  config,
   lib,
   pkgs,
   inputs,
@@ -50,6 +51,58 @@ let
     poetryPackages.poetry-plugin-export
     poetryPackages.poetry-plugin-shell
   ]);
+
+  # Cargo reads this user-level configuration after project-local files, so
+  # repositories can override any choice that does not fit their build. Store
+  # paths keep GUI applications, daemons, and shells on the same toolchain.
+  tomlFormat = pkgs.formats.toml { };
+  rustTarget = pkgs.stdenv.hostPlatform.rust.rustcTarget;
+  rustLinker =
+    if pkgs.stdenv.hostPlatform.isDarwin then "${pkgs.lld}/bin/ld64.lld" else lib.getExe pkgs.mold;
+  cargoConfig = {
+    build."rustc-wrapper" = lib.getExe pkgs.sccache;
+    target.${rustTarget} = {
+      linker = lib.getExe pkgs.clang;
+      rustflags = [
+        "-C"
+        "link-arg=-fuse-ld=${rustLinker}"
+      ];
+    };
+    profile = {
+      dev = {
+        debug = "line-tables-only";
+        package."*".debug = false;
+      };
+      test = {
+        debug = "line-tables-only";
+        package."*".debug = false;
+      };
+      debugging = {
+        inherits = "dev";
+        debug = true;
+      };
+    };
+  };
+
+  # sccache starts its local server on demand. The cache stays outside the Nix
+  # store, while basedirs makes equivalent worktrees share compiler results.
+  sccacheConfigTarget =
+    if pkgs.stdenv.hostPlatform.isDarwin then
+      "Library/Application Support/Mozilla.sccache/config"
+    else
+      ".config/sccache/config";
+  sccacheCacheDir =
+    if pkgs.stdenv.hostPlatform.isDarwin then
+      "${config.home.homeDirectory}/Library/Caches/Mozilla.sccache"
+    else
+      "${config.home.homeDirectory}/.cache/sccache";
+  sccacheConfig = {
+    basedirs = [ config.home.homeDirectory ];
+    cache.disk = {
+      dir = sccacheCacheDir;
+      size = 20 * 1024 * 1024 * 1024;
+    };
+  };
 
   # Zinit remains the loader, but every plugin it loads comes from the
   # flake-pinned nixpkgs closure. Absolute Nix store paths are treated as local
@@ -206,7 +259,13 @@ let
     "$schema" = "https://json.schemastore.org/claude-code-settings.json";
     statusLine = {
       type = "command";
-      command = "bash ~/.claude/statusline-command.sh";
+      command = "PATH=${
+        lib.makeBinPath [
+          pkgs.bash
+          pkgs.jq
+          pkgs.coreutils
+        ]
+      } ${lib.getExe pkgs.bash} \"$HOME/.claude/statusline-command.sh\"";
     };
     language = "한국어";
     alwaysThinkingEnabled = true;
@@ -330,10 +389,9 @@ in
     pkgs.zpaq
     pkgs.zstd
 
-    # Pin the status line's Bash and jq runtimes so its parser behaves
-    # identically on every node. The system macOS /bin/bash 3.2 accepts the
-    # syntax but, in a direct check here, left the SOH-delimited jq output
-    # unsplit; the managed Bash 5 profile splits it as intended.
+    # Keep these runtimes available in interactive profiles. The statusLine
+    # command above also embeds their store paths, so Dock/Spotlight launches
+    # do not depend on a Home Manager PATH or fall back to macOS /bin/bash 3.2.
     pkgs.bash
     pkgs.jq
 
@@ -410,12 +468,13 @@ in
     # home/darwin.nix; nobody has asked for it away from a Mac.
     pkgs.actionlint
 
-    # Shared native-build tools. Installation alone is intentional: projects
-    # decide whether to select sccache as a compiler wrapper or mold as a linker.
-    # nixpkgs' Darwin bintools wrapper injects ld64 flags that mold rejects, so
-    # expose the working unwrapped CLI there; Linux keeps the normal wrapper.
+    # Shared native-build tools, configured below as Cargo defaults. Native
+    # Darwin builds use LLD's Mach-O linker; mold-unwrapped remains available
+    # there for ELF work because nixpkgs' Darwin wrapper injects rejected ld64
+    # flags. Linux Cargo builds use the normal mold wrapper.
     pkgs.sccache
-    (if pkgs.stdenv.isDarwin then pkgs.mold-unwrapped else pkgs.mold)
+    pkgs.lld
+    (if pkgs.stdenv.hostPlatform.isDarwin then pkgs.mold-unwrapped else pkgs.mold)
   ];
 
   programs.git = {
@@ -576,6 +635,20 @@ in
     ".claude/statusline-command.sh" = {
       source = ./claude/statusline-command.sh;
       executable = true;
+      force = true;
+    };
+
+    # Global Rust defaults. Project-local Cargo configuration takes precedence,
+    # and `cargo build --profile debugging` restores full dev debug information.
+    ".cargo/config.toml" = {
+      source = tomlFormat.generate "cargo-config.toml" cargoConfig;
+      force = true;
+    };
+
+    # Upstream's native config location differs by OS. A bounded persistent
+    # cache makes clean worktrees and branch changes reusable without a daemon.
+    "${sccacheConfigTarget}" = {
+      source = tomlFormat.generate "sccache-config.toml" sccacheConfig;
       force = true;
     };
 
