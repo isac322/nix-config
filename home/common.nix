@@ -330,10 +330,10 @@ in
     pkgs.zpaq
     pkgs.zstd
 
-    # The managed Claude status line requires a modern Bash for its SOH field
-    # splitting and jq for the single-pass JSON parse. Declare both explicitly
-    # so `bash ~/.claude/statusline-command.sh` resolves identically on every
-    # node rather than falling back to macOS /bin/bash 3.2.
+    # Pin the status line's Bash and jq runtimes so its parser behaves
+    # identically on every node. The system macOS /bin/bash 3.2 accepts the
+    # syntax but, in a direct check here, left the SOH-delimited jq output
+    # unsplit; the managed Bash 5 profile splits it as intended.
     pkgs.bash
     pkgs.jq
 
@@ -409,6 +409,13 @@ in
     # same shape of tool for Dockerfiles and is still Mac-only in
     # home/darwin.nix; nobody has asked for it away from a Mac.
     pkgs.actionlint
+
+    # Shared native-build tools. Installation alone is intentional: projects
+    # decide whether to select sccache as a compiler wrapper or mold as a linker.
+    # nixpkgs' Darwin bintools wrapper injects ld64 flags that mold rejects, so
+    # expose the working unwrapped CLI there; Linux keeps the normal wrapper.
+    pkgs.sccache
+    (if pkgs.stdenv.isDarwin then pkgs.mold-unwrapped else pkgs.mold)
   ];
 
   programs.git = {
