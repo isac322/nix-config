@@ -348,9 +348,18 @@ let
     }
     trap terminate TERM INT
 
+    if ! beforeDisplayState=$(${pkgs.displayplacer}/bin/displayplacer list 2>/dev/null); then
+      echo "camofox-browser: could not read displays before starting DeskPad." >&2
+      exit 1
+    fi
+    beforeDisplayIds=$(printf '%s\n' "$beforeDisplayState" |
+      /usr/bin/awk '$1 == "Contextual" && $2 == "screen" && $3 == "id:" { print $4 }' |
+      /usr/bin/tr '\n' ' ')
+
     ${pkgs.deskpad}/Applications/DeskPad.app/Contents/MacOS/DeskPad &
     deskpadPid=$!
 
+    deskpadDisplayId=""
     waited=0
     while [ "$waited" -lt 30 ]; do
       if ! /bin/kill -0 "$deskpadPid" 2>/dev/null; then
@@ -360,22 +369,65 @@ let
         echo "camofox-browser: DeskPad exited before creating its display." >&2
         exit "$status"
       fi
-      displayState=$(${pkgs.displayplacer}/bin/displayplacer list 2>/dev/null || true)
-      case "$displayState" in
-        *"Serial screen id: s1"*) break ;;
-      esac
+
+      if afterDisplayState=$(${pkgs.displayplacer}/bin/displayplacer list 2>/dev/null); then
+        afterDisplayIds=$(printf '%s\n' "$afterDisplayState" |
+          /usr/bin/awk '$1 == "Contextual" && $2 == "screen" && $3 == "id:" { print $4 }' |
+          /usr/bin/tr '\n' ' ')
+        newDisplayId=""
+        newDisplayCount=0
+        for displayId in $afterDisplayIds; do
+          case " $beforeDisplayIds " in
+            *" $displayId "*) ;;
+            *)
+              newDisplayId=$displayId
+              newDisplayCount=$((newDisplayCount + 1))
+              ;;
+          esac
+        done
+        if [ "$newDisplayCount" -eq 1 ]; then
+          deskpadDisplayId=$newDisplayId
+          break
+        fi
+        if [ "$newDisplayCount" -gt 1 ]; then
+          echo "camofox-browser: DeskPad created multiple displays; refusing an ambiguous selection." >&2
+          stopChildren
+          exit 1
+        fi
+      fi
+
       /bin/sleep 1
       waited=$((waited + 1))
     done
-    if [ "$waited" -ge 30 ]; then
+    if [ -z "$deskpadDisplayId" ]; then
       echo "camofox-browser: DeskPad display was not ready after 30s." >&2
       stopChildren
       exit 1
     fi
 
     if ! ${pkgs.displayplacer}/bin/displayplacer \
-      "id:s1 res:${toString camofoxCfg.displayWidth}x${toString camofoxCfg.displayHeight} hz:60 color_depth:4 scaling:off origin:(0,0) degree:0"; then
-      echo "camofox-browser: could not configure the DeskPad display." >&2
+      "id:$deskpadDisplayId res:${toString camofoxCfg.displayWidth}x${toString camofoxCfg.displayHeight} hz:60 color_depth:4 scaling:off origin:(0,0) degree:0"; then
+      echo "camofox-browser: could not configure DeskPad display $deskpadDisplayId." >&2
+      stopChildren
+      exit 1
+    fi
+
+    if ! configuredDisplayState=$(${pkgs.displayplacer}/bin/displayplacer list 2>/dev/null) ||
+      ! printf '%s\n' "$configuredDisplayState" |
+        /usr/bin/awk \
+          -v id="$deskpadDisplayId" \
+          -v expectedResolution="${toString camofoxCfg.displayWidth}x${toString camofoxCfg.displayHeight}" '
+            $1 == "Persistent" && found { exit }
+            $1 == "Contextual" && $2 == "screen" && $3 == "id:" && $4 == id {
+              found = 1
+              next
+            }
+            found && $1 == "Resolution:" && $2 == expectedResolution { resolution = 1 }
+            found && $1 == "Enabled:" && $2 == "true" { enabled = 1 }
+            found && index($0, "Origin: (0,0) - main display") { main = 1 }
+            END { exit !(found && resolution && enabled && main) }
+          '; then
+      echo "camofox-browser: DeskPad display $deskpadDisplayId did not become the configured main display." >&2
       stopChildren
       exit 1
     fi

@@ -171,11 +171,13 @@ in
   # ordinary-interface fallback written here or in modules/camofox.nix.
   #
   # Keep Screen Sharing as an independent migration console through the first
-  # open-source VNC switch. Change this flag only after macVNC capture and input
-  # have both been verified through noVNC.
+  # open-source VNC switch. macVNC remains view-only until macOS Accessibility
+  # permission is granted to Home Manager Apps/macVNC.app; capture and browser
+  # relay work without that input permission.
   local.camofox = {
     enable = true;
     retireScreenSharing = false;
+    vncViewOnly = true;
   };
 
   # Come back without someone pressing the button.
