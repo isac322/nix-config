@@ -14,7 +14,7 @@ modules/           시스템 레벨
   darwin.nix         모든 macOS
   nixos.nix          모든 NixOS
   orca.nix           `local.*` 옵션 선언. 광고 주소는 터널에서 읽는다
-  camofox.nix        서버 맥의 Camofox API + Screen Sharing/noVNC 브리지
+  camofox.nix        서버 맥의 VNC secret + WireGuard-only HTTPS noVNC 브리지
   wireguard.nix      서버 맥의 터널. 앱이 아니라 wg-quick 을 도는 루트 데몬
   auto-login.nix     kcpassword 생성 + FileVault 끄기. Aqua 서비스 때문에 있다
   mas-apps.nix       App Store 전용 앱이 없을 때 switch 가 알리게 한다
@@ -76,7 +76,7 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 | [Orca 런타임을 계속 띄우는 LaunchAgent](decisions/0028-orca-runtime-on-the-server-mac.md) · 자동 로그인 | ✖ | ✅ |
 | [GPG pinentry](decisions/0030-gpg-passphrase-without-a-console.md) | pinentry-mac | 키체인 + tty |
 | [WireGuard — 앱(랩탑) 대 루트 데몬(서버)](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md) | 앱 | 데몬 |
-| [Camofox API · 내장 Screen Sharing + noVNC](decisions/0031-camofox-native-macos-over-wireguard.md) | ✖ | ✅ |
+| [Camofox API · DeskPad/macVNC + noVNC](decisions/0031-camofox-native-macos-over-wireguard.md) | ✖ | ✅ |
 
 두 맥 다 MacBook Pro 급 하드웨어이고 Touch ID 센서도 둘 다 달려 있다. 랩탑에만
 있는 이유는 하드웨어가 아니라 역할이다 — 서버 맥은 뚜껑을 닫은 채 SSH 로만
@@ -109,10 +109,20 @@ store에 비밀을 복사하지 않는다. 최초 인증과 검증 절차는
 
 ## Camofox 원격 브라우저 (서버 맥)
 
-`local.camofox.enable` 이 Camofox API, macOS Screen Sharing, noVNC 를 한 묶음으로
-켠다 ([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). Camofox 는
-자동 로그인으로 생긴 `bhyoo`의 Aqua 세션에서 headful LaunchAgent 로 돌고,
-noVNC 는 root LaunchDaemon 이다. 상류의 Linux/Xvfb VNC 플러그인은 쓰지 않는다.
+`local.camofox.enable`이 Camofox API, DeskPad virtual display, macVNC, HTTPS
+noVNC를 한 묶음으로 켠다
+([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). Camofox,
+DeskPad 1.3.2, `LibVNC/macVNC`는 자동 로그인으로 생긴 `bhyoo`의 Aqua 세션에서
+한 LaunchAgent가 감독하고, noVNC는 root LaunchDaemon이다. displayplacer 1.4.0이
+DeskPad 화면을 1920×1080 main display로 정한 뒤 macVNC가 ScreenCaptureKit과
+LibVNCServer로 내보낸다. Camofox의 Linux/Xvfb 플러그인과 macOS Screen Sharing은
+최종 noVNC data path에 쓰지 않는다.
+
+첫 open-source VNC 전환에서는 `retireScreenSharing = false`로 native Screen
+Sharing job을 독립된 migration console로 남긴다. macVNC에 Screen Recording과
+Accessibility 권한을 주고 noVNC 화면과 입력을 검증한 뒤 이 값을 `true`로 바꾼
+다음 switch가 그 job을 disable·stop한다. legacy VNC 인증은 첫 switch에서 바로
+꺼진다.
 
 `userId`는 macOS 계정이 아니라 Camofox의 로그인 상태 identity다. 이 구성은
 `CAMOFOX_USER_ID=omp`를 OMP, Claude Code, Codex가 함께 써서 쿠키와 웹 스토리지를
@@ -125,29 +135,28 @@ UUID, Claude Code는 `CLAUDE_CODE_SESSION_ID`를 쓰고, 세션 ID를 MCP 자식
 그 group으로 제한한다. wrapper의 UUID만으로 격리된 척하지 않는다.
 
 각 `userId`의 BrowserContext는 쿠키와 웹 스토리지를 나누지만 Camoufox 프로세스와
-Aqua 데스크톱은 공유한다. Screen Sharing/noVNC 는 Camofox 창 하나가 아니라 데스크톱
-전체를 내보내며, 화면·포커스·키보드·마우스·클립보드도 공유한다. 따라서 noVNC 는
-신뢰된 운영자용 공용 관리 콘솔이지 사용자별 격리 경계가 아니다.
+Camofox 전용 가상 디스플레이는 공유한다. noVNC는 그 디스플레이 전체를 내보내며,
+화면·포커스·키보드·마우스·클립보드도 공유한다. 따라서 noVNC는 신뢰된 운영자용
+공용 관리 콘솔이지 사용자별 격리 경계가 아니다.
 
 | 용도 | 주소 | 주체 |
 |---|---|---|
 | Camofox API listener | `127.0.0.1:9377` | `@askjo/camofox-browser` |
 | OMP/Claude/Codex control bridge | session-aware stdio → `127.0.0.1:9377` | `camofox-browser-mcp-session` → `camofox-browser-mcp` |
-| noVNC listener | `<WireGuard 주소>:6080` | nixpkgs `novnc`의 웹 프런트엔드와 WebSocket 프록시 |
-| noVNC 의 VNC backend target | `127.0.0.1:5900` | macOS 내장 `screensharingd` |
+| noVNC listener | `<WireGuard 주소>:6080` | nixpkgs `novnc`의 웹 frontend와 WebSocket proxy |
+| noVNC의 VNC backend target | `127.0.0.1:5901` | `LibVNC/macVNC`의 LibVNCServer |
 
-Camofox API 는 loopback 전용이고 각 클라이언트의 MCP 어댑터가 기존 데몬으로
-전달한다. wrapper와 어댑터 어느 쪽도 두 번째 브라우저를 실행하지 않는다. noVNC 만
-`/var/run/wireguard-addresses`의 첫 줄에 바인딩하며, 파일이나 주소가 아직 없으면
-fallback 주소를 열지 않고 실패한다. VNC 는 `VNCOnlyLocalConnections=true`라
-loopback 밖의 클라이언트를 인증 전에 거부한다. OS 버전에 따라 listening socket
-자체는 wildcard 로 보일 수 있어서 소켓 주소만으로 이 경계를 판정하지 않는다.
+Camofox API와 macVNC는 loopback 전용이다. 각 MCP adapter는 기존 Camofox daemon으로
+전달할 뿐 두 번째 브라우저를 실행하지 않는다. noVNC만
+`/var/run/wireguard-addresses`의 첫 줄에 bind하며, 파일이나 주소가 아직 없으면
+fallback 주소를 열지 않고 실패한다.
 
-`/var/lib/nix-darwin/camofox-vnc-password`는 activation 이 처음 한 번 만든 정확히
-8자의 영숫자이고 `root:wheel 0600`이다. **noVNC 의 비밀번호가 아니다.** macOS 의
-legacy VNC 자격증명이고, noVNC 는 그것을 검사하지 않고 VNC 바이트를 중계한다.
-이 짧은 legacy 비밀번호를 허용하는 대신 backend 를 loopback 에 가두고 frontend 는
-WireGuard 주소 하나에만 연다. 조회와 검증 절차는
+`/var/lib/nix-darwin/camofox-vnc-password`는 activation이 처음 한 번 만든 정확히
+8자의 영숫자이고 `root:wheel 0600`이다. activation은 이를 표준 LibVNCServer
+password-file 형식으로 변환해 `/var/lib/camofox/vnc-auth`에
+`bhyoo:staff 0400`으로 원자적으로 교체한다. **noVNC가 아니라 loopback macVNC가 이
+자격증명을 검사한다.** 짧은 VNCAuth 비밀번호를 허용하는 대신 backend를 loopback에
+가두고 frontend는 WireGuard 주소 하나에만 연다. 조회와 검증 절차는
 [운영](operations.md#camofox--novnc-서버-맥)에 있다.
 
 ## GUI 앱
@@ -168,9 +177,11 @@ nixpkgs 가 아니라 Homebrew 에서 온다
   랩탑에만 있는 것은 Dock 타일뿐이다.
 - **서버 맥의 크롬** — 유일하게 nixpkgs 에서 온다
   ([0024](decisions/0024-chrome-for-agent-browser-on-the-server.md)).
-- **서버 맥의 Camoufox** — custom `pkgs.camoufox`의 고정한 macOS arm64 `.app`이다.
-  `/Applications`에 설치하지 않고 Camofox LaunchAgent 가 store 안 실행파일을
-  직접 가리킨다 ([0031](decisions/0031-camofox-native-macos-over-wireguard.md)).
+- **서버 맥의 Camoufox · DeskPad · macVNC** — Nix가 고정한 macOS 앱이다.
+  Camoufox는 Camofox LaunchAgent가 store 안 실행 파일을 직접 가리키고, DeskPad와
+  macVNC는 같은 LaunchAgent가 실행하면서 Home Manager Apps에도 노출해 privacy
+  권한 대상을 안정된 경로로 제공한다
+  ([0031](decisions/0031-camofox-native-macos-over-wireguard.md)).
 - **KakaoTalk · WireGuard** — Mac App Store 전용이라 손으로 깐다
   ([0016](decisions/0016-mas-only-apps-installed-by-hand.md)). 둘 다 랩탑 전용이
   됐다: 서버 맥은 WireGuard 앱 대신 `wireguard-tools` 를 루트 데몬으로 돌린다

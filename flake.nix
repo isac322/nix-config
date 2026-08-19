@@ -225,7 +225,13 @@
             ;
         }
         // nixpkgs.lib.optionalAttrs (system == "aarch64-darwin") {
-          inherit (pkgs) camoufox camofox-browser;
+          inherit (pkgs)
+            camoufox
+            camofox-browser
+            deskpad
+            displayplacer
+            macvnc
+            ;
         }
       );
 

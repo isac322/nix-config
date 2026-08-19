@@ -291,14 +291,9 @@ let
   camofox = pkgs.writeShellScript "camofox-browser" ''
     set -u
 
-    # OMP runs on this Mac and reaches the API through loopback.  Remote
-    # observation remains noVNC over WireGuard; the browser control API has no
-    # reason to cross a network interface at all.  Setting the host explicitly
-    # is mandatory because Camofox's unset default is every interface.
-
-    # Session persistence and cookie import both live under ~/.camofox. Make
-    # the complete private shape before the server starts rather than allowing
-    # one request to race another while lazily creating it.
+    # OMP reaches the browser API through loopback. Remote observation remains
+    # HTTPS noVNC over WireGuard; neither the control API nor the VNC backend
+    # needs a network-facing listener.
     stateRoot=${lib.escapeShellArg "${config.home.homeDirectory}/.camofox"}
     /usr/bin/install -d -m 0700 \
       "$stateRoot" \
@@ -312,25 +307,123 @@ let
     export CAMOFOX_PROFILE_DIR="$stateRoot/profiles"
     export CAMOFOX_TRACES_DIR="$stateRoot/traces"
 
-    # v1.13.1 is patched at package time so false means an ordinary headed
-    # Camoufox process in this Aqua session. The upstream ENABLE_VNC plugin is
-    # Linux/Xvfb machinery and stays explicitly off; Apple Screen Sharing and
-    # the root noVNC daemon in modules/camofox.nix provide the view instead.
+    # Camofox stays headful, but its Linux/Xvfb plugin remains disabled.
+    # DeskPad supplies a real macOS virtual monitor; displayplacer makes it the
+    # configured main display before macVNC and Camoufox start.
     export CAMOFOX_HEADLESS=false
     export ENABLE_VNC=0
 
-    # The packaged browser executable is fixed in the generation, and Camoufox
-    # must not replace it with a runtime download. Default addons retain their
-    # upstream behavior.
     export CAMOUFOX_EXECUTABLE=${lib.escapeShellArg "${pkgs.camoufox}/Applications/Camoufox.app/Contents/MacOS/camoufox"}
     export CAMOUFOX_SKIP_DOWNLOAD=1
-
-    # Upstream sends anonymized crash and hang reports by default. This machine
-    # is unattended, but that is not consent to send its failures elsewhere.
     export CAMOFOX_CRASH_REPORT_ENABLED=false
     export SENTRY_DSN=""
 
-    exec ${pkgs.camofox-browser}/bin/camofox-browser
+    deskpadPid=0
+    vncPid=0
+    browserPid=0
+    stopChildren() {
+      trap - TERM INT
+      if [ "$browserPid" -gt 0 ]; then
+        /bin/kill "$browserPid" 2>/dev/null || true
+      fi
+      if [ "$vncPid" -gt 0 ]; then
+        /bin/kill "$vncPid" 2>/dev/null || true
+      fi
+      if [ "$deskpadPid" -gt 0 ]; then
+        /bin/kill "$deskpadPid" 2>/dev/null || true
+      fi
+      if [ "$browserPid" -gt 0 ]; then
+        wait "$browserPid" 2>/dev/null || true
+      fi
+      if [ "$vncPid" -gt 0 ]; then
+        wait "$vncPid" 2>/dev/null || true
+      fi
+      if [ "$deskpadPid" -gt 0 ]; then
+        wait "$deskpadPid" 2>/dev/null || true
+      fi
+    }
+    terminate() {
+      stopChildren
+      exit 143
+    }
+    trap terminate TERM INT
+
+    ${pkgs.deskpad}/Applications/DeskPad.app/Contents/MacOS/DeskPad &
+    deskpadPid=$!
+
+    waited=0
+    while [ "$waited" -lt 30 ]; do
+      if ! /bin/kill -0 "$deskpadPid" 2>/dev/null; then
+        wait "$deskpadPid"
+        status=$?
+        [ "$status" -eq 0 ] && status=1
+        echo "camofox-browser: DeskPad exited before creating its display." >&2
+        exit "$status"
+      fi
+      displayState=$(${pkgs.displayplacer}/bin/displayplacer list 2>/dev/null || true)
+      case "$displayState" in
+        *"Serial screen id: s1"*) break ;;
+      esac
+      /bin/sleep 1
+      waited=$((waited + 1))
+    done
+    if [ "$waited" -ge 30 ]; then
+      echo "camofox-browser: DeskPad display was not ready after 30s." >&2
+      stopChildren
+      exit 1
+    fi
+
+    if ! ${pkgs.displayplacer}/bin/displayplacer \
+      "id:s1 res:${toString camofoxCfg.displayWidth}x${toString camofoxCfg.displayHeight} hz:60 color_depth:4 scaling:off origin:(0,0) degree:0"; then
+      echo "camofox-browser: could not configure the DeskPad display." >&2
+      stopChildren
+      exit 1
+    fi
+
+    set -- \
+      -rfbport ${lib.escapeShellArg (toString camofoxCfg.vncPort)} \
+      -rfbportv6 0 \
+      -listen localhost \
+      -rfbauth ${lib.escapeShellArg camofoxCfg.rfbAuthFile} \
+      -alwaysshared \
+      -dontdisconnect
+    ${lib.optionalString camofoxCfg.vncViewOnly ''
+      set -- -viewonly "$@"
+    ''}
+
+    ${pkgs.macvnc}/Applications/macVNC.app/Contents/MacOS/macVNC "$@" &
+    vncPid=$!
+
+    waited=0
+    while [ "$waited" -lt 30 ]; do
+      if ! /bin/kill -0 "$vncPid" 2>/dev/null; then
+        wait "$vncPid"
+        status=$?
+        [ "$status" -eq 0 ] && status=1
+        echo "camofox-browser: macVNC exited before readiness." >&2
+        stopChildren
+        exit "$status"
+      fi
+      if /usr/bin/nc -z 127.0.0.1 ${lib.escapeShellArg (toString camofoxCfg.vncPort)}; then
+        break
+      fi
+      /bin/sleep 1
+      waited=$((waited + 1))
+    done
+    if [ "$waited" -ge 30 ]; then
+      echo "camofox-browser: macVNC was not ready after 30s." >&2
+      stopChildren
+      exit 1
+    fi
+
+    ${pkgs.camofox-browser}/bin/camofox-browser &
+    browserPid=$!
+
+    status=0
+    wait -n "$deskpadPid" "$vncPid" "$browserPid" || status=$?
+    echo "camofox-browser: supervised child exited with status $status; restarting the stack." >&2
+    stopChildren
+    exit 1
   '';
 
 in
@@ -576,6 +669,8 @@ in
   # `terraform` for validation, and finds the one from home/darwin.nix.
   home.packages = [
     pkgs.camofox-mcp-session
+    pkgs.deskpad
+    pkgs.macvnc
     pkgs.cargo
     pkgs.rust-analyzer
     pkgs.rustc

@@ -169,7 +169,14 @@ in
   # The headful browser API and the view of its automatic Aqua session. Both
   # endpoints learn their bind address from WireGuard at run time; there is no
   # ordinary-interface fallback written here or in modules/camofox.nix.
-  local.camofox.enable = true;
+  #
+  # Keep Screen Sharing as an independent migration console through the first
+  # open-source VNC switch. Change this flag only after macVNC capture and input
+  # have both been verified through noVNC.
+  local.camofox = {
+    enable = true;
+    retireScreenSharing = false;
+  };
 
   # Come back without someone pressing the button.
   #
@@ -192,6 +199,20 @@ in
   # unsupported setting can never trip the activation script's `set -e`.
   power.restartAfterFreeze = true;
 
+  # Camofox renders on a dedicated virtual display, but its windows still
+  # belong to the logged-in Aqua session. A screen saver or login-window lock
+  # would replace those windows even though the browser and VNC processes stay
+  # healthy. Keep the unattended session unlocked and its displays awake while
+  # the machine is acting as a server.
+  system.defaults.screensaver = {
+    askForPassword = false;
+    askForPasswordDelay = 0;
+  };
+  system.defaults.CustomUserPreferences = {
+    "com.apple.screensaver".idleTime = 0;
+    "com.apple.loginwindow".DisableScreenLockImmediate = true;
+  };
+
   # Idle timers, written per power source.
   #
   # nix-darwin's `power.sleep.*` options are deliberately not used here. They
@@ -207,7 +228,7 @@ in
   # Two unrelated things share this block because `postActivation.text` can only
   # be assigned once per module, and both belong to this file.
   system.activationScripts.postActivation.text = ''
-    /usr/bin/pmset -c sleep 0 disksleep 0 displaysleep 10
+    /usr/bin/pmset -c sleep 0 disksleep 0 displaysleep 0
     /usr/bin/pmset -b sleep 10 disksleep 10 displaysleep 2
 
     ${sshdEnsureListening}

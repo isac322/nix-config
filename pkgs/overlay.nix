@@ -12,11 +12,15 @@ final: prev: {
   beardrive = final.callPackage ./beardrive/package.nix { };
   sentry = final.callPackage ./sentry/package.nix { };
 
-  # Native Apple Silicon Camoufox, plus the Camofox server pinned to that
-  # immutable browser instead of its npm postinstall download.
+  # Native Apple Silicon browser and remote-console components. Camofox uses
+  # the immutable Camoufox browser; DeskPad supplies the virtual display,
+  # macVNC exports its framebuffer, and displayplacer fixes its layout.
   camoufox = final.callPackage ./camoufox/package.nix { };
   camofox-browser = final.callPackage ./camofox-browser/package.nix { };
   camofox-mcp-session = final.callPackage ./camofox-mcp-session/package.nix { };
+  deskpad = final.callPackage ./deskpad/package.nix { };
+  displayplacer = final.callPackage ./displayplacer/package.nix { };
+  macvnc = final.callPackage ./macvnc/package.nix { };
 
   # macOS only in practice — it shells out to /usr/bin/security. Declared here
   # rather than in a role file because it is a program, and this is where this

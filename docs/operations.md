@@ -439,28 +439,122 @@ orca account list
 
 ## Camofox + noVNC (서버 맥)
 
-Camofox API 는 `bhyoo`의 Aqua LaunchAgent 로 headful 실행되고, macOS 내장
-`screensharingd`의 화면을 root noVNC LaunchDaemon 이 웹으로 중계한다
-([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 상류의
-Linux/Xvfb VNC 플러그인은 꺼져 있다.
+Camofox API, DeskPad, macVNC는 `bhyoo`의 Aqua LaunchAgent가 함께 감독한다.
+DeskPad 1.3.2가 전용 가상 모니터를 만들고, displayplacer 1.4.0이 그 화면을
+1920×1080 main display로 배치한다. 그 뒤 `LibVNC/macVNC`가 ScreenCaptureKit으로
+화면을 캡처해 `127.0.0.1:5901`의 VNC로 내보낸다. root noVNC LaunchDaemon은 이
+loopback VNC를 WireGuard 주소의 HTTPS WebSocket으로 중계한다
+([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 세 구성요소는 모두
+고정한 upstream release 또는 source revision이며, 이 저장소가 만든 VNC 서버는 없다.
+상류 Camofox Linux/Xvfb 플러그인은 계속 끈다.
 
-noVNC 는 Camofox 창 하나가 아니라 `bhyoo`의 **Aqua 데스크톱 전체**를 공유하는
-신뢰된 관리자 콘솔이다. 여러 `userId`는 각각 별도 BrowserContext를 쓰지만 같은
-Camoufox 프로세스와 데스크톱에서 실행되므로 쿠키·웹 스토리지 외의 화면, 포커스,
-키보드, 마우스, 클립보드는 공유된다. 사용자별 noVNC 접속점으로 제공하지 않는다.
+native Screen Sharing은 최종 data path가 아니라 첫 전환의 migration console이다.
+`local.camofox.retireScreenSharing = false`인 동안 noVNC는 port 5900을 전혀 쓰지
+않지만 Screen Sharing job은 남는다. macVNC의 캡처와 입력을 직접 검증한 뒤 이 값을
+`true`로 바꾼 다음 switch가 그 job을 disable·stop한다.
 
-**주소.** API 는 이 Mac 안에서만 열고, 원격 화면만 WireGuard 로 연다.
+noVNC는 Camofox 창 하나나 `userId` 하나가 아니라 **Camofox 전용 가상 디스플레이
+전체**를 공유하는 신뢰된 관리자 콘솔이다. 여러 `userId`는 각각 별도
+BrowserContext를 쓰지만 같은 Camoufox 프로세스와 디스플레이에서 실행된다.
+쿠키·웹 스토리지 외의 화면, 포커스, 키보드, 마우스, 클립보드는 공유된다.
+사용자별 noVNC 접속점으로 제공하지 않는다.
+
+LaunchAgent가 성공하면 로그에 macVNC의 다음 줄이 남고 port 5901이 열린다.
+
+```text
+Listening for VNC connections on TCP port 5901
+```
+
+이 줄이 없으면 noVNC를 반복해서 재접속하지 말고
+`~/Library/Logs/camofox-browser.log`에서 DeskPad 준비, displayplacer layout,
+Screen Recording, Accessibility 오류를 확인한다. DeskPad, macVNC, Camofox 중
+하나가 끝나면 LaunchAgent가 나머지도 끝내고 전체 스택을 재시작한다.
+
+**주소.** API는 이 Mac 안에서만 열고, 원격 화면은 WireGuard 주소의 HTTPS noVNC로
+연다.
 
 ```sh
 wg_ip=$(sed -n '1p' /var/run/wireguard-addresses)
 printf 'Camofox API: http://127.0.0.1:9377\n'
-printf 'noVNC:       http://%s:6080/vnc.html\n' "$wg_ip"
+printf 'VNC backend: 127.0.0.1:5901\n'
+printf 'noVNC:       https://%s:6080/vnc.html\n' "$wg_ip"
 ```
 
-Camofox API 는 loopback 밖에서 접근할 수 없다. OMP 가
+noVNC 인증에는 username이 없다. 브라우저가 묻는 VNC 비밀번호는
+`/var/lib/nix-darwin/camofox-vnc-password`의 8자리 값이다. activation은 이 원문을
+표준 LibVNCServer 형식으로 변환해 macVNC가 읽는 `/var/lib/camofox/vnc-auth`를
+`bhyoo:staff 0400`으로 만든다. auth 파일은 로그인 입력값이 아니다.
+
+인증서는 `/var/run/wireguard-addresses`의 현재 주소를 IP SAN으로 넣어 런타임에
+`/var/lib/nix-darwin/camofox-novnc-tls` 아래에 생성하는 self-signed 인증서다.
+첫 접속에서는 브라우저의 인증서 경고를 확인하고 진행한다. WireGuard 주소가 바뀌면
+noVNC가 재시작되며 새 IP용 인증서를 만든다.
+
+**첫 switch 전 필수 확인.** 새 macVNC는 아직 Screen Recording과 Accessibility
+권한이 없다. 첫 switch는 `retireScreenSharing = false`를 유지하므로 native Screen
+Sharing을 migration console로 남기지만, legacy 8자 VNC 인증은 제거한다. 따라서
+Screen Sharing의 macOS 계정 인증이 실제로 동작하는지 먼저 확인한다. 서버의 port
+5900은 loopback으로 제한했으므로 다른 Mac에서 SSH tunnel을 연다.
+
+```sh
+ssh -N -L 15900:127.0.0.1:5900 bhyoo@<server-WireGuard-IP>
+open 'vnc://127.0.0.1:15900'
+```
+
+Screen Sharing.app에는 username `bhyoo`와 **macOS 로그인 비밀번호**를 입력한다.
+`/var/lib/nix-darwin/camofox-vnc-password`의 8자 값이 아니다. 원격 포인터와
+키보드로 System Settings를 열 수 있음을 확인하지 못하면 첫 switch를 실행하지 않는다.
+
+```sh
+sudo darwin-rebuild switch --flake /etc/nix-darwin#bhyoo-macbook-pro
+```
+
+첫 switch 뒤 migration console에서 다음 앱을 두 privacy pane에 모두 추가하고
+허용한다.
+
+```text
+~/Applications/Home Manager Apps/macVNC.app
+```
+
+- System Settings > Privacy & Security > Screen & System Audio Recording
+- System Settings > Privacy & Security > Accessibility
+
+그 뒤 LaunchAgent를 재시작한다. macVNC는 권한이 없을 때 조용히 view-only로
+후퇴하지 않고 종료하므로, port와 로그를 함께 확인한다.
+
+```sh
+launchctl kickstart -k gui/$(id -u)/org.nix-community.home.camofox-browser
+tail -n 100 ~/Library/Logs/camofox-browser.log
+nc -z 127.0.0.1 5901
+```
+
+새 HTTPS noVNC 세션에서 인증, non-black 1920×1080 화면, 화면 갱신, 키보드와 포인터
+입력을 모두 확인한다. 관찰만 진단하려면 `local.camofox.vncViewOnly = true`를 쓸 수
+있지만, 그 상태에서는 migration console을 폐기하지 않는다.
+
+입력까지 검증했으면 `modules/roles/darwin-server.nix`의 값을 바꾸고 다시 switch한다.
+
+```nix
+local.camofox = {
+  enable = true;
+  retireScreenSharing = true;
+};
+```
+
+```sh
+sudo darwin-rebuild switch --flake /etc/nix-darwin#bhyoo-macbook-pro
+nc -z 127.0.0.1 5900 && echo 'unexpected Screen Sharing listener'
+nc -z 127.0.0.1 5901
+```
+
+macVNC 패키지 바이너리가 바뀌면 macOS가 privacy 권한을 다시 요구할 수 있다. 새
+generation에서 noVNC 입력까지 재검증하기 전에는 Screen Sharing retirement를 함께
+진행하지 않는다.
+
+Camofox API는 loopback 밖에서 접근할 수 없다. OMP가
 `~/.omp/agent/mcp.json`에 선언된 `camofox-browser-mcp-session omp`를 시작하면
 wrapper가 현재 OMP transcript breadcrumb의 UUID를 `sessionKey`로 만들고, 그 아래의
-stdio 어댑터가 기존 API 로 전달한다. `CAMOFOX_USER_ID=omp`는 고정되어 쿠키와
+stdio 어댑터가 기존 API로 전달한다. `CAMOFOX_USER_ID=omp`는 고정되어 쿠키와
 localStorage는 공유하지만, 탭 목록과 탭 조작 권한은 OMP 대화별로 갈린다. OMP를
 `--resume`해 같은 transcript를 열면 같은 UUID와 탭 namespace를 다시 쓴다.
 상류 1.13.1은 탭을 만들 때만 `sessionKey`를 썼고 list와 `tabId` 조작은 같은
@@ -490,40 +584,40 @@ MCP 자식 환경에 전달하지 않는다. 따라서 Codex는 adapter 프로�
 상류가 바뀌거나 Codex 패키지를 패치해야 한다. wrapper는 향후 `CODEX_THREAD_ID` 또는
 `CODEX_SESSION_ID`가 보이면 자동으로 우선 사용한다.
 
-noVNC 는 WireGuard 주소만 사용하고, 주소 파일이 없거나 첫 줄이 비어 있으면
-`0.0.0.0`이나 LAN 주소로 물러서지 않고 실패한다. launchd 가 10초 간격으로 다시
+noVNC는 WireGuard 주소만 사용한다. 주소 파일이 없거나 첫 줄이 비어 있으면
+`0.0.0.0`이나 LAN 주소로 물러서지 않고 실패한다. launchd가 10초 간격으로 다시
 부르므로 터널이 뒤에 올라오면 그때 정확한 주소에 바인딩한다.
 
-**VNC 비밀번호.** activation 이 처음 한 번만 만든 정확히 8자의 영숫자다.
+**VNC 비밀번호.** activation이 처음 한 번만 만든 정확히 8자의 영숫자다.
 
 ```sh
 sudo stat -f '%Sp %Su:%Sg %N' /var/lib/nix-darwin/camofox-vnc-password
 sudo sh -c 'wc -c < /var/lib/nix-darwin/camofox-vnc-password'
 sudo cat /var/lib/nix-darwin/camofox-vnc-password; printf '\n'
+stat -f '%Sp %Su:%Sg %N' /var/lib/camofox/vnc-auth
+wc -c < /var/lib/camofox/vnc-auth
 ```
 
-첫 줄은 `-rw------- root:wheel`, 둘째 줄은 `8`이어야 한다. 마지막 값은 noVNC
-페이지의 VNC Password 칸에 넣는다. **이것은 noVNC 가 소유하거나 검사하는
-비밀번호가 아니다.** macOS `screensharingd`의 legacy VNC 자격증명이고, noVNC 는
-브라우저와 `127.0.0.1:5900` 사이에서 프로토콜을 중계할 뿐이다.
+master는 `-rw------- root:wheel`, runtime RFB auth 파일은
+`-r-------- bhyoo:staff`, 길이는 둘 다 8이어야 한다. 출력한 master 값은 noVNC
+페이지의 VNC Password 칸에 넣는다. auth 파일은 고정 DES key로 변환한 binary이므로
+로그인 값으로 쓰거나 출력하지 않는다. noVNC가 아니라 loopback macVNC의
+LibVNCServer가 자격증명을 검사한다.
 
 **상태·로그·재시작.**
 
 ```sh
 launchctl print gui/$(id -u)/org.nix-community.home.camofox-browser
 sudo launchctl print system/org.nixos.camofox-novnc
-sudo launchctl print system/com.apple.screensharing
 
 tail -f ~/Library/Logs/camofox-browser.log
 sudo tail -f /var/log/camofox-novnc.log
-sudo log stream --info --predicate 'process == "screensharingd"'
 
 launchctl kickstart -k gui/$(id -u)/org.nix-community.home.camofox-browser
 sudo launchctl kickstart -k system/org.nixos.camofox-novnc
-sudo launchctl kickstart -k system/com.apple.screensharing
 ```
 
-Camofox 는 WireGuard 와 무관하게 loopback 에서 시작한다. noVNC 로그의
+Camofox와 VNC 백엔드는 WireGuard와 무관하게 loopback에서 시작한다. noVNC 로그의
 `refusing noVNC's all-interfaces default`는 넓은 주소로 열린 것이 아니라 의도적인
 실패다. 터널과 `/var/run/wireguard-addresses`를 확인한다.
 
@@ -532,33 +626,27 @@ Camofox 는 WireGuard 와 무관하게 loopback 에서 시작한다. noVNC 로�
 ```sh
 wg_ip=$(sed -n '1p' /var/run/wireguard-addresses)
 sudo lsof -nP -iTCP:9377 -sTCP:LISTEN
+sudo lsof -nP -iTCP:5901 -sTCP:LISTEN
 sudo lsof -nP -iTCP:6080 -sTCP:LISTEN
 
-sudo defaults read /Library/Preferences/com.apple.RemoteManagement \
-  VNCLegacyConnectionsEnabled
-sudo defaults read /Library/Preferences/com.apple.RemoteManagement \
-  VNCOnlyLocalConnections
-
 printf 'loopback VNC:  '
-nc -w 2 127.0.0.1 5900 | head -1
+nc -w 2 127.0.0.1 5901 | head -1
 printf 'WireGuard VNC: '
-nc -w 2 "$wg_ip" 5900 | head -1
+nc -w 2 "$wg_ip" 5901 | head -1
 ```
 
-앞의 `lsof` 두 줄에는 각각 **`127.0.0.1:9377`과 `$wg_ip:6080`만** 있어야 한다.
-두 `defaults` 값은 모두 `1`이다. loopback VNC 는 `RFB ...` 배너를 내지만 같은
-5900 포트를 WireGuard 주소로 물으면 배너가 없어야 한다. `screensharingd`가 OS
-버전에 따라 wildcard listening socket 을 소유해도 `VNCOnlyLocalConnections`가
-인증 전에 non-loopback VNC 를 거부하므로, TCP 소켓 모양만 보고 이 경계를
-판정하지 않는다.
+앞의 `lsof`에는 각각 **`127.0.0.1:9377`, `127.0.0.1:5901`,
+`$wg_ip:6080`만** 있어야 한다. loopback VNC는 `RFB ...` 배너를 내지만 같은
+5901 포트를 WireGuard 주소로 물으면 배너가 없어야 한다. TCP listener 자체가
+loopback에 묶이므로 별도 macOS Screen Sharing 설정에 의존하지 않는다.
 
 OMP 안에서는 `/mcp list`로 `camofox`의 출처를 확인하고 `/mcp test camofox`로
 stdio 어댑터와 loopback REST 데몬의 연결을 검사한다. 노출되는 도구 이름은
 `mcp__camofox_*` 형태다. 어댑터는 브라우저를 새로 실행하지 않는다.
 
-8자 제한은 macOS legacy VNC 호환의 한계다. 그래서 5900은 loopback 전용이고,
-그 앞의 6080만 WireGuard 주소에 연다. 이 두 경계가 빠지면 이 비밀번호 길이는
-인터넷에 직접 노출할 만한 보안 수준이 아니다.
+8자 제한은 RFB VNCAuth의 한계다. 그래서 5901은 loopback 전용이고, 그 앞의
+6080만 WireGuard 주소에 연다. 이 두 경계가 빠지면 이 비밀번호 길이는 인터넷에
+직접 노출할 만한 보안 수준이 아니다.
 
 ## RSA 호스트 키가 3072 비트일 때
 
