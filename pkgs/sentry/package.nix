@@ -2,10 +2,6 @@
 # npm package: upstream has already bundled the monorepo sources, generated
 # command metadata, and WASM helpers into dist/, so rebuilding the workspace
 # would add a large pnpm dependency graph without changing the shipped program.
-#
-# This is deliberately a new `sentry` package and binary. It does not override
-# nixpkgs' deprecated `sentry-cli`, which comes from getsentry/sentry-cli and
-# installs a different binary with a different command surface.
 {
   fetchurl,
   lib,

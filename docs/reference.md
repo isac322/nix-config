@@ -276,10 +276,8 @@ endpoint, bucket, region과 S3 자격증명은
   넷을 모두 빌드하는데 셋은 여기서 돌리지 않는 트레이스 저장소의 서버 쪽이다.
   `cmd/tempo-cli` 만 남기면 클로저가 237 MiB 에서 72 MiB 로 줄고, 서버로 읽히는
   `tempo` 라는 이름의 바이너리가 PATH 에서 빠진다 (`pkgs/overlay.nix`).
-- **`sentry` 는 `getsentry/cli`다.** deprecated `getsentry/sentry-cli`를 패키징한
-  nixpkgs의 `pkgs.sentry-cli`와 `sentry-cli` 바이너리는 제거했다. 대신
-  `pkgs/sentry/package.nix`가 공식 release의 npm bundle을 고정하고 새 `sentry`
-  바이너리를 설치한다.
+- **`sentry` 는 `getsentry/cli`다.** `pkgs/sentry/package.nix`가 공식 release의
+  npm bundle을 고정하고 `sentry` 바이너리를 설치한다.
 - **`axiom` 은 `axiom-cli` 가 아니다.** 바이너리 이름이 `axiom` 이다. attribute 는
   여기 있는 다른 CLI 옆에서 찾을 수 있게 `axiom-cli` 로 두었다.
 
