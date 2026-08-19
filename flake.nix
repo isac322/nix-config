@@ -206,7 +206,11 @@
       packages = forAllSystems (
         system:
         let
-          pkgs = nixpkgs.legacyPackages.${system}.extend (import ./pkgs/overlay.nix);
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ (import ./pkgs/overlay.nix) ];
+            config.allowUnfreePredicate = pkg: nixpkgs.lib.getName pkg == "sentry";
+          };
         in
         {
           inherit (pkgs)
@@ -215,6 +219,7 @@
             langfuse-cli
             vercel-cli
             beardrive
+            sentry
             slack-cli
             tempo-cli
             ;
@@ -225,7 +230,7 @@
       );
 
       # `nix run .#cache-push -- <cache>` builds the packages above and uploads
-      # them. They are exactly the set no public cache can have: the first five
+      # them. They are exactly the set no public cache can have: the first six
       # exist nowhere else, and slack-cli and tempo-cli replace nixpkgs
       # attributes, so their derivations differ from what cache.nixos.org built
       # under those names. Everything else in a system closure still comes from

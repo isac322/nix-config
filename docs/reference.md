@@ -250,12 +250,13 @@ endpoint, bucket, region과 S3 자격증명은
 
 ## 관측 CLI — 에이전트가 직접 조회하게
 
-`tempo-cli`, `promtool`, `sentry-cli`, `posthog-cli`, `axiom`, `langfuse` 여섯을
+`tempo-cli`, `promtool`, `sentry`, `posthog-cli`, `axiom`, `langfuse` 여섯을
 **모든 기기**에 둔다 (`home/common.nix`). 코딩 에이전트가 대시보드 스크린샷을 받는
 대신 텔레메트리를 직접 질의하라고 두는 것이라, `claude-code` 와 같은 층에 있다 —
 에이전트는 작업이 있는 곳에서 돈다.
 
-셋은 nixpkgs 에서 오지만 **어느 것도 이름 그대로의 attribute 가 아니다.**
+`promtool`과 `tempo-cli`는 nixpkgs package의 다른 output 또는 잘라낸 변형이고,
+나머지 넷은 `pkgs/`에서 직접 패키징한다.
 
 - **`promtool` 은 `pkgs.prometheus` 에 없다.** 상류가 `moveToOutput bin/promtool
   $cli` 로 별도 출력에 옮겨 두어서, `pkgs.prometheus` 를 설치하면 서버와 `migrate`
@@ -264,6 +265,10 @@ endpoint, bucket, region과 S3 자격증명은
   넷을 모두 빌드하는데 셋은 여기서 돌리지 않는 트레이스 저장소의 서버 쪽이다.
   `cmd/tempo-cli` 만 남기면 클로저가 237 MiB 에서 72 MiB 로 줄고, 서버로 읽히는
   `tempo` 라는 이름의 바이너리가 PATH 에서 빠진다 (`pkgs/overlay.nix`).
+- **`sentry` 는 `getsentry/cli`다.** deprecated `getsentry/sentry-cli`를 패키징한
+  nixpkgs의 `pkgs.sentry-cli`와 `sentry-cli` 바이너리는 제거했다. 대신
+  `pkgs/sentry/package.nix`가 공식 release의 npm bundle을 고정하고 새 `sentry`
+  바이너리를 설치한다.
 - **`axiom` 은 `axiom-cli` 가 아니다.** 바이너리 이름이 `axiom` 이다. attribute 는
   여기 있는 다른 CLI 옆에서 찾을 수 있게 `axiom-cli` 로 두었다.
 

@@ -23,6 +23,10 @@
     builtins.elem (lib.getName pkg) [
       "1password-cli"
       "claude-code"
+      # getsentry/cli uses FSL-1.1-Apache-2.0. It permits internal use and
+      # converts to Apache-2.0 after two years, but nixpkgs correctly classifies
+      # the current release as unfree until that conversion.
+      "sentry"
       # Only the server Mac takes this from nixpkgs — see
       # modules/roles/darwin-server.nix. The laptop's Chrome is a cask, which
       # Homebrew installs without consulting this predicate at all.

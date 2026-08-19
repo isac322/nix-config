@@ -439,12 +439,11 @@ in
     # Two are not the obvious attribute. `promtool` is in prometheus's `cli`
     # output, so plain `pkgs.prometheus` would install the server and no tool
     # at all; `tempo-cli` is a local trim of the Tempo package — see
-    # pkgs/overlay.nix. Of the rest only sentry-cli comes from nixpkgs as it
-    # is: posthog-cli, axiom-cli and langfuse-cli are absent there and are
-    # packaged in pkgs/.
+    # pkgs/overlay.nix. Sentry's current `sentry` CLI, posthog-cli, axiom-cli
+    # and langfuse-cli are absent from nixpkgs and packaged in pkgs/.
     pkgs.tempo-cli
     pkgs.prometheus.cli
-    pkgs.sentry-cli
+    pkgs.sentry
     pkgs.posthog-cli
     pkgs.axiom-cli
     pkgs.langfuse-cli
