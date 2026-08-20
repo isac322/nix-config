@@ -367,12 +367,12 @@ staticcheck · errcheck 를 포함한 수십 개를 한 바이너리로 돌리�
 `terraform` 은 unfree 라 `modules/common.nix` 의 predicate 를 탄다.
 `home-manager.useGlobalPkgs` 가 켜져 있어 시스템 패키지와 같은 규칙이 적용된다.
 
-**플랫폼 CLI** — `gh`, `slack-cli`, `vercel-cli`. 셋 다 자기가 알아서 인증한다
+**플랫폼 CLI** — `gh`와 `slack-cli`는 `home/common.nix`에서 **모든 기기**에,
+`vercel-cli`는 `home/darwin.nix`에서 맥에만 둔다. 셋 다 자기가 알아서 인증한다
 (각각 키체인/`GH_TOKEN`, `slack login`, `vercel login`) 이라 계정에 관한 것은
-이 레포에 하나도 없다. `gh` 가 `home/common.nix` 가 아니라 여기 있는 이유는 맥이
-저장소를 만지는 기계이기 때문이고, SSH 키를 재활용하지 않는다는 점도 알아둘 만하다
-— `gh` 는 HTTPS 위의 REST API 를 쓰므로 `git` 이 push 하는 자격증명과 별개다.
-뒤의 둘은 nixpkgs 에서 그대로 오지 않는다 — 아래 [`pkgs/`](#pkgs) 를 보라.
+이 레포에 없다. `gh`는 HTTPS 위의 REST API를 쓰므로 `git`이 push 하는 SSH
+자격증명과 별개다. `slack-cli`와 `vercel-cli`는 nixpkgs에서 그대로 오지 않는다 —
+아래 [`pkgs/`](#pkgs) 를 보라.
 
 ## 키보드와 트랙패드
 

@@ -317,17 +317,14 @@ in
   # `uv python install` deliberately manages separate project runtimes under
   # ~/.local/share/uv.
   #
-  # slack-cli is the name trap: pkgs/overlay.nix replaces nixpkgs' unrelated
-  # webhook script with slackapi/slack-cli. vercel-cli is also packaged locally
-  # from its published npm tarball. Both authenticate under the user's own
-  # configuration directory.
+  # vercel-cli is packaged locally from its published npm tarball and
+  # authenticates under the user's own configuration directory.
   home.packages = [
     pkgs._1password-cli
     pkgs.bun
     pkgs.golangci-lint
     gpgSshAuthorize
     pkgs.hadolint
-    pkgs.slack-cli
     pkgs.sops
     pkgs.stern
     pkgs.uv

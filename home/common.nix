@@ -450,9 +450,12 @@ in
 
     # The services those same agents have to act on rather than just read.
     # `gws` is Google's Workspace CLI — @googleworkspace/cli upstream — and
-    # `stripe-cli` installs `stripe`. agent-browser remains available on hosts
-    # without managed Camofox. The server omits it so no second browser process
-    # can bypass the shared Camofox daemon and its session boundary.
+    # `stripe-cli` installs `stripe`. The overlay makes `pkgs.slack-cli` the
+    # Slack app CLI rather than nixpkgs's unrelated webhook script.
+    # agent-browser remains available on hosts without managed Camofox. The
+    # server omits it so no second browser process can bypass the shared
+    # Camofox daemon and its session boundary.
+    pkgs.slack-cli
     pkgs.wrangler
     pkgs.stripe-cli
     pkgs.gws
