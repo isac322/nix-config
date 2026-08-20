@@ -4,10 +4,9 @@
 headful 실행하고, 브라우저 코어는 `daijro/camoufox`의 macOS arm64 릴리스를 쓴다.
 같은 LaunchAgent가 MIT 라이선스의 DeskPad 1.3.2로 가상 디스플레이를 만들고,
 displayplacer 1.4.0으로 1920×1080 main display를 정한다. GPL-2.0의
-`LibVNC/macVNC`는 그 디스플레이 전체가 아니라 bundle identifier
-`org.mozilla.camoufox`가 소유한 창만 `127.0.0.1:5901`의 VNC로 내보낸다. root
-noVNC LaunchDaemon은 이를 WireGuard 주소의 HTTPS 웹소켓으로만 중계한다. API는
-loopback에만 열고, 실행 중 다운로드는 없다.
+`LibVNC/macVNC`는 그 디스플레이 전체를 `127.0.0.1:5901`의 VNC로 내보낸다.
+root noVNC LaunchDaemon은 이를 WireGuard 주소의 HTTPS WebSocket으로만 중계한다.
+API는 loopback에만 열고, 실행 중 다운로드는 없다.
 
 ## macOS 코어는 추측이 아니라 그 기계에서 확인했다
 
@@ -26,22 +25,19 @@ Camoufox 는 Firefox 계열 코어이고, 이번에 고정한 것은
 ## 상류 VNC 플러그인과 Apple Screen Sharing을 최종 경로로 쓰지 않는다
 
 Camofox의 VNC 플러그인은 Linux의 Xvfb 디스플레이를 만들고 그 디스플레이를 VNC로
-내보내는 경로다. Aqua 윈도우를 가진 macOS 브라우저를 공유하는 구현이 아니므로
-`ENABLE_VNC=0`을 유지한다.
+내보내는 경로다. Aqua 윈도우를 가진 macOS 브라우저를 공유하는 구현이 아니다.
+패키지의 `plugins.vnc.enabled` 기본값을 `false`로 두고 서비스는 `ENABLE_VNC`를
+설정하지 않는다. 상류의 명시적 `ENABLE_VNC=1`만 이 기본값을 뒤집는다.
 
 macOS 내장 `screensharingd`도 최종 백엔드로 쓰지 않는다. 물리 디스플레이가 있는
 동안에는 동작하지만, 닫힌 뚜껑 상태에서 만든 Apple VFB를 Screen Sharing 자체가
 캡처하지 못해 인증과 소켓은 정상인데 framebuffer만 검게 남았다. 이 실패를 화면
 잠금이나 noVNC 문제로 숨기지 않고 백엔드를 교체했다.
 
-전환 activation은 legacy VNC 인증을 즉시 끄고
-`/Library/Preferences/com.apple.VNCSettings.txt`를 제거한다. 첫 전환에서는
-`local.camofox.retireScreenSharing = false`로 native Screen Sharing job을 noVNC와
-무관한 migration console로 남겼다. macVNC의 Screen Recording·Accessibility 권한,
-전용 가상 디스플레이의 화면, 키보드와 포인터 입력을 모두 확인했으므로 현재 역할은
-이 값을 `true`로 둔다. switch는 `com.apple.screensharing`을 disable·bootout한다.
-어느 단계에서도 noVNC가 이 서비스를 backend로 쓰거나 같은 8자 legacy 비밀번호를
-검사하게 두지 않는다.
+이 구성은 macOS Screen Sharing을 enable·disable하거나 legacy VNC 인증을
+설정하지 않는다. Screen Sharing을 별도로 켜면 port 5900에 독립된 전체 데스크톱
+경로가 생기지만, port 5901의 macVNC와 이를 backend로 쓰는 noVNC 동작에는 영향을
+주지 않는다. Camofox는 Screen Sharing의 상태에 의존하지 않는다.
 
 DeskPad는 Aqua 세션 안에서 `CGVirtualDisplay`로 전용 가상 모니터를 만든다.
 displayplacer가 그 모니터를 1920×1080, scaling off, origin `(0,0)`의 main display로
@@ -147,14 +143,15 @@ loopback 밖으로 못 나가고, frontend는 이미 WireGuard peer인 클라이
 
 Camoufox zip, Camofox npm tarball과 의존성, DeskPad zip, displayplacer 실행 파일,
 macVNC source revision은 전부 Nix 빌드 입력이고 버전·revision·hash로 고정한다.
-서비스는 store의 실행 파일만 읽는다. 첫 실행에 브라우저나 원격 화면 구성요소를
-받거나 버전 API를 조회하는 fallback은 두지 않는다. 무인 재부팅 뒤의 성공 여부가
-외부 registry 상태나 `HOME` 아래의 mutable cache에 달리면 선언한 패키지가 실제
-runtime을 설명하지 못하기 때문이다.
+Camofox의 npm lifecycle script는 빌드에서 실행하지 않는다. 패키지 wrapper는
+Camoufox store 실행 파일과 camoufox-js가 요구하는 compatibility layout을 모두
+store 안에서 지정하고, `CAMOFOX_DISABLE_DEFAULT_ADDONS=1`로 선택적 UBO 다운로드도
+끈다. 따라서 관리 service는 `HOME` 아래 browser cache를 만들거나 읽지 않는다.
+`~/Library/Caches/camoufox`가 남아 있다면 과거 `npx camoufox-js fetch`가 만든
+비관리 다운로드다. 첫 실행이나 무인 재부팅의 성공 여부를 외부 registry나 mutable
+cache에 맡기는 fallback은 없다.
 
-서버 역할은 `local.camofox.enable = true`와 migration gate인
-`retireScreenSharing = false`를 선언한다. 후자는 macVNC 화면과 입력을 확인한 뒤에만
-`true`로 바꾼다. 자동 로그인과 WireGuard는 각각
-[0028](0028-orca-runtime-on-the-server-mac.md),
+서버 역할은 `local.camofox.enable = true`를 선언한다. 자동 로그인과 WireGuard는
+각각 [0028](0028-orca-runtime-on-the-server-mac.md),
 [0029](0029-wireguard-as-a-daemon-on-the-server-mac.md)의 기존 결정을 그대로 쓴다.
 운영 주소·비밀번호 조회·재시작·검증 명령은 [운영](../operations.md)에 있다.

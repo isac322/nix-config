@@ -115,14 +115,10 @@ noVNC를 한 묶음으로 켠다
 DeskPad 1.3.2, `LibVNC/macVNC`는 자동 로그인으로 생긴 `bhyoo`의 Aqua 세션에서
 한 LaunchAgent가 감독하고, noVNC는 root LaunchDaemon이다. displayplacer 1.4.0이
 DeskPad 화면을 1920×1080 main display로 정한 뒤 상류 macVNC가 ScreenCaptureKit과
-LibVNCServer로 그 디스플레이 전체를 내보낸다. Camofox의 Linux/Xvfb 플러그인과
-macOS Screen Sharing은 최종 noVNC data path에 쓰지 않는다.
-
-첫 open-source VNC 전환에서는 `retireScreenSharing = false`로 native Screen
-Sharing job을 독립된 migration console로 남긴다. macVNC에 Screen Recording과
-Accessibility 권한을 주고 전용 디스플레이의 noVNC 화면과 입력을 검증한 뒤 이 값을
-`true`로 바꾼 다음 switch가 그 job을 disable·stop한다. legacy VNC 인증은 첫
-switch에서 바로 꺼진다.
+LibVNCServer로 그 디스플레이 전체를 내보낸다. Camofox의 Linux/Xvfb 플러그인은
+쓰지 않는다. macOS Screen Sharing은 독립된 운영체제 서비스이며 Camofox 구성은
+그 enable·disable 상태나 legacy VNC 인증을 관리하지 않는다. 운영자가 별도로
+켜더라도 port 5900을 사용할 뿐, noVNC는 port 5901의 macVNC를 계속 쓴다.
 
 `userId`는 macOS 계정이 아니라 Camofox의 로그인 상태 identity다. 이 구성은
 `CAMOFOX_USER_ID=omp`를 OMP, Claude Code, Codex가 함께 써서 쿠키와 웹 스토리지를
@@ -180,9 +176,9 @@ nixpkgs 가 아니라 Homebrew 에서 온다
   번들에 같이 들어오는 `orca` CLI가 헤드리스 기계에서 쓸모 있는 쪽이다.
   랩탑에만 있는 것은 Dock 타일뿐이다.
 - **서버 맥의 Camoufox · DeskPad · macVNC** — Nix가 고정한 macOS 앱이다.
-  Camoufox는 Camofox LaunchAgent가 store 안 실행 파일을 직접 가리키고, DeskPad와
-  macVNC는 같은 LaunchAgent가 실행하면서 Home Manager Apps에도 노출해 privacy
-  권한 대상을 안정된 경로로 제공한다
+  Camoufox와 DeskPad는 Camofox LaunchAgent가 store에서 직접 실행한다. macVNC는
+  같은 LaunchAgent가 실행하지만 Screen Recording·Accessibility 권한을 보존하도록
+  Home Manager Apps의 안정된 경로로 노출한다
   ([0031](decisions/0031-camofox-native-macos-over-wireguard.md)).
 - **KakaoTalk · WireGuard** — Mac App Store 전용이라 손으로 깐다
   ([0016](decisions/0016-mas-only-apps-installed-by-hand.md)). 둘 다 랩탑 전용이
@@ -464,29 +460,33 @@ home-manager는 `home.packages`의 폰트를 `~/Library/Fonts/HomeManager`로 rs
 
 ## `pkgs/`
 
-`posthog-cli`, `axiom-cli`, `langfuse-cli`, `vercel-cli`, `camoufox`,
-`camofox-browser`는 nixpkgs 에 아예 없다. `slack-cli` 는 있는데 **다른 프로그램**이고
-([0020](decisions/0020-slack-cli-attribute-replaced.md)), `tempo-cli` 는 nixpkgs
-것을 잘라 쓴다. `pkgs/overlay.nix` 가 오버레이로 얹으므로, 이 디렉터리를 볼 일 없는
-모듈에서도 그냥 `pkgs.posthog-cli`나 `pkgs.camofox-browser`로 쓴다.
+`pkgs/overlay.nix`는 nixpkgs에 없는 package와 이 저장소가 다른 형태로 쓰는
+attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로를 알 필요 없이
+`pkgs.posthog-cli`, `pkgs.camofox-browser`처럼 참조한다.
 
 | attribute | 출처 | 메모 |
 |---|---|---|
 | `posthog-cli` | crates.io | 모노레포라 git 대신 배포된 크레이트 |
 | `axiom-cli` | GitHub 타르볼 | 평범한 Go 모듈. 바이너리 이름은 `axiom` |
-| `langfuse-cli` | npm 타르볼 | lock 을 직접 만들어 함께 담았다 |
-| `vercel-cli` | npm 타르볼 | manifest 를 `postPatch` 에서 편집 |
-| `slack-cli` | GitHub 타르볼 | nixpkgs 의 동명 attribute 를 갈아끼운다 |
+| `langfuse-cli` | npm 타르볼 | lock을 직접 만들어 함께 담았다 |
+| `vercel-cli` | npm 타르볼 | manifest를 `postPatch`에서 편집 |
+| `beardrive` | GitHub release binaries | BearDrive 0.15.0의 platform별 `bdrive` |
+| `sentry` | GitHub release npm tarball | getsentry/cli 0.42.2 |
+| `slack-cli` | GitHub 타르볼 | nixpkgs의 동명 attribute를 갈아끼운다 |
 | `bun` | nixpkgs override | 필요한 버전이 한 릴리스 앞 |
-| `tempo-cli` | nixpkgs override | `subPackages` 를 하나로 줄인다 |
+| `tempo-cli` | nixpkgs override | `subPackages`를 하나로 줄인다 |
 | `camoufox` | GitHub macOS arm64 zip | 152.0.4-beta.28 코어. aarch64-darwin 전용 |
-| `camofox-browser` | npm 타르볼 | `@askjo/camofox-browser` 1.13.1 + package-time headful opt-out |
+| `camofox-browser` | npm 타르볼 | `@askjo/camofox-browser` 1.13.1 + macOS headful patch |
+| `deskpad` | GitHub app zip | 1.3.2 virtual display. aarch64-darwin 전용 |
+| `displayplacer` | GitHub release binary | 1.4.0 display layout tool. aarch64-darwin 전용 |
+| `macvnc` | GitHub source revision | ScreenCaptureKit + LibVNCServer. aarch64-darwin 전용 |
 
 CLI 패키징 결정과 각 패키지의 함정은
 [0019](decisions/0019-package-from-published-artifacts.md), Camofox 쪽 결정은
-[0031](decisions/0031-camofox-native-macos-over-wireguard.md)에 있다. 앞의 CLI
-여섯만 [Cachix 로 올린다](operations.md#캐시-푸시). 브라우저 둘은 고정한 상류
-아티팩트에서 풀고 서버 맥 하나만 소비하므로 cache-push 대상에서 뺐다.
+[0031](decisions/0031-camofox-native-macos-over-wireguard.md)에 있다. 모든 호스트의
+custom package output과 Darwin의 source-built `macvnc`만
+[Cachix로 올린다](operations.md#캐시-푸시). `camoufox`, `camofox-browser`,
+`deskpad`, `displayplacer`는 server-only fixed-artifact repack이라 제외한다.
 
 ## 이 레포를 패키지 저장소로 쓰기
 

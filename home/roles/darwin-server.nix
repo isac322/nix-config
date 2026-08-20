@@ -307,14 +307,9 @@ let
     export CAMOFOX_PROFILE_DIR="$stateRoot/profiles"
     export CAMOFOX_TRACES_DIR="$stateRoot/traces"
 
-    # Camofox stays headful, but its Linux/Xvfb plugin remains disabled.
-    # DeskPad supplies the dedicated macOS virtual display that macVNC exports.
+    # Headful selection belongs to the service. The packaged server wrapper
+    # owns its immutable executable, runtime-download, and telemetry policy.
     export CAMOFOX_HEADLESS=false
-    export ENABLE_VNC=0
-    export CAMOUFOX_EXECUTABLE=${lib.escapeShellArg "${pkgs.camoufox}/Applications/Camoufox.app/Contents/MacOS/camoufox"}
-    export CAMOUFOX_SKIP_DOWNLOAD=1
-    export CAMOFOX_CRASH_REPORT_ENABLED=false
-    export SENTRY_DSN=""
 
     deskpadPid=0
     vncPid=0
@@ -718,9 +713,15 @@ in
   # MPL-2.0 — so it needs no allowUnfreePredicate entry. It shells out to
   # `terraform` for validation, and finds the one from home/darwin.nix.
   home.packages = [
+    # OMP references this package directly. PATH exposure remains for the
+    # documented Claude Code and Codex MCP registration commands.
     pkgs.camofox-mcp-session
-    pkgs.deskpad
+
+    # The LaunchAgent deliberately uses this stable app path so macOS privacy
+    # grants survive store-path changes. DeskPad needs no equivalent grant and
+    # runs directly from its Nix store path.
     pkgs.macvnc
+
     pkgs.cargo
     pkgs.rust-analyzer
     pkgs.rustc

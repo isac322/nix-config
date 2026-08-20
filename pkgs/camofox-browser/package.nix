@@ -45,6 +45,9 @@ buildNpmPackage (finalAttrs: {
 
     substituteInPlace lib/config.js \
       --replace-fail \
+        "function camoufoxCacheDir(env = process.env) {" \
+        "function camoufoxCacheDir(env = process.env) { const installDir = (env.CAMOUFOX_INSTALL_DIR || \"\").trim(); if (installDir) return installDir;" \
+      --replace-fail \
         "    camoufoxCacheDir: camoufoxCacheDir()," \
         "    camoufoxCacheDir: camoufoxCacheDir(),
     headless: process.env.CAMOFOX_HEADLESS !== 'false'," \
@@ -93,19 +96,28 @@ buildNpmPackage (finalAttrs: {
 
   nativeBuildInputs = [ makeWrapper ];
 
-  # Both public entry points can start or locate the browser.  Give each the
-  # same immutable executable and skip flags so neither the server nor MCP path
-  # can fall through to a per-user network download.  The upstream crash
-  # reporter is opt-out; packaged invocations opt out centrally here.
+  # Only the REST server launches Camoufox. Give camoufox-js the complete
+  # compatibility layout it expects as another immutable store tree rather than
+  # letting it create ~/Library/Caches/camoufox. The MCP entry point only
+  # forwards requests to that server and needs none of the browser environment.
   postInstall = ''
-    for program in camofox-browser camofox-browser-mcp; do
-      wrapProgram "$out/bin/$program" \
-        --set CAMOUFOX_EXECUTABLE "${camoufox}/Applications/Camoufox.app/Contents/MacOS/camoufox" \
-        --set CAMOUFOX_SKIP_DOWNLOAD 1 \
-        --set CAMOFOX_SKIP_DOWNLOAD 1 \
-        --set PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD 1 \
-        --set CAMOFOX_CRASH_REPORT_ENABLED false
-    done
+    installDir="$out/share/camoufox-js"
+    mkdir -p "$installDir/Camoufox.app/Contents/MacOS"
+    ln -s ${camoufox}/Applications/Camoufox.app/Contents/MacOS/camoufox \
+      "$installDir/Camoufox.app/Contents/MacOS/camoufox"
+    ln -s ${camoufox}/Applications/Camoufox.app/Contents/Resources/properties.json \
+      "$installDir/properties.json"
+    ln -s ${camoufox}/Applications/Camoufox.app/Contents/Resources/version.json \
+      "$installDir/version.json"
+    ln -s ${camoufox}/Applications/Camoufox.app/Contents/Resources/fontconfig \
+      "$installDir/fontconfig"
+
+    wrapProgram "$out/bin/camofox-browser" \
+      --set CAMOUFOX_EXECUTABLE "${camoufox}/Applications/Camoufox.app/Contents/MacOS/camoufox" \
+      --set CAMOUFOX_INSTALL_DIR "$installDir" \
+      --set CAMOFOX_DISABLE_DEFAULT_ADDONS 1 \
+      --set CAMOFOX_CRASH_REPORT_ENABLED false \
+      --set SENTRY_DSN ""
   '';
 
   meta = {

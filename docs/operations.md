@@ -448,10 +448,13 @@ LaunchDaemon은 이 loopback VNC를 WireGuard 주소의 HTTPS WebSocket으로 �
 고정한 upstream release 또는 source revision이다. 상류 Camofox Linux/Xvfb
 플러그인은 계속 끈다.
 
-native Screen Sharing은 최종 data path가 아니다. 현재 역할은
-`local.camofox.retireScreenSharing = true`라 switch가 그 job을 disable·stop한다.
-port 5900의 전체 데스크톱 경로를 migration console로 다시 써야 할 때만 이 값을
-명시적으로 `false`로 바꾸며, noVNC 자체는 어느 상태에서도 port 5900을 쓰지 않는다.
+LaunchAgent는 Camofox와 DeskPad를 Nix store에서 직접 실행한다. macVNC만 macOS
+Screen Recording·Accessibility 권한의 안정된 대상을 위해
+`~/Applications/Home Manager Apps/macVNC.app` 경로를 쓴다.
+
+native Screen Sharing은 Camofox의 data path가 아니며 이 구성은 그 서비스의
+enable·disable 상태를 관리하지 않는다. 운영자가 별도로 켜면 port 5900에 독립된
+전체 데스크톱 경로가 생길 수 있지만, noVNC는 계속 port 5901의 macVNC만 쓴다.
 
 noVNC framebuffer는 전용 가상 디스플레이 전체다. desktop·Dock·menu bar와 그
 디스플레이 위에 놓인 모든 앱이 보이고 키보드와 포인터도 Aqua 세션 좌표로 전달된다.
@@ -461,7 +464,11 @@ noVNC는 사용자별 접속점이 아니라 신뢰된 운영자의 공용 콘�
 
 Camofox browser는 활성 세션이 없으면 상류 기본 idle timeout인 약 5분 뒤 종료된다.
 Node API daemon, DeskPad, macVNC, noVNC는 계속 실행되고 다음 요청이 Camoufox를 다시
-띄운다.
+띄운다. 관리되는 server는 Nix store의 Camoufox, camoufox-js compatibility layout,
+download-disabled addon 구성을 쓰며 `HOME` 아래 browser cache를 만들지 않는다.
+`~/Library/Caches/camoufox`가 있다면 과거 `npx camoufox-js fetch`가 내려받은
+비관리 잔재다. 그 경로에서 실행 중인 process를 먼저 종료한 뒤 전체 cache를
+삭제한다.
 
 LaunchAgent가 성공하면 로그에 macVNC의 다음 줄이 남고 port 5901이 열린다.
 
@@ -494,28 +501,16 @@ noVNC 인증에는 username이 없다. 브라우저가 묻는 VNC 비밀번호�
 첫 접속에서는 브라우저의 인증서 경고를 확인하고 진행한다. WireGuard 주소가 바뀌면
 noVNC가 재시작되며 새 IP용 인증서를 만든다.
 
-**새 서버 또는 privacy 권한 초기화 때만.** 새 macVNC에 Screen Recording과
-Accessibility 권한이 없으면 migration 동안
-`local.camofox.retireScreenSharing = false`로 바꾼다. 이 첫 switch는 native Screen
-Sharing을 migration console로 남기지만 legacy 8자 VNC 인증은 제거한다. 먼저
-Screen Sharing의 macOS 계정 인증이 실제로 동작하는지 확인한다. 서버의 port 5900은
-loopback으로 제한했으므로 다른 Mac에서 SSH tunnel을 연다.
-
-```sh
-ssh -N -L 15900:127.0.0.1:5900 bhyoo@<server-WireGuard-IP>
-open 'vnc://127.0.0.1:15900'
-```
-
-Screen Sharing.app에는 username `bhyoo`와 **macOS 로그인 비밀번호**를 입력한다.
-`/var/lib/nix-darwin/camofox-vnc-password`의 8자 값이 아니다. 원격 포인터와
-키보드로 System Settings를 열 수 있음을 확인하지 못하면 첫 switch를 실행하지 않는다.
+**새 서버 또는 privacy 권한 초기화 때만.** macVNC에는 Screen Recording과
+Accessibility 권한이 필요하다. Camofox 구성은 native Screen Sharing을 원격
+fallback으로 준비하지 않으므로 물리 Aqua console이나 별도로 마련한 관리 경로에서
+다음 switch와 권한 부여를 진행한다.
 
 ```sh
 sudo darwin-rebuild switch --flake /etc/nix-darwin#bhyoo-macbook-pro
 ```
 
-첫 switch 뒤 migration console에서 다음 앱을 두 privacy pane에 모두 추가하고
-허용한다.
+switch가 설치한 다음 앱을 두 privacy pane에 모두 추가하고 허용한다.
 
 ```text
 ~/Applications/Home Manager Apps/macVNC.app
@@ -525,7 +520,7 @@ sudo darwin-rebuild switch --flake /etc/nix-darwin#bhyoo-macbook-pro
 - System Settings > Privacy & Security > Accessibility
 
 그 뒤 LaunchAgent를 재시작한다. macVNC는 권한이 없을 때 조용히 view-only로
-후퇴하지 않고 종료하므로, port와 로그를 함께 확인한다.
+후퇴하지 않고 종료하므로 port와 로그를 함께 확인한다.
 
 ```sh
 launchctl kickstart -k gui/$(id -u)/org.nix-community.home.camofox-browser
@@ -536,27 +531,10 @@ nc -z 127.0.0.1 5901
 새 HTTPS noVNC 세션에서 인증, 전용 1920×1080 디스플레이 전체, 화면 갱신,
 키보드와 포인터 입력을 모두 확인한다. 진단용 앱을 그 디스플레이로 옮겼을 때
 noVNC에 보이고 입력도 전달되는 것이 정상이다. 관찰만 진단하려면
-`local.camofox.vncViewOnly = true`를 쓸 수 있지만, 그 상태에서는 migration
-console을 폐기하지 않는다.
+`local.camofox.vncViewOnly = true`를 쓸 수 있다.
 
-입력까지 검증했으면 현재 역할의 기본 상태인 다음 값으로 되돌리고 다시 switch한다.
-
-```nix
-local.camofox = {
-  enable = true;
-  retireScreenSharing = true;
-};
-```
-
-```sh
-sudo darwin-rebuild switch --flake /etc/nix-darwin#bhyoo-macbook-pro
-nc -z 127.0.0.1 5900 && echo 'unexpected Screen Sharing listener'
-nc -z 127.0.0.1 5901
-```
-
-macVNC 패키지 바이너리가 바뀌면 macOS가 privacy 권한을 다시 요구할 수 있다. 새
-generation에서 noVNC 입력까지 재검증하기 전에는 Screen Sharing retirement를 함께
-진행하지 않는다.
+macVNC 패키지 바이너리가 바뀌면 macOS가 privacy 권한을 다시 요구할 수 있으므로
+새 generation에서 화면과 입력을 다시 검증한다.
 
 Camofox API는 loopback 밖에서 접근할 수 없다. OMP가
 `~/.omp/agent/mcp.json`에 선언된 `camofox-browser-mcp-session omp`를 시작하면
@@ -705,8 +683,9 @@ agenix나 sops-nix로 레포에 암호화해 넣으면 이 한 단계도 사라�
 [0017](decisions/0017-warp-enrollment-via-mdm-xml.md).
 
 ## 캐시 푸시
-`pkgs/`의 브라우저 둘을 뺀 CLI 여섯은 어떤 공개 캐시에도 없어서 기기마다 새로
-컴파일한다. 그것만 Cachix 에 올린다
+모든 호스트가 쓰는 custom package output과 Darwin에서 source-built하는 `macvnc`를
+Cachix에 올린다. 서버 전용 fixed-artifact repack인 `camoufox`,
+`camofox-browser`, `deskpad`, `displayplacer`는 제외한다
 ([0018](decisions/0018-cachix-not-flakehub-cache.md)).
 
 처음 한 번:

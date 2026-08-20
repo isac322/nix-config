@@ -235,20 +235,11 @@
         }
       );
 
-      # `nix run .#cache-push -- <cache>` builds the packages above and uploads
-      # them. They are exactly the set no public cache can have: the first six
-      # exist nowhere else, and slack-cli and tempo-cli replace nixpkgs
-      # attributes, so their derivations differ from what cache.nixos.org built
-      # under those names. Everything else in a system closure still comes from
-      # upstream caches, so there is nothing else worth pushing. The browser
-      # packages and the bun override in pkgs/overlay.nix are also built locally,
-      # but building each is chiefly unpacking upstream-published artifacts and
-      # pushing them would save nothing.
-      #
-      # The browser packages are deliberately removed from this target set; the
-      # remaining list is read out of packages rather than written a second
-      # time, so a cross-platform package added there and forgotten here would
-      # be one that quietly gets compiled on every machine.
+      # `nix run .#cache-push -- <cache>` builds and uploads the custom CLI
+      # packages above plus source-built macVNC on Darwin. Fixed upstream
+      # artifact repacks are still exposed as package outputs, but pushing them
+      # saves only an unpack and consumes cache bandwidth, so they are excluded
+      # explicitly below. A newly added package remains included by default.
       #
       # The store paths are baked in rather than resolved from `.#` at run
       # time: building this app builds precisely what it will push, and it
@@ -262,13 +253,15 @@
             builtins.removeAttrs self.packages.${system} [
               "camoufox"
               "camofox-browser"
+              "deskpad"
+              "displayplacer"
             ]
           );
         in
         {
           cache-push = {
             type = "app";
-            meta.description = "Push the locally packaged CLIs to a Cachix cache";
+            meta.description = "Push selected locally packaged outputs to a Cachix cache";
             program = lib.getExe (
               pkgs.writeShellApplication {
                 name = "cache-push";

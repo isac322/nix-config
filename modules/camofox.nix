@@ -228,17 +228,6 @@ in
       '';
     };
 
-    retireScreenSharing = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = ''
-        Disable and stop the native Screen Sharing migration console during
-        activation. Set this only after macVNC has both Screen Recording and
-        Accessibility permission and its dedicated-display noVNC path has been
-        verified.
-      '';
-    };
-
     tlsDirectory = lib.mkOption {
       type = lib.types.str;
       default = "/var/lib/nix-darwin/camofox-novnc-tls";
@@ -345,30 +334,6 @@ in
       /usr/sbin/chown ${lib.escapeShellArg primaryUser}:staff "$rfbAuthFile"
       /bin/chmod 0400 "$rfbAuthFile"
 
-      # The open-source macVNC backend uses ordinary RFB authentication on
-      # loopback. Retire the Apple-specific credential immediately. Keep the
-      # native Screen Sharing service as an independent migration console until
-      # the operator explicitly confirms macVNC capture and input both work.
-      /usr/bin/defaults write /Library/Preferences/com.apple.RemoteManagement \
-        VNCLegacyConnectionsEnabled -bool false
-      /bin/rm -f /Library/Preferences/com.apple.VNCSettings.txt
-
-      ${lib.optionalString cfg.retireScreenSharing ''
-        if ! disableOut=$(/bin/launchctl disable \
-          system/com.apple.screensharing 2>&1); then
-          echo "camofox: could not disable retired Screen Sharing backend: $disableOut" >&2
-        fi
-        if ! bootoutOut=$(/bin/launchctl bootout system \
-          /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>&1); then
-          case "$bootoutOut" in
-            *"No such process"* | *"Could not find service"*) ;;
-            *) echo "camofox: could not stop retired Screen Sharing backend: $bootoutOut" >&2 ;;
-          esac
-        fi
-      ''}
-      ${lib.optionalString (!cfg.retireScreenSharing) ''
-        echo "camofox: keeping native Screen Sharing as the migration console." >&2
-      ''}
     '';
   };
 }

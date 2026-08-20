@@ -17,6 +17,7 @@ SSH 에이전트 통합이 시스템에 걸린다.
 
 Nix에서 오는 GUI 예외는 Firefox와 서버 맥의 Camoufox·DeskPad·macVNC다. Firefox는
 오버레이가 주는 `.app` 번들이라 [정책을 두 경로로](0021-firefox-policies-two-paths.md)
-넣어야 한다. 서버의 세 앱은 고정한 브라우저/VNC 스택을 LaunchAgent가 직접 실행하고
-privacy 권한 대상도 안정된 경로로 유지하기 위해 Nix로 패키징한다
+넣어야 한다. 서버의 세 앱은 고정한 브라우저/VNC 스택이라 Nix로 패키징한다.
+Camoufox와 DeskPad는 LaunchAgent가 store에서 직접 실행하고, Screen Recording과
+Accessibility 권한이 필요한 macVNC만 Home Manager Apps의 안정된 경로로 실행한다
 ([0031](0031-camofox-native-macos-over-wireguard.md)).

@@ -135,14 +135,7 @@ in
   # The headful browser API and its dedicated-display remote console. Both
   # endpoints learn their bind address from WireGuard at run time; there is no
   # ordinary-interface fallback written here or in modules/camofox.nix.
-  #
-  # The deployed full-display macVNC generation has passed live HTTPS noVNC
-  # capture and input checks. Retire native Screen Sharing so the only remaining
-  # VNC backend is the dedicated DeskPad display listener on loopback port 5901.
-  local.camofox = {
-    enable = true;
-    retireScreenSharing = true;
-  };
+  local.camofox.enable = true;
 
   # Come back without someone pressing the button.
   #
