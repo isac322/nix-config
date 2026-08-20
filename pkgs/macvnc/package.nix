@@ -18,6 +18,11 @@ stdenv.mkDerivation {
     hash = "sha256-5cPRDVzPWE8dcTf6hIk0mV+6Np2Z0sjW9YOOrQ1Idzg=";
   };
 
+  patches = [
+    ./accessibility-prompt.patch
+    ./application-filter.patch
+  ];
+
   nativeBuildInputs = [
     cmake
     pkg-config
@@ -43,6 +48,12 @@ stdenv.mkDerivation {
   # bundle identity lets macOS retain Screen Recording and Accessibility
   # consent across immutable Nix store generations.
   postFixup = ''
+    info="$out/Applications/macVNC.app/Contents/Info.plist"
+    /usr/bin/plutil -replace CFBundleIdentifier \
+      -string com.github.LibVNC.macVNC "$info"
+    /usr/bin/plutil -replace CFBundleName -string macVNC "$info"
+    /usr/bin/plutil -insert CFBundleDisplayName -string macVNC "$info"
+    /usr/bin/plutil -replace CFBundleVersion -string 1 "$info"
     /usr/bin/codesign --force --sign - \
       --identifier com.github.LibVNC.macVNC \
       "$out/Applications/macVNC.app"

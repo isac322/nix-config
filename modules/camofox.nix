@@ -1,9 +1,9 @@
 # Camofox on the unattended Mac.
 #
-# The browser, DeskPad virtual monitor, and macVNC backend belong to the
-# logged-in Aqua session and are declared in home/roles/darwin-server.nix. The
-# root module owns the persistent VNC secret, derived RFB auth file, and HTTPS
-# noVNC bridge.
+# The browser, DeskPad virtual monitor, and application-filtered macVNC backend
+# belong to the logged-in Aqua session and are declared in
+# home/roles/darwin-server.nix. The root module owns the persistent VNC secret,
+# derived RFB auth file, and HTTPS noVNC bridge.
 #
 # The browser API and VNC backend bind loopback only. noVNC is the sole
 # network-facing component, and it refuses to start until WireGuard has
@@ -168,8 +168,8 @@ in
 {
   options.local.camofox = {
     enable = lib.mkEnableOption ''
-      Camofox in the automatic Aqua session, with a native virtual-display VNC
-      backend exposed through WireGuard-only HTTPS noVNC'';
+      Camofox in the automatic Aqua session, with Camofox-only native VNC
+      exposed through WireGuard-only HTTPS noVNC'';
     apiPort = lib.mkOption {
       type = lib.types.port;
       default = 9377;
@@ -179,7 +179,7 @@ in
     vncPort = lib.mkOption {
       type = lib.types.port;
       default = 5901;
-      description = "Loopback TCP port for the native Camofox VNC backend.";
+      description = "Loopback TCP port for the Camofox-only native VNC backend.";
     };
 
     displayWidth = lib.mkOption {

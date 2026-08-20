@@ -44,7 +44,6 @@
 - [0016. App Store 전용 앱 둘은 손으로 깐다](0016-mas-only-apps-installed-by-hand.md) — 그리고 없으면 switch 가 매번 알린다
 - [0021. Firefox 정책을 두 경로로 넣는 이유](0021-firefox-policies-two-paths.md)
 - [0022. Vim 이 vim-sensible 위에 얹히는 방식](0022-vim-on-top-of-vim-sensible.md)
-- [0024. agent-browser 에게 브라우저를 쥐여주는 두 가지 방법](0024-chrome-for-agent-browser-on-the-server.md)
 - [0028. 서버 맥에서 Orca 런타임을 계속 띄운다](0028-orca-runtime-on-the-server-mac.md) — LaunchAgent 가 콘솔 로그인에 안 묶이게
 - [0031. Camofox 는 macOS 에서 네이티브로, 화면은 WireGuard 너머로](0031-camofox-native-macos-over-wireguard.md) — DeskPad · macVNC · noVNC, 두 주소 경계
 

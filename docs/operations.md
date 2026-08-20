@@ -441,23 +441,25 @@ orca account list
 
 Camofox API, DeskPad, macVNC는 `bhyoo`의 Aqua LaunchAgent가 함께 감독한다.
 DeskPad 1.3.2가 전용 가상 모니터를 만들고, displayplacer 1.4.0이 그 화면을
-1920×1080 main display로 배치한다. 그 뒤 `LibVNC/macVNC`가 ScreenCaptureKit으로
-화면을 캡처해 `127.0.0.1:5901`의 VNC로 내보낸다. root noVNC LaunchDaemon은 이
-loopback VNC를 WireGuard 주소의 HTTPS WebSocket으로 중계한다
-([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 세 구성요소는 모두
-고정한 upstream release 또는 source revision이며, 이 저장소가 만든 VNC 서버는 없다.
-상류 Camofox Linux/Xvfb 플러그인은 계속 끈다.
+1920×1080 main display로 배치한다. Camofox가 Camoufox 프로세스를 pre-warm한 뒤
+`LibVNC/macVNC`가 ScreenCaptureKit application filter로 bundle identifier
+`org.mozilla.camoufox`의 창만 캡처해 `127.0.0.1:5901`의 VNC로 내보낸다. root
+noVNC LaunchDaemon은 이 loopback VNC를 WireGuard 주소의 HTTPS WebSocket으로
+중계한다 ([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 세
+구성요소는 모두 고정한 upstream release 또는 source revision이다. 상류 Camofox
+Linux/Xvfb 플러그인은 계속 끈다.
 
-native Screen Sharing은 최종 data path가 아니라 첫 전환의 migration console이다.
-`local.camofox.retireScreenSharing = false`인 동안 noVNC는 port 5900을 전혀 쓰지
-않지만 Screen Sharing job은 남는다. macVNC의 캡처와 입력을 직접 검증한 뒤 이 값을
-`true`로 바꾼 다음 switch가 그 job을 disable·stop한다.
+native Screen Sharing은 최종 data path가 아니다. 현재 역할은
+`local.camofox.retireScreenSharing = true`라 switch가 그 job을 disable·stop한다.
+port 5900의 전체 데스크톱 경로를 migration console로 다시 써야 할 때만 이 값을
+명시적으로 `false`로 바꾸며, noVNC 자체는 어느 상태에서도 port 5900을 쓰지 않는다.
 
-noVNC는 Camofox 창 하나나 `userId` 하나가 아니라 **Camofox 전용 가상 디스플레이
-전체**를 공유하는 신뢰된 관리자 콘솔이다. 여러 `userId`는 각각 별도
-BrowserContext를 쓰지만 같은 Camoufox 프로세스와 디스플레이에서 실행된다.
-쿠키·웹 스토리지 외의 화면, 포커스, 키보드, 마우스, 클립보드는 공유된다.
-사용자별 noVNC 접속점으로 제공하지 않는다.
+noVNC framebuffer는 1920×1080 좌표계를 유지하지만 **Camoufox가 소유한 모든 창만**
+보인다. desktop·Dock·menu bar·다른 앱은 보이지 않고 빈 영역은 검정색이다. 키보드와
+포인터도 Camoufox 창 밖으로 전달하지 않는다. 여러 `userId`는 각각 별도
+BrowserContext를 쓰지만 같은 Camoufox 프로세스를 쓰므로, noVNC에 보이는 Camoufox
+창과 그 안의 포커스·키보드·마우스·클립보드는 공유된다. 사용자별 noVNC 접속점으로
+제공하지 않는다.
 
 LaunchAgent가 성공하면 로그에 macVNC의 다음 줄이 남고 port 5901이 열린다.
 
@@ -466,9 +468,10 @@ Listening for VNC connections on TCP port 5901
 ```
 
 이 줄이 없으면 noVNC를 반복해서 재접속하지 말고
-`~/Library/Logs/camofox-browser.log`에서 DeskPad 준비, displayplacer layout,
-Screen Recording, Accessibility 오류를 확인한다. DeskPad, macVNC, Camofox 중
-하나가 끝나면 LaunchAgent가 나머지도 끝내고 전체 스택을 재시작한다.
+`~/Library/Logs/camofox-browser.log`에서 DeskPad 준비, Camoufox pre-warm,
+displayplacer layout, application filter, Screen Recording, Accessibility 오류를
+확인한다. DeskPad, macVNC, Camofox 중 하나가 끝나면 LaunchAgent가 나머지도 끝내고
+전체 스택을 재시작한다.
 
 **주소.** API는 이 Mac 안에서만 열고, 원격 화면은 WireGuard 주소의 HTTPS noVNC로
 연다.
@@ -490,11 +493,12 @@ noVNC 인증에는 username이 없다. 브라우저가 묻는 VNC 비밀번호�
 첫 접속에서는 브라우저의 인증서 경고를 확인하고 진행한다. WireGuard 주소가 바뀌면
 noVNC가 재시작되며 새 IP용 인증서를 만든다.
 
-**첫 switch 전 필수 확인.** 새 macVNC는 아직 Screen Recording과 Accessibility
-권한이 없다. 첫 switch는 `retireScreenSharing = false`를 유지하므로 native Screen
-Sharing을 migration console로 남기지만, legacy 8자 VNC 인증은 제거한다. 따라서
-Screen Sharing의 macOS 계정 인증이 실제로 동작하는지 먼저 확인한다. 서버의 port
-5900은 loopback으로 제한했으므로 다른 Mac에서 SSH tunnel을 연다.
+**새 서버 또는 privacy 권한 초기화 때만.** 새 macVNC에 Screen Recording과
+Accessibility 권한이 없으면 migration 동안
+`local.camofox.retireScreenSharing = false`로 바꾼다. 이 첫 switch는 native Screen
+Sharing을 migration console로 남기지만 legacy 8자 VNC 인증은 제거한다. 먼저
+Screen Sharing의 macOS 계정 인증이 실제로 동작하는지 확인한다. 서버의 port 5900은
+loopback으로 제한했으므로 다른 Mac에서 SSH tunnel을 연다.
 
 ```sh
 ssh -N -L 15900:127.0.0.1:5900 bhyoo@<server-WireGuard-IP>
@@ -528,11 +532,13 @@ tail -n 100 ~/Library/Logs/camofox-browser.log
 nc -z 127.0.0.1 5901
 ```
 
-새 HTTPS noVNC 세션에서 인증, non-black 1920×1080 화면, 화면 갱신, 키보드와 포인터
-입력을 모두 확인한다. 관찰만 진단하려면 `local.camofox.vncViewOnly = true`를 쓸 수
-있지만, 그 상태에서는 migration console을 폐기하지 않는다.
+새 HTTPS noVNC 세션에서 인증, Camoufox-only 1920×1080 화면, 화면 갱신, 키보드와
+포인터 입력을 모두 확인한다. 다른 Aqua 앱을 Camoufox 위에 띄웠을 때 noVNC에는
+나타나지 않고, 그 앱의 입력란에도 VNC 입력이 전달되지 않아야 한다. 관찰만
+진단하려면 `local.camofox.vncViewOnly = true`를 쓸 수 있지만, 그 상태에서는
+migration console을 폐기하지 않는다.
 
-입력까지 검증했으면 `modules/roles/darwin-server.nix`의 값을 바꾸고 다시 switch한다.
+입력까지 검증했으면 현재 역할의 기본 상태인 다음 값으로 되돌리고 다시 switch한다.
 
 ```nix
 local.camofox = {

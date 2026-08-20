@@ -22,9 +22,8 @@ environment.variables = {
 };
 ```
 
-이것을 `home.sessionVariables`에 넣지 않은 이유는
-[0024](0024-chrome-for-agent-browser-on-the-server.md)와 같다. `ssh host command` 같은
-비로그인 SSH 명령은 Home Manager의 세션 파일을 읽지 않지만, 시스템 환경 변수는
+이것을 `home.sessionVariables`에 넣지 않은 이유는 `ssh host command` 같은 비로그인
+SSH 명령이 Home Manager의 세션 파일을 읽지 않기 때문이다. 시스템 환경 변수는
 `/etc/zshenv`를 포함한 시스템 경로에서 제공된다.
 
 macOS의 사용자 기본값은 별도로 `NSGlobalDomain AppleLocale`에 `ko_KR`로 쓴다.

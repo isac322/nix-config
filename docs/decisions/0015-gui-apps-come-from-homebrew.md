@@ -15,7 +15,8 @@ payload에서 `Cloudflare WARP.app`만 꺼내 복사하고 `warp-cli`를 심볼�
 Karabiner 도, 1Password 데스크톱 앱도 같은 모양의 문제다 — 후자는 브라우저 연동과
 SSH 에이전트 통합이 시스템에 걸린다.
 
-nixpkgs 에서 오는 GUI 는 지금 둘뿐이고 둘 다 이유가 분명하다. Firefox 는 오버레이가
-주는 `.app` 번들이라 [정책을 두 경로로](0021-firefox-policies-two-paths.md) 넣어야
-하고, 서버 맥의 크롬은 [사람이 쓰는 브라우저가
-아니다](0024-chrome-for-agent-browser-on-the-server.md).
+Nix에서 오는 GUI 예외는 Firefox와 서버 맥의 Camoufox·DeskPad·macVNC다. Firefox는
+오버레이가 주는 `.app` 번들이라 [정책을 두 경로로](0021-firefox-policies-two-paths.md)
+넣어야 한다. 서버의 세 앱은 고정한 브라우저/VNC 스택을 LaunchAgent가 직접 실행하고
+privacy 권한 대상도 안정된 경로로 유지하기 위해 Nix로 패키징한다
+([0031](0031-camofox-native-macos-over-wireguard.md)).

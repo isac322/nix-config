@@ -27,10 +27,6 @@
       # converts to Apache-2.0 after two years, but nixpkgs correctly classifies
       # the current release as unfree until that conversion.
       "sentry"
-      # Only the server Mac takes this from nixpkgs — see
-      # modules/roles/darwin-server.nix. The laptop's Chrome is a cask, which
-      # Homebrew installs without consulting this predicate at all.
-      "google-chrome"
       # HashiCorp relicensed Terraform from MPL-2.0 to the Business Source
       # License at 1.5.x, so nixpkgs has marked it unfree ever since. Nothing
       # about the binary changed and the BUSL permits this use; it only forbids

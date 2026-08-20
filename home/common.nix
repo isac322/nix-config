@@ -449,14 +449,12 @@ in
     pkgs.langfuse-cli
 
     # The services those same agents have to act on rather than just read.
-    # All four are in nixpkgs unchanged; two are simply not named after their
-    # binary. `gws` is Google's Workspace CLI — @googleworkspace/cli upstream,
-    # and `gws` is what it installs — and `stripe-cli` installs `stripe`.
-    # agent-browser is Vercel's headless browser, meant to be driven by an
-    # agent rather than by a test suite.
+    # `gws` is Google's Workspace CLI — @googleworkspace/cli upstream — and
+    # `stripe-cli` installs `stripe`. agent-browser remains available on hosts
+    # without managed Camofox. The server omits it so no second browser process
+    # can bypass the shared Camofox daemon and its session boundary.
     pkgs.wrangler
     pkgs.stripe-cli
-    pkgs.agent-browser
     pkgs.gws
 
     # Every machine, because a cluster is reached from wherever someone happens
@@ -503,7 +501,8 @@ in
     pkgs.sccache
     pkgs.lld
     (if pkgs.stdenv.hostPlatform.isDarwin then pkgs.mold-unwrapped else pkgs.mold)
-  ];
+  ]
+  ++ lib.optional (!camofoxCfg.enable) pkgs.agent-browser;
 
   programs.git = {
     enable = true;

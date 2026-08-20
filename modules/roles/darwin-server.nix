@@ -108,47 +108,13 @@ in
     '';
   };
 
-  # A browser for agent-browser (home/common.nix) to drive. The laptop gets
-  # this from the google-chrome cask, which is the right answer where someone
-  # also browses with it; here nothing does, so it comes from nixpkgs — pinned
-  # with the rest of the closure, and installed without a `pkg` artifact that
-  # would want root during activation.
-  #
-  # nixpkgs unpacks Google's DMG into $out/Applications rather than
-  # /Applications, and agent-browser's auto-detection is four hardcoded
-  # absolute paths (Google Chrome, Chrome Canary, Chromium, Brave, all under
-  # /Applications) plus the Playwright cache. None of them is a store path, so
-  # the browser has to be named explicitly.
-  #
-  # This is environment.variables, not home.sessionVariables, because the
-  # machine is driven over SSH: /etc/zshenv is read by every zsh, while the
-  # home-manager session file is only sourced by login and interactive shells,
-  # which `ssh bhyoo-macbook-pro agent-browser …` is neither.
-  # Deliberately *not* in `environment.systemPackages`, which is the one thing
-  # that would put a copy in /Applications/Nix Apps — and that directory is what
-  # makes this machine unswitchable over SSH.
-  #
-  # nix-darwin's checks touch a file inside every bundle under /Applications/Nix
-  # Apps to prove it may modify them, and an SSH session has no such permission
-  # unless "Allow full disk access for remote users" is granted by hand in
-  # System Settings. Upstream's own comment says even granting it "will still
-  # fail sometimes". With no bundle there the loop has nothing to test and the
-  # check passes, so a headless machine stays switchable from anywhere.
-  #
-  # Nothing is lost. agent-browser never looks on PATH or in /Applications — it
-  # is handed the absolute store path below, which is the whole point of
-  # docs/decisions/0024-chrome-for-agent-browser-on-the-server.md. And the
-  # package stays in the closure because that path is written into /etc/zshenv,
-  # which Nix scans for store references.
-  environment.variables.AGENT_BROWSER_EXECUTABLE_PATH = lib.getExe pkgs.google-chrome;
-
   # Log in without someone being there to do it.
   #
-  # For exactly one thing: the Orca runtime is an Electron application, so it
-  # needs an Aqua session and nothing else will give it one (0028). Everything
-  # else this machine runs is a root daemon on purpose — sshd, WireGuard, the
-  # keyboard mapping — and a daemon needs none of this. That is the general
-  # rule; this is the exception to it, not the pattern.
+  # For the two application stacks that need Aqua: Orca is Electron, and
+  # native Camofox owns Camoufox, DeskPad, and macVNC in one LaunchAgent.
+  # The other machine services are root daemons on purpose — sshd, WireGuard,
+  # and the keyboard mapping need none of this. That is the general rule; these
+  # are the exceptions to it, not the pattern.
   #
   # What it costs, and the one file that has to exist for it to work, is in
   # modules/auto-login.nix.
@@ -166,18 +132,17 @@ in
   # already decided (0028).
   local.orca.enable = true;
 
-  # The headful browser API and the view of its automatic Aqua session. Both
-  # endpoints learn their bind address from WireGuard at run time; there is no
+  # The headful browser API and its Camofox-only remote console. Both endpoints
+  # learn their bind address from WireGuard at run time; there is no
   # ordinary-interface fallback written here or in modules/camofox.nix.
   #
-  # Keep Screen Sharing as an independent migration console through the first
-  # open-source VNC switch. macVNC remains view-only until macOS Accessibility
-  # permission is granted to Home Manager Apps/macVNC.app; capture and browser
-  # relay work without that input permission.
+  # The deployed macVNC generation has passed live HTTPS noVNC capture, input,
+  # and cross-application isolation checks. Retire native Screen Sharing so the
+  # only remaining VNC backend is the application-filtered Camofox listener on
+  # loopback port 5901.
   local.camofox = {
     enable = true;
-    retireScreenSharing = false;
-    vncViewOnly = true;
+    retireScreenSharing = true;
   };
 
   # Come back without someone pressing the button.

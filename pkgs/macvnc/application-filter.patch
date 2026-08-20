@@ -1,0 +1,304 @@
+--- a/src/ScreenCapturer.h
++++ b/src/ScreenCapturer.h
+@@ -9,0 +10,2 @@
++    applicationBundleIdentifier:(nullable NSString *)applicationBundleIdentifier
++             applicationHandler:(nullable void (^)(pid_t processID))applicationHandler
+--- a/src/ScreenCapturer.m
++++ b/src/ScreenCapturer.m
+@@ -5,0 +6 @@
++@property (nonatomic, copy, nullable) NSString *applicationBundleIdentifier;
+@@ -6,0 +8 @@
++@property (nonatomic, strong, nullable) dispatch_source_t applicationExitSource;
+@@ -8,0 +11 @@
++@property (nonatomic, copy, nullable) void (^applicationHandler)(pid_t processID);
+@@ -17,0 +21,2 @@
++    applicationBundleIdentifier:(NSString *)applicationBundleIdentifier
++             applicationHandler:(void (^)(pid_t processID))applicationHandler
+@@ -21,0 +27,2 @@
++        _applicationBundleIdentifier = [applicationBundleIdentifier copy];
++        _applicationHandler = [applicationHandler copy];
+@@ -35,3 +42,4 @@
+-        SCDisplay *display = content.displays[[content.displays indexOfObjectPassingTest:^BOOL(SCDisplay *_Nonnull d, NSUInteger idx, BOOL *_Nonnull stop) {
+-                    return d.displayID == self.displayID;
+-                }]];
++        NSUInteger displayIndex = [content.displays indexOfObjectPassingTest:^BOOL(SCDisplay *_Nonnull d, NSUInteger idx, BOOL *_Nonnull stop) {
++            return d.displayID == self.displayID;
++        }];
++        SCDisplay *display = displayIndex == NSNotFound ? nil : content.displays[displayIndex];
+@@ -55 +63,45 @@
+-        SCContentFilter *filter = [[SCContentFilter alloc] initWithDisplay:(display) excludingWindows:(@[])];
++        SCContentFilter *filter = nil;
++        if (self.applicationBundleIdentifier) {
++            NSUInteger applicationIndex = [content.applications indexOfObjectPassingTest:^BOOL(SCRunningApplication *_Nonnull application, NSUInteger idx, BOOL *_Nonnull stop) {
++                return [application.bundleIdentifier isEqualToString:self.applicationBundleIdentifier];
++            }];
++            SCRunningApplication *application =
++                applicationIndex == NSNotFound ? nil : content.applications[applicationIndex];
++            if (!application) {
++                NSError *noApplicationError = [NSError errorWithDomain:@"ScreenCapturerErrorDomain"
++                                                                  code:2
++                                                              userInfo:@{NSLocalizedDescriptionKey :
++                                                                             [NSString stringWithFormat:@"Application %@ is not available for capture",
++                                                                                                        self.applicationBundleIdentifier]}];
++                self.errorHandler(noApplicationError);
++                return;
++            }
++
++            config.backgroundColor = CGColorGetConstantColor(kCGColorBlack);
++            config.shouldBeOpaque = YES;
++            filter = [[SCContentFilter alloc] initWithDisplay:display
++                                       includingApplications:@[application]
++                                           exceptingWindows:@[]];
++            if (self.applicationHandler) {
++                self.applicationHandler(application.processID);
++            }
++
++            self.applicationExitSource = dispatch_source_create(
++                DISPATCH_SOURCE_TYPE_PROC,
++                application.processID,
++                DISPATCH_PROC_EXIT,
++                dispatch_get_global_queue(QOS_CLASS_UTILITY, 0));
++            if (self.applicationExitSource) {
++                dispatch_source_set_event_handler(self.applicationExitSource, ^{
++                    NSError *applicationExitError = [NSError errorWithDomain:@"ScreenCapturerErrorDomain"
++                                                                        code:3
++                                                                    userInfo:@{NSLocalizedDescriptionKey :
++                                                                                   [NSString stringWithFormat:@"Application %@ exited",
++                                                                                                              self.applicationBundleIdentifier]}];
++                    self.errorHandler(applicationExitError);
++                });
++                dispatch_resume(self.applicationExitSource);
++            }
++        } else {
++            filter = [[SCContentFilter alloc] initWithDisplay:display excludingWindows:@[]];
++        }
+@@ -76,0 +129,4 @@
++    if (self.applicationExitSource) {
++        dispatch_source_cancel(self.applicationExitSource);
++        self.applicationExitSource = nil;
++    }
+--- a/src/mac.m
++++ b/src/mac.m
+@@ -58,0 +59,6 @@
++/* Optional application-only capture and input boundary. */
++const char *applicationBundleIdentifier = NULL;
++pid_t applicationPID = -1;
++static int forwardedButtonMask = 0;
++static CGPoint lastPointerPosition;
++
+@@ -321,0 +328,133 @@
++#define TARGET_WINDOW_CACHE_CAPACITY 128
++
++typedef struct {
++    CGRect bounds;
++    pid_t ownerPID;
++} TargetWindowInfo;
++
++static TargetWindowInfo targetWindows[TARGET_WINDOW_CACHE_CAPACITY];
++static size_t targetWindowCount = 0;
++static CFAbsoluteTime targetWindowCacheTime = 0;
++
++static void
++refreshTargetWindows(void)
++{
++    CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
++    if (now - targetWindowCacheTime < 0.05)
++        return;
++
++    targetWindowCacheTime = now;
++    targetWindowCount = 0;
++
++    CFArrayRef windows = CGWindowListCopyWindowInfo(
++        kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements,
++        kCGNullWindowID);
++    if (!windows)
++        return;
++
++    CFIndex count = CFArrayGetCount(windows);
++    for (CFIndex i = 0; i < count && targetWindowCount < TARGET_WINDOW_CACHE_CAPACITY; ++i) {
++        CFDictionaryRef window = CFArrayGetValueAtIndex(windows, i);
++        CFNumberRef alphaNumber = CFDictionaryGetValue(window, kCGWindowAlpha);
++        double alpha = 1.0;
++        if (alphaNumber)
++            CFNumberGetValue(alphaNumber, kCFNumberDoubleType, &alpha);
++        if (alpha <= 0.01)
++            continue;
++
++        CFStringRef ownerName = CFDictionaryGetValue(window, kCGWindowOwnerName);
++        CFStringRef windowName = CFDictionaryGetValue(window, kCGWindowName);
++        if (ownerName && windowName &&
++            CFEqual(ownerName, CFSTR("Window Server")) &&
++            CFEqual(windowName, CFSTR("Cursor")))
++            continue;
++
++        CFNumberRef layerNumber = CFDictionaryGetValue(window, kCGWindowLayer);
++        int layer = 0;
++        if (layerNumber)
++            CFNumberGetValue(layerNumber, kCFNumberIntType, &layer);
++        if (layer < 0)
++            continue;
++
++        CFDictionaryRef boundsDictionary = CFDictionaryGetValue(window, kCGWindowBounds);
++        CGRect bounds;
++        if (!boundsDictionary || !CGRectMakeWithDictionaryRepresentation(boundsDictionary, &bounds))
++            continue;
++
++        CFNumberRef ownerNumber = CFDictionaryGetValue(window, kCGWindowOwnerPID);
++        pid_t ownerPID = -1;
++        if (!ownerNumber || !CFNumberGetValue(ownerNumber, kCFNumberIntType, &ownerPID))
++            continue;
++
++        targetWindows[targetWindowCount].bounds = bounds;
++        targetWindows[targetWindowCount].ownerPID = ownerPID;
++        ++targetWindowCount;
++    }
++
++    CFRelease(windows);
++}
++
++static rfbBool
++pointIsInsideTargetWindow(CGPoint position)
++{
++    refreshTargetWindows();
++    for (size_t i = 0; i < targetWindowCount; ++i) {
++        if (targetWindows[i].ownerPID == applicationPID &&
++            CGRectContainsPoint(targetWindows[i].bounds, position))
++            return TRUE;
++    }
++    return FALSE;
++}
++
++static rfbBool
++targetWindowIsTopmostAtPoint(CGPoint position)
++{
++    refreshTargetWindows();
++    for (size_t i = 0; i < targetWindowCount; ++i) {
++        if (CGRectContainsPoint(targetWindows[i].bounds, position))
++            return targetWindows[i].ownerPID == applicationPID;
++    }
++    return FALSE;
++}
++
++static rfbBool
++targetApplicationIsFrontmost(void)
++{
++    if (!applicationBundleIdentifier)
++        return TRUE;
++    if (applicationPID <= 0)
++        return FALSE;
++
++    ProcessSerialNumber targetProcess;
++    ProcessSerialNumber frontProcess;
++    Boolean sameProcess = FALSE;
++    if (GetProcessForPID(applicationPID, &targetProcess) != noErr ||
++        GetFrontProcess(&frontProcess) != noErr ||
++        SameProcess(&targetProcess, &frontProcess, &sameProcess) != noErr)
++        return FALSE;
++    return sameProcess;
++}
++
++static void
++activateTargetApplication(void)
++{
++    ProcessSerialNumber targetProcess;
++    if (applicationPID > 0 && GetProcessForPID(applicationPID, &targetProcess) == noErr) {
++        SetFrontProcessWithOptions(
++            &targetProcess,
++            kSetFrontProcessFrontWindowOnly | kSetFrontProcessCausedByUser);
++    }
++}
++static void
++postMouseButtonState(CGPoint position, int buttonMask)
++{
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wdeprecated-declarations"
++    CGPostMouseEvent(position, TRUE, 3,
++                     (buttonMask & (1 << 0)) ? TRUE : FALSE,
++                     (buttonMask & (1 << 2)) ? TRUE : FALSE,
++                     (buttonMask & (1 << 1)) ? TRUE : FALSE);
++#pragma clang diagnostic pop
++}
++
++
+@@ -335,0 +475,3 @@
++
++    if (down && !targetApplicationIsFrontmost())
++        return;
+@@ -384 +526,4 @@
+-    CGEventPost(kCGSessionEventTap, keyboardEvent);
++    if (applicationBundleIdentifier && applicationPID > 0)
++        CGEventPostToPid(applicationPID, keyboardEvent);
++    else
++        CGEventPost(kCGSessionEventTap, keyboardEvent);
+@@ -395,2 +540 @@
+-
+-    undim();
++    int primaryButtonMask = buttonMask & 0x7;
+@@ -399,0 +544,21 @@
++    lastPointerPosition = position;
++
++    if (applicationBundleIdentifier) {
++        rfbBool insideTargetWindow = pointIsInsideTargetWindow(position);
++        rfbBool targetIsFrontmost = targetApplicationIsFrontmost();
++        rfbBool targetIsTopmost = targetWindowIsTopmostAtPoint(position);
++        if (!insideTargetWindow || !targetIsFrontmost || !targetIsTopmost) {
++            int releasedButtonMask = forwardedButtonMask & ~primaryButtonMask;
++            if (releasedButtonMask != 0) {
++                forwardedButtonMask &= primaryButtonMask;
++                postMouseButtonState(position, forwardedButtonMask);
++            }
++            if (insideTargetWindow && forwardedButtonMask == 0 &&
++                primaryButtonMask != 0) {
++                activateTargetApplication();
++            }
++            return;
++        }
++    }
++
++    undim();
+@@ -416,12 +581,7 @@
+-	/*
+-	  Use the deprecated CGPostMouseEvent API here as we get a buttonmask plus position which is pretty low-level
+-	  whereas CGEventCreateMouseEvent is expecting higher-level events. This allows for direct injection of
+-	  double clicks and drags whereas we would need to synthesize these events for the high-level API.
+-	 */
+-#pragma clang diagnostic push
+-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+-	CGPostMouseEvent(position, TRUE, 3,
+-			 (buttonMask & (1 << 0)) ? TRUE : FALSE,
+-			 (buttonMask & (1 << 2)) ? TRUE : FALSE,
+-			 (buttonMask & (1 << 1)) ? TRUE : FALSE);
+-#pragma clang diagnostic pop
++        /*
++          Use the deprecated CGPostMouseEvent API here as we get a buttonmask plus position which is pretty low-level
++          whereas CGEventCreateMouseEvent is expecting higher-level events. This allows for direct injection of
++          double clicks and drags whereas we would need to synthesize these events for the high-level API.
++         */
++        postMouseButtonState(position, primaryButtonMask);
++        forwardedButtonMask = primaryButtonMask;
+@@ -564,0 +725,3 @@
++  NSString *bundleIdentifier = applicationBundleIdentifier
++      ? [NSString stringWithUTF8String:applicationBundleIdentifier]
++      : nil;
+@@ -566 +729,4 @@
+-                                                        frameHandler:^(CMSampleBufferRef sampleBuffer) {
++                                         applicationBundleIdentifier: bundleIdentifier
++                                                  applicationHandler:^(pid_t processID) {
++          applicationPID = processID;
++      } frameHandler:^(CMSampleBufferRef sampleBuffer) {
+@@ -633 +799,4 @@
+-    //TODO
++    if (applicationBundleIdentifier && forwardedButtonMask != 0) {
++        postMouseButtonState(lastPointerPosition, 0);
++        forwardedButtonMask = 0;
++    }
+@@ -652,0 +822,6 @@
++    } else if(strcmp(argv[i],"-bundleid")==0) {
++        if (i + 1 >= argc) {
++            fprintf(stderr, "-bundleid requires a bundle identifier\n");
++            exit(EXIT_FAILURE);
++        }
++        applicationBundleIdentifier = argv[i+1];
+@@ -656 +831 @@
+-        rfbUsage();
++        fprintf(stderr, "-bundleid <identifier> Only export and control one application\n");

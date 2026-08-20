@@ -1,0 +1,22 @@
+--- a/src/mac.m
++++ b/src/mac.m
+@@ -660 +660,18 @@
+-  if(!viewOnly && !AXIsProcessTrusted()) {
++  Boolean accessibilityTrusted = AXIsProcessTrusted();
++  if(!accessibilityTrusted) {
++      const void *keys[] = { kAXTrustedCheckOptionPrompt };
++      const void *values[] = { kCFBooleanTrue };
++      CFDictionaryRef options = CFDictionaryCreate(
++          kCFAllocatorDefault,
++          keys,
++          values,
++          1,
++          &kCFTypeDictionaryKeyCallBacks,
++          &kCFTypeDictionaryValueCallBacks);
++      if(options) {
++          accessibilityTrusted = AXIsProcessTrustedWithOptions(options);
++          CFRelease(options);
++      }
++  }
++
++  if(!viewOnly && !accessibilityTrusted) {

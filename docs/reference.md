@@ -72,7 +72,7 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 | Touch ID 로 sudo (`pam_tid`) | ✅ | ✖ |
 | [sshd — 키 전용, root 금지](decisions/0026-sshd-on-the-server-mac.md) | ✖ | ✅ |
 | [전원 연결 중엔 뚜껑을 닫아도 안 잠](decisions/0006-clamshell-only-while-on-power.md) · 전원별 유휴 타이머 | ✖ | ✅ |
-| [크롬](decisions/0024-chrome-for-agent-browser-on-the-server.md)(agent-browser 용) · Rust · 언어 서버 | ✖ | ✅ |
+| Rust · 언어 서버 | ✖ | ✅ |
 | [Orca 런타임을 계속 띄우는 LaunchAgent](decisions/0028-orca-runtime-on-the-server-mac.md) · 자동 로그인 | ✖ | ✅ |
 | [GPG pinentry](decisions/0030-gpg-passphrase-without-a-console.md) | pinentry-mac | 키체인 + tty |
 | [WireGuard — 앱(랩탑) 대 루트 데몬(서버)](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md) | 앱 | 데몬 |
@@ -163,20 +163,18 @@ password-file 형식으로 변환해 `/var/lib/camofox/vnc-auth`에
 
 nixpkgs 가 아니라 Homebrew 에서 온다
 ([0015](decisions/0015-gui-apps-come-from-homebrew.md)). `onActivation.upgrade` 가
-켜져 있어 최신 유지도 Homebrew 가 한다. 예외 넷:
+켜져 있어 최신 유지도 Homebrew가 한다. 예외 셋:
 
 - **Orca** (Stably) — homebrew-cask가 아니라 자체 tap에 있어서 `homebrew.taps`에
   `stablyai/orca`를 같이 선언한다. nix-homebrew가 tap을 기본적으로 mutable로
   두기 때문에 tap을 flake 인풋으로 고정하지 않고도 동작한다. tap 접두사는
-  선택이 아니다 — homebrew-cask 의 맨 `orca` 는 plotly 의 차트 렌더러로,
-  Gatekeeper 를 통과하지 못해 deprecated 된 무관한 패키지다.
+  선택이 아니다 — homebrew-cask의 맨 `orca`는 plotly의 차트 렌더러로,
+  Gatekeeper를 통과하지 못해 deprecated 된 무관한 패키지다.
 
-  **여기서 유일하게 두 맥 모두에 깔리는 cask** 라 `modules/darwin.nix` 에 있다.
-  Orca 는 코딩 에이전트를 각자의 git worktree 에서 병렬로 굴리는 도구이고,
-  번들에 같이 들어오는 `orca` CLI 가 헤드리스 기계에서 쓸모 있는 쪽이다.
+  **여기서 유일하게 두 맥 모두에 깔리는 cask**라 `modules/darwin.nix`에 있다.
+  Orca는 코딩 에이전트를 각자의 git worktree에서 병렬로 굴리는 도구이고,
+  번들에 같이 들어오는 `orca` CLI가 헤드리스 기계에서 쓸모 있는 쪽이다.
   랩탑에만 있는 것은 Dock 타일뿐이다.
-- **서버 맥의 크롬** — 유일하게 nixpkgs 에서 온다
-  ([0024](decisions/0024-chrome-for-agent-browser-on-the-server.md)).
 - **서버 맥의 Camoufox · DeskPad · macVNC** — Nix가 고정한 macOS 앱이다.
   Camoufox는 Camofox LaunchAgent가 store 안 실행 파일을 직접 가리키고, DeskPad와
   macVNC는 같은 LaunchAgent가 실행하면서 Home Manager Apps에도 노출해 privacy
@@ -286,22 +284,22 @@ endpoint, bucket, region과 S3 자격증명은
 
 ## 서비스 CLI — 읽는 것에서 하는 것으로
 
-`wrangler`, `stripe`, `agent-browser`, `gws` 넷도 같은 자리에 둔다
-(`home/common.nix`). 관측 CLI 가 "무슨 일이 있었는지" 를 읽는 쪽이라면 이쪽은
-에이전트가 실제로 **손을 대는** 쪽이다 — Worker 를 배포하고, 결제 이벤트를 찾고,
-캘린더를 읽고, 브라우저를 몰고 다닌다.
+`wrangler`, `stripe`, `gws`는 모든 노드의 같은 자리에 둔다(`home/common.nix`).
+관측 CLI가 "무슨 일이 있었는지"를 읽는 쪽이라면 이쪽은 에이전트가 실제로
+**손을 대는** 쪽이다 — Worker를 배포하고, 결제 이벤트를 찾고, 캘린더를 읽는다.
+`agent-browser`는 `local.camofox.enable = false`인 노드에만 추가한다. 서버 맥은
+공유 Camofox daemon과 session boundary를 우회하는 별도 Chrome/Chromium 프로세스가
+생기지 않도록 이를 설치하지 않고 Camofox MCP만 쓴다.
 
-넷 다 nixpkgs 에서 그대로 오지만 둘은 이름이 다르다.
+이름이 다른 둘과 조건부 브라우저 CLI에는 다음 주의가 필요하다.
 
-- **`gws` 가 구글 워크스페이스 CLI 다.** 상류 이름은 `@googleworkspace/cli` 인데
-  설치되는 바이너리는 `gws` 이고, nixpkgs 의 attribute 도 `gws` 다.
-  `google-workspace-cli` 같은 attribute 는 없다. 구글 저장소에 있지만
-  "officially supported Google product 가 아니다" 라고 스스로 명시한다.
-- **`stripe-cli` 가 설치하는 바이너리는 `stripe` 다.**
-- **`agent-browser` 는 테스트 러너가 아니다.** Vercel 이 에이전트가 몰도록 만든
-  헤드리스 브라우저 CLI 라, `skills get core` 로 자기 사용법을 먼저 뱉는다.
-  브라우저 **자체는 클로저에 없다**
-  ([0024](decisions/0024-chrome-for-agent-browser-on-the-server.md)).
+- **`gws`가 구글 워크스페이스 CLI다.** 상류 이름은 `@googleworkspace/cli`인데
+  설치되는 바이너리는 `gws`이고, nixpkgs의 attribute도 `gws`다.
+  `google-workspace-cli` 같은 attribute는 없다. 구글 저장소에 있지만
+  "officially supported Google product가 아니다"라고 스스로 명시한다.
+- **`stripe-cli`가 설치하는 바이너리는 `stripe`다.**
+- **`agent-browser`는 테스트 러너가 아니다.** Vercel이 에이전트가 몰도록 만든
+  헤드리스 브라우저 CLI지만, 이 구성에서는 Camofox가 없는 노드에서만 설치한다.
 - **`wrangler` 는 클로저가 774 MiB 다.** 상류가 `workerd` 와 여러 플랫폼용
   `esbuild` 를 함께 담기 때문이고, 잘라낼 `subPackages` 같은 손잡이가 없다.
   `cache.nixos.org` 에서 그대로 받아오니 빌드 시간은 들지 않는다.

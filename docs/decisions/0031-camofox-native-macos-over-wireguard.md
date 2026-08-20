@@ -3,9 +3,10 @@
 **결정** — 서버 맥에서 `@askjo/camofox-browser` API를 Aqua LaunchAgent로
 headful 실행하고, 브라우저 코어는 `daijro/camoufox`의 macOS arm64 릴리스를 쓴다.
 같은 LaunchAgent가 MIT 라이선스의 DeskPad 1.3.2로 가상 디스플레이를 만들고,
-displayplacer 1.4.0으로 1920×1080 main display를 정한 뒤 GPL-2.0의
-`LibVNC/macVNC`가 그 화면을 `127.0.0.1:5901`의 VNC로 내보낸다. root noVNC
-LaunchDaemon은 이를 WireGuard 주소의 HTTPS 웹소켓으로만 중계한다. API는
+displayplacer 1.4.0으로 1920×1080 main display를 정한다. GPL-2.0의
+`LibVNC/macVNC`는 그 디스플레이 전체가 아니라 bundle identifier
+`org.mozilla.camoufox`가 소유한 창만 `127.0.0.1:5901`의 VNC로 내보낸다. root
+noVNC LaunchDaemon은 이를 WireGuard 주소의 HTTPS 웹소켓으로만 중계한다. API는
 loopback에만 열고, 실행 중 다운로드는 없다.
 
 ## macOS 코어는 추측이 아니라 그 기계에서 확인했다
@@ -34,20 +35,38 @@ macOS 내장 `screensharingd`도 최종 백엔드로 쓰지 않는다. 물리 �
 잠금이나 noVNC 문제로 숨기지 않고 백엔드를 교체했다.
 
 전환 activation은 legacy VNC 인증을 즉시 끄고
-`/Library/Preferences/com.apple.VNCSettings.txt`를 제거한다. 다만
-`local.camofox.retireScreenSharing = false`인 첫 전환에서는 native Screen Sharing
-job을 noVNC와 무관한 migration console로 남긴다. macVNC에 Screen Recording과
-Accessibility 권한을 부여하고 noVNC의 화면과 입력을 직접 확인한 뒤 이 값을
-`true`로 바꾼 다음 switch가 `com.apple.screensharing`을 disable·bootout한다.
-어느 단계에서도 noVNC가 이 서비스를 backend로 쓰거나 같은 8자 legacy 비밀번호를
-검사하게 두지 않는다.
+`/Library/Preferences/com.apple.VNCSettings.txt`를 제거한다. 첫 전환에서는
+`local.camofox.retireScreenSharing = false`로 native Screen Sharing job을 noVNC와
+무관한 migration console로 남겼다. macVNC의 Screen Recording·Accessibility 권한,
+Camofox-only 화면, 키보드와 포인터 입력, 다른 앱으로 입력이 새지 않는 경계를 모두
+확인했으므로 현재 역할은 이 값을 `true`로 둔다. switch는
+`com.apple.screensharing`을 disable·bootout한다. 어느 단계에서도 noVNC가 이
+서비스를 backend로 쓰거나 같은 8자 legacy 비밀번호를 검사하게 두지 않는다.
 
 DeskPad는 Aqua 세션 안에서 `CGVirtualDisplay`로 전용 가상 모니터를 만든다.
 displayplacer가 그 모니터를 1920×1080, scaling off, origin `(0,0)`의 main display로
-배치한다. 그 뒤 macVNC가 공개 ScreenCaptureKit으로 main display를 캡처하고
-LibVNCServer로 RFB를 제공한다. `bhyoo-macbook-pro`의 macOS 26에서 이 세 상류
-구성요소를 그대로 조합해 VNCAuth 성공, 1920×1080 raw framebuffer 수신, noVNC
-canvas의 non-black 픽셀과 실시간 갱신까지 확인했다.
+배치한다. Camofox 서버가 Camoufox 프로세스를 먼저 pre-warm한 뒤, macVNC가
+ScreenCaptureKit의 `includingApplications` filter로 `org.mozilla.camoufox`의 모든
+창만 캡처한다. VNC framebuffer는 여러 Camoufox 창의 실제 배치와 입력 좌표를
+보존하려고 1920×1080을 유지하지만, desktop·Dock·menu bar·다른 앱은 들어가지 않고
+나머지 영역은 검정색이다.
+
+입력도 같은 경계를 적용한다. 키보드는 Camoufox가 frontmost일 때만 보낸다. 포인터는
+해당 좌표의 최상단 창과 좌표를 포함하는 창이 모두 Camoufox 소유일 때만 보낸다.
+다른 앱이 Camoufox 위를 가리고 있으면 첫 click은 Camoufox를 앞으로 가져오기만 하고
+그 앱에는 전달하지 않는다. cursor 자체의 WindowServer 창은 hit-test에서 제외한다.
+따라서 화면만 가리고 입력은 전체 Aqua session으로 흘리는 반쪽 격리가 아니다.
+
+상류가 문서화한 `BROWSER_IDLE_TIMEOUT_MS=0`은 실제 구현에서 즉시 종료로 처리되는
+버그가 있어 패키지에서 `0 = never` 의미를 복구한다. 서비스는 이를 0으로 두어
+macVNC filter가 pre-warm한 한 Camoufox 프로세스에 계속 붙게 한다. 그 프로세스가
+끝나면 macVNC도 종료하고 LaunchAgent가 DeskPad·Camofox·macVNC 전체를 함께
+재시작한다.
+
+`bhyoo-macbook-pro`의 macOS 26에서 full-display VNC에는 보이는 다른 앱 overlay가
+Camofox-only framebuffer에는 한 pixel도 나타나지 않음을 확인했다. 같은 RFB
+연결에서 Camoufox input에 `vncok`가 입력되고 button click이 반영됐으며, Camoufox
+위를 덮은 별도 앱의 text field는 빈 값으로 남았다.
 
 DeskPad가 내부에서 쓰는 `CGVirtualDisplay`는 공개 SDK 계약이 아닌 macOS private
 API다. 이 위험은 남지만, 이 저장소가 private API VNC 서버를 새로 유지하지는 않는다.
@@ -55,15 +74,15 @@ OS 업데이트로 가상 디스플레이가 깨지면 DeskPad 준비 단계가 
 전체 스택을 재시도한다. 검은 화면을 성공으로 취급하는 fallback은 두지 않는다.
 
 macVNC의 기본 모드는 키보드와 포인터 입력을 허용하므로 Accessibility 권한이 없으면
-시작하지 않는다. Screen Recording 권한도 캡처에 필요하다. 관찰 경로만 진단할 때
-명시적으로 `local.camofox.vncViewOnly = true`를 쓸 수 있지만 자동으로 view-only로
-후퇴해 권한 실패를 숨기지는 않는다.
+시작하지 않는다. Screen Recording 권한도 application filter 캡처에 필요하다.
+관찰 경로만 진단할 때 명시적으로 `local.camofox.vncViewOnly = true`를 쓸 수 있지만
+자동으로 view-only로 후퇴해 권한 실패를 숨기지는 않는다.
 
 `userId`는 macOS 로그인 사용자가 아니라 Camofox 내부 세션 식별자다. 서버 하나가
 Camoufox 브라우저 프로세스 하나를 공유하고, `userId`마다 별도 Playwright
-BrowserContext를 만든다. 쿠키와 웹 스토리지는 격리되지만 모든 컨텍스트의 창은 같은
-Camofox 가상 디스플레이에 나타난다. noVNC는 신뢰된 운영자의 공용 관리 콘솔이며
-사용자별 화면 경계가 아니다.
+BrowserContext를 만든다. 쿠키와 웹 스토리지는 격리되지만, noVNC에 보이는 모든
+Camoufox 창과 Camoufox 안의 포커스·키보드·마우스·클립보드는 컨텍스트들이 공유한다.
+noVNC는 신뢰된 운영자의 공용 Camofox 콘솔이며 사용자별 화면 경계가 아니다.
 
 OMP, Claude Code, Codex는 같은 `camofox-browser-mcp-session` wrapper를 stdio MCP
 서버로 실행한다. wrapper는 `CAMOFOX_USER_ID=omp`를 유지해 로그인 쿠키와 웹
