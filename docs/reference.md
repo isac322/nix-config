@@ -114,15 +114,15 @@ noVNC를 한 묶음으로 켠다
 ([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). Camofox,
 DeskPad 1.3.2, `LibVNC/macVNC`는 자동 로그인으로 생긴 `bhyoo`의 Aqua 세션에서
 한 LaunchAgent가 감독하고, noVNC는 root LaunchDaemon이다. displayplacer 1.4.0이
-DeskPad 화면을 1920×1080 main display로 정한 뒤 macVNC가 ScreenCaptureKit과
-LibVNCServer로 내보낸다. Camofox의 Linux/Xvfb 플러그인과 macOS Screen Sharing은
-최종 noVNC data path에 쓰지 않는다.
+DeskPad 화면을 1920×1080 main display로 정한 뒤 상류 macVNC가 ScreenCaptureKit과
+LibVNCServer로 그 디스플레이 전체를 내보낸다. Camofox의 Linux/Xvfb 플러그인과
+macOS Screen Sharing은 최종 noVNC data path에 쓰지 않는다.
 
 첫 open-source VNC 전환에서는 `retireScreenSharing = false`로 native Screen
 Sharing job을 독립된 migration console로 남긴다. macVNC에 Screen Recording과
-Accessibility 권한을 주고 noVNC 화면과 입력을 검증한 뒤 이 값을 `true`로 바꾼
-다음 switch가 그 job을 disable·stop한다. legacy VNC 인증은 첫 switch에서 바로
-꺼진다.
+Accessibility 권한을 주고 전용 디스플레이의 noVNC 화면과 입력을 검증한 뒤 이 값을
+`true`로 바꾼 다음 switch가 그 job을 disable·stop한다. legacy VNC 인증은 첫
+switch에서 바로 꺼진다.
 
 `userId`는 macOS 계정이 아니라 Camofox의 로그인 상태 identity다. 이 구성은
 `CAMOFOX_USER_ID=omp`를 OMP, Claude Code, Codex가 함께 써서 쿠키와 웹 스토리지를
@@ -134,10 +134,14 @@ UUID, Claude Code는 `CLAUDE_CODE_SESSION_ID`를 쓰고, 세션 ID를 MCP 자식
 않는다. 이 패키지는 MCP의 모든 탭 요청에 key를 전달하고 서버의 lookup과 list를
 그 group으로 제한한다. wrapper의 UUID만으로 격리된 척하지 않는다.
 
-각 `userId`의 BrowserContext는 쿠키와 웹 스토리지를 나누지만 Camoufox 프로세스와
-Camofox 전용 가상 디스플레이는 공유한다. noVNC는 그 디스플레이 전체를 내보내며,
+각 `userId`의 BrowserContext는 쿠키와 웹 스토리지를 나누지만 전용 가상
+디스플레이는 공유한다. noVNC는 그 디스플레이 전체와 그 위의 모든 앱을 내보내며
 화면·포커스·키보드·마우스·클립보드도 공유한다. 따라서 noVNC는 신뢰된 운영자용
-공용 관리 콘솔이지 사용자별 격리 경계가 아니다.
+공용 관리 콘솔이지 애플리케이션이나 사용자별 격리 경계가 아니다.
+
+Camofox browser는 활성 세션이 없으면 상류 기본값인 약 5분 뒤 종료된다. Node API
+daemon, DeskPad, macVNC, noVNC는 계속 실행되며 다음 브라우저 요청이 공유 Camoufox
+프로세스를 다시 띄운다.
 
 | 용도 | 주소 | 주체 |
 |---|---|---|

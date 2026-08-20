@@ -132,14 +132,13 @@ in
   # already decided (0028).
   local.orca.enable = true;
 
-  # The headful browser API and its Camofox-only remote console. Both endpoints
-  # learn their bind address from WireGuard at run time; there is no
+  # The headful browser API and its dedicated-display remote console. Both
+  # endpoints learn their bind address from WireGuard at run time; there is no
   # ordinary-interface fallback written here or in modules/camofox.nix.
   #
-  # The deployed macVNC generation has passed live HTTPS noVNC capture, input,
-  # and cross-application isolation checks. Retire native Screen Sharing so the
-  # only remaining VNC backend is the application-filtered Camofox listener on
-  # loopback port 5901.
+  # The deployed full-display macVNC generation has passed live HTTPS noVNC
+  # capture and input checks. Retire native Screen Sharing so the only remaining
+  # VNC backend is the dedicated DeskPad display listener on loopback port 5901.
   local.camofox = {
     enable = true;
     retireScreenSharing = true;

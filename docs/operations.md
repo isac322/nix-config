@@ -441,25 +441,27 @@ orca account list
 
 Camofox API, DeskPad, macVNC는 `bhyoo`의 Aqua LaunchAgent가 함께 감독한다.
 DeskPad 1.3.2가 전용 가상 모니터를 만들고, displayplacer 1.4.0이 그 화면을
-1920×1080 main display로 배치한다. Camofox가 Camoufox 프로세스를 pre-warm한 뒤
-`LibVNC/macVNC`가 ScreenCaptureKit application filter로 bundle identifier
-`org.mozilla.camoufox`의 창만 캡처해 `127.0.0.1:5901`의 VNC로 내보낸다. root
-noVNC LaunchDaemon은 이 loopback VNC를 WireGuard 주소의 HTTPS WebSocket으로
-중계한다 ([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 세
-구성요소는 모두 고정한 upstream release 또는 source revision이다. 상류 Camofox
-Linux/Xvfb 플러그인은 계속 끈다.
+1920×1080 main display로 배치한다. 상류 `LibVNC/macVNC`는 ScreenCaptureKit으로
+그 디스플레이 전체를 캡처해 `127.0.0.1:5901`의 VNC로 내보낸다. root noVNC
+LaunchDaemon은 이 loopback VNC를 WireGuard 주소의 HTTPS WebSocket으로 중계한다
+([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 구성요소는 모두
+고정한 upstream release 또는 source revision이다. 상류 Camofox Linux/Xvfb
+플러그인은 계속 끈다.
 
 native Screen Sharing은 최종 data path가 아니다. 현재 역할은
 `local.camofox.retireScreenSharing = true`라 switch가 그 job을 disable·stop한다.
 port 5900의 전체 데스크톱 경로를 migration console로 다시 써야 할 때만 이 값을
 명시적으로 `false`로 바꾸며, noVNC 자체는 어느 상태에서도 port 5900을 쓰지 않는다.
 
-noVNC framebuffer는 1920×1080 좌표계를 유지하지만 **Camoufox가 소유한 모든 창만**
-보인다. desktop·Dock·menu bar·다른 앱은 보이지 않고 빈 영역은 검정색이다. 키보드와
-포인터도 Camoufox 창 밖으로 전달하지 않는다. 여러 `userId`는 각각 별도
-BrowserContext를 쓰지만 같은 Camoufox 프로세스를 쓰므로, noVNC에 보이는 Camoufox
-창과 그 안의 포커스·키보드·마우스·클립보드는 공유된다. 사용자별 noVNC 접속점으로
-제공하지 않는다.
+noVNC framebuffer는 전용 가상 디스플레이 전체다. desktop·Dock·menu bar와 그
+디스플레이 위에 놓인 모든 앱이 보이고 키보드와 포인터도 Aqua 세션 좌표로 전달된다.
+따라서 다른 앱을 이 디스플레이로 옮기지 않는다. 여러 `userId`의 BrowserContext는
+쿠키와 웹 스토리지를 나누지만 화면·포커스·키보드·마우스·클립보드는 공유한다.
+noVNC는 사용자별 접속점이 아니라 신뢰된 운영자의 공용 콘솔이다.
+
+Camofox browser는 활성 세션이 없으면 상류 기본 idle timeout인 약 5분 뒤 종료된다.
+Node API daemon, DeskPad, macVNC, noVNC는 계속 실행되고 다음 요청이 Camoufox를 다시
+띄운다.
 
 LaunchAgent가 성공하면 로그에 macVNC의 다음 줄이 남고 port 5901이 열린다.
 
@@ -468,10 +470,9 @@ Listening for VNC connections on TCP port 5901
 ```
 
 이 줄이 없으면 noVNC를 반복해서 재접속하지 말고
-`~/Library/Logs/camofox-browser.log`에서 DeskPad 준비, Camoufox pre-warm,
-displayplacer layout, application filter, Screen Recording, Accessibility 오류를
-확인한다. DeskPad, macVNC, Camofox 중 하나가 끝나면 LaunchAgent가 나머지도 끝내고
-전체 스택을 재시작한다.
+`~/Library/Logs/camofox-browser.log`에서 DeskPad 준비, displayplacer layout,
+Screen Recording, Accessibility 오류를 확인한다. DeskPad, macVNC, Camofox API
+daemon 중 하나가 끝나면 LaunchAgent가 나머지도 끝내고 전체 스택을 재시작한다.
 
 **주소.** API는 이 Mac 안에서만 열고, 원격 화면은 WireGuard 주소의 HTTPS noVNC로
 연다.
@@ -532,11 +533,11 @@ tail -n 100 ~/Library/Logs/camofox-browser.log
 nc -z 127.0.0.1 5901
 ```
 
-새 HTTPS noVNC 세션에서 인증, Camoufox-only 1920×1080 화면, 화면 갱신, 키보드와
-포인터 입력을 모두 확인한다. 다른 Aqua 앱을 Camoufox 위에 띄웠을 때 noVNC에는
-나타나지 않고, 그 앱의 입력란에도 VNC 입력이 전달되지 않아야 한다. 관찰만
-진단하려면 `local.camofox.vncViewOnly = true`를 쓸 수 있지만, 그 상태에서는
-migration console을 폐기하지 않는다.
+새 HTTPS noVNC 세션에서 인증, 전용 1920×1080 디스플레이 전체, 화면 갱신,
+키보드와 포인터 입력을 모두 확인한다. 진단용 앱을 그 디스플레이로 옮겼을 때
+noVNC에 보이고 입력도 전달되는 것이 정상이다. 관찰만 진단하려면
+`local.camofox.vncViewOnly = true`를 쓸 수 있지만, 그 상태에서는 migration
+console을 폐기하지 않는다.
 
 입력까지 검증했으면 현재 역할의 기본 상태인 다음 값으로 되돌리고 다시 switch한다.
 

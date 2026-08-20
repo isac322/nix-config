@@ -308,13 +308,9 @@ let
     export CAMOFOX_TRACES_DIR="$stateRoot/traces"
 
     # Camofox stays headful, but its Linux/Xvfb plugin remains disabled.
-    # DeskPad supplies a real macOS virtual monitor; displayplacer makes it the
-    # configured main display before Camoufox and the application-filtered VNC
-    # capture start. Keep the pre-warmed browser process alive because the VNC
-    # filter is intentionally bound to that one application process.
+    # DeskPad supplies the dedicated macOS virtual display that macVNC exports.
     export CAMOFOX_HEADLESS=false
     export ENABLE_VNC=0
-    export BROWSER_IDLE_TIMEOUT_MS=0
     export CAMOUFOX_EXECUTABLE=${lib.escapeShellArg "${pkgs.camoufox}/Applications/Camoufox.app/Contents/MacOS/camoufox"}
     export CAMOUFOX_SKIP_DOWNLOAD=1
     export CAMOFOX_CRASH_REPORT_ENABLED=false
@@ -437,42 +433,13 @@ let
     ${pkgs.camofox-browser}/bin/camofox-browser &
     browserPid=$!
 
-    waited=0
-    while [ "$waited" -lt 60 ]; do
-      if ! /bin/kill -0 "$browserPid" 2>/dev/null; then
-        wait "$browserPid"
-        status=$?
-        [ "$status" -eq 0 ] && status=1
-        echo "camofox-browser: browser server exited before its Camoufox process was ready." >&2
-        stopChildren
-        exit "$status"
-      fi
-      if health=$(${pkgs.curl}/bin/curl \
-        --fail \
-        --silent \
-        --max-time 2 \
-        "http://127.0.0.1:${toString camofoxCfg.apiPort}/health" 2>/dev/null) &&
-        printf '%s\n' "$health" |
-          ${pkgs.jq}/bin/jq -e '.browserConnected == true' >/dev/null; then
-        break
-      fi
-      /bin/sleep 1
-      waited=$((waited + 1))
-    done
-    if [ "$waited" -ge 60 ]; then
-      echo "camofox-browser: Camoufox was not ready after 60s." >&2
-      stopChildren
-      exit 1
-    fi
-
     set -- \
       -rfbport ${lib.escapeShellArg (toString camofoxCfg.vncPort)} \
       -rfbportv6 0 \
       -listen localhost \
       -rfbauth ${lib.escapeShellArg camofoxCfg.rfbAuthFile} \
       -alwaysshared \
-      -dontdisconnect \
-      -bundleid org.mozilla.camoufox
+      -dontdisconnect
     ${lib.optionalString camofoxCfg.vncViewOnly ''
       set -- -viewonly "$@"
     ''}

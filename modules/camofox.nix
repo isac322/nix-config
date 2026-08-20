@@ -1,7 +1,7 @@
 # Camofox on the unattended Mac.
 #
-# The browser, DeskPad virtual monitor, and application-filtered macVNC backend
-# belong to the logged-in Aqua session and are declared in
+# The browser, DeskPad virtual monitor, and full-display macVNC backend belong
+# to the logged-in Aqua session and are declared in
 # home/roles/darwin-server.nix. The root module owns the persistent VNC secret,
 # derived RFB auth file, and HTTPS noVNC bridge.
 #
@@ -168,7 +168,7 @@ in
 {
   options.local.camofox = {
     enable = lib.mkEnableOption ''
-      Camofox in the automatic Aqua session, with Camofox-only native VNC
+      Camofox in the automatic Aqua session, with the dedicated virtual display
       exposed through WireGuard-only HTTPS noVNC'';
     apiPort = lib.mkOption {
       type = lib.types.port;
@@ -179,7 +179,7 @@ in
     vncPort = lib.mkOption {
       type = lib.types.port;
       default = 5901;
-      description = "Loopback TCP port for the Camofox-only native VNC backend.";
+      description = "Loopback TCP port for the dedicated virtual-display VNC backend.";
     };
 
     displayWidth = lib.mkOption {
@@ -234,7 +234,8 @@ in
       description = ''
         Disable and stop the native Screen Sharing migration console during
         activation. Set this only after macVNC has both Screen Recording and
-        Accessibility permission and its noVNC path has been verified.
+        Accessibility permission and its dedicated-display noVNC path has been
+        verified.
       '';
     };
 

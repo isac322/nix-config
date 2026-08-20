@@ -68,16 +68,6 @@ buildNpmPackage (finalAttrs: {
         "    testContext = await browser.newContext();" \
         "    testContext = await browser.newContext({ viewport: null });"
 
-    # BROWSER_IDLE_TIMEOUT_MS=0 is documented as "never", but upstream passes
-    # zero straight to setTimeout and closes the pre-warmed browser immediately.
-    # The native VNC filter is bound to that browser process, so keep the
-    # documented sentinel semantics and let a supervised process exit restart
-    # the complete browser/display/VNC stack.
-    substituteInPlace server.js \
-      --replace-fail \
-        "  if (browserIdleTimer || sessions.size > 0 || !browser) return;" \
-        "  if (BROWSER_IDLE_TIMEOUT_MS <= 0 || browserIdleTimer || sessions.size > 0 || !browser) return;"
-
     # A temporary executable symlink outside Camoufox.app breaks macOS
     # bundle-relative XPCOM lookup.  Launch the resolved app binary directly;
     # the Camoufox package exposes camoufox-js resources beside it.

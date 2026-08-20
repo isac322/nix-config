@@ -38,35 +38,33 @@ macOS 내장 `screensharingd`도 최종 백엔드로 쓰지 않는다. 물리 �
 `/Library/Preferences/com.apple.VNCSettings.txt`를 제거한다. 첫 전환에서는
 `local.camofox.retireScreenSharing = false`로 native Screen Sharing job을 noVNC와
 무관한 migration console로 남겼다. macVNC의 Screen Recording·Accessibility 권한,
-Camofox-only 화면, 키보드와 포인터 입력, 다른 앱으로 입력이 새지 않는 경계를 모두
-확인했으므로 현재 역할은 이 값을 `true`로 둔다. switch는
-`com.apple.screensharing`을 disable·bootout한다. 어느 단계에서도 noVNC가 이
-서비스를 backend로 쓰거나 같은 8자 legacy 비밀번호를 검사하게 두지 않는다.
+전용 가상 디스플레이의 화면, 키보드와 포인터 입력을 모두 확인했으므로 현재 역할은
+이 값을 `true`로 둔다. switch는 `com.apple.screensharing`을 disable·bootout한다.
+어느 단계에서도 noVNC가 이 서비스를 backend로 쓰거나 같은 8자 legacy 비밀번호를
+검사하게 두지 않는다.
 
 DeskPad는 Aqua 세션 안에서 `CGVirtualDisplay`로 전용 가상 모니터를 만든다.
 displayplacer가 그 모니터를 1920×1080, scaling off, origin `(0,0)`의 main display로
-배치한다. Camofox 서버가 Camoufox 프로세스를 먼저 pre-warm한 뒤, macVNC가
-ScreenCaptureKit의 `includingApplications` filter로 `org.mozilla.camoufox`의 모든
-창만 캡처한다. VNC framebuffer는 여러 Camoufox 창의 실제 배치와 입력 좌표를
-보존하려고 1920×1080을 유지하지만, desktop·Dock·menu bar·다른 앱은 들어가지 않고
-나머지 영역은 검정색이다.
+배치하고, 상류 macVNC가 ScreenCaptureKit으로 그 디스플레이 전체를 캡처한다. 별도
+application/window filter나 PID별 입력 전달 코드는 유지하지 않는다. VNC framebuffer에는
+그 디스플레이의 desktop·Dock·menu bar와 그 위에 놓인 모든 앱이 그대로 보이고,
+키보드와 포인터도 Aqua 세션의 해당 좌표로 전달된다.
 
-입력도 같은 경계를 적용한다. 키보드는 Camoufox가 frontmost일 때만 보낸다. 포인터는
-해당 좌표의 최상단 창과 좌표를 포함하는 창이 모두 Camoufox 소유일 때만 보낸다.
-다른 앱이 Camoufox 위를 가리고 있으면 첫 click은 Camoufox를 앞으로 가져오기만 하고
-그 앱에는 전달하지 않는다. cursor 자체의 WindowServer 창은 hit-test에서 제외한다.
-따라서 화면만 가리고 입력은 전체 Aqua session으로 흘리는 반쪽 격리가 아니다.
+따라서 운영 경계는 Camoufox 프로세스나 특정 창이 아니라 **전용 가상 디스플레이**다.
+다른 앱을 이 디스플레이로 옮기면 noVNC에 보이고 조작할 수 있다. 이 제약을 명시하는
+대신, 여러 Camoufox 창을 추적하고 frontmost·hit-test·button-state를 동기화하던
+커스텀 macVNC 계층을 제거한다.
 
-상류가 문서화한 `BROWSER_IDLE_TIMEOUT_MS=0`은 실제 구현에서 즉시 종료로 처리되는
-버그가 있어 패키지에서 `0 = never` 의미를 복구한다. 서비스는 이를 0으로 두어
-macVNC filter가 pre-warm한 한 Camoufox 프로세스에 계속 붙게 한다. 그 프로세스가
-끝나면 macVNC도 종료하고 LaunchAgent가 DeskPad·Camofox·macVNC 전체를 함께
-재시작한다.
+Camofox는 상류 기본값인 300000ms idle timer를 쓴다. 서비스가
+`BROWSER_IDLE_TIMEOUT_MS`를 덮어쓰거나 `0 = never` sentinel patch를 유지하지 않는다.
+활성 세션이 없으면 Camoufox 프로세스는 약 5분 뒤 종료되지만 Node API daemon,
+DeskPad, macVNC, noVNC는 계속 실행된다. 다음 브라우저 요청이 공유 Camoufox
+프로세스를 다시 띄운다. VNC 수명과 브라우저 PID를 분리해 idle browser의 상주
+메모리와 별도 readiness gate를 없앤다.
 
-`bhyoo-macbook-pro`의 macOS 26에서 full-display VNC에는 보이는 다른 앱 overlay가
-Camofox-only framebuffer에는 한 pixel도 나타나지 않음을 확인했다. 같은 RFB
-연결에서 Camoufox input에 `vncok`가 입력되고 button click이 반영됐으며, Camoufox
-위를 덮은 별도 앱의 text field는 빈 값으로 남았다.
+noVNC는 특정 창이나 `sessionKey`의 화면이 아니라 전용 디스플레이 전체를 보여주는
+운영 콘솔이다. MCP의 탭 namespace 격리와 VNC 화면 경계를 같은 것으로 취급하지
+않는다.
 
 DeskPad가 내부에서 쓰는 `CGVirtualDisplay`는 공개 SDK 계약이 아닌 macOS private
 API다. 이 위험은 남지만, 이 저장소가 private API VNC 서버를 새로 유지하지는 않는다.
@@ -74,22 +72,22 @@ OS 업데이트로 가상 디스플레이가 깨지면 DeskPad 준비 단계가 
 전체 스택을 재시도한다. 검은 화면을 성공으로 취급하는 fallback은 두지 않는다.
 
 macVNC의 기본 모드는 키보드와 포인터 입력을 허용하므로 Accessibility 권한이 없으면
-시작하지 않는다. Screen Recording 권한도 application filter 캡처에 필요하다.
-관찰 경로만 진단할 때 명시적으로 `local.camofox.vncViewOnly = true`를 쓸 수 있지만
-자동으로 view-only로 후퇴해 권한 실패를 숨기지는 않는다.
+시작하지 않는다. Screen Recording 권한도 full-display 캡처에 필요하다. 관찰 경로만
+진단할 때 명시적으로 `local.camofox.vncViewOnly = true`를 쓸 수 있지만 자동으로
+view-only로 후퇴해 권한 실패를 숨기지는 않는다.
 
 `userId`는 macOS 로그인 사용자가 아니라 Camofox 내부 세션 식별자다. 서버 하나가
-Camoufox 브라우저 프로세스 하나를 공유하고, `userId`마다 별도 Playwright
-BrowserContext를 만든다. 쿠키와 웹 스토리지는 격리되지만, noVNC에 보이는 모든
-Camoufox 창과 Camoufox 안의 포커스·키보드·마우스·클립보드는 컨텍스트들이 공유한다.
-noVNC는 신뢰된 운영자의 공용 Camofox 콘솔이며 사용자별 화면 경계가 아니다.
+필요할 때 공유 Camoufox 브라우저 프로세스 하나를 띄우고, `userId`마다 별도
+Playwright BrowserContext를 만든다. 쿠키와 웹 스토리지는 격리되지만 noVNC 화면,
+포커스, 키보드, 마우스, 클립보드는 전용 디스플레이 전체에서 공유된다. noVNC는
+신뢰된 운영자의 공용 콘솔이며 사용자별 화면 경계가 아니다.
 
 OMP, Claude Code, Codex는 같은 `camofox-browser-mcp-session` wrapper를 stdio MCP
 서버로 실행한다. wrapper는 `CAMOFOX_USER_ID=omp`를 유지해 로그인 쿠키와 웹
 스토리지를 공유하고, 클라이언트 세션 식별자를 `sessionKey`로 넣어 탭 namespace와
 조작 권한을 분리한 뒤 패키지의 `camofox-browser-mcp`를 실행한다. 그 어댑터는
-`http://127.0.0.1:9377`의 REST API 로 요청을 전달할 뿐 브라우저를 띄우지 않으므로,
-launchd 가 소유한 Camoufox 프로세스 하나만 존재한다.
+`http://127.0.0.1:9377`의 REST API로 요청을 전달하고, Camofox daemon이 필요할 때
+공유 Camoufox 프로세스를 하나만 실행한다.
 
 상류 1.13.1은 `sessionKey`로 탭 생성 group만 골랐고, list와 `tabId` 조작은 같은
 `userId`의 모든 group을 검색했다. 따라서 wrapper만 추가하면 namespace 이름만 다를

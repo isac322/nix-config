@@ -18,10 +18,7 @@ stdenv.mkDerivation {
     hash = "sha256-5cPRDVzPWE8dcTf6hIk0mV+6Np2Z0sjW9YOOrQ1Idzg=";
   };
 
-  patches = [
-    ./accessibility-prompt.patch
-    ./application-filter.patch
-  ];
+  patches = [ ./accessibility-prompt.patch ];
 
   nativeBuildInputs = [
     cmake
