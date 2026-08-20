@@ -42,7 +42,12 @@ let
   mdmPath = "/Library/Application Support/Cloudflare/mdm.xml";
 in
 {
-  homebrew.casks = [ "cloudflare-warp" ];
+  homebrew.casks = [
+    {
+      name = "cloudflare-warp";
+      greedy = true;
+    }
+  ];
 
   # macOS reads mdm.xml before anyone logs in, so the organisation never has to
   # be typed on a machine. Values here overrule the dashboard's device settings,
