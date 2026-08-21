@@ -2,14 +2,14 @@ providers:
   webSearchGeminiModel: gemini-3.5-flash-lite
   anthropic:
     serverSideFallback: false
-  kimiApiFormat: openai
+  kimiApiFormat: auto
 retry:
   fallbackChains:
     {}
-setupVersion: 1
+setupVersion: 2
 statusLine:
   preset: nerd
-  separator: powerline
+  separator: powerline-thin
   transparent: false
   compactThinkingLevel: false
   showHookStatus: true
@@ -23,15 +23,18 @@ tui:
   scrollbackRebuild: true
   codexResetFireworks: true
   imeSafeCursor: true
+  hyperlinks: auto
 display:
   showTokenUsage: true
   shimmer: classic
   cacheMissMarker: true
-  collapseCompacted: false
+  collapseCompacted: true
+  smoothStreaming: true
+  hideToolActivity: false
 memory:
   backend: hindsight
 autolearn:
-  enabled: true
+  enabled: false
   autoContinue: true
 bash:
   autoBackground:
@@ -45,7 +48,7 @@ checkpoint:
 github:
   enabled: true
 task:
-  eager: default
+  eager: preferred
   isolation:
     mode: auto
     merge: patch
@@ -84,11 +87,14 @@ hindsight:
   apiUrl: https://hindsight-api.bhyoo.com
   scoping: per-project
 compaction:
-  strategy: snapcompact
+  methodOrder:
+    - snapcompact
+    - remote
+    - soft
 worktree:
   base: ""
 stt:
-  enabled: true
+  enabled: false
   modelName: parakeet
   submitTrigger: never
 advisor:
@@ -121,3 +127,9 @@ error:
   notify: "off"
 features:
   unexpectedStopDetection: true
+composer:
+  shape: box
+exa:
+  enabled: true
+secrets:
+  enabled: false
