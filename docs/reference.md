@@ -287,9 +287,8 @@ endpoint, bucket, region과 S3 자격증명은
 `wrangler`, `stripe`, `gws`는 모든 노드의 같은 자리에 둔다(`home/common.nix`).
 관측 CLI가 "무슨 일이 있었는지"를 읽는 쪽이라면 이쪽은 에이전트가 실제로
 **손을 대는** 쪽이다 — Worker를 배포하고, 결제 이벤트를 찾고, 캘린더를 읽는다.
-`agent-browser`는 `local.camofox.enable = false`인 노드에만 추가한다. 서버 맥은
-공유 Camofox daemon과 session boundary를 우회하는 별도 Chrome/Chromium 프로세스가
-생기지 않도록 이를 설치하지 않고 Camofox MCP만 쓴다.
+`agent-browser`는 managed Camofox가 없는 Darwin laptop에만 추가한다. 서버 맥은
+Camofox MCP를 쓰고, NixOS server도 별도 Chrome/Chromium runtime을 설치하지 않는다.
 
 이름이 다른 둘과 조건부 브라우저 CLI에는 다음 주의가 필요하다.
 
@@ -299,7 +298,7 @@ endpoint, bucket, region과 S3 자격증명은
   "officially supported Google product가 아니다"라고 스스로 명시한다.
 - **`stripe-cli`가 설치하는 바이너리는 `stripe`다.**
 - **`agent-browser`는 테스트 러너가 아니다.** Vercel이 에이전트가 몰도록 만든
-  헤드리스 브라우저 CLI지만, 이 구성에서는 Camofox가 없는 노드에서만 설치한다.
+  헤드리스 브라우저 CLI이며, 이 구성에서는 Darwin laptop에만 설치한다.
 - **`wrangler` 는 클로저가 774 MiB 다.** 상류가 `workerd` 와 여러 플랫폼용
   `esbuild` 를 함께 담기 때문이고, 잘라낼 `subPackages` 같은 손잡이가 없다.
   `cache.nixos.org` 에서 그대로 받아오니 빌드 시간은 들지 않는다.
