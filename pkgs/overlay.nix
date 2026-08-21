@@ -53,14 +53,14 @@ final: prev: {
   # attributes and come along on their own.
   #
   # All three platforms are replaced although only the Macs install bun. This
-  # overlay is applied on NixOS too (modules/common.nix), and a set with one
-  # entry updated would leave the others pointing 1.3.13 hashes at a 1.3.14
-  # URL — a hash mismatch on a machine nobody was thinking about.
+  # overlay is applied on NixOS too (modules/common.nix), and a partially
+  # updated source set would leave another platform's old hash pointing at the
+  # new release URL.
   #
   # Delete this binding when nixpkgs catches up; nothing else refers to it.
   bun = prev.bun.overrideAttrs (
     finalAttrs: prevAttrs: {
-      version = "1.3.14";
+      version = "1.4.0";
 
       # Changing `version` in an overrideAttrs draws a warning from nixpkgs on
       # every evaluation, because the usual mistake is to move the version and
@@ -73,15 +73,15 @@ final: prev: {
         sources = {
           "aarch64-darwin" = final.fetchurl {
             url = "https://github.com/oven-sh/bun/releases/download/bun-v${finalAttrs.version}/bun-darwin-aarch64.zip";
-            hash = "sha256-2LliIYKK1vl6x6wKt+lYcjQa92MAHogD6CZ2UsJlJiA=";
+            hash = "sha256-xmnpf2Fk4cluBwF0jbmN+ndJKQjL2DlMdVcTSnNd44E=";
           };
           "aarch64-linux" = final.fetchurl {
             url = "https://github.com/oven-sh/bun/releases/download/bun-v${finalAttrs.version}/bun-linux-aarch64.zip";
-            hash = "sha256-on/7Y6gxA3WDbg1vZorhf6jY0YuIw3yCHGUzGXOhmjs=";
+            hash = "sha256-SxozLuhhmD65O8/m93D/+U4+MbLDiL2uo8jtNeWO7Q4=";
           };
           "x86_64-linux" = final.fetchurl {
             url = "https://github.com/oven-sh/bun/releases/download/bun-v${finalAttrs.version}/bun-linux-x64.zip";
-            hash = "sha256-lR7iruhV8IWVruxiJSJqKY0/6oOj3NZGXAnLzN9+hI8=";
+            hash = "sha256-LQP7X7g6yLVnrKCigbLOGhoZ1Ij1bClo2Iw/Jekv5FI=";
           };
         };
       };
