@@ -309,8 +309,8 @@ Camofox MCP를 쓰고, NixOS server도 별도 Chrome/Chromium runtime을 설치�
 (`home/darwin.nix`). 리눅스 서버는 서비스를 돌리는 기계라 컴파일할 것이 없다.
 
 **언어 툴체인** — `go`, `nodejs_24` + `pnpm`, `bun`, `uv`. Rust 는 여기 없고
-서버 맥에만 있다 (`home/roles/darwin-server.nix`) — 요청이 그 기계에 한정돼
-있었다.
+서버 맥에만 `cargo`, `rustc`, `rustfmt`, `rust-analyzer` 가 있다
+(`home/roles/darwin-server.nix`) — 요청이 그 기계에 한정돼 있었다.
 
 - **`go` 는 버전 없는 이름 그대로 쓴다.** nixpkgs 가 현재로 취급하는 것을 따라가는
   게 맞다고 봤다. **`nodejs_24` 는 반대로 버전을 박았다** — 오늘은 `nodejs` 와 같은

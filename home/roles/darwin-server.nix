@@ -695,6 +695,9 @@ in
   #
   # Both packages are needed: rustc is the compiler alone, and cargo is a
   # separate derivation in nixpkgs rather than something it brings along.
+  # `cargo fmt` is an external Cargo subcommand, not part of the cargo
+  # derivation. nixpkgs supplies its `cargo-fmt` executable through the
+  # separate rustfmt package, so it must be listed explicitly too.
   #
   # The two language servers are here rather than in home/darwin.nix because
   # this is the machine an editor or a coding agent actually runs on. Neither
@@ -725,6 +728,7 @@ in
     pkgs.cargo
     pkgs.rust-analyzer
     pkgs.rustc
+    pkgs.rustfmt
     pkgs.terraform-ls
   ];
 }
