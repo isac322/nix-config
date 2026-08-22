@@ -321,8 +321,8 @@ Camofox MCP를 쓰고, NixOS server도 별도 Chrome/Chromium runtime을 설치�
   그 뒤로 받아오는 버전은 프로젝트의 `packageManager` 필드가 런타임에 정한다 —
   rustup 을 쓰지 않는 것과 정확히 같은 이유다. nixpkgs 패키지는 자기 `nodejs-slim`
   을 들고 오므로 위의 `nodejs_24` 를 가리지도, 의존하지도 않는다.
-- **bun 은 이 목록에서 유일하게 nixpkgs 그대로가 아니다.** 필요한 버전이 1.3.14
-  인데 nixpkgs 는 한 릴리스 뒤라 `pkgs/overlay.nix` 에서 덮어썼다. 노드를 대체하러
+- **bun 은 이 목록에서 유일하게 nixpkgs 그대로가 아니다.** 필요한 버전은 1.4.0이고
+  잠긴 nixpkgs 는 아직 1.3.13이라 `pkgs/overlay.nix` 에서 덮어썼다. 노드를 대체하러
   온 게 아니라 옆에 선다 — 둘은 같은 `package.json` 을 읽고 서로를 대신하지 않는다.
 - **uv 옆에 파이썬 인터프리터가 없는 건 빠뜨린 게 아니다.** uv 가
   `~/.local/share/uv` 밑에 자기 standalone CPython 을 받아 거기에 virtualenv 를
@@ -472,7 +472,7 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `beardrive` | GitHub release binaries | BearDrive 0.15.0의 platform별 `bdrive` |
 | `sentry` | GitHub release npm tarball | getsentry/cli 0.42.2 |
 | `slack-cli` | GitHub 타르볼 | nixpkgs의 동명 attribute를 갈아끼운다 |
-| `bun` | nixpkgs override | 필요한 버전이 한 릴리스 앞 |
+| `bun` | nixpkgs override | 1.4.0. 잠긴 nixpkgs의 1.3.13보다 앞선 임시 override |
 | `tempo-cli` | nixpkgs override | `subPackages`를 하나로 줄인다 |
 | `camoufox` | GitHub macOS arm64 zip | 152.0.4-beta.28 코어. aarch64-darwin 전용 |
 | `camofox-browser` | npm 타르볼 | `@askjo/camofox-browser` 1.13.1 + macOS headful patch |
