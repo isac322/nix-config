@@ -228,6 +228,7 @@
           inherit (pkgs)
             camoufox
             camofox-browser
+            camofox-url-handler
             deskpad
             displayplacer
             macvnc

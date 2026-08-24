@@ -36,6 +36,7 @@ pkgs/              nixpkgs 에 없거나 쓸 수 없는 형태인 패키지 + ov
   pinentry-keychain/  키체인을 읽는 pinentry. 콘솔 없는 맥용
   camoufox/          고정한 macOS arm64 브라우저 코어
   camofox-browser/   @askjo/camofox-browser API 서버
+  camofox-url-handler/ macOS HTTP/HTTPS 링크를 Camofox API로 전달하는 app
 .claude/skills/    이 레포에 대해 되풀이하는 절차
   ssh-audit/         sshd 권장값이 움직였는지 다시 대조한다
 ```
@@ -130,6 +131,12 @@ UUID, Claude Code는 `CLAUDE_CODE_SESSION_ID`를 쓰고, 세션 ID를 MCP 자식
 않는다. 이 패키지는 MCP의 모든 탭 요청에 key를 전달하고 서버의 lookup과 list를
 그 group으로 제한한다. wrapper의 UUID만으로 격리된 척하지 않는다.
 
+macOS의 HTTP/HTTPS 기본 handler는 `Camofox.app`이다. 이 app은 브라우저 코어가
+아니라 LaunchServices bridge이며, URL을 `CAMOFOX_USER_ID=omp`,
+`sessionKey=default-browser`로 기존 API에 POST한다. 원본 `Camoufox.app`을 직접
+기본 브라우저로 등록하면 daemon 밖의 별도 Firefox process와 profile이 생기므로
+그 경로는 쓰지 않는다.
+
 각 `userId`의 BrowserContext는 쿠키와 웹 스토리지를 나누지만 전용 가상
 디스플레이는 공유한다. noVNC는 그 디스플레이 전체와 그 위의 모든 앱을 내보내며
 화면·포커스·키보드·마우스·클립보드도 공유한다. 따라서 noVNC는 신뢰된 운영자용
@@ -143,6 +150,7 @@ daemon, DeskPad, macVNC, noVNC는 계속 실행되며 다음 브라우저 요청
 |---|---|---|
 | Camofox API listener | `127.0.0.1:9377` | `@askjo/camofox-browser` |
 | OMP/Claude/Codex control bridge | session-aware stdio → `127.0.0.1:9377` | `camofox-browser-mcp-session` → `camofox-browser-mcp` |
+| macOS HTTP/HTTPS bridge | LaunchServices → `127.0.0.1:9377/tabs` | `camofox-url-handler` |
 | noVNC listener | `<WireGuard 주소>:6080` | nixpkgs `novnc`의 웹 frontend와 WebSocket proxy |
 | noVNC의 VNC backend target | `127.0.0.1:5901` | `LibVNC/macVNC`의 LibVNCServer |
 
@@ -476,6 +484,7 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `tempo-cli` | nixpkgs override | `subPackages`를 하나로 줄인다 |
 | `camoufox` | GitHub macOS arm64 zip | 152.0.4-beta.28 코어. aarch64-darwin 전용 |
 | `camofox-browser` | npm 타르볼 | `@askjo/camofox-browser` 1.13.1 + macOS headful patch |
+| `camofox-url-handler` | 로컬 Objective-C/Cocoa | HTTP/HTTPS URL을 관리 Camofox API에 전달. aarch64-darwin 전용 |
 | `deskpad` | GitHub app zip | 1.3.2 virtual display. aarch64-darwin 전용 |
 | `displayplacer` | GitHub release binary | 1.4.0 display layout tool. aarch64-darwin 전용 |
 | `macvnc` | GitHub source revision | ScreenCaptureKit + LibVNCServer. aarch64-darwin 전용 |
@@ -483,9 +492,10 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 CLI 패키징 결정과 각 패키지의 함정은
 [0019](decisions/0019-package-from-published-artifacts.md), Camofox 쪽 결정은
 [0031](decisions/0031-camofox-native-macos-over-wireguard.md)에 있다. 모든 호스트의
-custom package output과 Darwin의 source-built `macvnc`만
-[Cachix로 올린다](operations.md#캐시-푸시). `camoufox`, `camofox-browser`,
-`deskpad`, `displayplacer`는 server-only fixed-artifact repack이라 제외한다.
+custom package output과 Darwin의 source-built `macvnc`,
+`camofox-url-handler`만 [Cachix로 올린다](operations.md#캐시-푸시).
+`camoufox`, `camofox-browser`, `deskpad`, `displayplacer`는 server-only
+fixed-artifact repack이라 제외한다.
 
 ## 이 레포를 패키지 저장소로 쓰기
 
@@ -503,7 +513,8 @@ environment.systemPackages = [ inputs.bhyoo.packages.${system}.posthog-cli ];
 `overlays.default` 와 `packages.<system>` 둘 다 `pkgs/overlay.nix` **같은 파일**을
 읽는다. 여기 있는 설정들도 같은 파일을 import 하므로 정의가 둘로 갈라져 어긋날
 일이 없다. 공통 패키지는 `aarch64-darwin`, `aarch64-linux`, `x86_64-linux` 셋에
-제공하고, `camoufox`와 `camofox-browser`는 `packages.aarch64-darwin`에만 제공한다.
+제공하고, Camofox·VNC의 macOS package output은 `packages.aarch64-darwin`에만
+제공한다.
 
 Nix 에서 "저장소" 는 AUR 처럼 중앙 집중이 아니다. 레포가 이 두 출력을 갖는 순간
 그것이 곧 패키지 저장소이고, 등록 절차도 심사도 없다. 남이 **발견**하게 하려면

@@ -18,6 +18,9 @@ let
   # module passes it in under that name.
   cfg = osConfig.local.orca;
   camofoxCfg = osConfig.local.camofox;
+  camofoxUrlHandler = pkgs.camofox-url-handler.override {
+    apiPort = camofoxCfg.apiPort;
+  };
   autoLogin = osConfig.local.autoLogin;
 
   # The bill for automatic login, and the thing that pays it.
@@ -581,6 +584,30 @@ in
     };
   };
 
+  # macOS must not launch Camoufox.app directly for ordinary links. Doing so
+  # would create a second, unmanaged Firefox process outside the Camofox
+  # daemon's BrowserContext, session isolation, and persistent cookie store.
+  # Camofox.app is a small LaunchServices bridge instead: it receives HTTP and
+  # HTTPS URLs and creates tabs in the daemon's fixed `default-browser`
+  # namespace under the shared `omp` user.
+  home.activation.camofoxDefaultBrowser = lib.mkIf camofoxCfg.enable (
+    lib.hm.dag.entryAfter [ "copyApps" ] ''
+      appPath=${lib.escapeShellArg "${config.home.homeDirectory}/Applications/Home Manager Apps/Camofox.app"}
+      lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+
+      if [ -d "$appPath" ]; then
+        $DRY_RUN_CMD "$lsregister" -f "$appPath"
+        $DRY_RUN_CMD ${lib.getExe pkgs.duti} -s com.bhyoo.camofox-url-handler http all
+        $DRY_RUN_CMD ${lib.getExe pkgs.duti} -s com.bhyoo.camofox-url-handler https all
+      elif [ -n "$DRY_RUN_CMD" ]; then
+        echo "camofox-default-browser: would register $appPath." >&2
+      else
+        echo "camofox-default-browser: $appPath is missing after copyApps." >&2
+        exit 1
+      fi
+    ''
+  );
+
   # A pinentry that can both remember and ask.
   #
   # pinentry-mac is right on a laptop and wrong here. It draws its dialog on the
@@ -719,6 +746,11 @@ in
     # OMP references this package directly. PATH exposure remains for the
     # documented Claude Code and Codex MCP registration commands.
     pkgs.camofox-mcp-session
+    # Finder and `open` send ordinary HTTP/HTTPS links here. The app forwards
+    # them to the already-supervised Camofox API instead of launching a second
+    # standalone Camoufox process.
+    camofoxUrlHandler
+    pkgs.duti
 
     # The LaunchAgent deliberately uses this stable app path so macOS privacy
     # grants survive store-path changes. DeskPad needs no equivalent grant and

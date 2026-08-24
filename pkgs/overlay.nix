@@ -18,6 +18,7 @@ final: prev: {
   camoufox = final.callPackage ./camoufox/package.nix { };
   camofox-browser = final.callPackage ./camofox-browser/package.nix { };
   camofox-mcp-session = final.callPackage ./camofox-mcp-session/package.nix { };
+  camofox-url-handler = final.callPackage ./camofox-url-handler/package.nix { };
   deskpad = final.callPackage ./deskpad/package.nix { };
   displayplacer = final.callPackage ./displayplacer/package.nix { };
   macvnc = final.callPackage ./macvnc/package.nix { };

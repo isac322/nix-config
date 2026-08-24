@@ -547,6 +547,31 @@ localStorage는 공유하지만, 탭 목록과 탭 조작 권한은 OMP 대화�
 MCP의 모든 탭 요청에 `sessionKey`를 전달하고 REST 서버도 그 group 안에서만 탭을
 찾도록 함께 패치한다.
 
+**macOS 기본 브라우저.** `~/Applications/Home Manager Apps/Camofox.app`은
+Camoufox 코어를 직접 띄우는 앱이 아니라 LaunchServices bridge다. HTTP/HTTPS URL을
+`userId=omp`, `sessionKey=default-browser`로 기존 API의 `POST /tabs`에 전달한다.
+따라서 Finder, `open`, 다른 앱의 링크도 MCP와 같은 공유 로그인 상태를 쓰되 특정
+OMP 대화의 탭 namespace에는 들어가지 않는다.
+
+switch 뒤 handler와 실제 URL 전달을 확인한다.
+
+```sh
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
+  -dump | grep -A 8 'com.bhyoo.camofox-url-handler'
+open 'https://example.com'
+```
+
+첫 명령에 `http`, `https`, `com.bhyoo.camofox-url-handler`가 함께 보여야 한다.
+두 번째 명령은 standalone Camoufox process가 아니라 Camofox API 로그에
+`sessionKey=default-browser`인 새 탭으로 나타나야 한다.
+
+과거 Chrome app이 없어도 실행 중이던 old-generation Chrome process와
+`~/Library/Application Support/Google/Chrome`,
+`~/Library/Caches/Google/Chrome`, `~/Library/Preferences/com.google.Chrome.plist`
+는 남을 수 있다. Chrome main process를 정상 종료한 뒤 이 Chrome 전용 경로만
+지운다. Orca의 Electron `chrome_crashpad_handler`는 Chrome 잔재가 아니므로
+이름만 보고 종료하거나 삭제하지 않는다.
+
 같은 wrapper를 Claude Code와 Codex에도 등록할 수 있다. 별도 플러그인은 필요 없다.
 
 ```sh

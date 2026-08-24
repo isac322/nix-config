@@ -99,6 +99,14 @@ breadcrumb의 transcript 파일명에서 UUID를 읽는다. 같은 transcript를
 간 격리는 제공하지만 종료 후 resume 안정성은 제공하지 않으며, 그 보장에는 Codex
 상류 변경이나 패키지 패치가 필요하다.
 
+일반 macOS 앱이 HTTP/HTTPS URL을 열 때도 이 daemon 경계를 우회하지 않는다.
+원본 `Camoufox.app`은 URL handler metadata가 있지만, LaunchServices가 이를 직접
+실행하면 Camofox의 Playwright process와 별개인 Firefox instance와 임시 profile이
+생긴다. 따라서 작은 native `Camofox.app` bridge를 따로 설치하고 HTTP/HTTPS 기본
+handler로 등록한다. bridge는 URL을 JSON으로 안전하게 encode해 loopback
+`POST /tabs`에 `userId=omp`, `sessionKey=default-browser`로 전달한다. OMP 대화별
+namespace와 섞이지 않으면서 같은 로그인 쿠키와 web storage는 재사용한다.
+
 **VNC 비밀번호를 만들거나 소유하는 것은 noVNC가 아니다.** activation이 root
 master를 만들고 표준 LibVNCServer 형식의 8바이트 auth 파일을 원자적으로 파생한다.
 macVNC가 그 파일로 자격증명을 검사한다.
