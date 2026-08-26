@@ -192,10 +192,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1787740521,
-        "narHash": "sha256-Sm5jte8TB1Y+k3jURylIbukjYBHgeNu5jCuqviFMzj0=",
+        "lastModified": 1787750693,
+        "narHash": "sha256-jKv9IgGMbFNhEmOYk0qPM20Ozkc1IWS0I300clSjF1E=",
         "ref": "refs/heads/main",
-        "rev": "9d22303623a91e6db9a1781a7f253a847663f985",
+        "rev": "bb08575017c771adbf5129291c16bc0f8028be42",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -235,10 +235,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1787715947,
-        "narHash": "sha256-jT6g5aWwA6TrIUJhqQ9ssm8W5e8vAl2Bv8gddEKKVNU=",
+        "lastModified": 1787750582,
+        "narHash": "sha256-FfIAV44k33i+IjC1+new2KyjyVGUzGtV89VHVP4eK1U=",
         "ref": "master",
-        "rev": "7690127e7e1c90ab1dcaff525d0dafbeb7e14182",
+        "rev": "0a364342a66bcecfc8a00d2fc38c6c29eee7bc5e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
