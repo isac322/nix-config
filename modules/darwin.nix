@@ -1,5 +1,5 @@
 # Shared by every Mac. Host-specific bits live in hosts/<name>/default.nix.
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   caches = import ../lib/caches.nix;
@@ -39,9 +39,41 @@ in
   determinateNix = {
     enable = true;
 
+    # Determinate Nixd manages background garbage collection based on disk pressure.
+    determinateNixd.garbageCollector.strategy = "automatic";
+
     customSettings = {
       extra-substituters = caches.substituters;
       extra-trusted-public-keys = caches.trustedPublicKeys;
+    };
+  };
+
+  # Garbage collection on macOS.
+  #
+  # Determinate Nixd natively handles background garbage collection based on disk
+  # pressure (`determinateNixd.garbageCollector.strategy = "automatic"`), but does
+  # not prune system profile generations (/nix/var/nix/profiles/system-*).
+  #
+  # nix-darwin's built-in `nix.gc.automatic` is unavailable because `nix.enable = false`
+  # is enforced by Determinate Nix (see docs/decisions/0003-determinate-owns-nix-on-macos.md).
+  # We define a dedicated launchd daemon to prune system generations older than 30 days,
+  # dropping stale GC roots so unreferenced store paths can be reclaimed.
+  #
+  # Automated store optimisation (`nix-store --optimise` via launchd) is deliberately
+  # omitted on macOS: background hardlinking on APFS during active builds risks Nix
+  # store corruption (NixOS/nix#14599). Store optimisation should be run manually
+  # when the system is idle.
+  launchd.daemons.nix-gc = {
+    command = "${pkgs.nix}/bin/nix-collect-garbage --delete-older-than 30d";
+    serviceConfig = {
+      RunAtLoad = false;
+      StartCalendarInterval = [
+        {
+          Weekday = 7;
+          Hour = 3;
+          Minute = 15;
+        }
+      ];
     };
   };
 
