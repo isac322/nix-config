@@ -211,12 +211,15 @@ nixpkgs 가 아니라 Homebrew 에서 온다
 
 ## 코딩 에이전트 — 작업이 있는 곳에서 돈다
 
-`claude-code`, `codex`, `omp` 셋을 **모든 기기**에 둔다 (`home/common.nix`).
-아래 두 CLI 묶음이 이 층에 있는 이유가 이것이라, 순서상 여기가 먼저다.
+`claude-code`, `codex`, `omp`, `gjc` 넷을 **모든 기기**에 둔다
+(`home/common.nix`). 아래 두 CLI 묶음이 이 층에 있는 이유가 이것이라, 순서상
+여기가 먼저다.
 
-셋 다 nixpkgs 가 아니라 `llm-agents` 인풋에서 온다. nixpkgs-unstable 채널이
-master 를 며칠씩 뒤따라오는 반면 이쪽은 매일 상류를 따라가고, aarch64-darwin 과
-x86_64-linux·aarch64-linux 를 모두 빌드해서 리눅스 서버에서도 같은 줄이 통한다.
+앞의 셋은 nixpkgs가 아니라 `llm-agents` 인풋에서 온다. nixpkgs-unstable 채널이
+master를 며칠씩 뒤따라오는 반면 이쪽은 매일 상류를 따라간다. `gjc`는
+`pkgs/gajae-code/package.nix`가 Gajae Code 0.15.3의 공식 standalone binary를
+platform별 고정 hash로 가져온다. 둘 다 aarch64-darwin과
+x86_64-linux·aarch64-linux를 지원하므로 리눅스 서버에서도 같은 줄이 통한다.
 
 **Orca 는 여기 없다.** GUI 앱이라 cask 로 오고, 그래서 맥 둘에만 있다 —
 위 [GUI 앱](#gui-앱) 을 보라.
@@ -478,6 +481,7 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `langfuse-cli` | npm 타르볼 | lock을 직접 만들어 함께 담았다 |
 | `vercel-cli` | npm 타르볼 | manifest를 `postPatch`에서 편집 |
 | `beardrive` | GitHub release binaries | BearDrive 0.15.0의 platform별 `bdrive` |
+| `gajae-code` | GitHub release binaries | Gajae Code 0.15.3의 platform별 `gjc` |
 | `sentry` | GitHub release npm tarball | getsentry/cli 0.42.2 |
 | `slack-cli` | GitHub 타르볼 | nixpkgs의 동명 attribute를 갈아끼운다 |
 | `bun` | nixpkgs override | 1.4.0. 잠긴 nixpkgs의 1.3.13보다 앞선 임시 override |

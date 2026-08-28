@@ -425,6 +425,10 @@ in
     agents.codex
     agents.omp
 
+    # Gajae Code is also an agent harness, but comes from the verified
+    # platform release binary in pkgs/ rather than the llm-agents input.
+    pkgs.gajae-code
+
     # BearDrive's CLI is useful on every node, but joining a project is mutable
     # per-user state: `bdrive init` selects a folder and hub, authenticates, and
     # installs the upstream login item. Nix supplies the pinned executable only

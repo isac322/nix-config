@@ -219,6 +219,7 @@
             langfuse-cli
             vercel-cli
             beardrive
+            gajae-code
             sentry
             slack-cli
             tempo-cli
