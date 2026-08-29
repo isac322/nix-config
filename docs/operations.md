@@ -553,7 +553,12 @@ Camoufox 코어를 직접 띄우는 앱이 아니라 LaunchServices bridge다. H
 따라서 Finder, `open`, 다른 앱의 링크도 MCP와 같은 공유 로그인 상태를 쓰되 특정
 OMP 대화의 탭 namespace에는 들어가지 않는다.
 
-switch 뒤 handler와 실제 URL 전달을 확인한다.
+switch는 앱을 LaunchServices에 등록한다. 기본 브라우저 선택은 시스템 설정 >
+데스크탑 및 Dock > 기본 웹 브라우저에서 `Camofox`로 한 번 지정한다. 현재 macOS에서
+`duti`로 HTTP/HTTPS handler를 바꾸면 error -50으로 실패하므로 원격 activation의
+성공 조건으로 두지 않는다.
+
+선택 뒤 handler 등록과 실제 URL 전달을 확인한다.
 
 ```sh
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
@@ -596,7 +601,9 @@ MCP 자식 환경에 전달하지 않는다. 따라서 Codex는 adapter 프로�
 
 noVNC는 WireGuard 주소만 사용한다. 주소 파일이 없거나 첫 줄이 비어 있으면
 `0.0.0.0`이나 LAN 주소로 물러서지 않고 실패한다. launchd가 10초 간격으로 다시
-부르므로 터널이 뒤에 올라오면 그때 정확한 주소에 바인딩한다.
+부르므로 터널이 뒤에 올라오면 그때 정확한 주소에 바인딩한다. macOS에서는 자기
+utun 주소로 건 TCP 연결이 정상 listener에도 timeout될 수 있으므로 HTTPS self-probe를
+쓰지 않고 kernel socket table에서 정확한 주소와 port의 LISTEN 상태를 확인한다.
 
 **VNC 비밀번호.** activation이 처음 한 번만 만든 정확히 8자의 영숫자다.
 

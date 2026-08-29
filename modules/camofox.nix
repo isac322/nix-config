@@ -148,6 +148,12 @@ let
       --ssl-only &
     novncPid=$!
 
+    # A TCP connection to this Mac's own utun address is not a valid health
+    # probe: macOS can time it out even while launchd has a wildcard listener.
+    # Inspect the kernel socket table instead. This catches a websockify process
+    # that is alive without its configured listener without creating a restart
+    # loop on a healthy WireGuard-only bind.
+    listenerCountdown=10
     while /bin/kill -0 "$novncPid" 2>/dev/null; do
       currentAddress=""
       if [ -s ${wireguardAddressFile} ]; then
@@ -159,7 +165,22 @@ let
         wait "$novncPid" || true
         exit 1
       fi
+
+      if [ "$listenerCountdown" -le 0 ]; then
+        if ! /usr/sbin/netstat -anv -p tcp |
+          /usr/bin/awk \
+            -v endpoint="$address.${toString cfg.novncPort}" \
+            '$4 == endpoint && $6 == "LISTEN" { found = 1 } END { exit found ? 0 : 1 }'; then
+          echo "camofox-novnc: listener on $address:${toString cfg.novncPort} is missing; restarting." >&2
+          /bin/kill "$novncPid" 2>/dev/null || true
+          wait "$novncPid" || true
+          exit 1
+        fi
+        listenerCountdown=30
+      fi
+
       /bin/sleep 5
+      listenerCountdown=$((listenerCountdown - 5))
     done
 
     wait "$novncPid"

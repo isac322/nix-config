@@ -1,0 +1,153 @@
+--- a/src/ScreenCapturer.m
++++ b/src/ScreenCapturer.m
+@@ -6,0 +7,6 @@
++@property (nonatomic, strong) dispatch_queue_t exclusionRefreshQueue;
++@property (nonatomic, strong) dispatch_source_t exclusionRefreshTimer;
++@property (nonatomic, copy) NSString *excludedBundleIdentifier;
++@property (nonatomic, strong) NSSet<NSNumber *> *excludedApplicationPIDs;
++@property (nonatomic, assign) BOOL exclusionRefreshInFlight;
++@property (nonatomic, assign) BOOL stopping;
+@@ -23,0 +30,3 @@
++        _exclusionRefreshQueue = dispatch_queue_create("libvncserver.examples.mac.filter-refresh", DISPATCH_QUEUE_SERIAL);
++        _excludedBundleIdentifier = [NSProcessInfo.processInfo.environment[@"MACVNC_EXCLUDE_BUNDLE_ID"] copy];
++        _excludedApplicationPIDs = [NSSet set];
+@@ -25,0 +35,111 @@
++}
++
++
++- (SCDisplay *)displayInContent:(SCShareableContent *)content {
++    NSUInteger index = [content.displays indexOfObjectPassingTest:^BOOL(SCDisplay *display, NSUInteger idx, BOOL *stop) {
++        return display.displayID == self.displayID;
++    }];
++    return index == NSNotFound ? nil : content.displays[index];
++}
++
++- (NSArray<SCRunningApplication *> *)excludedApplicationsInContent:(SCShareableContent *)content {
++    if (self.excludedBundleIdentifier.length == 0) {
++        return @[];
++    }
++    NSMutableArray<SCRunningApplication *> *applications = [NSMutableArray array];
++    for (SCRunningApplication *application in content.applications) {
++        if ([application.bundleIdentifier isEqualToString:self.excludedBundleIdentifier]) {
++            [applications addObject:application];
++        }
++    }
++    return applications;
++}
++
++- (NSSet<NSNumber *> *)processIDsForApplications:(NSArray<SCRunningApplication *> *)applications {
++    NSMutableSet<NSNumber *> *processIDs = [NSMutableSet setWithCapacity:applications.count];
++    for (SCRunningApplication *application in applications) {
++        [processIDs addObject:@(application.processID)];
++    }
++    return processIDs;
++}
++
++- (void)refreshExclusions {
++    if (self.stopping || self.exclusionRefreshInFlight || self.stream == nil) {
++        return;
++    }
++    self.exclusionRefreshInFlight = YES;
++    __unsafe_unretained ScreenCapturer *weakSelf = self;
++    [SCShareableContent getShareableContentWithCompletionHandler:^(SCShareableContent *content, NSError *error) {
++        ScreenCapturer *strongSelf = weakSelf;
++        if (strongSelf == nil) {
++            return;
++        }
++        dispatch_async(strongSelf.exclusionRefreshQueue, ^{
++            if (strongSelf.stopping || strongSelf.stream == nil) {
++                strongSelf.exclusionRefreshInFlight = NO;
++                return;
++            }
++            if (error) {
++                fprintf(stderr, "Could not refresh capture exclusions: %s\n", error.description.UTF8String);
++                strongSelf.exclusionRefreshInFlight = NO;
++                return;
++            }
++            SCDisplay *display = [strongSelf displayInContent:content];
++            if (display == nil) {
++                fprintf(stderr, "Could not refresh capture exclusions: display is unavailable.\n");
++                strongSelf.exclusionRefreshInFlight = NO;
++                return;
++            }
++            NSArray<SCRunningApplication *> *applications = [strongSelf excludedApplicationsInContent:content];
++            NSSet<NSNumber *> *processIDs = [strongSelf processIDsForApplications:applications];
++            if ([processIDs isEqualToSet:strongSelf.excludedApplicationPIDs]) {
++                strongSelf.exclusionRefreshInFlight = NO;
++                return;
++            }
++            SCContentFilter *filter = [[SCContentFilter alloc]
++                initWithDisplay:display
++                excludingApplications:applications
++                exceptingWindows:@[]];
++            [strongSelf.stream updateContentFilter:filter completionHandler:^(NSError *updateError) {
++                dispatch_async(strongSelf.exclusionRefreshQueue, ^{
++                    if (updateError) {
++                        fprintf(stderr, "Could not update capture exclusions: %s\n", updateError.description.UTF8String);
++                    } else {
++                        strongSelf.excludedApplicationPIDs = processIDs;
++                        fprintf(stderr,
++                                "Updated capture exclusion for bundle ID %s (application process count: %lu).\n",
++                                strongSelf.excludedBundleIdentifier.UTF8String,
++                                (unsigned long)applications.count);
++                    }
++                    strongSelf.exclusionRefreshInFlight = NO;
++                });
++            }];
++        });
++    }];
++}
++
++- (void)startExclusionRefresh {
++    if (self.excludedBundleIdentifier.length == 0 || self.exclusionRefreshTimer != nil) {
++        return;
++    }
++    self.stopping = NO;
++    self.exclusionRefreshTimer = dispatch_source_create(
++        DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.exclusionRefreshQueue);
++    dispatch_source_set_timer(
++        self.exclusionRefreshTimer,
++        dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC),
++        NSEC_PER_SEC,
++        NSEC_PER_MSEC * 100);
++    __unsafe_unretained ScreenCapturer *weakSelf = self;
++    dispatch_source_set_event_handler(self.exclusionRefreshTimer, ^{
++        [weakSelf refreshExclusions];
++    });
++    dispatch_resume(self.exclusionRefreshTimer);
++}
++
++- (void)stopExclusionRefresh {
++    self.stopping = YES;
++    if (self.exclusionRefreshTimer != nil) {
++        dispatch_source_cancel(self.exclusionRefreshTimer);
++        self.exclusionRefreshTimer = nil;
++    }
+@@ -35,3 +155 @@
+-        SCDisplay *display = content.displays[[content.displays indexOfObjectPassingTest:^BOOL(SCDisplay *_Nonnull d, NSUInteger idx, BOOL *_Nonnull stop) {
+-                    return d.displayID == self.displayID;
+-                }]];
++        SCDisplay *display = [self displayInContent:content];
+@@ -55 +173,12 @@
+-        SCContentFilter *filter = [[SCContentFilter alloc] initWithDisplay:(display) excludingWindows:(@[])];
++        NSArray<SCRunningApplication *> *excludedApplications = [self excludedApplicationsInContent:content];
++        self.excludedApplicationPIDs = [self processIDsForApplications:excludedApplications];
++        if (self.excludedBundleIdentifier.length > 0) {
++            fprintf(stderr,
++                    "Excluding bundle ID %s from capture (application process count: %lu).\n",
++                    self.excludedBundleIdentifier.UTF8String,
++                    (unsigned long)excludedApplications.count);
++        }
++        SCContentFilter *filter = [[SCContentFilter alloc]
++            initWithDisplay:display
++            excludingApplications:excludedApplications
++            exceptingWindows:@[]];
+@@ -71 +200,3 @@
+-            }
++                return;
++            }
++            [self startExclusionRefresh];
+@@ -76,0 +208 @@
++    [self stopExclusionRefresh];
+@@ -90,0 +223 @@
++    [self stopExclusionRefresh];

@@ -131,11 +131,11 @@ UUID, Claude Code는 `CLAUDE_CODE_SESSION_ID`를 쓰고, 세션 ID를 MCP 자식
 않는다. 이 패키지는 MCP의 모든 탭 요청에 key를 전달하고 서버의 lookup과 list를
 그 group으로 제한한다. wrapper의 UUID만으로 격리된 척하지 않는다.
 
-macOS의 HTTP/HTTPS 기본 handler는 `Camofox.app`이다. 이 app은 브라우저 코어가
-아니라 LaunchServices bridge이며, URL을 `CAMOFOX_USER_ID=omp`,
-`sessionKey=default-browser`로 기존 API에 POST한다. 원본 `Camoufox.app`을 직접
-기본 브라우저로 등록하면 daemon 밖의 별도 Firefox process와 profile이 생기므로
-그 경로는 쓰지 않는다.
+`Camofox.app`은 브라우저 코어가 아니라 LaunchServices bridge다. HTTP/HTTPS 기본
+handler로 선택하면 URL을 `CAMOFOX_USER_ID=omp`, `sessionKey=default-browser`로 기존
+API에 POST한다. 앱 등록은 switch가 하지만, 기본 브라우저 선택은 macOS 시스템 설정의
+사용자 설정이므로 자동화하지 않는다. 원본 `Camoufox.app`을 직접 기본 브라우저로
+선택하면 daemon 밖의 별도 Firefox process와 profile이 생기므로 그 경로는 쓰지 않는다.
 
 각 `userId`의 BrowserContext는 쿠키와 웹 스토리지를 나누지만 전용 가상
 디스플레이는 공유한다. noVNC는 그 디스플레이 전체와 그 위의 모든 앱을 내보내며
@@ -404,11 +404,15 @@ right command → F18 → (단축키 60) 이전 입력 소스 선택 = 한/영
 | 79 / 80 | 이전 스페이스 / 느린 변형 | ⌘⌥← / ⌘⌥⇧← |
 | 81 / 82 | 다음 스페이스 / 느린 변형 | ⌘⌥→ / ⌘⌥⇧→ |
 
-`⌘⇧A` 와 `⌘⇧M` 은 symbolic hotkey가 아니라 Terminal이 macOS Services에 등록한
-“man 페이지 인덱스 검색”과 “man 페이지 열기”다. `pbs -dump`에서 각각 대문자 A와
-M 기본값으로 확인할 수 있다. activation은 System Settings의 Services 체크박스와
-같은 `pbs.NSServicesStatus` 항목을 비활성화하고 `pbs -flush`로 캐시를 갱신한다.
-상주 프로세스나 키 이벤트 가로채기는 없다.
+`⌘⇧A` 와 `⌘⇧M` 은 symbolic hotkey나 App Shortcut이 아니라 Terminal이 macOS
+Services에 등록한 “man 페이지 인덱스 검색”과 “man 페이지 열기”다. `pbs -dump`에서
+각각 대문자 A와 M 기본값을 확인할 수 있지만, 이 출력은 비활성화 후에도 앱이 선언한
+기본값을 계속 보여 주므로 유효 상태 검사는 아니다. System Settings가 사용하는
+AppKit service action에서 두 항목의 Services 메뉴와 context menu 상태가 모두 꺼진
+것을 확인했다. activation은 같은 `pbs.NSServicesStatus`에 `enabled_*`와
+`presentation_modes`를 비활성화하고 `pbs -flush`로 캐시를 갱신한다. 전역
+`NSServicesStatus`나 `NSUserKeyEquivalents`, 상주 프로세스, 키 이벤트 가로채기는
+사용하지 않는다.
 
 id의 의미는 추측이 아니라 macOS 자신의 표에서 확인한 것이다 —
 `KeyboardSettings.appex/Contents/Resources/ko.lproj/DefaultShortcutsTable.xml`이

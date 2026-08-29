@@ -1,7 +1,26 @@
 --- a/src/mac.m
 +++ b/src/mac.m
-@@ -660 +660,18 @@
+@@ -646,0 +647 @@
++  rfbBool checkPermissions = FALSE;
+@@ -652,0 +654,2 @@
++    } else if(strcmp(argv[i],"-checkpermissions")==0) {
++      checkPermissions=TRUE;
+@@ -655,0 +659 @@
++        fprintf(stderr, "-checkpermissions      Check Screen Recording and Accessibility access\n");
+@@ -660 +664,30 @@
 -  if(!viewOnly && !AXIsProcessTrusted()) {
++  if(checkPermissions) {
++      if(!CGPreflightScreenCaptureAccess()) {
++          fprintf(stderr, "Screen Recording permission is not granted.\n");
++          return EXIT_FAILURE;
++      }
++      if(!viewOnly && !AXIsProcessTrusted()) {
++          fprintf(stderr, "Accessibility permission is not granted.\n");
++          return EXIT_FAILURE;
++      }
++      return EXIT_SUCCESS;
++  }
++
 +  Boolean accessibilityTrusted = AXIsProcessTrusted();
 +  if(!accessibilityTrusted) {
 +      const void *keys[] = { kAXTrustedCheckOptionPrompt };
