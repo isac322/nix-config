@@ -47,10 +47,6 @@ let
     pythonPackages.pip
     pythonPackages.virtualenv
   ]);
-  poetry = pkgs.poetry.withPlugins (poetryPackages: [
-    poetryPackages.poetry-plugin-export
-    poetryPackages.poetry-plugin-shell
-  ]);
 
   # Cargo reads this user-level configuration after project-local files, so
   # repositories can override any choice that does not fit their build. Store
@@ -108,8 +104,9 @@ let
   # flake-pinned nixpkgs closure. Absolute Nix store paths are treated as local
   # plugins, so opening a shell never clones, fetches, updates or writes plugin
   # state. The unpackaged forgit, pnpm-alias and better-npm-completion plugins
-  # are intentionally omitted: lazygit already covers forgit's workflow, the
-  # pnpm command needs no alias plugin, and zsh already ships npm completion.
+  # are intentionally omitted: lazygit already covers forgit's workflow,
+  # pnpm has no official Oh My Zsh plugin and its Nix package supplies `_pnpm`,
+  # and zsh already ships npm completion.
   zinitPluginInit = ''
     zinit ice depth=1
     zinit light ${pkgs.zsh-powerlevel10k}/share/zsh/themes/powerlevel10k
@@ -166,6 +163,12 @@ let
         source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/copybuffer/copybuffer.plugin.zsh
         source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/copypath/copypath.plugin.zsh
         source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/copyfile/copyfile.plugin.zsh
+
+        # Bun and uv are installed only on the Macs. Their official Oh My Zsh
+        # plugins are command-guarded, add generated completion, and uv also
+        # supplies its maintained alias set.
+        source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/bun/bun.plugin.zsh
+        source ${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/uv/uv.plugin.zsh
 
         # No additional plugin checkout is needed on Darwin. zsh's packaged
         # completion set already includes launchctl and the standard macOS
@@ -380,11 +383,13 @@ in
     pkgs.gh
     pkgs.git-crypt
     pkgs.go
+    # These packages install `_gcloud`, `_gsutil`, and `_pnpm` into the profile
+    # completion path; the deferred compinit below loads them without an OMZ
+    # wrapper.
     googleCloudSdk
     pkgs.kubernetes-helm
     pkgs.nodejs_24
     pkgs.pnpm
-    poetry
     python
     pkgs.rsync
     pkgs.terraform

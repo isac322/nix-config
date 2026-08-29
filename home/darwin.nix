@@ -298,9 +298,9 @@ in
   # imported between switches can be put to work immediately.
   #
   # The shared Zsh configuration now owns the CLIs its plugins invoke: gh, Go,
-  # Node/npm, pnpm, cloud CLIs, Helm, Terraform, Python, Poetry and archive
-  # tools live in home/common.nix. This list is only for Mac-specific workflow
-  # tools or tools intentionally requested on the Macs.
+  # Node/npm, pnpm, cloud CLIs, Helm, Terraform, Python and archive tools live
+  # in home/common.nix. This list is only for Mac-specific workflow tools or
+  # tools intentionally requested on the Macs.
   #
   # golangci-lint is the Go project linter: one binary running govet,
   # staticcheck, errcheck and several dozen others from .golangci.yml. Version
