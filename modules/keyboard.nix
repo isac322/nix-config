@@ -10,8 +10,8 @@
 # hidutil needs none of that. It remaps inside IOKit as root, applies to every
 # attached keyboard including the built-in one, and is re-applied on every boot
 # by the org.nixos.activate-system LaunchDaemon, so it survives reboots without
-# a login item. It only does 1:1 remapping; exact chords are claimed separately
-# below with Carbon's global hotkey API, which also needs no input interception.
+# a login item. It only does 1:1 remapping; macOS Services shortcuts are
+# separate user preferences and are disabled through pbs below.
 {
   config,
   lib,
@@ -73,62 +73,6 @@ let
     $CC -O2 -o $out/bin/roman-switch roman-switch.c
   '';
 
-  # These are application-menu shortcuts, not entries in
-  # com.apple.symbolichotkeys, so there is no preference id to switch off.
-  # RegisterEventHotKey claims the exact chords before the focused application
-  # sees them; the handler deliberately does nothing. Unlike an event tap, this
-  # does not inspect the keyboard stream or require a TCC permission.
-  shortcutBlocker = pkgs.runCommandCC "macos-shortcut-blocker" { } ''
-    cat > macos-shortcut-blocker.c <<'CEOF'
-    #include <Carbon/Carbon.h>
-    #include <stdio.h>
-
-    static OSStatus swallow(EventHandlerCallRef next, EventRef event, void *data) {
-      (void)next;
-      (void)event;
-      (void)data;
-      return noErr;
-    }
-
-    int main(void) {
-      EventTypeSpec type = { kEventClassKeyboard, kEventHotKeyPressed };
-      OSStatus status =
-          InstallApplicationEventHandler(swallow, 1, &type, NULL, NULL);
-      if (status != noErr) {
-        fprintf(stderr, "macos-shortcut-blocker: handler: %d\n", (int)status);
-        return 1;
-      }
-
-      const UInt32 keys[] = { kVK_ANSI_A, kVK_ANSI_M };
-      for (UInt32 i = 0; i < sizeof(keys) / sizeof(keys[0]); ++i) {
-        EventHotKeyID id = { 0x6e697864, i + 1 }; /* "nixd" */
-        EventHotKeyRef hotkey = NULL;
-        status = RegisterEventHotKey(
-            keys[i],
-            cmdKey | shiftKey,
-            id,
-            GetApplicationEventTarget(),
-            0,
-            &hotkey);
-        if (status != noErr) {
-          fprintf(
-              stderr,
-              "macos-shortcut-blocker: key %u: %d\n",
-              (unsigned)i,
-              (int)status);
-          return 1;
-        }
-      }
-
-      RunCurrentEventLoop(kEventDurationForever);
-      return 0;
-    }
-    CEOF
-    mkdir -p $out/bin
-    $CC -O2 -Wall -Wextra -framework Carbon \
-      -o $out/bin/macos-shortcut-blocker macos-shortcut-blocker.c
-  '';
-
   # UserKeyMapping values are 64-bit: the high 32 bits are the HID usage page,
   # the low 32 bits the usage. Keyboard/keypad is page 0x07; the fn key lives on
   # Apple's vendor-defined top case page 0xFF instead.
@@ -176,6 +120,16 @@ let
     dockHiding = 52; # ⌘⌥D, "Turn Dock hiding on/off"
   };
 
+  # Terminal publishes these through the macOS Services system. `pbs -dump`
+  # reports uppercase A and M as their defaults, which Services interprets as
+  # command+shift+A/M. The preference keys use Terminal's invariant bundle id,
+  # English default menu title and service selector, independent of the current
+  # UI language.
+  serviceIds = {
+    searchManPages = "com.apple.Terminal - Search man Page Index in Terminal - searchManPages";
+    openManPage = "com.apple.Terminal - Open man Page in Terminal - openManPage";
+  };
+
   # `-dict-add` rather than a plain write, and therefore an activation script
   # rather than `system.defaults.CustomUserPreferences`: nix-darwin writes a
   # whole key at once, and AppleSymbolicHotKeys is one dictionary holding every
@@ -201,6 +155,17 @@ let
           <key>parameters</key>
           <array>${lib.concatMapStrings (p: "<integer>${toString p}</integer>") params}</array>
         </dict>
+      </dict>"
+  '';
+
+  # Match the unchecked state in System Settings > Keyboard > Keyboard
+  # Shortcuts > Services. `-dict-add` preserves every unrelated service
+  # preference the user may already have.
+  disableService = service: ''
+    asUser /usr/bin/defaults write pbs NSServicesStatus -dict-add ${lib.escapeShellArg service} "
+      <dict>
+        <key>enabled_context_menu</key><false/>
+        <key>enabled_services_menu</key><false/>
       </dict>"
   '';
 in
@@ -271,19 +236,6 @@ in
     };
   };
 
-  # Carbon hotkey registration belongs to the Aqua login session, not the
-  # system daemon. Keeping this agent alive makes cmd+shift+a and cmd+shift+m
-  # inert in every focused application on both Macs.
-  launchd.user.agents.macos-shortcut-blocker = {
-    serviceConfig = {
-      ProgramArguments = [ "${shortcutBlocker}/bin/macos-shortcut-blocker" ];
-      RunAtLoad = true;
-      KeepAlive = true;
-      LimitLoadToSessionType = "Aqua";
-      ThrottleInterval = 30;
-    };
-  };
-
   system.activationScripts.postActivation.text = ''
     asUser() {
       launchctl asuser "$(id -u -- ${primaryUser})" sudo --user=${primaryUser} -- "$@"
@@ -309,6 +261,13 @@ in
     # it up: `system.defaults.dock.autohide` is set here, so activation would
     # undo whatever the toggle did anyway.
     ${disableHotkey hotkeyIds.dockHiding}
+
+    # Terminal's Services claim ⌘⇧A for searching the man-page index and ⌘⇧M
+    # for opening a man page. Disable the services through the same pbs
+    # preferences System Settings owns; no resident key broker is involved.
+    ${disableService serviceIds.searchManPages}
+    ${disableService serviceIds.openManPage}
+    asUser /System/Library/CoreServices/pbs -flush
 
     # Spaces move on command+option+arrow. The slow partners take the same
     # chord plus shift, matching how macOS pairs them by default.
