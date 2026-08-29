@@ -404,6 +404,12 @@ right command → F18 → (단축키 60) 이전 입력 소스 선택 = 한/영
 | 79 / 80 | 이전 스페이스 / 느린 변형 | ⌘⌥← / ⌘⌥⇧← |
 | 81 / 82 | 다음 스페이스 / 느린 변형 | ⌘⌥→ / ⌘⌥⇧→ |
 
+`⌘⇧A` 와 `⌘⇧M` 은 symbolic hotkey가 아니라 앱 메뉴 처리라서 비활성화할
+`com.apple.symbolichotkeys` id가 없다. `modules/keyboard.nix`의 Aqua LaunchAgent가
+Carbon `RegisterEventHotKey`로 두 조합을 선점한 뒤 버려서, 두 Mac의 모든 앱에서
+아무 동작도 하지 않게 한다. 키보드 이벤트 스트림을 가로채지 않으므로 별도 TCC 권한은
+필요 없다.
+
 id의 의미는 추측이 아니라 macOS 자신의 표에서 확인한 것이다 —
 `KeyboardSettings.appex/Contents/Resources/ko.lproj/DefaultShortcutsTable.xml`이
 79를 "Move to previous space", 81을 "Move to next space"로 적고 각각

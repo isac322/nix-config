@@ -1,6 +1,6 @@
 # Keyboard remapping and shortcuts for the Macs, imported from modules/darwin.nix.
 #
-# This uses hidutil (nix-darwin's `system.keyboard`) rather than
+# Modifier remapping uses hidutil (nix-darwin's `system.keyboard`) rather than
 # Karabiner-Elements, because Karabiner cannot be set up without a human at the
 # console: its DriverKit extension has to be approved in System Settings and its
 # grabber needs an Input Monitoring grant, and the TCC database that records
@@ -10,8 +10,8 @@
 # hidutil needs none of that. It remaps inside IOKit as root, applies to every
 # attached keyboard including the built-in one, and is re-applied on every boot
 # by the org.nixos.activate-system LaunchDaemon, so it survives reboots without
-# a login item. The cost is that it can only do 1:1 key remapping — no
-# conditional or chorded rules. Nothing here needs more than that.
+# a login item. It only does 1:1 remapping; exact chords are claimed separately
+# below with Carbon's global hotkey API, which also needs no input interception.
 {
   config,
   lib,
@@ -71,6 +71,62 @@ let
     CEOF
     mkdir -p $out/bin
     $CC -O2 -o $out/bin/roman-switch roman-switch.c
+  '';
+
+  # These are application-menu shortcuts, not entries in
+  # com.apple.symbolichotkeys, so there is no preference id to switch off.
+  # RegisterEventHotKey claims the exact chords before the focused application
+  # sees them; the handler deliberately does nothing. Unlike an event tap, this
+  # does not inspect the keyboard stream or require a TCC permission.
+  shortcutBlocker = pkgs.runCommandCC "macos-shortcut-blocker" { } ''
+    cat > macos-shortcut-blocker.c <<'CEOF'
+    #include <Carbon/Carbon.h>
+    #include <stdio.h>
+
+    static OSStatus swallow(EventHandlerCallRef next, EventRef event, void *data) {
+      (void)next;
+      (void)event;
+      (void)data;
+      return noErr;
+    }
+
+    int main(void) {
+      EventTypeSpec type = { kEventClassKeyboard, kEventHotKeyPressed };
+      OSStatus status =
+          InstallApplicationEventHandler(swallow, 1, &type, NULL, NULL);
+      if (status != noErr) {
+        fprintf(stderr, "macos-shortcut-blocker: handler: %d\n", (int)status);
+        return 1;
+      }
+
+      const UInt32 keys[] = { kVK_ANSI_A, kVK_ANSI_M };
+      for (UInt32 i = 0; i < sizeof(keys) / sizeof(keys[0]); ++i) {
+        EventHotKeyID id = { 0x6e697864, i + 1 }; /* "nixd" */
+        EventHotKeyRef hotkey = NULL;
+        status = RegisterEventHotKey(
+            keys[i],
+            cmdKey | shiftKey,
+            id,
+            GetApplicationEventTarget(),
+            0,
+            &hotkey);
+        if (status != noErr) {
+          fprintf(
+              stderr,
+              "macos-shortcut-blocker: key %u: %d\n",
+              (unsigned)i,
+              (int)status);
+          return 1;
+        }
+      }
+
+      RunCurrentEventLoop(kEventDurationForever);
+      return 0;
+    }
+    CEOF
+    mkdir -p $out/bin
+    $CC -O2 -Wall -Wextra -framework Carbon \
+      -o $out/bin/macos-shortcut-blocker macos-shortcut-blocker.c
   '';
 
   # UserKeyMapping values are 64-bit: the high 32 bits are the HID usage page,
@@ -212,6 +268,19 @@ in
       ];
       RunAtLoad = true;
       KeepAlive = false;
+    };
+  };
+
+  # Carbon hotkey registration belongs to the Aqua login session, not the
+  # system daemon. Keeping this agent alive makes cmd+shift+a and cmd+shift+m
+  # inert in every focused application on both Macs.
+  launchd.user.agents.macos-shortcut-blocker = {
+    serviceConfig = {
+      ProgramArguments = [ "${shortcutBlocker}/bin/macos-shortcut-blocker" ];
+      RunAtLoad = true;
+      KeepAlive = true;
+      LimitLoadToSessionType = "Aqua";
+      ThrottleInterval = 30;
     };
   };
 
