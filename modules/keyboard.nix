@@ -159,13 +159,20 @@ let
   '';
 
   # Match the unchecked state in System Settings > Keyboard > Keyboard
-  # Shortcuts > Services. `-dict-add` preserves every unrelated service
-  # preference the user may already have.
+  # Shortcuts > Services. KeyboardSettings saves service actions through
+  # AppKit's _NSSaveServiceActions, which writes the pbs domain. Current macOS
+  # stores both the legacy enabled_* flags and the presentation modes.
+  # `-dict-add` preserves every unrelated service preference.
   disableService = service: ''
     asUser /usr/bin/defaults write pbs NSServicesStatus -dict-add ${lib.escapeShellArg service} "
       <dict>
         <key>enabled_context_menu</key><false/>
         <key>enabled_services_menu</key><false/>
+        <key>presentation_modes</key>
+        <dict>
+          <key>ContextMenu</key><false/>
+          <key>ServicesMenu</key><false/>
+        </dict>
       </dict>"
   '';
 in
