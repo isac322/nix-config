@@ -192,10 +192,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1788014451,
-        "narHash": "sha256-hzcOTIX1ivhpRcWf1FRtRstt9MytO1yFt2ksWBBu0fY=",
+        "lastModified": 1788073456,
+        "narHash": "sha256-BrOzbMjD84sIwJYzvJe39Igc2eBfUIFcbQ36gf1mS74=",
         "ref": "refs/heads/main",
-        "rev": "569f3361af6cac447029f749c3d4d15f9e1dbcb3",
+        "rev": "898355700446d50023d6c913abfe7b8cc64565d3",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -276,10 +276,10 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1788012048,
-        "narHash": "sha256-Ja0btchPlXVw5XVEIe5N8DhNZJE8LKiBG1x0jZcNjTU=",
+        "lastModified": 1788063845,
+        "narHash": "sha256-SdJE2vyoZJr+8iOoau7UDZAKD2hRhi51LYSBCDthiHM=",
         "ref": "refs/heads/main",
-        "rev": "952d31f9337df4799f22aa067d1075822d024ecc",
+        "rev": "b7e6d6d4cb01ee1bc704db8e11629adec7e2509c",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -390,10 +390,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1787979849,
-        "narHash": "sha256-hJ0p7X2vmkNDaISN8F0s4u1vwBWO7lj6h4nYrDPvIRE=",
+        "lastModified": 1788058471,
+        "narHash": "sha256-I8U3lKMqQpZjGe0tWU3+QkxWB1awoM4b+ykrAFRlrP0=",
         "ref": "refs/heads/main",
-        "rev": "0f7a82c2bcb6129fb3fb21a00bf75f45cc9c7338",
+        "rev": "aad63f3473598ac0fa1e967457144203d8382421",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
@@ -454,10 +454,10 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1787814960,
-        "narHash": "sha256-PYZq1qzCJXC2zGI0mH07vrZBsw6DRBAOX0jN1pPtqOQ=",
+        "lastModified": 1787964612,
+        "narHash": "sha256-0N9nghg3nwzX6b6qc77EzjR9cu/Z+UR66FlfsCqiURs=",
         "ref": "nixpkgs-unstable",
-        "rev": "c27cdad491a991b11ed731760aa2ef8db0cb0410",
+        "rev": "e8be7818e19ada32105a8af937a6a473b38167ca",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
