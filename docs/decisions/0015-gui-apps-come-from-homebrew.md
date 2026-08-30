@@ -15,9 +15,12 @@ payload에서 `Cloudflare WARP.app`만 꺼내 복사하고 `warp-cli`를 심볼�
 Karabiner 도, 1Password 데스크톱 앱도 같은 모양의 문제다 — 후자는 브라우저 연동과
 SSH 에이전트 통합이 시스템에 걸린다.
 
-Nix에서 오는 GUI 예외는 Firefox와 서버 맥의 Camoufox·DeskPad·macVNC다. Firefox는
-오버레이가 주는 `.app` 번들이라 [정책을 두 경로로](0021-firefox-policies-two-paths.md)
-넣어야 한다. 서버의 세 앱은 고정한 브라우저/VNC 스택이라 Nix로 패키징한다.
-Camoufox와 DeskPad는 LaunchAgent가 store에서 직접 실행하고, Screen Recording과
-Accessibility 권한이 필요한 macVNC만 Home Manager Apps의 안정된 경로로 실행한다
+Nix에서 오는 GUI 예외는 Firefox와 서버 맥의 Orca·Camoufox·DeskPad·macVNC다.
+Firefox는 오버레이가 주는 `.app` 번들이라
+[정책을 두 경로로](0021-firefox-policies-two-paths.md) 넣어야 한다. 서버 Orca는
+현재 `serve` 회귀를 피하려고 마지막 검증 릴리스를 고정한다
+([0028](0028-orca-runtime-on-the-server-mac.md)). 나머지 세 앱은 고정한
+브라우저/VNC 스택이라 Nix로 패키징한다. Camoufox와 DeskPad는 LaunchAgent가
+store에서 직접 실행하고, Screen Recording과 Accessibility 권한이 필요한 macVNC만
+Home Manager Apps의 안정된 경로로 실행한다
 ([0031](0031-camofox-native-macos-over-wireguard.md)).

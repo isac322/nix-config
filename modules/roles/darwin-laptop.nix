@@ -42,14 +42,12 @@ in
     reason = "The tunnel is how this machine reaches the others, including the server Mac's Orca runtime.";
   };
 
-  # GUI applications come from Homebrew rather than nixpkgs. Most of these have
-  # no darwin build in nixpkgs at all, and the ones that do are unmaintained
-  # app-bundle copies that miss the privileged pieces — the same reason WARP
-  # and Karabiner are casks. Homebrew is also what keeps them current, since
-  # `onActivation.upgrade` is on.
-  #
-  # Orca and OrbStack are not here: both Macs run them, so their casks are in
-  # modules/darwin.nix. Only their Dock tiles below are laptop-only.
+  # Interactive GUI applications come from Homebrew. Most have no maintained
+  # Darwin package in nixpkgs, and Homebrew keeps their app bundles current.
+  # Orca stays on that path on the laptop; only the unattended server pins a
+  # Nix-packaged release because current `orca serve` builds crash at startup.
+  homebrew.taps = [ "stablyai/orca" ];
+
   homebrew.casks = [
     "1password" # the desktop app; the `op` CLI is in home/darwin.nix
     "ente-auth"
@@ -59,6 +57,7 @@ in
     "kde-connect"
     "linear"
     "notion"
+    "stablyai/orca/orca"
     "slack"
     # `auto_updates true` in the cask, so Spotify replaces itself in place and
     # onActivation.upgrade rarely has anything to do — which is fine, and the

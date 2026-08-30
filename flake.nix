@@ -209,7 +209,12 @@
           pkgs = import nixpkgs {
             inherit system;
             overlays = [ (import ./pkgs/overlay.nix) ];
-            config.allowUnfreePredicate = pkg: nixpkgs.lib.getName pkg == "sentry";
+            config.allowUnfreePredicate =
+              pkg:
+              builtins.elem (nixpkgs.lib.getName pkg) [
+                "orca"
+                "sentry"
+              ];
           };
         in
         {
@@ -228,6 +233,7 @@
         // nixpkgs.lib.optionalAttrs (system == "aarch64-darwin") {
           inherit (pkgs)
             camoufox
+            orca
             camofox-browser
             camofox-url-handler
             deskpad
@@ -256,6 +262,7 @@
               "camoufox"
               "camofox-browser"
               "deskpad"
+              "orca"
               "displayplacer"
             ]
           );

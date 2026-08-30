@@ -77,13 +77,12 @@ let
     fi
   '';
 
-  # Homebrew's, because the cask is where Orca comes from (see
-  # docs/decisions/0015-gui-apps-come-from-homebrew.md). This is a symlink brew
-  # maintains into /Applications/Orca.app; naming the shim rather than the path
-  # inside the bundle keeps this working if the bundle is rearranged.
-  orca = "/opt/homebrew/bin/orca";
+  # The unattended runtime uses the last verified upstream release. Orca
+  # 1.4.190 and newer crash before opening the `serve` port on macOS
+  # (stablyai/orca#16761), so the mutable Homebrew cask remains laptop-only.
+  orca = lib.getExe pkgs.orca;
 
-  # Homebrew installs both the app and this stable shim. It may not exist yet
+  # Homebrew installs OrbStack's app and this stable shim. It may not exist yet
   # when the LaunchAgent first runs: nix-darwin does not promise an ordering
   # between its Homebrew activation and home-manager's user activation.
   orb = "/opt/homebrew/bin/orb";
@@ -214,10 +213,9 @@ let
     export PATH=/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
     if [ ! -x ${orca} ]; then
-      # First boot after the cask is declared but before `brew bundle` has run.
-      # Exit 0 so KeepAlive leaves it alone instead of spinning; the next
-      # switch, or the next login, starts it for real.
-      echo "orca-serve: ${orca} is not installed yet — nothing to start." >&2
+      # A complete server generation always carries this executable. Treat a
+      # missing store path as terminal rather than spinning a broken agent.
+      echo "orca-serve: ${orca} is missing — nothing to start." >&2
       exit 0
     fi
 
@@ -1019,48 +1017,6 @@ in
   services.gpg-agent.pinentry.package = lib.mkForce pkgs.pinentry-keychain;
   services.gpg-agent.pinentry.program = lib.mkForce "pinentry-keychain";
 
-  # Restart the runtime when Homebrew has replaced it underneath.
-  #
-  # Orca comes from a cask and `onActivation.upgrade` is on, so a switch is also
-  # when it gets a new version — `brew bundle` runs before home-manager's part
-  # of activation. But the LaunchAgent's plist does not change when the
-  # application does, so home-manager sees nothing to reload and the old binary
-  # keeps running. The machine then reports a version it is not running, which
-  # is the kind of wrong that is only noticed much later.
-  #
-  # The bundle's own version string is the signal, compared against a stamp from
-  # last time. No stamp means this is the first switch since this existed:
-  # record it and leave the agent alone, because restarting something that was
-  # just bootstrapped is noise.
-  #
-  # `kickstart -k` rather than bootout and bootstrap: it is one call, it works on
-  # a job that is already running, and the -k asks for the current instance to be
-  # killed first. Sessions are on disk, so the clients reconnect.
-  home.activation.orcaRestartOnUpgrade = lib.mkIf cfg.enable (
-    lib.hm.dag.entryAfter [ "setupLaunchAgents" ] ''
-      orcaPlist=/Applications/Orca.app/Contents/Info.plist
-      stamp=${config.home.homeDirectory}/.local/state/nix-darwin/orca-version
-
-      if [ -f "$orcaPlist" ]; then
-        version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$orcaPlist" 2>/dev/null || true)
-
-        if [ -n "$version" ]; then
-          previous=""
-          [ -f "$stamp" ] && previous=$(/usr/bin/head -n 1 "$stamp")
-
-          if [ -n "$previous" ] && [ "$previous" != "$version" ]; then
-            $DRY_RUN_CMD /bin/launchctl kickstart -k \
-              "gui/$(/usr/bin/id -u)/org.nix-community.home.orca-serve" || true
-            echo "  Orca $previous -> $version; the runtime was restarted." >&2
-          fi
-
-          $DRY_RUN_CMD /usr/bin/install -d -m 0700 "$(dirname "$stamp")"
-          $DRY_RUN_CMD printf '%s\n' "$version" > "$stamp"
-        fi
-      fi
-    ''
-  );
-
   # Unlock the login keychain that automatic login leaves locked. See the
   # script above for why this is needed at all.
   #
@@ -1140,6 +1096,8 @@ in
     # LaunchServices registers this bridge during activation. Selecting it as
     # the default web browser remains a one-time System Settings choice.
     camofoxUrlHandler
+    # Last verified release for the unattended `orca serve` runtime.
+    pkgs.orca
 
     # The LaunchAgent deliberately uses this stable app path so macOS privacy
     # grants survive store-path changes. DeskPad needs no equivalent grant and

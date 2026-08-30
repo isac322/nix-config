@@ -1,5 +1,10 @@
 # Shared by every Mac. Host-specific bits live in hosts/<name>/default.nix.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   caches = import ../lib/caches.nix;
@@ -101,31 +106,15 @@ in
     # `upgrade` only sees the formula index as of the last manual `brew update`.
     onActivation.autoUpdate = true;
 
-    # Stably's Orca ships from its own tap rather than homebrew-cask, so the tap
-    # has to be declared alongside it. nix-homebrew leaves taps mutable by
-    # default, which is what lets this work without pinning the tap as a flake
-    # input.
-    taps = [ "stablyai/orca" ];
-
     casks = [
       # Karabiner-Elements deliberately absent: it cannot be brought up without
       # a console session approving its driver extension and Input Monitoring.
       # The remapping it would have done is in modules/keyboard.nix via hidutil.
 
-      # The GUI applications both Macs get. Orca drives coding agents in
-      # parallel, each in its own git worktree, and the `orca` CLI that comes
-      # in the bundle is the half that matters on a headless machine — the
-      # laptop additionally keeps it in the Dock, in the laptop role.
-      #
       # OrbStack is the Docker engine on both Macs. The server starts it from
       # its automatically-created Aqua session in home/roles/darwin-server.nix;
       # the laptop lets the application manage its own interactive lifecycle.
-      #
-      # The tap prefix on Orca is not optional. Plain `orca` in homebrew-cask is
-      # plotly's chart renderer, an unrelated package that is deprecated for
-      # failing Gatekeeper.
       "orbstack"
-      "stablyai/orca/orca"
     ];
   };
 
