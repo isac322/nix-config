@@ -349,6 +349,7 @@ let
     deskpadPid=0
     vncPid=0
     browserPid=0
+    displayAwakePid=0
     restoreDisplayLayout() {
       [ "$layoutConfigured" -eq 1 ] || return 0
 
@@ -399,6 +400,10 @@ let
       displayArgs=(
         "id:$deskpadDisplayId res:${toString camofoxCfg.displayWidth}x${toString camofoxCfg.displayHeight} hz:60 color_depth:4 enabled:true scaling:off origin:(0,0) degree:0"
       )
+      if ! availableDisplayState=$(${pkgs.displayplacer}/bin/displayplacer list 2>/dev/null); then
+        echo "camofox-browser: could not read displays while configuring DeskPad." >&2
+        return 1
+      fi
       displayX=${toString camofoxCfg.displayWidth}
       while IFS=$'\t' read -r \
         displayId displayResolution displayHertz displayColorDepth \
@@ -413,6 +418,18 @@ let
           [ -z "$displayOrigin" ]; then
           echo "camofox-browser: could not preserve display $displayId while making DeskPad main." >&2
           return 1
+        fi
+        if ! printf '%s\n' "$availableDisplayState" |
+          /usr/bin/awk -v id="$displayId" '
+            $1 == "Contextual" && $2 == "screen" && $3 == "id:" {
+              matches = ($4 == id)
+              found = found || matches
+              next
+            }
+            matches && $1 == "Enabled:" && $2 == "true" { enabled = 1 }
+            END { exit !(found && enabled) }
+          '; then
+          continue
         fi
         displayArgs+=(
           "id:$displayId res:$displayResolution hz:$displayHertz color_depth:$displayColorDepth enabled:$displayEnabled scaling:$displayScaling origin:($displayX,0) degree:$displayRotation"
@@ -477,6 +494,9 @@ let
         restoreDisplayLayout || true
         /bin/kill "$deskpadPid" 2>/dev/null || true
       fi
+      if [ "$displayAwakePid" -gt 0 ]; then
+        /bin/kill "$displayAwakePid" 2>/dev/null || true
+      fi
       if [ "$browserPid" -gt 0 ]; then
         wait "$browserPid" 2>/dev/null || true
       fi
@@ -489,6 +509,9 @@ let
         /bin/kill -KILL "$deskpadPid" 2>/dev/null || true
         waitForProcessExit "$deskpadPid" 5 || true
       fi
+      if [ "$displayAwakePid" -gt 0 ]; then
+        wait "$displayAwakePid" 2>/dev/null || true
+      fi
     }
     terminate() {
       stopChildren
@@ -500,13 +523,19 @@ let
       echo "camofox-browser: could not read displays before starting DeskPad." >&2
       exit 1
     fi
-    beforeDisplayIds=$(printf '%s\n' "$beforeDisplayState" |
-      /usr/bin/awk '$1 == "Contextual" && $2 == "screen" && $3 == "id:" { print $4 }' |
+    beforeEnabledDisplayIds=$(printf '%s\n' "$beforeDisplayState" |
+      /usr/bin/awk '
+        $1 == "Contextual" && $2 == "screen" && $3 == "id:" {
+          id = $4
+          next
+        }
+        $1 == "Enabled:" && $2 == "true" && id != "" { print id }
+      ' |
       /usr/bin/tr '\n' ' ')
     beforeDisplaySpecs=$(printf '%s\n' "$beforeDisplayState" |
       /usr/bin/awk '
         function emit() {
-          if (id != "") {
+          if (id != "" && enabled == "true") {
             print id "\t" resolution "\t" hertz "\t" colorDepth "\t" scaling "\t" rotation "\t" enabled "\t" origin
           }
         }
@@ -527,13 +556,10 @@ let
       ')
     restoreDisplayX=$(printf '%s\n' "$beforeDisplayState" |
       /usr/bin/awk '
-        $1 == "Resolution:" {
-          split($2, resolution, "x")
-          width = resolution[1]
-          next
-        }
-        $1 == "Origin:" {
-          origin = $2
+        function emit() {
+          if (enabled != "true" || width == "" || origin == "") {
+            return
+          }
           gsub(/[()]/, "", origin)
           split(origin, coordinates, ",")
           right = coordinates[1] + width
@@ -541,8 +567,27 @@ let
             maxRight = right
           }
         }
-        END { print maxRight + 0 }
+        $1 == "Contextual" && $2 == "screen" && $3 == "id:" {
+          emit()
+          width = origin = enabled = ""
+          next
+        }
+        $1 == "Resolution:" {
+          split($2, resolution, "x")
+          width = resolution[1]
+        }
+        $1 == "Origin:" { origin = $2 }
+        $1 == "Enabled:" { enabled = $2 }
+        END {
+          emit()
+          print maxRight + 0
+        }
       ')
+
+    # ScreenCaptureKit stops when macOS powers the virtual display down. Keep
+    # display idle sleep inhibited for exactly the lifetime of this stack.
+    /usr/bin/caffeinate -d &
+    displayAwakePid=$!
 
     "$deskpadApp" &
     deskpadPid=$!
@@ -565,6 +610,11 @@ let
       waited=$((waited + 1))
     done
 
+    # A closed lid can leave the new virtual display powered off even though
+    # DeskPad is running. Wake it once; the lifetime assertion above keeps it
+    # available to ScreenCaptureKit afterward.
+    /usr/bin/caffeinate -u -t 5
+
     deskpadDisplayId=""
     waited=0
     while [ "$waited" -lt 30 ]; do
@@ -577,26 +627,32 @@ let
       fi
 
       if afterDisplayState=$(${pkgs.displayplacer}/bin/displayplacer list 2>/dev/null); then
-        afterDisplayIds=$(printf '%s\n' "$afterDisplayState" |
-          /usr/bin/awk '$1 == "Contextual" && $2 == "screen" && $3 == "id:" { print $4 }' |
+        afterEnabledDisplayIds=$(printf '%s\n' "$afterDisplayState" |
+          /usr/bin/awk '
+            $1 == "Contextual" && $2 == "screen" && $3 == "id:" {
+              id = $4
+              next
+            }
+            $1 == "Enabled:" && $2 == "true" && id != "" { print id }
+          ' |
           /usr/bin/tr '\n' ' ')
-        newDisplayId=""
-        newDisplayCount=0
-        for displayId in $afterDisplayIds; do
-          case " $beforeDisplayIds " in
+        candidateDisplayId=""
+        candidateDisplayCount=0
+        for displayId in $afterEnabledDisplayIds; do
+          case " $beforeEnabledDisplayIds " in
             *" $displayId "*) ;;
             *)
-              newDisplayId=$displayId
-              newDisplayCount=$((newDisplayCount + 1))
+              candidateDisplayId=$displayId
+              candidateDisplayCount=$((candidateDisplayCount + 1))
               ;;
           esac
         done
-        if [ "$newDisplayCount" -eq 1 ]; then
-          deskpadDisplayId=$newDisplayId
+        if [ "$candidateDisplayCount" -eq 1 ]; then
+          deskpadDisplayId=$candidateDisplayId
           break
         fi
-        if [ "$newDisplayCount" -gt 1 ]; then
-          echo "camofox-browser: DeskPad created multiple displays; refusing an ambiguous selection." >&2
+        if [ "$candidateDisplayCount" -gt 1 ]; then
+          echo "camofox-browser: DeskPad enabled multiple candidate displays; refusing an ambiguous selection." >&2
           stopChildren
           exit 1
         fi
@@ -658,6 +714,15 @@ let
     vncReadyLogged=0
     vncReadinessChecks=0
     while true; do
+      if ! /bin/kill -0 "$displayAwakePid" 2>/dev/null; then
+        status=0
+        wait "$displayAwakePid" || status=$?
+        [ "$status" -eq 0 ] && status=1
+        echo "camofox-browser: display sleep assertion exited with status $status; stopping the stack." >&2
+        stopChildren
+        exit "$status"
+      fi
+
       if ! /bin/kill -0 "$deskpadPid" 2>/dev/null; then
         deadDeskpadPid=$deskpadPid
         status=1

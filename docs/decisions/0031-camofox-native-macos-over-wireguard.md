@@ -46,6 +46,12 @@ application/window filter나 PID별 입력 전달 코드는 유지하지 않는�
 그 디스플레이의 desktop·Dock·menu bar와 그 위에 놓인 모든 앱이 그대로 보이고,
 키보드와 포인터도 Aqua 세션의 해당 좌표로 전달된다.
 
+닫힌 뚜껑으로 부팅한 직후에는 DeskPad가 실행 중이어도 macOS가 가상 디스플레이를
+꺼서 ScreenCaptureKit이 `SCStreamErrorDomain -3815`로 끝날 수 있다. LaunchAgent는
+DeskPad 시작 뒤 디스플레이를 한 번 깨우고, 스택이 살아 있는 동안 display idle
+sleep assertion을 유지한다. assertion 프로세스가 끝나면 캡처만 방치하지 않고
+스택 전체를 재시작한다.
+
 따라서 운영 경계는 Camoufox 프로세스나 특정 창이 아니라 **전용 가상 디스플레이**다.
 다른 앱을 이 디스플레이로 옮기면 noVNC에 보이고 조작할 수 있다. 이 제약을 명시하는
 대신, 여러 Camoufox 창을 추적하고 frontmost·hit-test·button-state를 동기화하던

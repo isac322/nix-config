@@ -117,7 +117,10 @@ DeskPad 1.3.2, `LibVNC/macVNC`는 자동 로그인으로 생긴 `bhyoo`의 Aqua 
 한 LaunchAgent가 감독하고, noVNC는 root LaunchDaemon이다. displayplacer 1.4.0이
 DeskPad 화면을 1920×1080 main display로 정한 뒤 상류 macVNC가 ScreenCaptureKit과
 LibVNCServer로 그 디스플레이 전체를 내보낸다. Camofox의 Linux/Xvfb 플러그인은
-쓰지 않는다. macOS Screen Sharing은 독립된 운영체제 서비스이며 Camofox 구성은
+쓰지 않는다. LaunchAgent는 닫힌 뚜껑으로 부팅했을 때 가상 디스플레이를 한 번
+깨우고, 수명 동안 display idle sleep assertion을 유지해 ScreenCaptureKit 캡처
+대상이 꺼지지 않게 한다. macOS Screen Sharing은 독립된 운영체제 서비스이며
+Camofox 구성은
 그 enable·disable 상태나 legacy VNC 인증을 관리하지 않는다. 운영자가 별도로
 켜더라도 port 5900을 사용할 뿐, noVNC는 port 5901의 macVNC를 계속 쓴다.
 

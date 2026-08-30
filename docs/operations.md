@@ -452,6 +452,11 @@ LaunchAgent는 Camofox와 DeskPad를 Nix store에서 직접 실행한다. macVNC
 Screen Recording·Accessibility 권한의 안정된 대상을 위해
 `~/Applications/Home Manager Apps/macVNC.app` 경로를 쓴다.
 
+닫힌 뚜껑 상태로 자동 로그인하면 DeskPad 프로세스가 살아 있어도 macOS가 가상
+디스플레이를 꺼둘 수 있다. LaunchAgent는 시작할 때 사용자 활동 assertion으로
+디스플레이를 한 번 깨우고, 스택 수명 동안 `PreventUserIdleDisplaySleep` assertion을
+유지한다. 이 assertion이 끝나면 전체 스택을 재시작한다.
+
 native Screen Sharing은 Camofox의 data path가 아니며 이 구성은 그 서비스의
 enable·disable 상태를 관리하지 않는다. 운영자가 별도로 켜면 port 5900에 독립된
 전체 데스크톱 경로가 생길 수 있지만, noVNC는 계속 port 5901의 macVNC만 쓴다.
