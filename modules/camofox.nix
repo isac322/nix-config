@@ -74,6 +74,11 @@ let
       echo "camofox-novnc: refusing noVNC's all-interfaces default; retrying." >&2
       exit 1
     fi
+    addressFileIdentity=$(/usr/bin/stat -f '%d:%i' ${wireguardAddressFile}) || {
+      echo "camofox-novnc: could not identify the WireGuard address publication." >&2
+      exit 1
+    }
+
 
     # noVNC needs a secure browser context for Web Crypto. The address is
     # runtime machine state, so the self-signed certificate is generated here,
@@ -149,15 +154,27 @@ let
     novncPid=$!
 
     # A TCP connection to this Mac's own utun address is not a valid health
-    # probe: macOS can time it out even while launchd has a wildcard listener.
-    # Inspect the kernel socket table instead. This catches a websockify process
-    # that is alive without its configured listener without creating a restart
-    # loop on a healthy WireGuard-only bind.
+    # probe: macOS can time it out even while the listener is reachable from a
+    # peer. The kernel socket table catches a process that lost its listener.
+    #
+    # It cannot tell whether that socket is attached to a retired utun carrying
+    # the same address. wireguard-up atomically replaces the public address file
+    # after every interface creation, so its device and inode are the interface
+    # generation signal. Restart when either that identity or the address
+    # changes, then websockify binds the current utun.
     listenerCountdown=10
     while /bin/kill -0 "$novncPid" 2>/dev/null; do
       currentAddress=""
+      currentAddressFileIdentity=""
       if [ -s ${wireguardAddressFile} ]; then
         currentAddress=$(/usr/bin/head -n 1 ${wireguardAddressFile})
+        currentAddressFileIdentity=$(/usr/bin/stat -f '%d:%i' ${wireguardAddressFile} 2>/dev/null || true)
+      fi
+      if [ "$currentAddressFileIdentity" != "$addressFileIdentity" ]; then
+        echo "camofox-novnc: WireGuard address publication was replaced; restarting." >&2
+        /bin/kill "$novncPid" 2>/dev/null || true
+        wait "$novncPid" || true
+        exit 1
       fi
       if [ "$currentAddress" != "$address" ]; then
         echo "camofox-novnc: WireGuard address changed from $address to $currentAddress; restarting." >&2

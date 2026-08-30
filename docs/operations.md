@@ -607,8 +607,10 @@ MCP 자식 환경에 전달하지 않는다. 따라서 Codex는 adapter 프로�
 noVNC는 WireGuard 주소만 사용한다. 주소 파일이 없거나 첫 줄이 비어 있으면
 `0.0.0.0`이나 LAN 주소로 물러서지 않고 실패한다. launchd가 10초 간격으로 다시
 부르므로 터널이 뒤에 올라오면 그때 정확한 주소에 바인딩한다. macOS에서는 자기
-utun 주소로 건 TCP 연결이 정상 listener에도 timeout될 수 있으므로 HTTPS self-probe를
-쓰지 않고 kernel socket table에서 정확한 주소와 port의 LISTEN 상태를 확인한다.
+utun 주소로 건 TCP 연결이 정상 listener에도 timeout될 수 있으므로 HTTPS self-probe는
+쓰지 않는다. kernel socket table로 listener 유무를 확인하고, WireGuard가 주소
+파일을 원자적으로 교체하면 주소가 같아도 새 interface generation으로 보고 noVNC를
+재시작한다. 따라서 websockify가 폐기된 utun에 남지 않는다.
 
 **VNC 비밀번호.** activation이 처음 한 번만 만든 정확히 8자의 영숫자다.
 
