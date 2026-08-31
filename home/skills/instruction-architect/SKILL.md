@@ -19,54 +19,73 @@ Before choosing a destination, inspect the canonical fragment, named-rule, and s
 - If the same policy intentionally has an OMP sticky layer and a cross-harness portability layer, report both existing paths and keep their purposes distinct.
 - Classify a new destination only when no existing source already covers the request.
 
-## Canonical destinations
+## Delivery semantics and canonical destinations
 
-- `home/files/agent-instructions/agents/*.md`: concise principles shared by OMP, Claude Code, and Codex.
-- `home/files/agent-instructions/harness/{omp,claude,codex}.md`: broad instructions specific to one harness.
-- `home/files/agent-instructions/personality/*.md`: OMP main-agent response style only. The composed `PERSONALITY.md` replaces OMP's bundled personality preset rather than extending it, and OMP subagents do not inherit it.
-- `home/files/agent-instructions/sticky/*.md`: tiny OMP invariants that must remain visible every turn; these compose `RULES.md`.
-- `home/files/agent-instructions/rules/*.md`: conditional OMP policies with useful `description` frontmatter and optional `globs` or `alwaysApply`.
-- `home/skills/<name>/SKILL.md`: reusable procedures, domain playbooks, or substantial task-specific knowledge. Put optional detail in `references/`, executable helpers in `scripts/`, and assets in `assets/`.
+Choose a surface by how its body reaches the agent, how long it remains authoritative, and which harnesses receive it. Do not classify from prose shape alone.
+
+- `home/files/agent-instructions/agents/*.md`: full text is composed into the user context files for OMP, Claude Code, and Codex. It is injected when a session opens, not repeated near every later turn, so use it for portable background and broad principles rather than the only copy of a late, costly action guard.
+- `home/files/agent-instructions/harness/{omp,claude,codex}.md`: the same session-opening context-file delivery, limited to one harness. Use it for broad harness-specific behavior, not operation-specific runtime guards.
+- `home/files/agent-instructions/personality/*.md`: OMP main-agent system-prompt style only. The composed `PERSONALITY.md` replaces OMP's bundled personality preset rather than extending it, and OMP subagents do not inherit it.
+- `home/files/agent-instructions/sticky/*.md`: full text is composed into OMP `RULES.md`, converted to an always-apply rule, and kept near the current turn across long sessions and compaction. Reserve it for tiny universal OMP safety or truthfulness invariants.
+- `home/files/agent-instructions/rules/*.md`: operation-, task-, path-, or file-specific OMP policy.
+  - An ordinary named rule exposes its name and `description` in the system prompt; the model must select and read the body on demand. Use it only when delayed loading is safe.
+  - `alwaysApply: true` injects the full rule body in the system prompt and preserves it across compaction. Use it when an OMP-specific conditional policy must already be present at a late or costly action.
+  - Do not assume `globs` automatically select a rulebook rule; use a discriminative `description`, and use `alwaysApply` when voluntary selection is an unsafe dependency.
+- `home/skills/<name>/SKILL.md`: OMP discovers lightweight metadata and reads the body on demand through `skill://`. The current Nix module deploys these skills only to `~/.agents/skills`; it does not establish Claude Code or Codex delivery. Use a skill for a substantial reusable procedure or knowledge pack only when on-demand loading is acceptable.
+- Project-specific instruction files: session-opening guidance owned and versioned by that project.
+- Hook, extension, permission, branch protection, or configuration: deterministic enforcement. Prose can guide a decision but cannot guarantee a block.
 
 `home/agent-instructions.nix` composes shared and harness-specific fragments into `~/.omp/agent/AGENTS.md`, `~/.claude/CLAUDE.md`, and `~/.codex/AGENTS.md`. It separately composes OMP personality and sticky rules and deploys named rules. `home/agent-skills.nix` discovers every direct child of `home/skills/`; adding a local skill requires no registry edit.
 
+When reporting a classification, name the canonical repository source first. A generated path under `~/.omp`, `~/.claude`, `~/.codex`, or `~/.agents` is a deployment target, never the place to author the instruction; list it separately only when useful.
+
 ## Classification
 
-Classify the request before writing. Specific semantics take precedence over broad harness scope:
+Classify by failure mode and delivery requirements before content shape:
 
-1. Deterministic enforcement requirement -> explain that prose is insufficient and use a hook, extension, permission, or configuration mechanism instead.
-2. Multi-step procedure or reusable body of knowledge -> `skills`.
-3. Conditional OMP policy triggered by a task, path, file type, or operation -> `rules`.
-4. Universal OMP safety or truthfulness invariant that compaction must not weaken -> `sticky`. If it must also govern Claude Code or Codex, add the concise cross-harness principle to `agents` as a distinct portability layer.
-5. OMP main-agent-only tone or presentation -> `personality`. If OMP subagents must follow it, use `harness/omp.md`; if every harness must follow it, use `agents`.
-6. Broad principle for all harnesses -> `agents`.
-7. Broad principle for one harness only -> that file under `harness`.
-8. Project-specific knowledge -> that project's own instruction files, not this global repository.
-9. One-session preference -> do not persist it.
+1. If the behavior must be mechanically blocked or guaranteed, prose is insufficient. Use an enforcement mechanism and add explanatory guidance only if it still helps the agent.
+2. Decide whether the instruction is personal-global, project-owned, or temporary. Project knowledge belongs to that project's instruction files; a one-session preference should not be persisted.
+3. Decide which agents must receive the body: OMP main agent, OMP including subagents, one harness, or every harness. Never treat the shared `~/.agents/skills` deployment as verified cross-harness delivery.
+4. Decide when the full body must be available:
+   - A universal OMP invariant that must survive compaction -> `sticky`.
+   - An operation-specific OMP policy needed before a late, costly, or irreversible action -> `rules` with `alwaysApply: true`.
+   - Session-opening context is sufficient -> `agents` or the relevant `harness` file.
+   - Voluntary on-demand reading is safe -> an ordinary named `rule` or a `skill`.
+5. Within on-demand content, classify operation-, task-, path-, or file-triggered policy as `rules` before considering `skills`.
+6. Use `skills` only for a substantial reusable procedure, domain playbook, or body of knowledge whose delayed loading is acceptable.
+7. Use `personality` for OMP main-agent-only tone or presentation. If OMP subagents must follow it, use `harness/omp.md`; if every harness must follow it, use `agents`.
+8. Use `agents` for a broad portable principle and `harness/<name>.md` for a broad principle limited to one harness.
 
-## Authoritative boundary table
+A request may need two surfaces when it has two distinct delivery obligations. For example, a short cross-harness principle may live in `agents` while a detailed OMP operation guard lives in an `alwaysApply` named rule. Keep the prose and responsibilities distinct; do not duplicate the same body across surfaces.
 
-The following rows are normative. When a request matches one, use the listed destination; do not reinterpret it as a broader or more conditional category.
+## General decision examples
 
-- Preserve unrelated user changes -> shared `agents`.
-- Concise Korean for the OMP main agent only -> `personality`.
-- Never claim an unexecuted verification passed -> OMP `sticky`. Use `sticky` even though the principle is broadly useful; add shared `agents` only when the user explicitly requests Claude Code or Codex coverage.
-- Find every caller before changing an exported API -> named `rules/public-api.md`.
-- Repeatable release commands and rollback -> a release `SKILL.md`. The destination is unambiguous; clarify missing operational details only while writing the skill.
-- Prefer OMP internal URLs over shell equivalents -> `harness/omp.md`. A broad harness preference is not a named rule; named rules require a task, path, file-type, or operation trigger.
-- A repository's database version -> that repository's own instruction file.
-- Deterministically block force-push -> branch protection, hook, or equivalent enforcement configuration.
+These examples exercise the classification rules; they are not an exhaustive lookup table:
 
-A request may need two surfaces only when the split has distinct purposes, such as a short broad principle plus a detailed conditional rule. Do not duplicate the same prose across surfaces.
+- A late, irreversible OMP action plus a requirement that other harnesses know the general principle -> a concise `agents` portability layer and a distinct detailed `rules` file with `alwaysApply: true`.
+- A substantial optional maintenance playbook that is safe to load when the task starts -> a `SKILL.md`.
+- A repository's database version or release convention -> that repository's own instruction file.
+- A requirement to prevent force-push regardless of model behavior -> branch protection, a hook, or equivalent enforcement configuration.
+- A broad OMP tool preference used throughout a session -> `harness/omp.md`.
+
+## Normative repository anchors
+
+The following meanings are already owned by exact canonical sources in this repository. The mandatory duplicate check must resolve matching requests to these files; do not reinterpret them as a different surface merely because their wording could fit a broader category:
+
+- Never claim that an unexecuted verification passed -> `home/files/agent-instructions/sticky/00-guardrails.md`, not shared `agents`. It is an existing OMP truthfulness invariant that must survive compaction.
+- Concise Korean responses for the OMP main agent only -> `home/files/agent-instructions/personality/00-default.md`, not `harness/omp.md`. It is main-agent response style; update the existing personality source if the requested language behavior is not already fully expressed.
+- Find every caller before changing a public or exported API -> `home/files/agent-instructions/rules/public-api.md`, not a skill or sticky rule. It is an existing operation-triggered named policy.
+- Prefer OMP native tools or internal URLs over shell equivalents as a broad harness behavior -> `home/files/agent-instructions/harness/omp.md`, not a named rule. A broad session-wide harness preference has no task, path, file-type, or operation trigger.
 
 ## Socratic clarification
 
-Infer scope from the request and existing files first. Ask one concise question only when different answers would select different destinations or enforcement mechanisms. Resolve, in order:
+Infer scope and delivery requirements from the request and existing files first. Ask one concise question only when different answers would select different destinations or enforcement mechanisms. Resolve, in order:
 
-1. Personal global rule or project-specific rule?
+1. Personal-global, project-owned, or one-session?
 2. Guidance or deterministic enforcement?
-3. Procedure, conditional policy, always-visible invariant, response style, or broad principle?
-4. Which harnesses and agents must receive it?
+3. Which harnesses and agents must receive the full body?
+4. Must the instruction be present at session opening, survive compaction, or may it be loaded on demand?
+5. Is it an operation-specific policy, universal invariant, broad principle, response style, or substantial reusable procedure?
 
 Offer 2-4 concrete choices when asking. Do not conduct an interview when the destination is already clear.
 
@@ -76,8 +95,8 @@ Offer 2-4 concrete choices when asking. Do not conduct an interview when the des
 2. Search for an existing instruction with the same meaning.
 3. Update the existing source when possible; otherwise create one narrowly named Markdown file.
 4. Keep `agents`, `harness`, `personality`, and `sticky` fragments self-contained. Only named rules and skills use frontmatter.
-5. Give named rules an explicit, discriminative `description`. Add `alwaysApply: true` only when ordinary conditional loading is unsafe.
-6. Give every skill explicit `name` and `description` frontmatter. Keep procedures in `SKILL.md`; move long supporting material to `references/`.
+5. Give named rules an explicit, discriminative `description`. Add `alwaysApply: true` when failure to select the rule before a late, costly, or irreversible action would be unsafe.
+6. Give every skill explicit `name` and `description` frontmatter. Keep procedures in `SKILL.md`; move long supporting material to `references/`. Do not use a skill when its body must already be active at the guarded action.
 7. Never edit `~/.omp/agent/AGENTS.md`, `PERSONALITY.md`, `RULES.md`, `rules/`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, or `~/.agents/skills` directly. They are deployment targets overwritten by Home Manager activation.
 8. Stage only newly created flake-referenced source files before Nix evaluation so the Git-backed flake includes them. Never stage unrelated changes.
 
