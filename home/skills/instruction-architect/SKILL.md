@@ -18,6 +18,7 @@ Before choosing a destination, inspect the canonical fragment, named-rule, and s
 - If an equivalent instruction already exists, report or update that source instead of creating another one.
 - If the same policy intentionally has an OMP sticky layer and a cross-harness portability layer, report both existing paths and keep their purposes distinct.
 - Classify a new destination only when no existing source already covers the request.
+- Matching delivery scope is not equivalent meaning. An aggregate fragment does not own every policy sent to the same harnesses; update it only when its topic and purpose already cover the request.
 
 ## Delivery semantics and canonical destinations
 
@@ -38,6 +39,15 @@ Choose a surface by how its body reaches the agent, how long it remains authorit
 `home/agent-instructions.nix` composes shared and harness-specific fragments into `~/.omp/agent/AGENTS.md`, `~/.claude/CLAUDE.md`, and `~/.codex/AGENTS.md`. It separately composes OMP personality and sticky rules and deploys named rules. `home/agent-skills.nix` discovers every direct child of `home/skills/`; adding a local skill requires no registry edit.
 
 When reporting a classification, name the canonical repository source first. A generated path under `~/.omp`, `~/.claude`, `~/.codex`, or `~/.agents` is a deployment target, never the place to author the instruction; list it separately only when useful.
+
+## Fragment granularity
+
+Choose the file within a destination by topic ownership, not merely by shared delivery scope:
+
+- `home/files/agent-instructions/agents/00-core.md` is reserved for universal, organization-agnostic operating principles that apply across ordinary work.
+- A cross-harness policy tied to a named organization, account, person, bot, external service, operation, exception matrix, or specialized workflow belongs in its own narrowly named `agents/<topic>.md` fragment.
+- Update an existing fragment only when its heading and existing body already own the requested topic. Do not append to `00-core.md` or another aggregate file solely because it is already composed into the desired harnesses.
+- Keep one cohesive policy in one topic fragment. For example, organization-specific pull-request approval and reviewer assignment belongs in `agents/pull-requests.md`, while its OMP compaction-safe execution guard may separately live in `rules/pull-request-creation.md`.
 
 ## Classification
 
@@ -93,7 +103,7 @@ Offer 2-4 concrete choices when asking. Do not conduct an interview when the des
 
 1. Read the relevant destination directory and nearby files.
 2. Search for an existing instruction with the same meaning.
-3. Update the existing source when possible; otherwise create one narrowly named Markdown file.
+3. Update an existing source only when that file already owns the requested topic. Otherwise create one narrowly named Markdown file; do not use an aggregate fragment as a catch-all for every policy with the same delivery scope.
 4. Keep `agents`, `harness`, `personality`, and `sticky` fragments self-contained. Only named rules and skills use frontmatter.
 5. Give named rules an explicit, discriminative `description`. Add `alwaysApply: true` when failure to select the rule before a late, costly, or irreversible action would be unsafe.
 6. Give every skill explicit `name` and `description` frontmatter. Keep procedures in `SKILL.md`; move long supporting material to `references/`. Do not use a skill when its body must already be active at the guarded action.
