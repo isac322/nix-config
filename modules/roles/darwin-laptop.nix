@@ -44,6 +44,10 @@ in
 
   # Interactive GUI applications come from Homebrew. Most have no maintained
   # Darwin package in nixpkgs, and Homebrew keeps their app bundles current.
+  # Orca stays on that path on the laptop; only the unattended server pins a
+  # Nix-packaged release because current `orca serve` builds crash at startup.
+  homebrew.taps = [ "stablyai/orca" ];
+
   homebrew.casks = [
     "1password" # the desktop app; the `op` CLI is in home/darwin.nix
     "ente-auth"
@@ -53,6 +57,7 @@ in
     "kde-connect"
     "linear"
     "notion"
+    "stablyai/orca/orca"
     "slack"
     # `auto_updates true` in the cask, so Spotify replaces itself in place and
     # onActivation.upgrade rarely has anything to do — which is fine, and the

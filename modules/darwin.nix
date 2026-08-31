@@ -106,14 +106,7 @@ in
     # `upgrade` only sees the formula index as of the last manual `brew update`.
     onActivation.autoUpdate = true;
 
-    taps = [ "stablyai/orca" ];
-
     casks = [
-      # Orca owns updates to its writable app bundle. Keep this non-greedy so
-      # Homebrew installs/removes it without competing with that updater. The
-      # matched readiness probe passes 1.4.188 and fails 1.4.192
-      # (stablyai/orca#16761), so seamless serve updates await an upstream fix.
-      "stablyai/orca/orca"
 
       # Karabiner-Elements deliberately absent: it cannot be brought up without
       # a console session approving its driver extension and Input Monitoring.

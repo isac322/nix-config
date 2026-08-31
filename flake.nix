@@ -212,6 +212,7 @@
             config.allowUnfreePredicate =
               pkg:
               builtins.elem (nixpkgs.lib.getName pkg) [
+                "orca"
                 "sentry"
               ];
           };
@@ -232,6 +233,7 @@
         // nixpkgs.lib.optionalAttrs (system == "aarch64-darwin") {
           inherit (pkgs)
             camoufox
+            orca
             camofox-browser
             camofox-url-handler
             deskpad
@@ -260,6 +262,7 @@
               "camoufox"
               "camofox-browser"
               "deskpad"
+              "orca"
               "displayplacer"
             ]
           );

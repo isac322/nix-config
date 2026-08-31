@@ -77,9 +77,10 @@ let
     fi
   '';
 
-  # Both Macs follow Orca's Homebrew cask. The server calls the CLI symlink
-  # installed by the cask rather than carrying a separately pinned Nix package.
-  orca = "/opt/homebrew/bin/orca";
+  # The unattended runtime uses the last verified upstream release. Orca
+  # 1.4.190 through 1.4.193 crash before opening the `serve` port on macOS
+  # (stablyai/orca#16761), so the mutable Homebrew cask remains laptop-only.
+  orca = lib.getExe pkgs.orca;
 
   # Homebrew installs OrbStack's app and this stable shim. It may not exist yet
   # when the LaunchAgent first runs: nix-darwin does not promise an ordering
@@ -212,10 +213,10 @@ let
     export PATH=/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
     if [ ! -x ${orca} ]; then
-      # Homebrew activation and home-manager activation have no promised
-      # ordering. Fail so KeepAlive retries after the cask installs its CLI.
-      echo "orca-serve: ${orca} is missing — retrying later." >&2
-      exit 1
+      # A complete server generation always carries this executable. Treat a
+      # missing store path as terminal rather than spinning a broken agent.
+      echo "orca-serve: ${orca} is missing — nothing to start." >&2
+      exit 0
     fi
 
     ${
@@ -1095,6 +1096,8 @@ in
     # LaunchServices registers this bridge during activation. Selecting it as
     # the default web browser remains a one-time System Settings choice.
     camofoxUrlHandler
+    # Last verified release for the unattended `orca serve` runtime.
+    pkgs.orca
 
     # The LaunchAgent deliberately uses this stable app path so macOS privacy
     # grants survive store-path changes. DeskPad needs no equivalent grant and
