@@ -46,8 +46,10 @@ Choose the file within a destination by topic ownership, not merely by shared de
 
 - `home/files/agent-instructions/agents/00-core.md` is reserved for universal, organization-agnostic operating principles that apply across ordinary work.
 - A cross-harness policy tied to a named organization, account, person, bot, external service, operation, exception matrix, or specialized workflow belongs in its own narrowly named `agents/<topic>.md` fragment.
-- Update an existing fragment only when its heading and existing body already own the requested topic. Do not append to `00-core.md` or another aggregate file solely because it is already composed into the desired harnesses.
-- Keep one cohesive policy in one topic fragment. For example, organization-specific pull-request approval and reviewer assignment belongs in `agents/pull-requests.md`, while its OMP compaction-safe execution guard may separately live in `rules/pull-request-creation.md`.
+- Update an existing fragment only when its current heading and body already own the requested topic. A broad filename does not widen that ownership. This applies to every `agents`, `harness`, `personality`, and `sticky` fragment.
+- Never rename or broaden a fragment's heading or topic merely to absorb an adjacent request. If the request falls outside the existing scope, create a narrowly named sibling fragment. Because `harness/` composes only `omp.md`, `claude.md`, and `codex.md`, add a distinct heading inside the applicable harness file instead of creating a sibling there.
+- Broaden or consolidate fragments only when the user explicitly requests it. Before doing so, audit every existing statement and restate its original operation, actor, service, path, exception, permission, and requirement scope explicitly. An unqualified existing statement must not silently inherit the broader heading.
+- Keep one cohesive policy in one topic fragment. For example, a fragment headed `Pull request creation` owns creation even if its filename is `pull-requests.md`; a merge policy belongs in a sibling fragment unless the user explicitly requests consolidation. The creation policy's OMP compaction-safe execution guard may separately live in an `alwaysApply` named rule such as `rules/pull-request-creation.md`.
 
 ## Classification
 
@@ -103,12 +105,13 @@ Offer 2-4 concrete choices when asking. Do not conduct an interview when the des
 
 1. Read the relevant destination directory and nearby files.
 2. Search for an existing instruction with the same meaning.
-3. Update an existing source only when that file already owns the requested topic. Otherwise create one narrowly named Markdown file; do not use an aggregate fragment as a catch-all for every policy with the same delivery scope.
-4. Keep `agents`, `harness`, `personality`, and `sticky` fragments self-contained. Only named rules and skills use frontmatter.
-5. Give named rules an explicit, discriminative `description`. Add `alwaysApply: true` when failure to select the rule before a late, costly, or irreversible action would be unsafe.
-6. Give every skill explicit `name` and `description` frontmatter. Keep procedures in `SKILL.md`; move long supporting material to `references/`. Do not use a skill when its body must already be active at the guarded action.
-7. Never edit `~/.omp/agent/AGENTS.md`, `PERSONALITY.md`, `RULES.md`, `rules/`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, or `~/.agents/skills` directly. They are deployment targets overwritten by Home Manager activation.
-8. Stage only newly created flake-referenced source files before Nix evaluation so the Git-backed flake includes them. Never stage unrelated changes.
+3. Update an existing source only when its current heading and body already own the requested topic. Otherwise create one narrowly named Markdown file; for `harness/`, add a distinct heading inside the applicable fixed harness file. Do not use an aggregate fragment as a catch-all for every policy with the same delivery scope.
+4. Do not rename or broaden a fragment to claim an adjacent topic. This applies to `agents`, `harness`, `personality`, and `sticky`. If the user explicitly requests consolidation, audit and restate every existing instruction so its original scope remains explicit under the broader heading.
+5. Keep `agents`, `harness`, `personality`, and `sticky` fragments self-contained. Only named rules and skills use frontmatter.
+6. Give named rules an explicit, discriminative `description`. Add `alwaysApply: true` when failure to select the rule before a late, costly, or irreversible action would be unsafe.
+7. Give every skill explicit `name` and `description` frontmatter. Keep procedures in `SKILL.md`; move long supporting material to `references/`. Do not use a skill when its body must already be active at the guarded action.
+8. Never edit `~/.omp/agent/AGENTS.md`, `PERSONALITY.md`, `RULES.md`, `rules/`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, or `~/.agents/skills` directly. They are deployment targets overwritten by Home Manager activation.
+9. Stage only newly created flake-referenced source files before Nix evaluation so the Git-backed flake includes them. Never stage unrelated changes.
 
 ## Verification
 
