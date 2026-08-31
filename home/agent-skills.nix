@@ -16,19 +16,23 @@
 let
   skillsDir = "${config.home.homeDirectory}/.agents/skills";
 
-  # A source is the complete directory copied by the skills CLI for the named
-  # skill. humanizer intentionally uses the repository root: its canonical
-  # SKILL.md is at that root, so that is what `skills add` installs.
-  skillSources = {
+  localSkillsDir = ./skills;
+  localSkillSources = lib.mapAttrs (name: _: localSkillsDir + "/${name}") (
+    lib.filterAttrs (_: type: type == "directory") (builtins.readDir localSkillsDir)
+  );
+
+  # External skills are pinned by flake.lock. Every direct child of
+  # home/skills is repository-owned and joins the same deployment automatically.
+  externalSkillSources = {
     comment-writer = "${inputs.gentle-ai}/skills/comment-writer";
     humanizer = inputs.humanizer;
     receiving-code-review = "${inputs.superpowers}/skills/receiving-code-review";
     writing-clearly-and-concisely = "${inputs.agent-toolkit}/skills/writing-clearly-and-concisely";
-
-    # This repository owns the source directly rather than through an external
-    # flake input, but installation follows the same copy semantics.
-    gcloud-camofox-adc-auth = ./skills/gcloud-camofox-adc-auth;
   };
+  skillNameCollisions = lib.intersectLists (builtins.attrNames externalSkillSources) (
+    builtins.attrNames localSkillSources
+  );
+  skillSources = externalSkillSources // localSkillSources;
 
   installSkill =
     name: source:
@@ -46,7 +50,13 @@ let
     '';
 in
 {
-  assertions = lib.mapAttrsToList (name: source: {
+  assertions = [
+    {
+      assertion = skillNameCollisions == [ ];
+      message = "Repository-owned agent skills collide with pinned external skills: ${lib.concatStringsSep ", " skillNameCollisions}";
+    }
+  ]
+  ++ lib.mapAttrsToList (name: source: {
     assertion = builtins.pathExists "${source}/SKILL.md";
     message = "Agent skill '${name}' does not contain SKILL.md";
   }) skillSources;

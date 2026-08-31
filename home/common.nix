@@ -304,6 +304,7 @@ let
 in
 {
   imports = [
+    ./agent-instructions.nix
     ./agent-skills.nix
     ./skillclaw.nix
   ];
