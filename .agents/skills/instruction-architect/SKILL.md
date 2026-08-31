@@ -33,13 +33,14 @@ Choose a surface by how its body reaches the agent, how long it remains authorit
   - `alwaysApply: true` injects the full rule body in the system prompt and preserves it across compaction. Use it when an OMP-specific conditional policy must already be present at a late or costly action.
   - Do not assume `globs` automatically select a rulebook rule; use a discriminative `description`, and use `alwaysApply` when voluntary selection is an unsafe dependency.
   - Approval-gated rule bodies must preserve exact action scope and immediate timing; apply the approval requirements in the editing workflow rather than relying on conversational presence.
-- `home/skills/<name>/SKILL.md`: OMP discovers lightweight metadata and reads the body on demand through `skill://`. The current Nix module deploys these skills only to `~/.agents/skills`; it does not establish Claude Code or Codex delivery. Use a skill for a substantial reusable procedure or knowledge pack only when on-demand loading is acceptable.
+- `home/skills/<name>/SKILL.md`: personal-global reusable procedures or knowledge packs. `home/agent-skills.nix` deploys each direct child to `~/.agents/skills`, where OMP can discover it across projects. This does not establish Claude Code or Codex delivery.
+- `.agents/skills/<name>/SKILL.md`: project-owned reusable procedures or knowledge packs. OMP discovers these directly for sessions in this repository; Git owns the source and Nix must not deploy it to the user skill tree.
 - Project-specific instruction files: session-opening guidance owned and versioned by that project.
 - Hook, extension, permission, branch protection, or configuration: deterministic enforcement. Prose can guide a decision but cannot guarantee a block.
 
-`home/agent-instructions.nix` composes shared and harness-specific fragments into `~/.omp/agent/AGENTS.md`, `~/.claude/CLAUDE.md`, and `~/.codex/AGENTS.md`. It separately composes OMP personality and sticky rules and deploys named rules. `home/agent-skills.nix` discovers every direct child of `home/skills/`; adding a local skill requires no registry edit.
+`home/agent-instructions.nix` composes shared and harness-specific fragments into `~/.omp/agent/AGENTS.md`, `~/.claude/CLAUDE.md`, and `~/.codex/AGENTS.md`. It separately composes OMP personality and sticky rules and deploys named rules. `home/agent-skills.nix` globally deploys every direct child of `home/skills/`; project skills under `.agents/skills/` need no Nix registry or deployment.
 
-When reporting a classification, name the canonical repository source first. A generated path under `~/.omp`, `~/.claude`, `~/.codex`, or `~/.agents` is a deployment target, never the place to author the instruction; list it separately only when useful.
+When reporting a classification, name the canonical repository source first. Paths under the user's home directory, such as `~/.omp`, `~/.claude`, `~/.codex`, and `~/.agents`, are deployment targets, never the place to author the instruction. A repository-local `.agents/skills/` path is a canonical project source.
 
 ## Fragment granularity
 
@@ -57,7 +58,7 @@ Choose the file within a destination by topic ownership, not merely by shared de
 Classify by failure mode and delivery requirements before content shape:
 
 1. If the behavior must be mechanically blocked or guaranteed, prose is insufficient. Use an enforcement mechanism and add explanatory guidance only if it still helps the agent.
-2. Decide whether the instruction is personal-global, project-owned, or temporary. Project knowledge belongs to that project's instruction files; a one-session preference should not be persisted.
+2. Decide whether the instruction is personal-global, project-owned, or temporary. Project session guidance belongs to that project's instruction files; a substantial reusable project procedure belongs in `.agents/skills`; a one-session preference should not be persisted.
 3. Decide which agents must receive the body: OMP main agent, OMP including subagents, one harness, or every harness. Never treat the shared `~/.agents/skills` deployment as verified cross-harness delivery.
 4. Decide when the full body must be available:
    - A universal OMP invariant that must survive compaction -> `sticky`.
@@ -111,8 +112,8 @@ Offer 2-4 concrete choices when asking. Do not conduct an interview when the des
 5. Keep `agents`, `harness`, `personality`, and `sticky` fragments self-contained. Only named rules and skills use frontmatter.
 6. Give named rules an explicit, discriminative `description`. Add `alwaysApply: true` when failure to select the rule before a late, costly, or irreversible action would be unsafe.
 7. When authoring any approval-gated policy, require the acting agent to finalize and present the exact target and material options, then obtain the user's explicit approval immediately before execution. State that earlier, general, pre-finalization, or different-action approval is insufficient; require new approval after any material change. Do not treat approval appearing in the current conversation as a substitute for exact scope and immediate timing.
-8. Give every skill explicit `name` and `description` frontmatter. Keep procedures in `SKILL.md`; move long supporting material to `references/`. Do not use a skill when its body must already be active at the guarded action.
-9. Never edit `~/.omp/agent/AGENTS.md`, `PERSONALITY.md`, `RULES.md`, `rules/`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, or `~/.agents/skills` directly. They are deployment targets overwritten by Home Manager activation.
+8. Give every skill explicit `name` and `description` frontmatter. Keep procedures in `SKILL.md`; move long supporting material to `references/`. Use `home/skills` only for requested personal-global skills and `.agents/skills` for project-owned skills. Do not use a skill when its body must already be active at the guarded action.
+9. Never edit `~/.omp/agent/AGENTS.md`, `PERSONALITY.md`, `RULES.md`, `rules/`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, or `~/.agents/skills` directly. They are Home Manager deployment targets. Repository-local `.agents/skills` is canonical project source and may be edited.
 10. Stage only newly created flake-referenced source files before Nix evaluation so the Git-backed flake includes them. Never stage unrelated changes.
 
 ## Verification
@@ -122,7 +123,6 @@ After editing:
 1. Run `nixfmt --check` on changed Nix files. If `nixfmt` is unavailable, run it through `nix shell nixpkgs#nixfmt -c nixfmt --check`.
 2. Run `nix flake check --no-update-lock-file`.
 3. Build the current host configuration without switching.
-4. Inspect the built activation package or perform an approved Home Manager/darwin switch, then confirm that OMP, Claude Code, and Codex outputs contain their shared and harness-specific fragments and remain writable.
-5. Report the chosen classification, canonical source path, generated target, and exact checks executed.
-
-Do not claim the instruction is active until deployment has been verified.
+4. For Nix-managed instructions, inspect the built activation package or perform an approved Home Manager/darwin switch, then confirm the generated outputs. For a project skill, run OMP from the project with the user skill source disabled and confirm `skill://<name>` resolves to `.agents/skills/<name>/SKILL.md`.
+5. Report the chosen classification, canonical source path, generated target when applicable, and exact checks executed.
+6. Do not claim a Nix-managed instruction is active until deployment has been verified. A project skill becomes discoverable from the repository checkout and requires no Home Manager deployment.
