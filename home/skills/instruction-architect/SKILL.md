@@ -32,6 +32,7 @@ Choose a surface by how its body reaches the agent, how long it remains authorit
   - An ordinary named rule exposes its name and `description` in the system prompt; the model must select and read the body on demand. Use it only when delayed loading is safe.
   - `alwaysApply: true` injects the full rule body in the system prompt and preserves it across compaction. Use it when an OMP-specific conditional policy must already be present at a late or costly action.
   - Do not assume `globs` automatically select a rulebook rule; use a discriminative `description`, and use `alwaysApply` when voluntary selection is an unsafe dependency.
+  - Approval-gated rule bodies must preserve exact action scope and immediate timing; apply the approval requirements in the editing workflow rather than relying on conversational presence.
 - `home/skills/<name>/SKILL.md`: OMP discovers lightweight metadata and reads the body on demand through `skill://`. The current Nix module deploys these skills only to `~/.agents/skills`; it does not establish Claude Code or Codex delivery. Use a skill for a substantial reusable procedure or knowledge pack only when on-demand loading is acceptable.
 - Project-specific instruction files: session-opening guidance owned and versioned by that project.
 - Hook, extension, permission, branch protection, or configuration: deterministic enforcement. Prose can guide a decision but cannot guarantee a block.
@@ -109,9 +110,10 @@ Offer 2-4 concrete choices when asking. Do not conduct an interview when the des
 4. Do not rename or broaden a fragment to claim an adjacent topic. This applies to `agents`, `harness`, `personality`, and `sticky`. If the user explicitly requests consolidation, audit and restate every existing instruction so its original scope remains explicit under the broader heading.
 5. Keep `agents`, `harness`, `personality`, and `sticky` fragments self-contained. Only named rules and skills use frontmatter.
 6. Give named rules an explicit, discriminative `description`. Add `alwaysApply: true` when failure to select the rule before a late, costly, or irreversible action would be unsafe.
-7. Give every skill explicit `name` and `description` frontmatter. Keep procedures in `SKILL.md`; move long supporting material to `references/`. Do not use a skill when its body must already be active at the guarded action.
-8. Never edit `~/.omp/agent/AGENTS.md`, `PERSONALITY.md`, `RULES.md`, `rules/`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, or `~/.agents/skills` directly. They are deployment targets overwritten by Home Manager activation.
-9. Stage only newly created flake-referenced source files before Nix evaluation so the Git-backed flake includes them. Never stage unrelated changes.
+7. When authoring any approval-gated policy, require the acting agent to finalize and present the exact target and material options, then obtain the user's explicit approval immediately before execution. State that earlier, general, pre-finalization, or different-action approval is insufficient; require new approval after any material change. Do not treat approval appearing in the current conversation as a substitute for exact scope and immediate timing.
+8. Give every skill explicit `name` and `description` frontmatter. Keep procedures in `SKILL.md`; move long supporting material to `references/`. Do not use a skill when its body must already be active at the guarded action.
+9. Never edit `~/.omp/agent/AGENTS.md`, `PERSONALITY.md`, `RULES.md`, `rules/`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, or `~/.agents/skills` directly. They are deployment targets overwritten by Home Manager activation.
+10. Stage only newly created flake-referenced source files before Nix evaluation so the Git-backed flake includes them. Never stage unrelated changes.
 
 ## Verification
 
