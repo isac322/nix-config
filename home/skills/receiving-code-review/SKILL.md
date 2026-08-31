@@ -47,7 +47,7 @@ If the intended behavior is ambiguous, ask a precise question. Do not guess at a
 
 Trace the relevant code and constraints before judging the suggestion. Inspect callers, callees, data flow, public contracts, tests, configuration, compatibility requirements, and nearby decisions that explain the current implementation.
 
-Map interactions among review items. If one item's meaning or correct implementation depends on another, evaluate them as a cluster. Do not make an isolated edit that prejudges an unresolved dependency.
+Map interactions among review items. Treat items as independent only when their behavior, contracts, implementation, and verification do not depend on one another. If independence cannot be established, evaluate them as a cluster and do not make an isolated edit that prejudges an unresolved dependency.
 
 ### 4. Verify the claim
 
@@ -61,6 +61,8 @@ Check for consequences beyond the reviewer's example:
 - security and failure-mode changes;
 - unnecessary features or abstractions;
 - conflict with the user's requested outcome.
+
+When a suggestion asks to make something "proper," "professional," generic, or extensible, trace actual callers and product requirements before adding scope. If the behavior is unused, consider removing the unused path when removal is in scope; otherwise decline the expansion. If it is used, implement only the verified need rather than the reviewer's speculative end state.
 
 If available evidence cannot establish the answer, say what is missing and seek the narrowest clarification or experiment that can resolve it.
 
@@ -79,7 +81,9 @@ Do not implement merely to appear cooperative. Do not reject merely because the 
 
 For accepted or adapted items, fix the underlying problem rather than suppressing its symptom. Reuse established patterns, update affected callers, and remove code made obsolete by the change when that removal is in scope.
 
-Keep the implementation tied to the verified requirement. Review feedback is not permission for unrelated cleanup or speculative architecture.
+For multiple items, resolve blocking clarifications first, then order implementation by dependency. Address correctness, security, and broken behavior before cosmetic cleanup. Implement the smallest coherent item or interacting cluster and verify it before continuing, so failures remain attributable.
+
+Keep the implementation tied to the verified requirement. Do not batch unrelated fixes, and do not treat review feedback as permission for unrelated cleanup or speculative architecture.
 
 ### 7. Verify the change
 
@@ -89,7 +93,7 @@ A successful edit is not proof. Report only verification that actually ran and d
 
 ### 8. Respond
 
-Respond in the thread where the item was raised when the review system supports threads. Keep each response specific to that item or interacting cluster. On GitHub, reply inside an inline comment thread (`gh api repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies`) rather than posting a top-level pull request comment.
+Respond in the thread where the item was raised when the review system supports threads. Keep each response specific to that item or interacting cluster. Lead with the disposition, evidence, or result rather than praise or gratitude. On GitHub, reply inside an inline comment thread (`gh api repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies`) rather than posting a top-level pull request comment.
 
 - **Implemented:** state what changed and cite the relevant verification.
 - **Adapted:** explain the verified concern and why the chosen implementation differs.
@@ -100,7 +104,7 @@ Do not mark an item handled while leaving its disposition implicit.
 
 ## Unclear and interacting items
 
-An unclear item does not automatically invalidate unrelated, well-understood feedback. It does block any item whose design, scope, or verification depends on the missing answer. Make that dependency explicit and avoid partial changes that would constrain the eventual resolution.
+An unclear item blocks itself and every item whose design, scope, implementation, or verification depends on the missing answer. Before progressing with another item, establish that independence from the code and requirements rather than assuming it. If independence remains uncertain, treat the items as one cluster and wait. Do not make partial changes that would constrain the eventual resolution.
 
 When several comments describe one root cause, reason about the root cause once, but answer each thread with the disposition relevant to that thread. When comments conflict, identify the conflicting assumptions and resolve them against user intent and repository evidence rather than choosing the more forceful reviewer.
 
@@ -115,6 +119,24 @@ Good pushback contains:
 3. the consequence of following the suggestion; and
 4. a focused alternative or question when one is useful.
 
-Keep the tone calm and collaborative. Courtesy and natural thanks are fine; performative agreement is not. Avoid praise that substitutes for analysis, defensive language, status contests, and claims of certainty stronger than the evidence.
+Keep the tone calm and collaborative. A brief courtesy may follow a substantive response, but generic thanks or praise must not serve as the acknowledgment. Avoid performative agreement, defensive language, status contests, and claims of certainty stronger than the evidence.
 
-If later evidence disproves your position, correct it directly: state what changed your conclusion, adopt the supported disposition, and continue without defending the earlier mistake.
+If later evidence disproves your position, correct it directly: state what changed your conclusion, adopt the supported disposition, and continue without defending the earlier mistake or writing a long apology.
+
+## Compact examples
+
+### Compatibility
+
+Reviewer: "Remove this legacy branch."
+
+Check the supported deployment targets before changing it. If the branch is still required, reject removal with the compatibility evidence. If the branch is required but contains the reported defect, adapt the suggestion by fixing that defect without dropping support.
+
+### Unused expansion
+
+Reviewer: "Implement proper metrics storage, filtering, and export."
+
+Trace callers and the product contract first. If nothing uses the endpoint, propose removing the unused path or leaving it unchanged rather than building an unrequested subsystem. If it is used, implement only the metrics behavior the caller requires.
+
+### Unclear interaction
+
+Items 2 and 3 both change an API contract, and item 2 is ambiguous. Treat them as one blocked cluster. A separate typo fix may proceed only after verifying that it does not depend on or constrain that contract.
