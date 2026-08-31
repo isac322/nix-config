@@ -16,7 +16,8 @@ Turn a natural-language request into the smallest correct instruction unit, stor
 Before choosing a destination, inspect the canonical fragment, named-rule, and skill trees for an instruction with the same meaning.
 
 - If an equivalent instruction already exists, report or update that source instead of creating another one.
-- If the same policy intentionally has an OMP sticky layer and a cross-harness portability layer, report both existing paths and keep their purposes distinct.
+- If one policy intentionally needs a cross-harness layer and an OMP compaction-safe layer, designate one canonical owner for the shared semantics. The secondary surface may contain only its delivery-specific delta.
+- Never copy an ordered workflow, state machine, set definition, or decision matrix into multiple surfaces. Compare existing copies for drift, consolidate shared meaning into the owner, and delete or narrow the duplicate.
 - Classify a new destination only when no existing source already covers the request.
 - Matching delivery scope is not equivalent meaning. An aggregate fragment does not own every policy sent to the same harnesses; update it only when its topic and purpose already cover the request.
 
@@ -70,13 +71,13 @@ Classify by failure mode and delivery requirements before content shape:
 7. Use `personality` for OMP main-agent-only tone or presentation. If OMP subagents must follow it, use `harness/omp.md`; if every harness must follow it, use `agents`.
 8. Use `agents` for a broad portable principle and `harness/<name>.md` for a broad principle limited to one harness.
 
-A request may need two surfaces when it has two distinct delivery obligations. For example, a short cross-harness principle may live in `agents` while a detailed OMP operation guard lives in an `alwaysApply` named rule. Keep the prose and responsibilities distinct; do not duplicate the same body across surfaces.
+A request may need two surfaces when it has two distinct delivery obligations. Choose one canonical owner for the shared semantics and limit the other surface to its delivery-specific delta. For a portable workflow with an OMP late-action guard, the `agents` fragment owns the workflow and the `alwaysApply` rule contains only the irreducible compaction-safe guard. Never duplicate the ordered procedure, state model, set definitions, or decision criteria across both.
 
 ## General decision examples
 
 These examples exercise the classification rules; they are not an exhaustive lookup table:
 
-- A late, irreversible OMP action plus a requirement that other harnesses know the general principle -> a concise `agents` portability layer and a distinct detailed `rules` file with `alwaysApply: true`.
+- A late, irreversible OMP action plus a requirement that other harnesses know the complete workflow -> the `agents` fragment owns the portable workflow, while an `alwaysApply` rule contains only the OMP-specific late-action guard that must survive compaction.
 - A substantial optional maintenance playbook that is safe to load when the task starts -> a `SKILL.md`.
 - A repository's database version or release convention -> that repository's own instruction file.
 - A requirement to prevent force-push regardless of model behavior -> branch protection, a hook, or equivalent enforcement configuration.
@@ -107,14 +108,15 @@ Offer 2-4 concrete choices when asking. Do not conduct an interview when the des
 
 1. Read the relevant destination directory and nearby files.
 2. Search for an existing instruction with the same meaning.
-3. Update an existing source only when its current heading and body already own the requested topic. Otherwise create one narrowly named Markdown file; for `harness/`, add a distinct heading inside the applicable fixed harness file. Do not use an aggregate fragment as a catch-all for every policy with the same delivery scope.
-4. Do not rename or broaden a fragment to claim an adjacent topic. This applies to `agents`, `harness`, `personality`, and `sticky`. If the user explicitly requests consolidation, audit and restate every existing instruction so its original scope remains explicit under the broader heading.
-5. Keep `agents`, `harness`, `personality`, and `sticky` fragments self-contained. Only named rules and skills use frontmatter.
-6. Give named rules an explicit, discriminative `description`. Add `alwaysApply: true` when failure to select the rule before a late, costly, or irreversible action would be unsafe.
-7. When authoring any approval-gated policy, require the acting agent to finalize and present the exact target and material options, then obtain the user's explicit approval immediately before execution. State that earlier, general, pre-finalization, or different-action approval is insufficient; require new approval after any material change. Do not treat approval appearing in the current conversation as a substitute for exact scope and immediate timing.
-8. Give every skill explicit `name` and `description` frontmatter. Keep procedures in `SKILL.md`; move long supporting material to `references/`. Use `home/skills` only for requested personal-global skills and `.agents/skills` for project-owned skills. Do not use a skill when its body must already be active at the guarded action.
-9. Never edit `~/.omp/agent/AGENTS.md`, `PERSONALITY.md`, `RULES.md`, `rules/`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, or `~/.agents/skills` directly. They are Home Manager deployment targets. Repository-local `.agents/skills` is canonical project source and may be edited.
-10. Stage only newly created flake-referenced source files before Nix evaluation so the Git-backed flake includes them. Never stage unrelated changes.
+3. When the same policy appears on multiple surfaces, compare their exact actors, operations, ordering, state, sets, exceptions, and completion criteria. Select one canonical owner for shared semantics, then remove or reduce every secondary copy to a delivery-specific delta.
+4. Update an existing source only when its current heading and body already own the requested topic. Otherwise create one narrowly named Markdown file; for `harness/`, add a distinct heading inside the applicable fixed harness file. Do not use an aggregate fragment as a catch-all for every policy with the same delivery scope.
+5. Do not rename or broaden a fragment to claim an adjacent topic. This applies to `agents`, `harness`, `personality`, and `sticky`. If the user explicitly requests consolidation, audit and restate every existing instruction so its original scope remains explicit under the broader heading.
+6. Keep `agents`, `harness`, `personality`, and `sticky` fragments self-contained. Only named rules and skills use frontmatter.
+7. Give named rules an explicit, discriminative `description`. Add `alwaysApply: true` when failure to select the rule before a late, costly, or irreversible action would be unsafe. If an `agents` fragment already owns the workflow, keep the rule to the irreducible guard instead of restating the procedure.
+8. When authoring any approval-gated policy, require the acting agent to finalize and present the exact target and material options, then obtain the user's explicit approval immediately before execution. State that earlier, general, pre-finalization, or different-action approval is insufficient; require new approval after any material change. Do not treat approval appearing in the current conversation as a substitute for exact scope and immediate timing.
+9. Give every skill explicit `name` and `description` frontmatter. Keep procedures in `SKILL.md`; move long supporting material to `references/`. Use `home/skills` only for requested personal-global skills and `.agents/skills` for project-owned skills. Do not use a skill when its body must already be active at the guarded action.
+10. Never edit `~/.omp/agent/AGENTS.md`, `PERSONALITY.md`, `RULES.md`, `rules/`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, or `~/.agents/skills` directly. They are Home Manager deployment targets. Repository-local `.agents/skills` is canonical project source and may be edited.
+11. Stage only newly created flake-referenced source files before Nix evaluation so the Git-backed flake includes them. Never stage unrelated changes.
 
 ## Verification
 

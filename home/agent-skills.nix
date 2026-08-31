@@ -30,7 +30,6 @@ let
   externalSkillSources = {
     comment-writer = "${inputs.gentle-ai}/skills/comment-writer";
     humanizer = inputs.humanizer;
-    receiving-code-review = "${inputs.superpowers}/skills/receiving-code-review";
     writing-clearly-and-concisely = "${inputs.agent-toolkit}/skills/writing-clearly-and-concisely";
   };
   skillNameCollisions = lib.intersectLists (builtins.attrNames externalSkillSources) (

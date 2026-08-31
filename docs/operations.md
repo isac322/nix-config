@@ -197,25 +197,28 @@ cat /var/run/wireguard-addresses   # 데몬이 발행한 주소. Orca·Camofox·
 
 - `Gentleman-Programming/gentle-ai`: `comment-writer`
 - `blader/humanizer`: `humanizer`
-- `obra/superpowers`: `receiving-code-review`
 - `softaworks/agent-toolkit`: `writing-clearly-and-concisely`
+- 저장소 소유 `home/skills/receiving-code-review`: `receiving-code-review`
 
 `humanizer`는 repository root의 `SKILL.md`가 canonical entrypoint라서 repository
-전체가 설치된다. 나머지는 각 repository의 선택한 skill directory만 설치된다.
+전체가 설치된다. 다른 두 공개 upstream은 선택한 skill directory만 설치된다.
+저장소 소유 skill은 `home/skills/<name>/SKILL.md`가 canonical source이며
+`home/agent-skills.nix`가 자동으로 포함한다.
 
-네 upstream만 갱신하고 배포하는 절차:
+세 upstream만 갱신하고 배포하는 절차:
 
 ```sh
-nix flake update gentle-ai humanizer superpowers agent-toolkit
+nix flake update gentle-ai humanizer agent-toolkit
 nix flake check
 darwin-rebuild build --flake .#<hostname>
 sudo darwin-rebuild switch --flake .#<hostname>
 ```
 
 새 input을 처음 추가할 때는 `nix flake lock`이 기존 input을 재해석하지 않고 누락된
-lock node만 만든다. 이후에는 위처럼 이름을 지정해 갱신한다. 설치 내용의 최종
-authority는 `flake.lock`이므로 이 네 이름을 `skills update`나 evolve worker로 직접
-수정하지 않는다.
+lock node만 만든다. 이후에는 위처럼 이름을 지정해 갱신한다. 공개 upstream의 최종
+authority는 `flake.lock`이므로 이 세 input을 `skills update`나 evolve worker로
+직접 수정하지 않는다. `receiving-code-review`의 authority는 이 저장소의
+`home/skills/receiving-code-review/SKILL.md`다.
 
 SkillClaw의 주기 sync와 로그인 shell은 이 이름들을
 `SKILLCLAW_SYNC_SKIP_PULL`로 **pull에서만 제외하고 push에는 포함한다.** 따라서

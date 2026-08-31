@@ -56,10 +56,6 @@
       url = "git+https://github.com/blader/humanizer.git?shallow=1";
       flake = false;
     };
-    superpowers = {
-      url = "git+https://github.com/obra/superpowers.git?shallow=1";
-      flake = false;
-    };
     agent-toolkit = {
       url = "git+https://github.com/softaworks/agent-toolkit.git?shallow=1";
       flake = false;
