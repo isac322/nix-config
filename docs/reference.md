@@ -174,14 +174,15 @@ password-file 형식으로 변환해 `/var/lib/camofox/vnc-auth`에
 
 대부분 nixpkgs가 아니라 Homebrew에서 온다
 ([0015](decisions/0015-gui-apps-come-from-homebrew.md)). `onActivation.upgrade`가
-켜져 있어 최신 유지도 Homebrew가 한다. 예외 셋:
+켜져 있어 최신 유지도 Homebrew가 한다. Orca는 두 Mac 모두 `stablyai/orca`
+tap의 cask를 쓰지만, `auto_updates`인 이 앱은 예외로 Orca 자체 updater가
+`/Applications/Orca.app`을 제자리에서 교체한다. Nix는 cask의 설치 여부만
+선언하고 `greedy`로 그 updater와 경쟁하지 않는다. 다만 2026-08-31에 동일한
+격리 probe로 1.4.188은 `orca_server_ready`와 `boundEndpoint`에 도달한 반면,
+1.4.192의 supervised `orca serve`는 stablyai/orca#16761로 readiness 전에
+종료됐다. 서버의 무중단 업데이트는 아직 동작하지 않는다. tap 접두사는 선택이
+아니다. homebrew-cask의 맨 `orca`는 plotly의 무관한 chart renderer다. 예외 둘:
 
-- **Orca** (Stably) — 랩탑은 `stablyai/orca` tap의 cask를 쓴다. tap 접두사는
-  선택이 아니다. homebrew-cask의 맨 `orca`는 plotly의 무관한 chart renderer다.
-  서버는 `pkgs/orca/package.nix`가 공식 macOS arm64 1.4.188 DMG를 고정한다.
-  1.4.190 이후의 `orca serve`가 시작 중 `AppEnvironment not initialized`로
-  죽는 상류 회귀가 있어, 무인 런타임은 검증한 버전을 Nix store에서 직접 실행한다
-  ([0028](decisions/0028-orca-runtime-on-the-server-mac.md)).
 - **서버 맥의 Camoufox · DeskPad · macVNC** — Nix가 고정한 macOS 앱이다.
   Camoufox와 DeskPad는 Camofox LaunchAgent가 store에서 직접 실행한다. macVNC는
   같은 LaunchAgent가 실행하지만 Screen Recording·Accessibility 권한을 보존하도록
