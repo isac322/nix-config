@@ -89,7 +89,7 @@ A successful edit is not proof. Report only verification that actually ran and d
 
 ### 8. Respond
 
-Respond in the thread where the item was raised when the review system supports threads. Keep each response specific to that item or interacting cluster.
+Respond in the thread where the item was raised when the review system supports threads. Keep each response specific to that item or interacting cluster. On GitHub, reply inside an inline comment thread (`gh api repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies`) rather than posting a top-level pull request comment.
 
 - **Implemented:** state what changed and cite the relevant verification.
 - **Adapted:** explain the verified concern and why the chosen implementation differs.

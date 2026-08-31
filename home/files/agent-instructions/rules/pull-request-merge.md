@@ -1,13 +1,11 @@
 ---
-description: Apply immediately before merging a GitHub pull request; the merge must not proceed without the user's explicit approval for the finalized target and merge method.
+description: Block pull request merging unless the user approves the finalized target and merge method immediately before execution.
 alwaysApply: true
 ---
 
-Before merging a GitHub pull request:
+# Pull request merge approval guard
 
-1. Finalize the exact repository, pull request number and title, target branch, head commit, merge method, and any material merge options.
-2. Present those finalized details to the user.
-3. Obtain the user's explicit approval now, immediately before the merge call. Proceed only if the user explicitly says that this finalized pull request may be merged.
-4. Treat earlier, general, or pre-finalization approval as insufficient. Approval to create, update, review, or approve a pull request does not authorize merging it, and approval for another pull request does not transfer.
-5. If any material detail changes after approval, present the new finalized details and obtain new explicit approval.
-6. Apply this requirement without repository-owner exceptions. If explicit approval is absent, do not merge the pull request.
+- Do not merge without the user's explicit approval for the finalized repository, pull request, target branch, head commit, merge method, and material merge options immediately before the merge call.
+- Earlier, general, pre-finalization, or different-action approval is insufficient, including approval to create, update, review, or approve a pull request and approval for another pull request.
+- Any material change after approval requires presenting the new finalized details and obtaining new explicit approval.
+- There are no repository-owner exceptions. If explicit approval is absent, do not merge.
