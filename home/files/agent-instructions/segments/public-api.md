@@ -1,6 +1,4 @@
----
-description: Apply before changing a public or exported API.
----
+# Public API changes
 
 Before changing a public API:
 

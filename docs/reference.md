@@ -238,26 +238,60 @@ project를 고르고 로그인한 뒤 agent hook과 로그인 시 재개할 사�
 않는다. 실제 project를 연결할 때 각 노드에서 대상 directory를 정한 뒤 한 번씩
 `bdrive init`을 실행한다.
 
-### Agent Skills — 검토한 공개 소스는 Nix가 고정
+### Agent 지침 — semantic segment를 하네스 기능에 맞게 compile
+
+전역 지침 body는 `home/files/agent-instructions/segments/*.md`에 한 번만 저장한다.
+`home/agent-instruction-segments.nix`가 body마다 class, harness scope, order,
+description을 선언하고 `home/agent-instructions.nix`가 다음처럼 compile한다.
+
+| class | OMP | Claude Code | Codex |
+|---|---|---|---|
+| `context` | `AGENTS.md` | `CLAUDE.md` | `AGENTS.md` |
+| `persistent` | `RULES.md` | user rule | `AGENTS.md` fallback |
+| `onDemand` | ordinary rule | personal skill | personal skill |
+| `critical` | `alwaysApply` rule | user rule | `AGENTS.md` fallback |
+| `personality` | `PERSONALITY.md` | 미지원 | 미지원 |
+
+frontmatter와 fallback copy는 Nix가 생성한다. canonical body에는 target-specific
+metadata를 넣지 않으며, workflow와 critical guard는 의미가 겹치지 않는 segment로
+나눈다. OMP는 generated policy skill 이름을 무시하고 native rule만 사용하므로 같은
+지침이 rule과 skill로 동시에 노출되지 않는다.
+
+OMP·Claude rule과 shared·Claude skill의 managed-name registry는 기본 XDG state
+경로인 `~/.local/state/nix-managed-agent/` 아래 target별 파일에 저장한다.
+registry를 discovery·동기화 대상 tree와 분리하고, 이전 generation의 Nix-owned
+이름만 교체하므로 mutable user rule과 skill은 보존된다.
+현재 배포 노드의 네 target에는 legacy in-tree registry가 없다. 따라서 관련 branch는
+live migration 경로가 아니라 과거 또는 수동 상태를 위한 defensive compatibility
+no-op이다. 해당 상태에서는 SkillClaw가 동기화하는 `~/.agents/skills` marker를 삭제
+대상 선택에 사용하지 않는다. 동기화되지 않는 OMP·Claude rule과 Claude skill
+registry는 cleanup seed로 사용할 수 있으며, registry가 없던 구형 OMP
+`rsync --delete` 상태는 명시적인 마지막 구형 rule 이름 목록을 fallback으로 사용한다.
+
+### Agent Skills — 검토한 공개 소스와 local source를 Nix가 배포
 
 `home/agent-skills.nix`는 검토한 공개 skill repository를 `flake = false` input으로
-받고 `flake.lock`의 revision을 모든 노드에 동일하게 배포한다. switch 때 선택한
-skill directory를 `skills add --global --agent amp --copy`와 같은 형태로
-`~/.agents/skills/<name>`에 복사하므로, 하네스가 보는 파일 배치는 수동 설치와 같다.
-업데이트와 rollback은 시스템 generation을 따른다.
+받고 `flake.lock`의 revision을 모든 노드에 동일하게 배포한다. repository-owned
+regular skill은 `home/skills/<name>/SKILL.md`에서 읽고, `onDemand` policy segment는
+Nix가 SKILL frontmatter를 생성한다.
 
-이 이름들은 SkillClaw가 공유 backend로 push하지만 pull에서는 보호한다. 그래서
-cloud의 이전 복사본이 방금 switch한 Nix revision을 덮지 못한다. mutable하게 생성한
-나머지 스킬만 일반적인 pull-then-push 및 evolve 대상이다. 목록과 업데이트 절차는
-[운영](operations.md#nix-고정-agent-skills-모든-노드)에 있다.
+모든 regular skill과 applicable policy skill은 `~/.agents/skills/<name>`과
+`~/.claude/skills/<name>`에 각각 복사된다. 전자는 OMP와 Codex가 사용하고 SkillClaw가
+동기화하며, 후자는 Claude Code의 native personal skill tree다. target별 외부
+managed-name registry가 이전 generation에서 제거된 Nix-owned name만 정리한다.
 
+Nix-managed shared skill 이름은 SkillClaw가 공유 backend로 push하지만 pull에서는
+보호한다. 그래서 cloud의 이전 복사본이 방금 switch한 Nix revision을 덮지 못한다.
+Claude tree는 같은 canonical source에서 다시 생성하는 배포본이고 SkillClaw sync
+대상이 아니다. 목록과 업데이트 절차는
+[운영](operations.md#nix-관리-agent-지침과-skills-모든-노드)에 있다.
 
 ### SkillClaw — 로컬 클라이언트 셋, 공유 백엔드는 하나
 
 `home/skillclaw.nix`가 `skillclaw` 0.4.0을 flake input의 고정한 소스에서 Python
 application으로 빌드해 모든 노드에 둔다. 각 노드는 loopback proxy와 5분 주기
-`skills sync`를 가지며, 동기화 대상은 하네스별 사본이 아니라 공통 Agent Skills
-위치 `~/.agents/skills`다. Claude Code 전용 skill 위치는 대상에서 제외한다.
+`skills sync`를 가지며, 동기화 대상은 공통 Agent Skills 위치
+`~/.agents/skills` 하나다. `~/.claude/skills`는 동기화하지 않는다.
 
 공유 저장소는 사용자가 이미 운영하는 외부 S3-compatible backend다. 이 repository는
 object-store daemon을 설치하지 않는다. 모든 client와 서버 맥의 단일 evolve worker가

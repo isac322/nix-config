@@ -1,6 +1,4 @@
----
-description: Apply before deleting data, overwriting unrelated work, or running destructive operations.
----
+# Destructive operations
 
 Before an irreversible operation:
 

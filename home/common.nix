@@ -309,9 +309,9 @@ in
     ./skillclaw.nix
   ];
 
-  # Every node runs a local SkillClaw client and synchronizes the cross-harness
-  # Agent Skills directory through the user's external S3 backend. Only the
-  # unattended server role enables the evolve worker.
+  # Every node runs a local SkillClaw client and synchronizes the shared
+  # ~/.agents/skills tree used by OMP and Codex. Claude receives a Nix-generated
+  # copy under ~/.claude/skills; only the unattended server role evolves shared skills.
   local.skillclaw.enable = true;
 
   # Clear what would otherwise make the plugin links below fail on a machine
@@ -708,13 +708,9 @@ in
       force = true;
     };
 
-    # Orca drops this user-level OMP configuration outside the flake's tracked
-    # source tree. Keep the reviewed copy under home/files so every macOS and
-    # NixOS generation can install it without depending on ignored local state.
-    ".omp/agent/config.yml" = {
-      source = ./files/omp-agent-config.yml;
-      force = true;
-    };
+    # Agent instruction routing generates the OMP configuration in
+    # home/agent-instructions.nix so ignored policy-skill names cannot drift
+    # from the canonical segment manifest.
 
     # The register, next to the links it describes. Written whole, so it also
     # decides what is *not* installed — a plugin dropped from the set above

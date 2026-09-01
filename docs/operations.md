@@ -189,21 +189,49 @@ cat /var/run/wireguard-addresses   # 데몬이 발행한 주소. Orca·Camofox·
 않는다. `wg-quick up` 은 인터페이스를 올리고 끝나므로 데몬이 계속 떠 있지 않는
 것이 정상이다. 살아 있게 하는 것은 wg-quick 이 떼어 놓는 `wireguard-go` 다.
 
-## Nix 고정 Agent Skills (모든 노드)
+## Nix 관리 Agent 지침과 Skills (모든 노드)
 
-검토한 공개 스킬은 `skills update`가 아니라 `flake.lock`으로 버전을 고정한다.
-`home/agent-skills.nix`가 switch 때 `skills add --global --agent amp --copy`와 같은
-디렉터리 내용을 `~/.agents/skills`에 복사한다.
+전역 지침의 canonical source는
+`home/files/agent-instructions/segments/*.md`이고,
+`home/agent-instruction-segments.nix`가 각 body를 `context`, `persistent`,
+`onDemand`, `critical`, `personality` 중 하나로 분류한다.
+`home/agent-instructions.nix`는 같은 body를 하네스 기능에 맞게 배포한다.
+
+- OMP: `AGENTS.md`, `RULES.md`, ordinary/`alwaysApply` rules, `PERSONALITY.md`
+- Claude Code: `CLAUDE.md`, `~/.claude/rules`, `~/.claude/skills`
+- Codex: `AGENTS.md`, `~/.agents/skills`
+
+지원하지 않는 rule class는 다른 canonical copy를 만들지 않고 context나 generated
+skill로 fallback한다. 새 segment를 추가하거나 class를 바꿀 때는
+`home/agent-instruction-segments.nix`와 body 하나만 수정한다. 배포 파일은 직접
+수정하지 않는다.
+
+OMP·Claude rule과 shared·Claude skill의 managed-name registry는 동기화나
+discovery 대상 tree 안에 두지 않고
+`~/.local/state/nix-managed-agent/{omp-rules,claude-rules,shared-skills,claude-skills}`에
+분리한다. switch할 때 해당 target의 이전 Nix-owned 이름만 제거하고 다시 설치하므로,
+tree에 사용자가 추가한 rule이나 skill은 삭제하지 않는다.
+현재 배포 노드의 네 target에는 legacy in-tree registry가 없으므로, 관련 branch는
+실행 중인 migration 절차가 아니라 과거 또는 수동 상태를 방어하는 compatibility
+no-op이다. 만약 그런 상태를 만나면 SkillClaw가 동기화하는 `~/.agents/skills`의
+marker는 삭제 대상 선택에 사용하지 않고 제거만 한다. 동기화되지 않는 OMP·Claude
+rule과 Claude skill tree는 기존 registry를 cleanup seed로 사용할 수 있고, registry
+도입 전 OMP `rsync --delete` 상태는 명시적인 마지막 구형 이름 목록을 fallback으로
+사용한다.
+
+검토한 공개 skill은 `skills update`가 아니라 `flake.lock`으로 버전을 고정한다.
+`home/agent-skills.nix`가 regular skill과 generated `onDemand` policy skill을
+`~/.agents/skills`와 `~/.claude/skills`에 각각 복사한다.
 
 - `Gentleman-Programming/gentle-ai`: `comment-writer`
 - `blader/humanizer`: `humanizer`
 - `softaworks/agent-toolkit`: `writing-clearly-and-concisely`
+- 저장소 소유 `home/skills/instruction-architect`: `instruction-architect`
 - 저장소 소유 `home/skills/receiving-code-review`: `receiving-code-review`
 
 `humanizer`는 repository root의 `SKILL.md`가 canonical entrypoint라서 repository
-전체가 설치된다. 다른 두 공개 upstream은 선택한 skill directory만 설치된다.
-저장소 소유 skill은 `home/skills/<name>/SKILL.md`가 canonical source이며
-`home/agent-skills.nix`가 자동으로 포함한다.
+전체가 설치된다. 다른 공개 upstream은 선택한 skill directory만 설치된다.
+저장소 소유 skill은 `home/skills/<name>/SKILL.md`가 canonical source다.
 
 세 upstream만 갱신하고 배포하는 절차:
 
@@ -216,14 +244,14 @@ sudo darwin-rebuild switch --flake .#<hostname>
 
 새 input을 처음 추가할 때는 `nix flake lock`이 기존 input을 재해석하지 않고 누락된
 lock node만 만든다. 이후에는 위처럼 이름을 지정해 갱신한다. 공개 upstream의 최종
-authority는 `flake.lock`이므로 이 세 input을 `skills update`나 evolve worker로
-직접 수정하지 않는다. `receiving-code-review`의 authority는 이 저장소의
-`home/skills/receiving-code-review/SKILL.md`다.
+authority는 `flake.lock`이다. `instruction-architect`와
+`receiving-code-review`의 authority는 각각 이 저장소의
+`home/skills/<name>/SKILL.md`다.
 
-SkillClaw의 주기 sync와 로그인 shell은 이 이름들을
-`SKILLCLAW_SYNC_SKIP_PULL`로 **pull에서만 제외하고 push에는 포함한다.** 따라서
-cloud에 남은 이전 revision이 switch 직후의 Nix 복사본을 되돌리지 않으며, 새로
-고정한 revision은 다음 sync에서 공유 backend로 올라간다.
+SkillClaw는 공통 tree `~/.agents/skills`만 동기화한다. Nix-managed regular 및
+generated policy skill 이름은 `SKILLCLAW_SYNC_SKIP_PULL`로 pull에서 보호하지만
+push에는 포함한다. `~/.claude/skills`는 Nix가 같은 canonical source에서 다시 만드는
+Claude 전용 배포본이며 별도 sync source가 아니다.
 
 
 ## SkillClaw 공유 스킬 (모든 노드)
@@ -269,9 +297,9 @@ chmod 600 ~/.config/skillclaw/llm.env
 
 `responses`를 받지 않는 OpenAI-compatible endpoint면 마지막 값을 `chat`으로 바꾼다.
 Nix store에는 어느 비밀도 들어가지 않는다. 런타임 wrapper가 두 파일을 읽어
-`~/.skillclaw/config.yaml`을 0600으로 다시 만들며, SkillClaw의 로컬 스킬 디렉터리는
-여러 하네스가 읽는 Agent Skills 표준 위치 `~/.agents/skills`다. Claude Code 전용
-디렉터리는 만들거나 동기화하지 않는다.
+`~/.skillclaw/config.yaml`을 0600으로 다시 만들며, SkillClaw의 동기화 대상은
+`~/.agents/skills` 하나다. Nix가 별도로 만드는 `~/.claude/skills`는 Claude Code가
+읽기만 하며 SkillClaw가 pull, push, evolve하지 않는다.
 
 확인:
 

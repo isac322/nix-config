@@ -1,6 +1,4 @@
----
-description: Apply when reporting that implementation work is complete or verified.
----
+# Verification
 
 Before reporting completion:
 

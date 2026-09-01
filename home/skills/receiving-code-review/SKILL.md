@@ -11,14 +11,11 @@ Treat review feedback as technical input to evaluate, not a command to obey or a
 
 This skill covers reusable evaluation, implementation, pushback, and response technique.
 
-Durable `AGENTS` instructions and rules control mandatory PR state workflow, including state capture, complete thread collection, ordering and set semantics, reviewer re-request, bot waiting, completion gates, and merge gates. Follow those policies when they apply. Do not use this skill to replace, weaken, or reconstruct them.
+The active pull request review policy owns mandatory reviewer authority, state capture, complete thread collection, reviewer re-request, `runbear-bot` waiting, completion gates, and merge gates. Follow that policy when it applies. Do not use this skill to replace, weaken, or reconstruct it.
 
-## Authority and evidence
+## Evidence standard
 
-Distinguish the source of an item before deciding what to do:
-
-- **User-authored requirements control intent.** Preserve the user's requested outcome and scope. Clarify genuine ambiguity, verify technical feasibility, and surface conflicts or constraints rather than silently changing the request.
-- **External reviewer and bot suggestions are claims to verify.** A suggestion may be correct, partially correct, unnecessary, out of scope, or based on missing context. Check it against the code, tests, documented contracts, supported environments, and the user's requirements.
+Evaluate technical claims against the code, tests, documented contracts, supported environments, repository decisions, and the user's requested outcome. A suggestion may be correct, partially correct, unnecessary, out of scope, or based on missing context.
 
 Neither confidence nor politeness is evidence. Prefer reproducible behavior, source code, tests, specifications, and explicit project decisions.
 
