@@ -61,6 +61,12 @@ in
       description = "Apply when preparing to merge a GitHub pull request.";
     };
 
+  task-intent-boundary =
+    (segment ./files/agent-instructions/segments/task-intent-boundary.md "critical" [ "omp" ] 100)
+    // {
+      description = "Prevent OMP from turning analysis, investigation, review, reporting, confirmation, or dry-run requests into unauthorized implementation.";
+    };
+
   pull-request-creation-approval =
     (segment ./files/agent-instructions/segments/pull-request-creation-approval.md "critical"
       allHarnesses
