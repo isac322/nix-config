@@ -37,34 +37,22 @@
     },
     "bun2nix": {
       "inputs": {
-        "flake-parts": [
-          "llm-agents",
-          "flake-parts"
-        ],
-        "nixpkgs": [
-          "llm-agents",
-          "nixpkgs"
-        ],
-        "systems": [
-          "llm-agents",
-          "systems"
-        ],
-        "treefmt-nix": [
-          "llm-agents",
-          "treefmt-nix"
-        ]
+        "flake-parts": "flake-parts_2",
+        "nixpkgs": "nixpkgs_3",
+        "systems": "systems",
+        "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1784665499,
-        "narHash": "sha256-9BMxlTxCCDAeoNLtb1a/st7udtTIJep+wpUzquA29VU=",
+        "lastModified": 1788011267,
+        "narHash": "sha256-mEq2kU+ljompTToZ44Afvm7d/rHJ5iMBl0tjZuyShJs=",
         "ref": "refs/heads/master",
-        "rev": "0f2a1f0b6f42cebe3b149bf62d38754c5e0e9729",
+        "rev": "5765b0614591f75ee8ba5596e81ae85c167d1071",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/bun2nix.git"
       },
       "original": {
-        "rev": "0f2a1f0b6f42cebe3b149bf62d38754c5e0e9729",
+        "rev": "5765b0614591f75ee8ba5596e81ae85c167d1071",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/bun2nix.git"
@@ -168,22 +156,39 @@
     },
     "flake-parts_2": {
       "inputs": {
-        "nixpkgs-lib": [
-          "llm-agents",
-          "nixpkgs"
-        ]
+        "nixpkgs-lib": "nixpkgs-lib"
       },
       "locked": {
-        "lastModified": 1785627969,
-        "narHash": "sha256-4dtXQk/NMePegK/nWp5NSeuZKLATItOq61lpEvmXqGw=",
+        "lastModified": 1782949081,
+        "narHash": "sha256-vp6Y/Grm98ESt6ceOkWiHWyZRDV3J1RID4w+6NWK9yA=",
         "ref": "refs/heads/main",
-        "rev": "427bf4bd9435fdf21321c8cc628c24efc14c0f7a",
+        "rev": "17c9d6cdfc60c64f4ee8d306f9bc0b4ccb51481e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/hercules-ci/flake-parts.git"
       },
       "original": {
-        "rev": "427bf4bd9435fdf21321c8cc628c24efc14c0f7a",
+        "rev": "17c9d6cdfc60c64f4ee8d306f9bc0b4ccb51481e",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/hercules-ci/flake-parts.git"
+      }
+    },
+    "flake-parts_3": {
+      "inputs": {
+        "nixpkgs-lib": "nixpkgs-lib_2"
+      },
+      "locked": {
+        "lastModified": 1788306937,
+        "narHash": "sha256-lbrI1UYVpFgKSsyrU9oeF7FHfnu8nLD9ja0ou9f2rxk=",
+        "ref": "refs/heads/main",
+        "rev": "f16b25b8c3d2809b87925d0b76652d7821a75c68",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/hercules-ci/flake-parts.git"
+      },
+      "original": {
+        "rev": "f16b25b8c3d2809b87925d0b76652d7821a75c68",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/hercules-ci/flake-parts.git"
@@ -235,10 +240,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1788306281,
-        "narHash": "sha256-fzkZin1xxYFD5OveNVZudWErqNtr1Pjfdkc9qd8ROCc=",
+        "lastModified": 1788317453,
+        "narHash": "sha256-BTVJDWIuGa5ffxQEG5WujOOm3eXPw3gZX42Wvm32gb8=",
         "ref": "master",
-        "rev": "ead131eb1ec3088a11a23638b99f89c50422fbd3",
+        "rev": "b8350fcdf54ccf553e46408053b1ac5b7038c18b",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -270,16 +275,16 @@
     "llm-agents": {
       "inputs": {
         "bun2nix": "bun2nix",
-        "flake-parts": "flake-parts_2",
-        "nixpkgs": "nixpkgs_3",
-        "systems": "systems",
-        "treefmt-nix": "treefmt-nix"
+        "flake-parts": "flake-parts_3",
+        "nixpkgs": "nixpkgs_5",
+        "systems": "systems_2",
+        "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1788307555,
-        "narHash": "sha256-PKLtNDhFEGkjzktIKvXKqMDG4UKq/DFicyGlJwH4NJE=",
+        "lastModified": 1788320444,
+        "narHash": "sha256-t16G5E/dXM2vHehL0hxiUI+/Sg2l9dOBY948AK8bXOk=",
         "ref": "refs/heads/main",
-        "rev": "775405507404a6c28246aec9a848e091d3d8478c",
+        "rev": "b096325ad8cc471f5b34321c01a5cb98457c7782",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -404,6 +409,40 @@
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
       }
     },
+    "nixpkgs-lib": {
+      "locked": {
+        "lastModified": 1782614948,
+        "narHash": "sha256-ePjCwr1sNm9NYUqywL7QfK3JnlS015msC+eBu2zKlp8=",
+        "ref": "refs/heads/master",
+        "rev": "db3f255737b94216eb71cce308e2912cf6bc2d7c",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/nix-community/nixpkgs.lib.git"
+      },
+      "original": {
+        "rev": "db3f255737b94216eb71cce308e2912cf6bc2d7c",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/nix-community/nixpkgs.lib.git"
+      }
+    },
+    "nixpkgs-lib_2": {
+      "locked": {
+        "lastModified": 1788057806,
+        "narHash": "sha256-DTQSMxzDWmT0zhguthvegnVkn7CFqGCv4IHCzk5ZUpM=",
+        "ref": "refs/heads/master",
+        "rev": "596e2e3940e09b2abbeb03f75fa1828c57fcd72c",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/nix-community/nixpkgs.lib.git"
+      },
+      "original": {
+        "rev": "596e2e3940e09b2abbeb03f75fa1828c57fcd72c",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/nix-community/nixpkgs.lib.git"
+      }
+    },
     "nixpkgs-regression": {
       "locked": {
         "lastModified": 1643052045,
@@ -437,22 +476,56 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1786963906,
-        "narHash": "sha256-3tkeMWSvHPo3tYljfXbPC/TgknikU1GvdVr/DkdfvE0=",
+        "lastModified": 1784497964,
+        "narHash": "sha256-vlHUuqAcbcH2RKmHbPiuQzbv1pnzzavXnI62RD0bqCU=",
         "ref": "refs/heads/master",
-        "rev": "f4b6996c4e8b9ee06ce147ec344c885f51071b14",
+        "rev": "241313f4e8e508cb9b13278c2b0fa25b9ca27163",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
       },
       "original": {
-        "rev": "f4b6996c4e8b9ee06ce147ec344c885f51071b14",
+        "rev": "241313f4e8e508cb9b13278c2b0fa25b9ca27163",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
       }
     },
     "nixpkgs_4": {
+      "locked": {
+        "lastModified": 1770107345,
+        "narHash": "sha256-tbS0Ebx2PiA1FRW8mt8oejR0qMXmziJmPaU1d4kYY9g=",
+        "ref": "refs/heads/master",
+        "rev": "4533d9293756b63904b7238acb84ac8fe4c8c2c4",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/NixOS/nixpkgs.git"
+      },
+      "original": {
+        "rev": "4533d9293756b63904b7238acb84ac8fe4c8c2c4",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/NixOS/nixpkgs.git"
+      }
+    },
+    "nixpkgs_5": {
+      "locked": {
+        "lastModified": 1787964612,
+        "narHash": "sha256-0N9nghg3nwzX6b6qc77EzjR9cu/Z+UR66FlfsCqiURs=",
+        "ref": "refs/heads/master",
+        "rev": "e8be7818e19ada32105a8af937a6a473b38167ca",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/NixOS/nixpkgs.git"
+      },
+      "original": {
+        "rev": "e8be7818e19ada32105a8af937a6a473b38167ca",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/NixOS/nixpkgs.git"
+      }
+    },
+    "nixpkgs_6": {
       "locked": {
         "lastModified": 1787964612,
         "narHash": "sha256-0N9nghg3nwzX6b6qc77EzjR9cu/Z+UR66FlfsCqiURs=",
@@ -479,7 +552,7 @@
         "llm-agents": "llm-agents",
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",
-        "nixpkgs": "nixpkgs_4",
+        "nixpkgs": "nixpkgs_6",
         "nixpkgs-firefox-darwin": "nixpkgs-firefox-darwin",
         "skillclaw": "skillclaw"
       }
@@ -503,6 +576,23 @@
     },
     "systems": {
       "locked": {
+        "lastModified": 1776166891,
+        "narHash": "sha256-bI8yrEGjrohR5hkQox7UrxDH7XqrYMwI8SL/LrJ1+S8=",
+        "ref": "refs/heads/main",
+        "rev": "6de7bc09397911ce03636afbcf6118745ab2cda0",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/nix-systems/triplet.git"
+      },
+      "original": {
+        "rev": "6de7bc09397911ce03636afbcf6118745ab2cda0",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/nix-systems/triplet.git"
+      }
+    },
+    "systems_2": {
+      "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
         "ref": "refs/heads/main",
@@ -519,6 +609,26 @@
       }
     },
     "treefmt-nix": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_4"
+      },
+      "locked": {
+        "lastModified": 1784369104,
+        "narHash": "sha256-47cxbcZODibHv3rELFQ9vZly0vUNkND/atn/U7HLeb0=",
+        "ref": "refs/heads/main",
+        "rev": "df3c0640565d04a0261253cdd89fce78ec50168a",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/numtide/treefmt-nix.git"
+      },
+      "original": {
+        "rev": "df3c0640565d04a0261253cdd89fce78ec50168a",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/numtide/treefmt-nix.git"
+      }
+    },
+    "treefmt-nix_2": {
       "inputs": {
         "nixpkgs": [
           "llm-agents",

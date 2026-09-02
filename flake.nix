@@ -32,9 +32,18 @@
     # cache.numtide.com. When llm-agents updates, review its new lock and update
     # these revisions in the same change.
     llm-agents.inputs = {
-      bun2nix.url = "git+https://github.com/nix-community/bun2nix.git?rev=0f2a1f0b6f42cebe3b149bf62d38754c5e0e9729&shallow=1";
-      flake-parts.url = "git+https://github.com/hercules-ci/flake-parts.git?rev=427bf4bd9435fdf21321c8cc628c24efc14c0f7a&shallow=1";
-      nixpkgs.url = "git+https://github.com/NixOS/nixpkgs.git?rev=f4b6996c4e8b9ee06ce147ec344c885f51071b14&shallow=1";
+      bun2nix.url = "git+https://github.com/nix-community/bun2nix.git?rev=5765b0614591f75ee8ba5596e81ae85c167d1071&shallow=1";
+      bun2nix.inputs = {
+        flake-parts.url = "git+https://github.com/hercules-ci/flake-parts.git?rev=17c9d6cdfc60c64f4ee8d306f9bc0b4ccb51481e&shallow=1";
+        flake-parts.inputs.nixpkgs-lib.url = "git+https://github.com/nix-community/nixpkgs.lib.git?rev=db3f255737b94216eb71cce308e2912cf6bc2d7c&shallow=1";
+        nixpkgs.url = "git+https://github.com/NixOS/nixpkgs.git?rev=241313f4e8e508cb9b13278c2b0fa25b9ca27163&shallow=1";
+        systems.url = "git+https://github.com/nix-systems/triplet.git?rev=6de7bc09397911ce03636afbcf6118745ab2cda0&shallow=1";
+        treefmt-nix.url = "git+https://github.com/numtide/treefmt-nix.git?rev=df3c0640565d04a0261253cdd89fce78ec50168a&shallow=1";
+        treefmt-nix.inputs.nixpkgs.url = "git+https://github.com/NixOS/nixpkgs.git?rev=4533d9293756b63904b7238acb84ac8fe4c8c2c4&shallow=1";
+      };
+      flake-parts.url = "git+https://github.com/hercules-ci/flake-parts.git?rev=f16b25b8c3d2809b87925d0b76652d7821a75c68&shallow=1";
+      flake-parts.inputs.nixpkgs-lib.url = "git+https://github.com/nix-community/nixpkgs.lib.git?rev=596e2e3940e09b2abbeb03f75fa1828c57fcd72c&shallow=1";
+      nixpkgs.url = "git+https://github.com/NixOS/nixpkgs.git?rev=e8be7818e19ada32105a8af937a6a473b38167ca&shallow=1";
       systems.url = "git+https://github.com/nix-systems/default.git?rev=da67096a3b9bf56a91d16901293e51ba5b49a27e&shallow=1";
       treefmt-nix.url = "git+https://github.com/numtide/treefmt-nix.git?rev=27b3b12a8e6375f28ebe122f07d230ca5459bbfa&shallow=1";
     };
