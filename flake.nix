@@ -126,7 +126,7 @@
           extraHomeModules ? [ ],
         }:
         nix-darwin.lib.darwinSystem {
-          specialArgs = { inherit inputs; };
+          specialArgs = { inherit inputs hostname; };
           modules = [
             ./modules/common.nix
             ./modules/darwin.nix

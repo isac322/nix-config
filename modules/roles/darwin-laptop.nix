@@ -5,7 +5,13 @@
 # different is only that it runs desktop applications — including which of them
 # the Dock holds, since that list is mostly the casks below. The user-level half
 # is home/roles/darwin-laptop.nix.
-{ config, inputs, ... }:
+{
+  config,
+  hostname,
+  inputs,
+  lib,
+  ...
+}:
 
 let
   inherit (config.system) primaryUser;
@@ -46,7 +52,17 @@ in
   # Darwin package in nixpkgs, and Homebrew keeps their app bundles current.
   # Orca stays on that path on the laptop; only the unattended server pins a
   # Nix-packaged release because current `orca serve` builds crash at startup.
-  homebrew.taps = [ "stablyai/orca" ];
+  #
+  # Vorta's archive mount needs both macFUSE and the Borg build linked against
+  # it. The macFUSE cask installs a signed pkg and kernel extension, so its
+  # first installation still needs interactive approval and a reboot; keeping
+  # it here makes subsequent upgrades declarative.
+  homebrew.taps = [
+    "borgbackup/tap"
+    "stablyai/orca"
+  ];
+
+  homebrew.brews = [ "borgbackup-fuse" ];
 
   homebrew.casks = [
     "1password" # the desktop app; the `op` CLI is in home/darwin.nix
@@ -56,6 +72,7 @@ in
     "intellij-idea" # Ultimate; the community edition is intellij-idea-ce
     "kde-connect"
     "linear"
+    "macfuse"
     "notion"
     "stablyai/orca/orca"
     "slack"
@@ -67,6 +84,120 @@ in
     "vorta"
     "zoom"
   ];
+
+  # The generated Brewfile installs formulae before casks, but
+  # borgbackup-fuse cannot be built until the macFUSE pkg has installed its
+  # headers. Run this fragment immediately before nix-darwin's Homebrew bundle:
+  # it verifies the Apple silicon boot policy, bootstraps the declared cask
+  # when needed, and refuses to continue until macOS has loaded the VFS kext.
+  # Nothing changes the boot policy automatically; that requires the owner in
+  # Recovery and should never be scripted from a normal boot.
+  system.activationScripts.homebrew.text = lib.mkOrder 750 ''
+    macfuseSwitchCommand='sudo darwin-rebuild switch --flake /etc/nix-darwin#${hostname}'
+
+    printMacfuseRecoveryInstructions() {
+      cat >&2 <<EOF
+
+      macFUSE VFS cannot be enabled while third-party kernel extensions are
+      disabled in this Mac's boot policy.
+
+      1. Shut down the Mac.
+      2. Hold the power button until "Loading startup options" appears.
+      3. Open Options, then choose Utilities > Startup Security Utility.
+      4. Select this macOS installation and open Security Policy.
+      5. Select Reduced Security.
+      6. Enable "Allow user management of kernel extensions from identified developers."
+      7. Restart macOS and run:
+
+         $macfuseSwitchCommand
+
+    EOF
+    }
+
+    printMacfuseApprovalInstructions() {
+      cat >&2 <<EOF
+
+      macFUSE is installed, but its VFS kernel extension is not loaded.
+
+      1. Open System Settings > Privacy & Security.
+      2. Allow the blocked system software from macFUSE.
+      3. Restart the Mac.
+      4. Run:
+
+         $macfuseSwitchCommand
+
+    EOF
+    }
+
+    if [ "$(/usr/bin/uname -m)" = arm64 ]; then
+      if ! volumeGroupID=$(
+        /usr/sbin/diskutil info -plist / |
+          /usr/bin/plutil -extract APFSVolumeGroupID raw -o - -
+      ); then
+        echo "error: could not determine the current APFS volume group for the macFUSE boot-policy check" >&2
+        exit 1
+      fi
+
+      if [ -z "$volumeGroupID" ]; then
+        echo "error: the current APFS volume group is empty; refusing to skip the macFUSE boot-policy check" >&2
+        exit 1
+      fi
+
+      if ! bootPolicy=$(/usr/bin/bputil -v "$volumeGroupID" -d 2>&1); then
+        echo "error: could not read the Apple silicon boot policy with bputil" >&2
+        echo "$bootPolicy" >&2
+        exit 1
+      fi
+
+      if ! printf '%s\n' "$bootPolicy" |
+        /usr/bin/grep -Eq '\(smb2\):[[:space:]]+1[[:space:]]*$'; then
+        printMacfuseRecoveryInstructions
+        exit 1
+      fi
+    fi
+
+    brewPath=${lib.escapeShellArg "${config.homebrew.prefix}/bin"}
+    runBrewAsUser() {
+      PATH="$brewPath:$PATH" /usr/bin/sudo \
+        --preserve-env=PATH \
+        --user=${lib.escapeShellArg config.system.primaryUser} \
+        --set-home \
+        /usr/bin/env brew "$@"
+    }
+
+    if ! runBrewAsUser list --cask macfuse > /dev/null 2>&1; then
+      echo "installing the declaratively configured macFUSE cask before borgbackup-fuse..." >&2
+      runBrewAsUser install --cask macfuse
+    fi
+
+    macfuseKextLoaded() {
+      /usr/bin/kmutil showloaded --list-only 2>/dev/null |
+        /usr/bin/grep 'io\.macfuse\.filesystems\.macfuse' > /dev/null
+    }
+
+    if ! macfuseKextLoaded; then
+      macosMajor=$(/usr/bin/sw_vers -productVersion | /usr/bin/cut -d. -f1)
+      macfuseKext="/Library/Filesystems/macfuse.fs/Contents/Extensions/$macosMajor/macfuse.kext"
+
+      if [ ! -d "$macfuseKext" ]; then
+        echo "error: macFUSE does not provide a kernel extension for macOS $macosMajor at:" >&2
+        echo "  $macfuseKext" >&2
+        echo "Upgrade the declared macFUSE cask, then rerun:" >&2
+        echo "  $macfuseSwitchCommand" >&2
+        exit 1
+      fi
+
+      # This also makes macOS present the Allow button after a first install.
+      # It requests a load only; policy and user approval stay under macOS
+      # control.
+      /usr/bin/kmutil load -p "$macfuseKext" > /dev/null 2>&1 || true
+
+      if ! macfuseKextLoaded; then
+        printMacfuseApprovalInstructions
+        exit 1
+      fi
+    fi
+  '';
 
   # The Dock, left to right. Setting this makes the list declarative in both
   # directions: an app dragged in by hand is gone at the next activation, and
