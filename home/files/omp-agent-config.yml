@@ -98,7 +98,7 @@ stt:
   modelName: parakeet
   submitTrigger: never
 advisor:
-  enabled: true
+  enabled: false
 tier:
   advisor: inherit
   openai: auto
