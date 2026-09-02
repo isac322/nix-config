@@ -68,7 +68,6 @@ in
     "1password" # the desktop app; the `op` CLI is in home/darwin.nix
     "ente-auth"
     "ghostty" # nixpkgs builds it for Linux only; config is in home/roles/
-    "google-chrome"
     "intellij-idea" # Ultimate; the community edition is intellij-idea-ce
     "kde-connect"
     "linear"
