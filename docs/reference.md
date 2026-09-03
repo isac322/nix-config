@@ -77,7 +77,8 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 | [Orca 런타임을 계속 띄우는 LaunchAgent](decisions/0028-orca-runtime-on-the-server-mac.md) · 자동 로그인 | ✖ | ✅ |
 | [GPG pinentry](decisions/0030-gpg-passphrase-without-a-console.md) | pinentry-mac | 키체인 + tty |
 | [WireGuard — 앱(랩탑) 대 루트 데몬(서버)](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md) | 앱 | 데몬 |
-| [Camofox API · DeskPad/macVNC + noVNC](decisions/0031-camofox-native-macos-over-wireguard.md) | ✖ | ✅ |
+| Camofox API · MCP bridge | ✅ (로컬 데스크톱) | ✅ (전용 화면) |
+| [DeskPad/macVNC + noVNC](decisions/0031-camofox-native-macos-over-wireguard.md) | ✖ | ✅ |
 
 두 맥 다 MacBook Pro 급 하드웨어이고 Touch ID 센서도 둘 다 달려 있다. 랩탑에만
 있는 이유는 하드웨어가 아니라 역할이다 — 서버 맥은 뚜껑을 닫은 채 SSH 로만
@@ -93,8 +94,8 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 
 `home/common.nix`가 `~/.omp/agent/mcp.json` 전체를 Home Manager symlink로 만든다.
 기본 registry에는 local stdio server인 `context-mode`와 Linear의 공식 remote MCP
-server가 들어간다. 서버 역할에서 `local.camofox.enable`이 켜진 경우에만
-session-aware `camofox` stdio bridge가 같은 registry에 추가된다.
+server가 들어간다. 두 Darwin 역할에서는 `local.camofox.enable`이 켜져
+session-aware `camofox` stdio bridge도 같은 registry에 추가된다.
 
 | 이름 | transport | endpoint / command | 인증 |
 |---|---|---|---|
@@ -108,11 +109,13 @@ Home Manager switch는 MCP server 정의만 갱신하고 로그인 상태를 지
 store에 비밀을 복사하지 않는다. 최초 인증과 검증 절차는
 [운영](operations.md#linear-mcp-모든-호스트)에 있다.
 
-## Camofox 원격 브라우저 (서버 맥)
+## Camofox 브라우저 (두 맥)
 
-`local.camofox.enable`이 Camofox API, DeskPad virtual display, macVNC, HTTPS
-noVNC를 한 묶음으로 켠다
-([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). Camofox,
+`local.camofox.enable`은 loopback Camofox API와 session-aware MCP bridge를 두
+맥의 Aqua 세션에 띄운다. 랩탑은 `remoteConsole = false`라 로그인한 사용자의 실제
+데스크톱에서 바로 실행하며 WireGuard, 자동 로그인, VNC가 필요 없다. 서버는
+`remoteConsole = true`로 DeskPad virtual display, macVNC, HTTPS noVNC를 함께
+켠다([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 서버의 Camofox,
 DeskPad 1.3.2, `LibVNC/macVNC`는 자동 로그인으로 생긴 `bhyoo`의 Aqua 세션에서
 한 LaunchAgent가 감독하고, noVNC는 root LaunchDaemon이다. displayplacer 1.4.0이
 DeskPad 화면을 1920×1080 main display로 정한 뒤 상류 macVNC가 ScreenCaptureKit과
@@ -334,18 +337,16 @@ endpoint, bucket, region과 S3 자격증명은
 `wrangler`, `stripe`, `gws`는 모든 노드의 같은 자리에 둔다(`home/common.nix`).
 관측 CLI가 "무슨 일이 있었는지"를 읽는 쪽이라면 이쪽은 에이전트가 실제로
 **손을 대는** 쪽이다 — Worker를 배포하고, 결제 이벤트를 찾고, 캘린더를 읽는다.
-`agent-browser`는 managed Camofox가 없는 Darwin laptop에만 추가한다. 서버 맥은
-Camofox MCP를 쓰고, NixOS server도 별도 Chrome/Chromium runtime을 설치하지 않는다.
+브라우저 자동화는 별도 CLI가 아니라 두 Darwin 역할의 Camofox MCP가 담당한다.
+NixOS server에는 Chrome/Chromium runtime을 설치하지 않는다.
 
-이름이 다른 둘과 조건부 브라우저 CLI에는 다음 주의가 필요하다.
+이름이 다른 둘에는 다음 주의가 필요하다.
 
 - **`gws`가 구글 워크스페이스 CLI다.** 상류 이름은 `@googleworkspace/cli`인데
   설치되는 바이너리는 `gws`이고, nixpkgs의 attribute도 `gws`다.
   `google-workspace-cli` 같은 attribute는 없다. 구글 저장소에 있지만
   "officially supported Google product가 아니다"라고 스스로 명시한다.
 - **`stripe-cli`가 설치하는 바이너리는 `stripe`다.**
-- **`agent-browser`는 테스트 러너가 아니다.** Vercel이 에이전트가 몰도록 만든
-  헤드리스 브라우저 CLI이며, 이 구성에서는 Darwin laptop에만 설치한다.
 - **`wrangler` 는 클로저가 774 MiB 다.** 상류가 `workerd` 와 여러 플랫폼용
   `esbuild` 를 함께 담기 때문이고, 잘라낼 `subPackages` 같은 손잡이가 없다.
   `cache.nixos.org` 에서 그대로 받아오니 빌드 시간은 들지 않는다.

@@ -28,6 +28,13 @@ in
   # names for anything else that might want them.
   nixpkgs.overlays = [ inputs.nixpkgs-firefox-darwin.overlay ];
 
+  # Run Camofox on the desktop session already in front of the user. The local
+  # API needs neither the unattended remote console nor its WireGuard tunnel.
+  local.camofox = {
+    enable = true;
+    remoteConsole = false;
+  };
+
   # The two App Store only applications (0016). Both are role-level rather than
   # shared, for different reasons: KakaoTalk is a window and the server Mac has
   # nobody to look at it, and WireGuard is the *app*, which the server Mac

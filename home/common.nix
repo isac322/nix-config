@@ -462,8 +462,6 @@ in
     # `gws` is Google's Workspace CLI — @googleworkspace/cli upstream — and
     # `stripe-cli` installs `stripe`. The overlay makes `pkgs.slack-cli` the
     # Slack app CLI rather than nixpkgs's unrelated webhook script.
-    # agent-browser is a laptop-only fallback. The server Mac uses managed
-    # Camofox, and the NixOS server should not carry or launch Chrome/Chromium.
     pkgs.slack-cli
     pkgs.wrangler
     pkgs.stripe-cli
@@ -513,8 +511,7 @@ in
     pkgs.sccache
     pkgs.lld
     (if pkgs.stdenv.hostPlatform.isDarwin then pkgs.mold-unwrapped else pkgs.mold)
-  ]
-  ++ lib.optional (pkgs.stdenv.hostPlatform.isDarwin && !camofoxCfg.enable) pkgs.agent-browser;
+  ];
 
   programs.git = {
     enable = true;

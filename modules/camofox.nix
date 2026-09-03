@@ -1,13 +1,12 @@
-# Camofox on the unattended Mac.
+# Camofox browser automation and its optional unattended remote console.
 #
-# The browser, DeskPad virtual monitor, and full-display macVNC backend belong
-# to the logged-in Aqua session and are declared in
-# home/roles/darwin-server.nix. The root module owns the persistent VNC secret,
-# derived RFB auth file, and HTTPS noVNC bridge.
+# The browser API and desktop integration belong to the logged-in Aqua session
+# and are declared in Home Manager. This root module owns the VNC secret, RFB
+# auth file, and HTTPS noVNC bridge used only by the remote console.
 #
-# The browser API and VNC backend bind loopback only. noVNC is the sole
-# network-facing component, and it refuses to start until WireGuard has
-# published the one address it may bind.
+# The browser API and VNC backend bind loopback only. When the remote console is
+# enabled, noVNC is the sole network-facing component and refuses to start until
+# WireGuard publishes the one address it may bind.
 {
   config,
   lib,
@@ -205,9 +204,18 @@ let
 in
 {
   options.local.camofox = {
-    enable = lib.mkEnableOption ''
-      Camofox in the automatic Aqua session, with the dedicated virtual display
-      exposed through WireGuard-only HTTPS noVNC'';
+    enable = lib.mkEnableOption "the loopback Camofox browser API and local desktop integration";
+
+    remoteConsole = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Run Camofox on a dedicated virtual display and expose its VNC backend
+        through WireGuard-only HTTPS noVNC. This mode is for unattended Macs;
+        local desktop use needs only local.camofox.enable.
+      '';
+    };
+
     apiPort = lib.mkOption {
       type = lib.types.port;
       default = 9377;
@@ -279,37 +287,37 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = [
+    assertions = lib.optionals cfg.remoteConsole [
       {
         assertion = config.local.autoLogin.enable;
         message = ''
-          local.camofox.enable requires local.autoLogin.enable: the Camofox
-          browser is headful and must run in an automatically-created Aqua
-          session after an unattended reboot.
+          local.camofox.remoteConsole requires local.autoLogin.enable: the
+          dedicated display is headful and must run in an automatically-created
+          Aqua session after an unattended reboot.
         '';
       }
       {
         assertion = config.local.wireguard.enable;
         message = ''
-          local.camofox.enable requires local.wireguard.enable: noVNC is not
-          allowed to fall back to an ordinary network interface.
+          local.camofox.remoteConsole requires local.wireguard.enable: noVNC
+          is not allowed to fall back to an ordinary network interface.
         '';
       }
       {
         assertion =
           cfg.apiPort != cfg.vncPort && cfg.apiPort != cfg.novncPort && cfg.vncPort != cfg.novncPort;
-        message = "Camofox API, VNC, and noVNC ports must be distinct.";
+        message = "Camofox remote-console API, VNC, and noVNC ports must be distinct.";
       }
       {
         assertion = cfg.passwordFile != cfg.rfbAuthFile;
-        message = "Camofox master password and RFB auth paths must differ.";
+        message = "Camofox remote-console master password and RFB auth paths must differ.";
       }
     ];
 
     # noVNC needs no window server, so keep it in the system domain. The Aqua
     # LaunchAgent may arrive later; websockify connects to the loopback backend
     # only when a browser client requests a VNC session.
-    launchd.daemons.camofox-novnc = {
+    launchd.daemons.camofox-novnc = lib.mkIf cfg.remoteConsole {
       # Like the WireGuard daemon, use `command` so nix-darwin puts wait4path in
       # front of the store path during early boot.
       command = "${novnc}";
@@ -322,7 +330,7 @@ in
       };
     };
 
-    system.activationScripts.postActivation.text = ''
+    system.activationScripts.postActivation.text = lib.mkIf cfg.remoteConsole ''
       passwordFile=${lib.escapeShellArg cfg.passwordFile}
       passwordDir=${lib.escapeShellArg (dirOf cfg.passwordFile)}
       rfbAuthFile=${lib.escapeShellArg cfg.rfbAuthFile}

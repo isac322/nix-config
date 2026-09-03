@@ -132,10 +132,13 @@ in
   # already decided (0028).
   local.orca.enable = true;
 
-  # The headful browser API and its dedicated-display remote console. Both
-  # endpoints learn their bind address from WireGuard at run time; there is no
-  # ordinary-interface fallback written here or in modules/camofox.nix.
-  local.camofox.enable = true;
+  # The headful browser API and its dedicated-display remote console. noVNC
+  # learns its bind address from WireGuard at run time and has no
+  # ordinary-interface fallback.
+  local.camofox = {
+    enable = true;
+    remoteConsole = true;
+  };
 
   # Come back without someone pressing the button.
   #

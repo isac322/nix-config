@@ -107,7 +107,10 @@ let
   };
 in
 {
-  imports = [ ./keyboard.nix ];
+  imports = [
+    ./camofox.nix
+    ./keyboard.nix
+  ];
 
   programs.ssh = {
     enable = true;
