@@ -70,6 +70,13 @@
       flake = false;
     };
 
+    # Gajae Code standalone release binary manifest. Tracks the latest stable
+    # release binaries and their sha256 checksums, updated by `nix flake update`.
+    gajae-code-manifest = {
+      url = "https://github.com/Yeachan-Heo/gajae-code/releases/latest/download/gajae-release-binaries-v1.json";
+      flake = false;
+    };
+
     # Lets nix-darwin manage /etc/nix/nix.custom.conf declaratively. It forces
     # `nix.enable = false`, leaving /etc/nix/nix.conf to Determinate Nix.
     # No `follows` here either: upstream advises against it (FlakeHub cache).
@@ -206,14 +213,20 @@
       # an input instead of copying the directory. pkgs/overlay.nix remains the
       # single definition: the configurations below import the same file, so
       # there is no second copy to drift.
-      overlays.default = import ./pkgs/overlay.nix;
+      overlays.default = import ./pkgs/overlay.nix {
+        gajaeCodeManifest = inputs.gajae-code-manifest;
+      };
 
       packages = forAllSystems (
         system:
         let
           pkgs = import nixpkgs {
             inherit system;
-            overlays = [ (import ./pkgs/overlay.nix) ];
+            overlays = [
+              (import ./pkgs/overlay.nix {
+                gajaeCodeManifest = inputs.gajae-code-manifest;
+              })
+            ];
             config.allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getName pkg) [ "sentry" ];
           };
         in
@@ -254,7 +267,11 @@
       apps = forAllSystems (
         system:
         let
-          pkgs = nixpkgs.legacyPackages.${system}.extend (import ./pkgs/overlay.nix);
+          pkgs = nixpkgs.legacyPackages.${system}.extend (
+            import ./pkgs/overlay.nix {
+              gajaeCodeManifest = inputs.gajae-code-manifest;
+            }
+          );
           inherit (nixpkgs) lib;
           targets = builtins.attrValues (
             builtins.removeAttrs self.packages.${system} [

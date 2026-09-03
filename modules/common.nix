@@ -4,7 +4,12 @@
 # NOT live here. `system.stateVersion` is the trap: nix-darwin types it as an
 # integer and NixOS as a string, so it is set in modules/darwin.nix and
 # modules/nixos.nix separately.
-{ lib, pkgs, ... }:
+{
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   # llm-agents' `overlays.shared-nixpkgs` used to be here and is deliberately
@@ -15,7 +20,9 @@
   # for why it must stay off Linux.
   nixpkgs.overlays = [
     # Locally packaged CLIs — see pkgs/overlay.nix.
-    (import ../pkgs/overlay.nix)
+    (import ../pkgs/overlay.nix {
+      gajaeCodeManifest = inputs.gajae-code-manifest or null;
+    })
   ];
 
   nixpkgs.config.allowUnfreePredicate =

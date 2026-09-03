@@ -579,8 +579,8 @@ in
     agents.codex
     agents.omp
 
-    # Gajae Code is also an agent harness, but comes from the verified
-    # platform release binary in pkgs/ rather than the llm-agents input.
+    # Gajae Code is also an agent harness, tracking verified upstream release
+    # binaries via flake input rather than the llm-agents input.
     pkgs.gajae-code
 
     # BearDrive's CLI is useful on every node, but joining a project is mutable

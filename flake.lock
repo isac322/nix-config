@@ -194,6 +194,18 @@
         "url": "https://github.com/hercules-ci/flake-parts.git"
       }
     },
+    "gajae-code-manifest": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-VHtDW2LQMKVCSL+iI+HCG4X3ZuGRZdlpv6vLNdrfnu8=",
+        "type": "file",
+        "url": "https://github.com/Yeachan-Heo/gajae-code/releases/latest/download/gajae-release-binaries-v1.json"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/Yeachan-Heo/gajae-code/releases/latest/download/gajae-release-binaries-v1.json"
+      }
+    },
     "gentle-ai": {
       "flake": false,
       "locked": {
@@ -546,6 +558,7 @@
       "inputs": {
         "agent-toolkit": "agent-toolkit",
         "determinate": "determinate",
+        "gajae-code-manifest": "gajae-code-manifest",
         "gentle-ai": "gentle-ai",
         "home-manager": "home-manager",
         "humanizer": "humanizer",

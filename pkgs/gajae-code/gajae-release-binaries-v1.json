@@ -1,0 +1,34 @@
+{
+  "schema": "gajae-release-binaries-v1",
+  "schema_version": 1,
+  "release_version": "0.16.0",
+  "release_channel": "stable",
+  "tag": "v0.16.0",
+  "binaries": [
+    {
+      "name": "gjc-linux-x64",
+      "sha256": "0fc7bb4f30ab9128fbdaecccb4927cdde3e818ad78ed7c5bf32e0f7132e91e0c",
+      "size": 159085768
+    },
+    {
+      "name": "gjc-linux-arm64",
+      "sha256": "c654ba5c7a918ce2467a36f1d9179b51c3ce9ceabddad98215148e0633cd1d38",
+      "size": 157927416
+    },
+    {
+      "name": "gjc-darwin-arm64",
+      "sha256": "b218bb555a7181371668817037f8ee0ba9512b4210efc2acf209843da8b847fc",
+      "size": 137621744
+    },
+    {
+      "name": "gjc-darwin-x64",
+      "sha256": "7caff2b44608b9b3e316e92586ab39645eb5edbff52e3a66b8983c9320992462",
+      "size": 145618336
+    },
+    {
+      "name": "gjc-windows-x64.exe",
+      "sha256": "83dd8ec3a9219b9db54f18b451c976aff917e6b3668951606d08825de7fd1d54",
+      "size": 163712000
+    }
+  ]
+}

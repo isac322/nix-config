@@ -1,6 +1,6 @@
 # Gajae Code publishes one self-contained executable per supported platform.
-# Pinning those release artifacts avoids rebuilding its Bun workspace and native
-# addons while keeping every configured host on the same version.
+# Using the upstream release binaries manifest avoids rebuilding its Bun workspace
+# and native addons while keeping hosts synchronized with latest releases via flake update.
 {
   autoPatchelfHook,
   fetchurl,
@@ -8,34 +8,47 @@
   stdenvNoCC,
   versionCheckHook,
   writableTmpDirAsHomeHook,
+  manifestFile ? null,
 }:
 
-stdenvNoCC.mkDerivation (finalAttrs: {
-  pname = "gajae-code";
-  version = "0.15.3";
+let
+  manifest =
+    if manifestFile != null then
+      builtins.fromJSON (builtins.readFile manifestFile)
+    else
+      builtins.fromJSON (builtins.readFile ./gajae-release-binaries-v1.json);
 
-  src =
-    {
-      "aarch64-darwin" = fetchurl {
-        url = "https://github.com/Yeachan-Heo/gajae-code/releases/download/v${finalAttrs.version}/gjc-darwin-arm64";
-        hash = "sha256-r/oKGvMXNZHkaFZ+x3o4kN8Bqkjng275w/mtMhCGnRY=";
-      };
-      "x86_64-darwin" = fetchurl {
-        url = "https://github.com/Yeachan-Heo/gajae-code/releases/download/v${finalAttrs.version}/gjc-darwin-x64";
-        hash = "sha256-BfuRe/6TOM6OvnvX1LNsfrN/+5/0SBgUotOzmj09lvU=";
-      };
-      "aarch64-linux" = fetchurl {
-        url = "https://github.com/Yeachan-Heo/gajae-code/releases/download/v${finalAttrs.version}/gjc-linux-arm64";
-        hash = "sha256-ja3YrLv14BGz4ZWoQS9BWO0rrv3y0c6UHWewiU2epbs=";
-      };
-      "x86_64-linux" = fetchurl {
-        url = "https://github.com/Yeachan-Heo/gajae-code/releases/download/v${finalAttrs.version}/gjc-linux-x64";
-        hash = "sha256-gpcs2BgwPIrnnV4S9W+wFyeqMxGXw0ebtMYU0MkF6cg=";
-      };
-    }
-    .${stdenvNoCC.hostPlatform.system}
+  binaryFor =
+    name:
+    let
+      matches = builtins.filter (b: b.name == name) manifest.binaries;
+    in
+    if matches == [ ] then
+      throw "Gajae Code manifest missing binary for ${name}"
+    else
+      builtins.head matches;
+
+  systemToBinaryName = {
+    "aarch64-darwin" = "gjc-darwin-arm64";
+    "x86_64-darwin" = "gjc-darwin-x64";
+    "aarch64-linux" = "gjc-linux-arm64";
+    "x86_64-linux" = "gjc-linux-x64";
+  };
+
+  targetBinaryName =
+    systemToBinaryName.${stdenvNoCC.hostPlatform.system}
       or (throw "Gajae Code does not publish a binary for ${stdenvNoCC.hostPlatform.system}");
 
+  targetBinary = binaryFor targetBinaryName;
+in
+stdenvNoCC.mkDerivation (finalAttrs: {
+  pname = "gajae-code";
+  version = manifest.release_version;
+
+  src = fetchurl {
+    url = "https://github.com/Yeachan-Heo/gajae-code/releases/download/v${manifest.release_version}/${targetBinary.name}";
+    sha256 = targetBinary.sha256;
+  };
   strictDeps = true;
   dontUnpack = true;
   dontBuild = true;

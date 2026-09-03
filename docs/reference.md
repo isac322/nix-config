@@ -235,9 +235,9 @@ password-file 형식으로 변환해 `/var/lib/camofox/vnc-auth`에
 
 앞의 셋은 nixpkgs가 아니라 `llm-agents` 인풋에서 온다. nixpkgs-unstable 채널이
 master를 며칠씩 뒤따라오는 반면 이쪽은 매일 상류를 따라간다. `gjc`는
-`pkgs/gajae-code/package.nix`가 Gajae Code 0.15.3의 공식 standalone binary를
-platform별 고정 hash로 가져온다. 둘 다 aarch64-darwin과
-x86_64-linux·aarch64-linux를 지원하므로 리눅스 서버에서도 같은 줄이 통한다.
+`gajae-code-manifest` flake input을 통해 공식 standalone release manifest를
+추적하여 `nix flake update` 시 자동으로 최신 릴리스 바이너리를 가져온다.
+aarch64-darwin과 x86_64-linux·aarch64-linux를 지원하므로 리눅스 서버에서도 같은 줄이 통한다.
 
 **Orca 는 여기 없다.** GUI 앱이라 cask 로 오고, 그래서 맥 둘에만 있다 —
 위 [GUI 앱](#gui-앱) 을 보라.
@@ -541,7 +541,7 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `langfuse-cli` | npm 타르볼 | lock을 직접 만들어 함께 담았다 |
 | `vercel-cli` | npm 타르볼 | manifest를 `postPatch`에서 편집 |
 | `beardrive` | GitHub release binaries | BearDrive 0.15.0의 platform별 `bdrive` |
-| `gajae-code` | GitHub release binaries | Gajae Code 0.15.3의 platform별 `gjc` |
+| `gajae-code` | GitHub release binaries | manifest flake input 추적 platform별 `gjc` |
 | `sentry` | GitHub release npm tarball | getsentry/cli 0.42.2 |
 | `slack-cli` | GitHub 타르볼 | nixpkgs의 동명 attribute를 갈아끼운다 |
 | `bun` | nixpkgs override | 1.4.0. 잠긴 nixpkgs의 1.3.13보다 앞선 임시 override |
