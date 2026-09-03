@@ -28,8 +28,8 @@ Classify by when the full body must be available, not by the filename shape you 
 |---|---|---|---|---|
 | `context` | Broad session-opening background | `AGENTS.md` | `CLAUDE.md` | `AGENTS.md` |
 | `persistent` | Universal invariant that must remain prominent | `RULES.md` | unconditional user rule | `AGENTS.md` fallback |
-| `onDemand` | Operation or task procedure safe to load when triggered | ordinary named rule | generated personal skill | generated personal skill |
-| `critical` | Late, costly, or irreversible action guard that cannot rely on voluntary loading | `alwaysApply` rule | unconditional user rule | `AGENTS.md` fallback |
+| `onDemand` | Procedure safe to load only when triggered because omitting it cannot bypass a mandatory prerequisite, validity, waiting, authorization, or completion condition | ordinary named rule | generated personal skill | generated personal skill |
+| `critical` | Mandatory prerequisite, lifecycle transition, validity or invalidation rule, waiting condition, authorization gate, or costly or irreversible action guard that cannot rely on voluntary loading | `alwaysApply` rule | unconditional user rule | `AGENTS.md` fallback |
 | `personality` | OMP main-agent response style | `PERSONALITY.md` | unsupported | unsupported |
 
 Fallback composition does not create another canonical source. Claude or Codex may receive a body through a different surface, but the manifest still points to the same segment file.
@@ -44,7 +44,7 @@ Before adding or changing a segment or skill:
 4. Split a policy into multiple segments only when the parts have genuinely different delivery classes. Each segment must own non-overlapping semantics.
 5. Never copy an ordered workflow, state machine, decision matrix, or exception set into a second segment, skill, rule, or context fragment.
 
-A workflow may refer to its critical guard by name. It must not restate the guard's authorization matrix. A reusable technique skill may explain how to evaluate work, but it must defer mandatory authority and completion gates to the applicable policy segment.
+A workflow may refer to its critical guard by name. It must not restate the guard's authorization or mandatory lifecycle state machine. A reusable technique skill may explain how to evaluate work, but it must defer mandatory authority, freshness, waiting, invalidation, and completion gates to the applicable policy segment.
 
 ## Classification procedure
 
@@ -53,7 +53,7 @@ Resolve these questions in order:
 1. **Enforcement:** If behavior must be mechanically guaranteed, use branch protection, a hook, permissions, or another enforcement mechanism. Prose alone is not a hard block.
 2. **Ownership:** Decide whether the instruction is personal-global, project-owned, or temporary. Do not persist one-session preferences.
 3. **Harness scope:** Set only the harnesses that need the meaning. A harness-specific tool preference does not belong in every harness.
-4. **Availability:** Choose `context`, `persistent`, `onDemand`, `critical`, or `personality` from the failure mode above.
+4. **Availability:** Choose `context`, `persistent`, `onDemand`, `critical`, or `personality` from the failure caused by omission. A procedural step is still `critical` when skipping it could falsely satisfy a required outcome or permit completion.
 5. **Policy or skill:** Use a manifest segment for durable operating policy. Use a regular skill for a substantial reusable procedure or body of knowledge whose content is useful as a capability, not merely as an action guard.
 6. **Granularity:** Give one cohesive semantic unit one source body. Adjacent topics remain separate unless the user explicitly requests consolidation.
 
@@ -81,7 +81,8 @@ For approval-gated policy, define exactly:
 - which material changes require new approval;
 - whether any owner or repository exceptions exist.
 
-Keep that matrix in the `critical` segment. The corresponding `onDemand` workflow should only prepare the target, run prerequisites, invoke the guard, and execute the authorized action.
+Keep that matrix in the `critical` segment. The corresponding `onDemand` workflow should only prepare the target, run non-gating mechanics, invoke the guard, and execute the authorized action.
+For a mandatory lifecycle, keep the required actor or request, the state that makes a response valid, every invalidating event, required re-request and waiting transitions, and all completion or merge blockers in the `critical` segment. The `onDemand` workflow may own collection, evaluation, implementation, verification, and response mechanics, but not a transition whose omission could falsely complete the task.
 
 ## Skills
 
@@ -122,7 +123,7 @@ Current canonical meanings include:
 - public API migration checks: `public-api` (`onDemand`);
 - destructive operation preparation: `destructive-operations` (`onDemand`);
 - completion evidence: `verification` (`onDemand`);
-- pull request creation, review, and merge: paired non-overlapping `onDemand` workflow and `critical` guard segments;
+- pull request creation, review, and merge: paired non-overlapping `onDemand` mechanics and `critical` guards, with mandatory metadata, current-head review lifecycle, authorization, and completion blockers owned by the guards;
 - reusable review evaluation technique: `home/skills/receiving-code-review/SKILL.md`.
 
 ## Verification

@@ -268,6 +268,12 @@ description을 선언하고 `home/agent-instructions.nix`가 다음처럼 compil
 | `critical` | `alwaysApply` rule | user rule | `AGENTS.md` fallback |
 | `personality` | `PERSONALITY.md` | 미지원 | 미지원 |
 
+`onDemand`는 생략되어도 필수 prerequisite, 상태 유효성, 대기, 승인, 완료 조건을
+우회하지 않는 절차에만 사용한다. 형식상 workflow 단계여도 누락 시 작업을 잘못
+완료하거나 merge할 수 있다면 `critical`이다. 필수 reviewer 요청, head 변경에 따른
+기존 review 무효화, 재요청, 새 응답 대기처럼 하나의 lifecycle을 이루는 상태 전이는
+전체를 `critical` guard가 소유한다.
+
 frontmatter와 fallback copy는 Nix가 생성한다. canonical body에는 target-specific
 metadata를 넣지 않으며, workflow와 critical guard는 의미가 겹치지 않는 segment로
 나눈다. OMP는 generated policy skill 이름을 무시하고 native rule만 사용하므로 같은

@@ -70,14 +70,14 @@ in
       400
     )
     // {
-      description = "Block pull request creation unless the finalized arguments and base-repository approval gate are satisfied.";
+      description = "Block pull request creation unless mandatory reviewer, assignee, and approval conditions are satisfied.";
     };
   pull-request-review-guard =
     (segment ./files/agent-instructions/segments/pull-request-review-guard.md "critical" allHarnesses
       500
     )
     // {
-      description = "Preserve reviewer-authority and pending runbear-bot guards during pull request review handling.";
+      description = "Require current-head runbear-bot review for runbear-io pull requests and preserve review authority and pending-state guards.";
     };
   pull-request-merge-authorization =
     (segment ./files/agent-instructions/segments/pull-request-merge-authorization.md "critical"
