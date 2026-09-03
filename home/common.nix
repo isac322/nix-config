@@ -212,48 +212,79 @@ let
     apiPort = 9377;
   } osConfig;
 
+  # The MCP services every agent on this machine should see. Both OMP and
+  # Claude Code accept the same server object, so the definitions live once
+  # here and each agent's registry is derived below.
+  #
+  # These are definition-only remote entries. Each agent discovers OAuth
+  # metadata from the endpoint and stores the resulting credential in its own
+  # state, so no auth stanza is ever written back into a declared file. Vanta
+  # publishes one endpoint per data region; the US host is the whole
+  # declaration.
+  remoteMcpServers = {
+    linear = {
+      type = "http";
+      url = "https://mcp.linear.app/mcp";
+    };
+
+    vanta = {
+      type = "http";
+      url = "https://mcp.vanta.com/mcp";
+    };
+  };
+
+  # The adapter is only an HTTP client to the launchd-owned Camofox singleton.
+  # Its argument names the calling agent, which is how the wrapper finds that
+  # agent's durable session identifier — OMP's per-terminal transcript
+  # breadcrumb, Claude Code's `CLAUDE_CODE_SESSION_ID` — so `/resume` keeps the
+  # same tab namespace. The user stays `omp` for every agent: that is the
+  # shared cookie and profile namespace the URL handler also writes into, and
+  # splitting it per agent would split the logins with it.
+  camofoxMcpServer = client: {
+    type = "stdio";
+    command = lib.getExe pkgs.camofox-mcp-session;
+    args = [ client ];
+    env = {
+      CAMOFOX_BASE_URL = "http://127.0.0.1:${toString camofoxCfg.apiPort}";
+      CAMOFOX_USER_ID = "omp";
+    };
+  };
+
   # OMP reads one user-level MCP registry on every host. Remote services stay
   # here beside plugin-backed stdio servers so a switch produces the complete
   # registry and removes entries that are no longer declared.
   #
-  # Linear is a definition-only remote entry. OMP discovers OAuth metadata from
-  # the endpoint, stores the resulting credential outside this file under the
-  # deterministic server-URL key, and therefore does not need to write an auth
-  # stanza back into this Home Manager symlink.
-  ompMcpServers = {
-    "context-mode" = {
-      type = "stdio";
-      command = lib.getExe pkgs.nodejs;
-      args = [ "${pkgs.omp-plugins}/node_modules/context-mode/server.bundle.mjs" ];
-    };
-
-    linear = {
-      type = "http";
-      url = "https://mcp.linear.app/mcp";
-      timeout = 120000;
-    };
-  }
-  // lib.optionalAttrs camofoxCfg.enable {
-    # The session wrapper derives OMP's durable UUID from its per-terminal
-    # transcript breadcrumb. The underlying adapter remains only an HTTP
-    # client to the launchd-owned Camofox singleton.
-    camofox = {
-      type = "stdio";
-      command = lib.getExe pkgs.camofox-mcp-session;
-      args = [ "omp" ];
-      timeout = 120000;
-      env = {
-        CAMOFOX_BASE_URL = "http://127.0.0.1:${toString camofoxCfg.apiPort}";
-        CAMOFOX_USER_ID = "omp";
+  # `timeout` is OMP's own field; Claude Code has no equivalent in a server
+  # entry and takes its budget from `MCP_TIMEOUT` instead, so it is applied
+  # here rather than in the shared definitions.
+  ompMcpServers = lib.mapAttrs (_: server: server // { timeout = 120000; }) (
+    {
+      # An OMP plugin that happens to speak MCP. It ships inside the plugin set
+      # this file installs, so it stays out of the shared definitions.
+      "context-mode" = {
+        type = "stdio";
+        command = lib.getExe pkgs.nodejs;
+        args = [ "${pkgs.omp-plugins}/node_modules/context-mode/server.bundle.mjs" ];
       };
-    };
-  };
+    }
+    // remoteMcpServers
+    // lib.optionalAttrs camofoxCfg.enable { camofox = camofoxMcpServer "omp"; }
+  );
 
   ompMcpConfig = {
     "$schema" =
       "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json";
     mcpServers = ompMcpServers;
   };
+
+  # Claude Code's user-scope registry. Unlike OMP it has no declarative file to
+  # own: server definitions live only in ~/.claude.json, next to onboarding
+  # state, per-project history and cached account data, so the activation below
+  # merges this set into that file instead of replacing it. The alternative,
+  # a system-wide managed-mcp.json, takes exclusive control of MCP and would
+  # suppress the claude.ai connectors and every plugin-provided server.
+  claudeMcpServers =
+    remoteMcpServers // lib.optionalAttrs camofoxCfg.enable { camofox = camofoxMcpServer "claude"; };
 
   # Claude Code reads one user-level settings file on every host. Keep only the
   # explicitly shared UI and safety controls here: machine-local hooks,
@@ -335,6 +366,48 @@ in
 
     if [ -e "$plugins/omp-plugins.lock.json" ] && [ ! -L "$plugins/omp-plugins.lock.json" ]; then
       $DRY_RUN_CMD rm -f "$plugins/omp-plugins.lock.json"
+    fi
+  '';
+
+  # Claude Code keeps its user-scope MCP servers in ~/.claude.json, a file it
+  # rewrites itself, so this is a merge rather than a home.file link: the
+  # `mcpServers` key is replaced wholesale and every sibling key — onboarding
+  # state, per-project history, cached account data — is carried through
+  # untouched. Replacing the key rather than merging into it is what makes the
+  # declaration authoritative, the same way the OMP registry is: a server
+  # dropped from Nix leaves Claude Code on the next switch, and a server added
+  # by hand with `claude mcp add --scope user` does not survive one.
+  #
+  # An unchanged registry is left alone rather than rewritten, so a switch
+  # while Claude Code is running does not race it for the file.
+  home.activation.claudeMcpRegistry = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    config="$HOME/.claude.json"
+    servers=${lib.escapeShellArg (builtins.toJSON claudeMcpServers)}
+    jq=${lib.getExe pkgs.jq}
+
+    if [ -f "$config" ] && "$jq" -e --argjson servers "$servers" \
+      '(.mcpServers // {}) == $servers' "$config" > /dev/null; then
+      :
+    elif [ -n "$DRY_RUN_CMD" ]; then
+      echo "claude-mcp-registry: would write mcpServers into $config." >&2
+    else
+      # 0600, matching what Claude Code creates itself: the file holds an
+      # OAuth account record even before any MCP server is declared.
+      umask 077
+      [ -f "$config" ] || echo '{}' > "$config"
+
+      # The rename only happens once jq has produced the whole document, so a
+      # corrupt or unreadable ~/.claude.json fails the switch instead of being
+      # replaced by a truncated one.
+      tmp=$(${pkgs.coreutils}/bin/mktemp "$config.hm-XXXXXX")
+
+      if "$jq" --argjson servers "$servers" '.mcpServers = $servers' "$config" > "$tmp"; then
+        ${pkgs.coreutils}/bin/mv -f "$tmp" "$config"
+      else
+        ${pkgs.coreutils}/bin/rm -f "$tmp"
+        echo "claude-mcp-registry: could not rewrite $config; left unchanged." >&2
+        exit 1
+      fi
     fi
   '';
 
