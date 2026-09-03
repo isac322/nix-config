@@ -263,7 +263,7 @@ let
       # this file installs, so it stays out of the shared definitions.
       "context-mode" = {
         type = "stdio";
-        command = lib.getExe pkgs.nodejs;
+        command = lib.getExe pkgs.bun;
         args = [ "${pkgs.omp-plugins}/node_modules/context-mode/server.bundle.mjs" ];
       };
     }
