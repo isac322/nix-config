@@ -603,6 +603,29 @@ in
   programs.zsh = {
     enable = true;
     enableCompletion = false;
+
+    # The escape hatch for values this repository must not carry. Everything
+    # Nix writes ends up in the world-readable store and in this repository's
+    # history, so a proxy URL with basic auth, or a gateway token, belongs in a
+    # file Nix only agrees to read. Nix owns the source lines below; the file
+    # itself is created and edited by hand and is never linked, generated or
+    # deleted by a switch, so there is nothing for one to conflict with.
+    #
+    # The environment is the one place every agent here already looks: Claude
+    # Code, Codex and OMP all take their network path from `HTTPS_PROXY` and
+    # friends, or from a gateway base URL and token, so a single file serves
+    # all three. Its absence is the normal state on a host with no proxy.
+    #
+    # `.zshenv` rather than `.zshrc`: an agent started from a script or an
+    # editor gets no interactive shell, and Home Manager appends `envExtra`
+    # outside the `[[ ! -o login ]]` guard around its own body, so a login
+    # shell reads it too.
+    envExtra = ''
+      if [ -r "$HOME/.config/agents/env.sh" ]; then
+        . "$HOME/.config/agents/env.sh"
+      fi
+    '';
+
     initContent = lib.mkAfter zshInit;
   };
 
