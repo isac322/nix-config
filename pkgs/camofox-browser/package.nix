@@ -1,20 +1,35 @@
 # @askjo/camofox-browser is published with its JavaScript already built, but
-# without a lock file.  Keep the upstream manifest and a generated lock beside
+# without a lock file. Keep the upstream manifest and a generated lock beside
 # this expression so buildNpmPackage can fetch the complete dependency graph as
 # a fixed-output derivation instead of consulting npm while it builds.
 #
-# The package's postinstall script runs `npx camoufox-js fetch`.  Lifecycle
+# The package's postinstall script runs `npx camoufox-js fetch`. Lifecycle
 # scripts are deliberately disabled: Camoufox is the separate immutable Nix
 # package below, and downloading another copy during either build or runtime
 # would be both impure and the wrong architecture-selection boundary.
 {
   lib,
+  stdenv,
   buildNpmPackage,
   fetchurl,
   makeWrapper,
   camoufox,
 }:
 
+let
+  camoufoxExecutable =
+    if stdenv.hostPlatform.isDarwin then
+      "${camoufox}/Applications/Camoufox.app/Contents/MacOS/camoufox"
+    else
+      "${camoufox}/lib/camoufox/camoufox-bin";
+  camoufoxResourceDir =
+    if stdenv.hostPlatform.isDarwin then
+      "${camoufox}/Applications/Camoufox.app/Contents/Resources"
+    else
+      "${camoufox}/lib/camoufox";
+  cachedExecutable =
+    if stdenv.hostPlatform.isDarwin then "Camoufox.app/Contents/MacOS/camoufox" else "camoufox-bin";
+in
 buildNpmPackage (finalAttrs: {
   pname = "camofox-browser";
   version = "1.13.1";
@@ -24,15 +39,15 @@ buildNpmPackage (finalAttrs: {
     hash = "sha256-QftpwzCdTkK2E7gAnXk7jzCIo66+lnnFqQYetlKLzo0=";
   };
 
-  # npm's published tarball has no lock file.  Copy both files because this
+  # npm's published tarball has no lock file. Copy both files because this
   # lock was generated from the repository manifest, before npm normalized the
   # manifest for publication, and npm ci requires the pair to agree.
   #
-  # Camofox defaults to headless upstream.  CAMOFOX_HEADLESS=false is the
+  # Camofox defaults to headless upstream. CAMOFOX_HEADLESS=false is the
   # explicit Darwin headful path: Linux still disables headless whenever its
   # existing virtual display starts, while a missing Linux display and every
   # unset environment retain the upstream true default.
-
+  #
   # Upstream's sessionKey only selected the group used when a tab was created.
   # Listing and every tabId operation still searched all groups under userId,
   # so clients sharing cookies also shared tab visibility and control. Keep the
@@ -62,7 +77,7 @@ buildNpmPackage (finalAttrs: {
         "        headless: useVirtualDisplay ? false : CONFIG.headless,"
 
     # Camoufox's Darwin protocol schema rejects Playwright's implicit default
-    # viewport because it includes an isMobile field.  Session creation and
+    # viewport because it includes an isMobile field. Session creation and
     # launch validation already use viewport=null; keep the idle health probe
     # on the same compatible path so it does not restart a healthy browser
     # every three minutes.
@@ -72,8 +87,8 @@ buildNpmPackage (finalAttrs: {
         "    testContext = await browser.newContext({ viewport: null });"
 
     # A temporary executable symlink outside Camoufox.app breaks macOS
-    # bundle-relative XPCOM lookup.  Launch the resolved app binary directly;
-    # the Camoufox package exposes camoufox-js resources beside it.
+    # bundle-relative XPCOM lookup. Launch the resolved app binary directly;
+    # Linux keeps the compatibility shim camoufox-js expects.
     substituteInPlace lib/camoufox-executable.js \
       --replace-fail \
         "    executablePath: ensureLaunchShim(resolvedExecutable, resourceDir)," \
@@ -84,10 +99,10 @@ buildNpmPackage (finalAttrs: {
 
   npmDepsHash = "sha256-YwBkv61aYF/I3Ge/PzHyZhveBfx+Os+LaVsNxN4tE6Y=";
 
-  # --include=optional is intentional.  impit supplies its native N-API module
-  # through optional platform packages, and the Darwin build needs
-  # impit-darwin-arm64.  --ignore-scripts keeps those prebuilt artifacts while
-  # suppressing every lifecycle hook, especially the Camoufox downloader.
+  # --include=optional is intentional. impit supplies its native N-API module
+  # through optional platform packages, including both Darwin and Linux arm64.
+  # --ignore-scripts keeps those prebuilt artifacts while suppressing every
+  # lifecycle hook, especially the Camoufox downloader.
   npmFlags = [
     "--ignore-scripts"
     "--include=optional"
@@ -97,23 +112,20 @@ buildNpmPackage (finalAttrs: {
   nativeBuildInputs = [ makeWrapper ];
 
   # Only the REST server launches Camoufox. Give camoufox-js the complete
-  # compatibility layout it expects as another immutable store tree rather than
-  # letting it create ~/Library/Caches/camoufox. The MCP entry point only
-  # forwards requests to that server and needs none of the browser environment.
+  # platform-correct compatibility layout it expects as another immutable store
+  # tree rather than letting it create a per-user download cache. The MCP entry
+  # point only forwards requests to that server and needs none of this browser
+  # environment.
   postInstall = ''
     installDir="$out/share/camoufox-js"
-    mkdir -p "$installDir/Camoufox.app/Contents/MacOS"
-    ln -s ${camoufox}/Applications/Camoufox.app/Contents/MacOS/camoufox \
-      "$installDir/Camoufox.app/Contents/MacOS/camoufox"
-    ln -s ${camoufox}/Applications/Camoufox.app/Contents/Resources/properties.json \
-      "$installDir/properties.json"
-    ln -s ${camoufox}/Applications/Camoufox.app/Contents/Resources/version.json \
-      "$installDir/version.json"
-    ln -s ${camoufox}/Applications/Camoufox.app/Contents/Resources/fontconfig \
-      "$installDir/fontconfig"
+    mkdir -p "$(dirname "$installDir/${cachedExecutable}")"
+    ln -s ${camoufoxExecutable} "$installDir/${cachedExecutable}"
+    ln -s ${camoufoxResourceDir}/properties.json "$installDir/properties.json"
+    ln -s ${camoufoxResourceDir}/version.json "$installDir/version.json"
+    ln -s ${camoufoxResourceDir}/fontconfig "$installDir/fontconfig"
 
     wrapProgram "$out/bin/camofox-browser" \
-      --set CAMOUFOX_EXECUTABLE "${camoufox}/Applications/Camoufox.app/Contents/MacOS/camoufox" \
+      --set CAMOUFOX_EXECUTABLE "${camoufoxExecutable}" \
       --set CAMOUFOX_INSTALL_DIR "$installDir" \
       --set CAMOFOX_DISABLE_DEFAULT_ADDONS 1 \
       --set CAMOFOX_CRASH_REPORT_ENABLED false \
@@ -125,7 +137,10 @@ buildNpmPackage (finalAttrs: {
     homepage = "https://github.com/jo-inc/camofox-browser";
     license = lib.licenses.mit;
     mainProgram = "camofox-browser";
-    platforms = [ "aarch64-darwin" ];
+    platforms = [
+      "aarch64-darwin"
+      "aarch64-linux"
+    ];
     maintainers = [ ];
   };
 })

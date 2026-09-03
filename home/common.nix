@@ -212,9 +212,9 @@ let
     apiPort = 9377;
   } osConfig;
 
-  # The MCP services every agent on this machine should see. Both OMP and
-  # Claude Code accept the same server object, so the definitions live once
-  # here and each agent's registry is derived below.
+  # The MCP services every agent on this machine should see. OMP and Claude
+  # Code accept the same server object directly; the Codex activation below
+  # derives its CLI-managed entry from the same Camofox definition.
   #
   # These are definition-only remote entries. Each agent discovers OAuth
   # metadata from the endpoint and stores the resulting credential in its own
@@ -285,6 +285,20 @@ let
   # suppress the claude.ai connectors and every plugin-provided server.
   claudeMcpServers =
     remoteMcpServers // lib.optionalAttrs camofoxCfg.enable { camofox = camofoxMcpServer "claude"; };
+
+  codexCamofoxMcpServer = camofoxMcpServer "codex";
+
+  codexCamofoxMcpAddArgs = lib.escapeShellArgs (
+    lib.concatMap (name: [
+      "--env"
+      "${name}=${codexCamofoxMcpServer.env.${name}}"
+    ]) (builtins.attrNames codexCamofoxMcpServer.env)
+    ++ [
+      "--"
+      codexCamofoxMcpServer.command
+    ]
+    ++ codexCamofoxMcpServer.args
+  );
 
   # Claude Code reads one user-level settings file on every host. Keep only the
   # explicitly shared UI and safety controls here: machine-local hooks,
@@ -409,6 +423,67 @@ in
         exit 1
       fi
     fi
+  '';
+
+  # Codex owns ~/.codex/config.toml and preserves comments and unrelated
+  # tables when its MCP commands edit one server. Compare the complete
+  # Camofox stdio definition before calling those commands: exact state is a
+  # no-op, stale state replaces only camofox, and disabling Camofox removes
+  # only that entry.
+  home.activation.codexCamofoxMcp = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    codex=${lib.escapeShellArg (lib.getExe agents.codex)}
+    jq=${lib.escapeShellArg (lib.getExe pkgs.jq)}
+    command=${lib.escapeShellArg codexCamofoxMcpServer.command}
+    args=${lib.escapeShellArg (builtins.toJSON codexCamofoxMcpServer.args)}
+    env=${lib.escapeShellArg (builtins.toJSON codexCamofoxMcpServer.env)}
+
+    ${
+      if camofoxCfg.enable then
+        ''
+          current=""
+          present=0
+          exact=0
+
+          if current=$("$codex" mcp get camofox --json 2>/dev/null); then
+            present=1
+            if printf '%s\n' "$current" | "$jq" -e \
+              --arg command "$command" \
+              --argjson args "$args" \
+              --argjson env "$env" \
+              '.transport.type == "stdio"
+                and .transport.command == $command
+                and .transport.args == $args
+                and .transport.env == $env' > /dev/null; then
+              exact=1
+            fi
+          fi
+
+          if [ "$exact" -eq 1 ]; then
+            :
+          elif [ -n "$DRY_RUN_CMD" ]; then
+            if [ "$present" -eq 1 ]; then
+              echo "codex-camofox-mcp: would replace stale camofox entry." >&2
+            else
+              echo "codex-camofox-mcp: would add camofox entry." >&2
+            fi
+          else
+            if [ "$present" -eq 1 ]; then
+              "$codex" mcp remove camofox
+            fi
+            "$codex" mcp add camofox ${codexCamofoxMcpAddArgs}
+          fi
+        ''
+      else
+        ''
+          if "$codex" mcp get camofox --json > /dev/null 2>&1; then
+            if [ -n "$DRY_RUN_CMD" ]; then
+              echo "codex-camofox-mcp: would remove camofox entry." >&2
+            else
+              "$codex" mcp remove camofox
+            fi
+          fi
+        ''
+    }
   '';
 
   home.stateVersion = "26.05";

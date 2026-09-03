@@ -613,27 +613,19 @@ open 'https://example.com'
 지운다. Orca의 Electron `chrome_crashpad_handler`는 Chrome 잔재가 아니므로
 이름만 보고 종료하거나 삭제하지 않는다.
 
-같은 wrapper를 Claude Code와 Codex에도 등록할 수 있다. 별도 플러그인은 필요 없다.
-
-```sh
-claude mcp add --scope user camofox \
-  -e CAMOFOX_BASE_URL=http://127.0.0.1:9377 \
-  -e CAMOFOX_USER_ID=omp \
-  -- camofox-browser-mcp-session claude
-
-codex mcp add camofox \
-  --env CAMOFOX_BASE_URL=http://127.0.0.1:9377 \
-  --env CAMOFOX_USER_ID=omp \
-  -- camofox-browser-mcp-session codex
-```
+OMP, Claude Code, Codex의 `camofox` MCP 등록은 모두 Home Manager switch가 선언적으로
+관리한다. OMP는 관리되는 registry 파일을 읽고, Claude Code는 `~/.claude.json`의
+관리되는 server set을 쓰며, Codex는 고정된 Codex CLI로 `camofox` 항목만 확인하고
+필요할 때 교체한다. Codex의 다른 MCP 항목과 `~/.codex/config.toml`의 주석·다른
+table은 그대로 둔다. `local.camofox.enable = false`이면 각 registry에서 `camofox`가
+제거된다. 수동 `claude mcp add`나 `codex mcp add`는 필요 없다.
 
 Claude Code는 stdio MCP 자식에게 `CLAUDE_CODE_SESSION_ID`를 전달하며 resume 때도 같은
-값을 유지하므로 정확히 대화별 namespace가 된다. 현재 Codex 0.147.0은 thread ID를
-MCP 자식 환경에 전달하지 않는다. 따라서 Codex는 adapter 프로세스마다 자동 UUID를
-써서 동시에 실행한 프로세스끼리는 격리되지만, 종료 후 resume까지 같은 namespace를
-되찾지는 못한다. 그 보장까지 필요하면 Codex가 thread ID를 MCP 환경에 전달하도록
-상류가 바뀌거나 Codex 패키지를 패치해야 한다. wrapper는 향후 `CODEX_THREAD_ID` 또는
-`CODEX_SESSION_ID`가 보이면 자동으로 우선 사용한다.
+값을 유지하므로 정확히 대화별 namespace가 된다. Codex가 thread ID를 MCP 자식 환경에
+전달하지 않는 실행에서는 adapter 프로세스마다 자동 UUID를 써서 동시에 실행한
+프로세스끼리는 격리하지만, 종료 후 resume까지 같은 namespace를 되찾지는 못한다.
+wrapper는 `CODEX_THREAD_ID` 또는 `CODEX_SESSION_ID`가 제공되면 이를 우선 사용하므로,
+Codex가 해당 값을 전달하는 시점부터 별도 구성 변경 없이 resume 안정성도 얻는다.
 
 noVNC는 WireGuard 주소만 사용한다. 주소 파일이 없거나 첫 줄이 비어 있으면
 `0.0.0.0`이나 LAN 주소로 물러서지 않고 실패한다. launchd가 10초 간격으로 다시

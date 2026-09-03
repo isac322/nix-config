@@ -7,6 +7,8 @@
   nixpkgs.hostPlatform = "aarch64-linux";
 
   networking.hostName = "server";
+  local.camofox.enable = true;
+
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 22 ];

@@ -14,7 +14,8 @@ modules/           시스템 레벨
   darwin.nix         모든 macOS
   nixos.nix          모든 NixOS
   orca.nix           `local.*` 옵션 선언. 광고 주소는 터널에서 읽는다
-  camofox.nix        서버 맥의 VNC secret + WireGuard-only HTTPS noVNC 브리지
+  camofox.nix        Darwin Camofox LaunchAgent와 서버 맥의 VNC/noVNC 원격 콘솔
+  camofox-linux.nix  NixOS headless Camofox systemd 서비스
   wireguard.nix      서버 맥의 터널. 앱이 아니라 wg-quick 을 도는 루트 데몬
   auto-login.nix     kcpassword 생성 + FileVault 끄기. Aqua 서비스 때문에 있다
   mas-apps.nix       App Store 전용 앱이 없을 때 switch 가 알리게 한다
@@ -29,13 +30,14 @@ home/              사용자 레벨 (home-manager)
   common.nix         모든 기기 공통 — 설정의 대부분이 여기 있다
   darwin.nix         모든 macOS
   linux.nix          NixOS 전용
+  camofox.nix        두 macOS 역할의 공통 Camofox LaunchAgent
   roles/
     darwin-laptop.nix   데스크톱 앱
     darwin-server.nix   Rust · 언어 서버
 pkgs/              nixpkgs 에 없거나 쓸 수 없는 형태인 패키지 + overlay.nix
   pinentry-keychain/  키체인을 읽는 pinentry. 콘솔 없는 맥용
-  camoufox/          고정한 macOS arm64 브라우저 코어
-  camofox-browser/   @askjo/camofox-browser API 서버
+  camoufox/          고정한 macOS/Linux arm64 브라우저 코어
+  camofox-browser/   @askjo/camofox-browser API 서버와 플랫폼별 실행 wrapper
   camofox-url-handler/ macOS HTTP/HTTPS 링크를 Camofox API로 전달하는 app
 .claude/skills/    이 레포에 대해 되풀이하는 절차
   ssh-audit/         sshd 권장값이 움직였는지 다시 대조한다
@@ -94,8 +96,8 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 
 `home/common.nix`가 `~/.omp/agent/mcp.json` 전체를 Home Manager symlink로 만든다.
 기본 registry에는 local stdio server인 `context-mode`와 Linear의 공식 remote MCP
-server가 들어간다. 두 Darwin 역할에서는 `local.camofox.enable`이 켜져
-session-aware `camofox` stdio bridge도 같은 registry에 추가된다.
+server가 들어간다. `local.camofox.enable`이 켜진 모든 호스트에는 session-aware
+`camofox` stdio bridge도 같은 registry에 추가된다.
 
 | 이름 | transport | endpoint / command | 인증 |
 |---|---|---|---|
@@ -109,23 +111,35 @@ Home Manager switch는 MCP server 정의만 갱신하고 로그인 상태를 지
 store에 비밀을 복사하지 않는다. 최초 인증과 검증 절차는
 [운영](operations.md#linear-mcp-모든-호스트)에 있다.
 
-## Camofox 브라우저 (두 맥)
+## Camofox 브라우저 (모든 호스트)
 
-`local.camofox.enable`은 loopback Camofox API와 session-aware MCP bridge를 두
-맥의 Aqua 세션에 띄운다. 랩탑은 `remoteConsole = false`라 로그인한 사용자의 실제
-데스크톱에서 바로 실행하며 WireGuard, 자동 로그인, VNC가 필요 없다. 서버는
-`remoteConsole = true`로 DeskPad virtual display, macVNC, HTTPS noVNC를 함께
-켠다([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 서버의 Camofox,
+`local.camofox.enable`은 모든 호스트에 loopback Camofox API와 session-aware MCP
+bridge를 띄운다. macOS에서는 로그인한 사용자의 Aqua 세션에서 LaunchAgent로
+실행한다. 랩탑은 `remoteConsole = false`라 실제 데스크톱을 바로 쓰며 WireGuard,
+자동 로그인, VNC가 필요 없다. 서버 맥은 `remoteConsole = true`로 DeskPad virtual
+display, macVNC, HTTPS noVNC를 함께 켠다
+([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 서버의 Camofox,
 DeskPad 1.3.2, `LibVNC/macVNC`는 자동 로그인으로 생긴 `bhyoo`의 Aqua 세션에서
 한 LaunchAgent가 감독하고, noVNC는 root LaunchDaemon이다. displayplacer 1.4.0이
 DeskPad 화면을 1920×1080 main display로 정한 뒤 상류 macVNC가 ScreenCaptureKit과
-LibVNCServer로 그 디스플레이 전체를 내보낸다. Camofox의 Linux/Xvfb 플러그인은
-쓰지 않는다. LaunchAgent는 닫힌 뚜껑으로 부팅했을 때 가상 디스플레이를 한 번
-깨우고, 수명 동안 display idle sleep assertion을 유지해 ScreenCaptureKit 캡처
-대상이 꺼지지 않게 한다. macOS Screen Sharing은 독립된 운영체제 서비스이며
-Camofox 구성은
-그 enable·disable 상태나 legacy VNC 인증을 관리하지 않는다. 운영자가 별도로
-켜더라도 port 5900을 사용할 뿐, noVNC는 port 5901의 macVNC를 계속 쓴다.
+LibVNCServer로 그 디스플레이 전체를 내보낸다. LaunchAgent는 닫힌 뚜껑으로
+부팅했을 때 가상 디스플레이를 한 번 깨우고, 수명 동안 display idle sleep
+assertion을 유지해 ScreenCaptureKit 캡처 대상이 꺼지지 않게 한다. macOS Screen
+Sharing은 독립된 운영체제 서비스이며 Camofox 구성은 그 enable·disable 상태나
+legacy VNC 인증을 관리하지 않는다. 운영자가 별도로 켜더라도 port 5900을 사용할
+뿐, noVNC는 port 5901의 macVNC를 계속 쓴다.
+
+NixOS server에서는 `modules/camofox-linux.nix`가 `bhyoo` 사용자로 headless systemd
+서비스를 실행한다. API는 `127.0.0.1:9377`에만 열리고, 쿠키·프로필·trace와 HOME은
+`/var/lib/camofox` 아래에 둔다. 별도 Chrome/Chromium이나 VNC stack은 설치하지
+않으며, Nix로 패키징한 Camoufox가 `CAMOFOX_HEADLESS=true`로 직접 실행된다.
+
+Home Manager는 OMP, Claude Code, Codex의 `camofox` MCP 등록을 모두 선언적으로
+관리한다. OMP는 registry 파일 전체를 받고, Claude Code는 기존 사용자 상태를
+보존한 채 관리되는 MCP server set을 받는다. Codex activation은 고정된 Codex CLI로
+명령·인자·환경이 정확히 같은지 확인하고, 다를 때만 `camofox` 항목을 교체한다.
+따라서 `~/.codex/config.toml`의 다른 MCP 항목, 다른 table, 주석은 그대로 남는다.
+`local.camofox.enable = false`이면 세 registry에서 `camofox` 등록이 제거된다.
 
 `userId`는 macOS 계정이 아니라 Camofox의 로그인 상태 identity다. 이 구성은
 `CAMOFOX_USER_ID=omp`를 OMP, Claude Code, Codex가 함께 써서 쿠키와 웹 스토리지를
@@ -336,8 +350,8 @@ endpoint, bucket, region과 S3 자격증명은
 `wrangler`, `stripe`, `gws`는 모든 노드의 같은 자리에 둔다(`home/common.nix`).
 관측 CLI가 "무슨 일이 있었는지"를 읽는 쪽이라면 이쪽은 에이전트가 실제로
 **손을 대는** 쪽이다 — Worker를 배포하고, 결제 이벤트를 찾고, 캘린더를 읽는다.
-브라우저 자동화는 별도 CLI가 아니라 두 Darwin 역할의 Camofox MCP가 담당한다.
-NixOS server에는 Chrome/Chromium runtime을 설치하지 않는다.
+브라우저 자동화는 별도 CLI가 아니라 모든 호스트의 Camofox MCP가 담당한다.
+NixOS server에는 별도 Chrome/Chromium 패키지를 설치하지 않는다.
 
 이름이 다른 둘에는 다음 주의가 필요하다.
 
@@ -532,8 +546,8 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `slack-cli` | GitHub 타르볼 | nixpkgs의 동명 attribute를 갈아끼운다 |
 | `bun` | nixpkgs override | 1.4.0. 잠긴 nixpkgs의 1.3.13보다 앞선 임시 override |
 | `tempo-cli` | nixpkgs override | `subPackages`를 하나로 줄인다 |
-| `camoufox` | GitHub macOS arm64 zip | 152.0.4-beta.28 코어. aarch64-darwin 전용 |
-| `camofox-browser` | npm 타르볼 | `@askjo/camofox-browser` 1.13.1 + macOS headful patch |
+| `camoufox` | GitHub macOS/Linux arm64 zip | 152.0.4-beta.28 코어. aarch64-darwin·aarch64-linux |
+| `camofox-browser` | npm 타르볼 | `@askjo/camofox-browser` 1.13.1 + immutable core·platform wrapper |
 | `camofox-url-handler` | 로컬 Objective-C/Cocoa | HTTP/HTTPS URL을 관리 Camofox API에 전달. aarch64-darwin 전용 |
 | `deskpad` | GitHub app zip | 1.3.2 virtual display. aarch64-darwin 전용 |
 | `displayplacer` | GitHub release binary | 1.4.0 display layout tool. aarch64-darwin 전용 |

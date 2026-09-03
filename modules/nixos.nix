@@ -26,6 +26,8 @@ let
   ) sshAudit.sshdSettings;
 in
 {
+  imports = [ ./camofox-linux.nix ];
+
   # No Determinate module here: on NixOS, Nix is part of the system closure and
   # nix.settings writes /etc/nix/nix.conf directly. This is the same
   # configuration the Macs express through `determinateNix.customSettings`.
