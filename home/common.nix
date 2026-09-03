@@ -606,15 +606,17 @@ in
 
     # The escape hatch for values this repository must not carry. Everything
     # Nix writes ends up in the world-readable store and in this repository's
-    # history, so a proxy URL with basic auth, or a gateway token, belongs in a
-    # file Nix only agrees to read. Nix owns the source lines below; the file
-    # itself is created and edited by hand and is never linked, generated or
-    # deleted by a switch, so there is nothing for one to conflict with.
+    # history, so an LLM gateway token — or a proxy URL with basic auth —
+    # belongs in a file Nix only agrees to read. Nix owns the source lines
+    # below; the file itself is created and edited by hand and is never linked,
+    # generated or deleted by a switch, so there is nothing for one to conflict
+    # with.
     #
-    # The environment is the one place every agent here already looks: Claude
-    # Code, Codex and OMP all take their network path from `HTTPS_PROXY` and
-    # friends, or from a gateway base URL and token, so a single file serves
-    # all three. Its absence is the normal state on a host with no proxy.
+    # The environment is the one place every agent here already looks. Claude
+    # Code takes `ANTHROPIC_BASE_URL` and its token from it directly; Codex
+    # keeps the endpoint in its own unmanaged config.toml and resolves only the
+    # key through the variable that provider's `env_key` names. Its absence is
+    # the normal state on a host that talks to the vendors directly.
     #
     # `.zshenv` rather than `.zshrc`: an agent started from a script or an
     # editor gets no interactive shell, and Home Manager appends `envExtra`
