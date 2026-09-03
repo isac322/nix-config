@@ -57,8 +57,7 @@ in
 
   # Interactive GUI applications come from Homebrew. Most have no maintained
   # Darwin package in nixpkgs, and Homebrew keeps their app bundles current.
-  # Orca stays on that path on the laptop; only the unattended server pins a
-  # Nix-packaged release because current `orca serve` builds crash at startup.
+  # Both Macs share the stablyai/orca cask in modules/darwin.nix.
   #
   # Vorta's archive mount needs both macFUSE and the Borg build linked against
   # it. The macFUSE cask installs a signed pkg and kernel extension, so its
@@ -66,7 +65,6 @@ in
   # it here makes subsequent upgrades declarative.
   homebrew.taps = [
     "borgbackup/tap"
-    "stablyai/orca"
   ];
 
   homebrew.brews = [ "borgbackup-fuse" ];
@@ -80,7 +78,6 @@ in
     "linear"
     "macfuse"
     "notion"
-    "stablyai/orca/orca"
     "slack"
     # `auto_updates true` in the cask, so Spotify replaces itself in place and
     # onActivation.upgrade rarely has anything to do — which is fine, and the

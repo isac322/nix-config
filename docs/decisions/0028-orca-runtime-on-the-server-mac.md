@@ -2,21 +2,18 @@
 
 **결정** — `orca serve` 를 LaunchAgent 로 돌리고, 그것을 위해 이 역할에만 자동
 로그인을 켠다. 포트는 6768, 광고 주소는 그 기계의 WireGuard 주소. exit 3 은
-재시작하지 않는다. 서버는 공식 1.4.188 릴리스를 Nix로 고정한다. 1.4.190 이후는
-macOS `serve` 시작 중 `AppEnvironment not initialized`로 죽는 상류 회귀
-(stablyai/orca#16761)가 있어 수정판을 검증할 때까지 올리지 않는다.
+재시작하지 않는다. 랩탑과 서버 모두 `stablyai/orca/orca` Homebrew cask를
+쓰고, 서버 LaunchAgent는 cask가 설치한 `/opt/homebrew/bin/orca`를 실행한다.
 
-랩탑은 사람이 데스크톱 앱을 쓰므로 Homebrew cask와 Orca 자체 updater를 계속
-따른다. 서버에서는 클라이언트가 UI일 뿐이고 프로젝트·워크트리·터미널·에이전트
-프로세스를 쥐는 런타임이 항상 살아 있어야 하므로 자동 업데이트보다 검증한
-`serve`가 우선이다.
+이 경로를 쓰는 이유는 업데이트다. cask의 앱은 쓰기 가능한
+`/Applications/Orca.app`에 있고, 번들 CLI가 `serve`의 부모 supervisor로 남아
+updater handoff를 받은 뒤 앱 교체와 새 런타임 readiness 확인을 맡는다. Nix
+store에서 앱을 직접 실행하면 store가 불변이라 같은 updater를 지원할 수 없다.
+Nix는 cask의 설치 여부만 선언하고, `auto_updates`인 Orca는 자체 updater에 맡긴다.
 
-**2026-08-31 검증 결과:** 같은 Aqua 세션, 격리한 E2E home/userData, 임시 포트,
-`--no-pairing --json` 조건으로 번들 CLI를 대조했다. 운영에서 쓰는 1.4.188은
-`orca_server_ready`를 내고 `boundEndpoint`까지 도달했다. 공식 1.4.193은 같은
-probe에서 readiness를 내지 못하고, supervisor handoff 경로를 해석하는 과정에서
-`AppEnvironment not initialized`로 종료됐다. 따라서 harness나 운영 포트 충돌이
-아니라 stablyai/orca#16761이 1.4.193에도 남아 있는 것이다.
+이전에는 1.4.190~1.4.194의 `serve` 기동 시 `AppEnvironment not initialized`
+회귀(stablyai/orca#16761) 때문에 1.4.188에 고정했으나, 상류 PR #16762가
+머지되고 1.4.196에서 회귀가 해결됨을 실측 프로브로 확인하여 고정을 해제했다.
 
 ## 왜 `serve` 인가
 

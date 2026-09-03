@@ -27,9 +27,6 @@
       # converts to Apache-2.0 after two years, but nixpkgs correctly classifies
       # the current release as unfree until that conversion.
       "sentry"
-      # The unattended server pins Orca's proprietary release binary because
-      # current upstream builds crash in the supported `orca serve` path.
-      "orca"
       # HashiCorp relicensed Terraform from MPL-2.0 to the Business Source
       # License at 1.5.x, so nixpkgs has marked it unfree ever since. Nothing
       # about the binary changed and the BUSL permits this use; it only forbids

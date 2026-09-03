@@ -12,7 +12,6 @@ final: prev: {
   beardrive = final.callPackage ./beardrive/package.nix { };
   gajae-code = final.callPackage ./gajae-code/package.nix { };
   sentry = final.callPackage ./sentry/package.nix { };
-  orca = final.callPackage ./orca/package.nix { };
 
   # Native Apple Silicon browser and remote-console components. Camofox uses
   # the immutable Camoufox browser; DeskPad supplies the virtual display,

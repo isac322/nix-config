@@ -105,8 +105,16 @@ in
     # Without this, `brew bundle` runs with HOMEBREW_NO_AUTO_UPDATE=1 and
     # `upgrade` only sees the formula index as of the last manual `brew update`.
     onActivation.autoUpdate = true;
+    taps = [ "stablyai/orca" ];
 
     casks = [
+      # Orca owns updates to its writable app bundle itself. Keep this non-greedy
+      # so `brew upgrade` skips it; the bundled updater and supervisor handoff
+      # replace in-place releases automatically.
+      {
+        name = "stablyai/orca/orca";
+        greedy = false;
+      }
 
       # Karabiner-Elements deliberately absent: it cannot be brought up without
       # a console session approving its driver extension and Input Monitoring.
