@@ -65,11 +65,11 @@ modelRoles:
   designer: anthropic/claude-opus-5:xhigh
   task: openai-codex/gpt-5.6-sol
   plan: anthropic/claude-opus-5:xhigh
-  vision: google/gemini-3.7-flash:high
+  vision: google/gemini-3.8-flash:high
   commit: openai-codex/gpt-5.6-luna:low
   advisor: anthropic/claude-opus-5:high
   tiny: google/gemini-3.5-flash-lite:minimal
-  smol: google/gemini-3.7-flash:medium
+  smol: google/gemini-3.8-flash:medium
   default: openai-codex/gpt-5.6-sol:high
   TRIVIAL: openai-codex/gpt-5.6-terra:high
 enabledModels:

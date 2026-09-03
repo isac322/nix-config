@@ -75,7 +75,7 @@ Retrieve the OAuth authorization URL from process stdout/logs (`https://accounts
    ```
 
 ## Execution with OMP
-When running or triggering this skill via OMP CLI, use **Gemini 3.7 Flash**:
+When running or triggering this skill via OMP CLI, use **Gemini 3.8 Flash**:
 ```bash
-omp --model gemini-3.7-flash "skill://gcloud-camofox-adc-auth 스킬을 실행해줘"
+omp --model gemini-3.8-flash "skill://gcloud-camofox-adc-auth 스킬을 실행해줘"
 ```
