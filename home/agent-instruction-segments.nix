@@ -24,9 +24,6 @@ in
   guardrails =
     segment ./files/agent-instructions/segments/guardrails.md "persistent" allHarnesses
       100;
-  advisor-handling = segment ./files/agent-instructions/segments/advisor-handling.md "persistent" [
-    "omp"
-  ] 900;
 
   destructive-operations =
     (segment ./files/agent-instructions/segments/destructive-operations.md "onDemand" allHarnesses 100)

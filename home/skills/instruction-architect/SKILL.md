@@ -118,7 +118,6 @@ Never edit these deployment targets directly:
 Current canonical meanings include:
 
 - universal truthfulness and secret-handling invariants: `guardrails` (`persistent`);
-- OMP advisor interpretation: `advisor-handling` (`persistent`, OMP only);
 - OMP response style: `response-style` (`personality`, OMP only);
 - public API migration checks: `public-api` (`onDemand`);
 - destructive operation preparation: `destructive-operations` (`onDemand`);
