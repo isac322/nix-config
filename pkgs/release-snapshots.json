@@ -55,24 +55,24 @@
     "bun": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-darwin-aarch64.zip",
-          "digest": "sha256:c669e97f6164e1c96e0701748db98dfa77492908cbd8394c7557134a735de381",
+          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.1/bun-darwin-aarch64.zip",
+          "digest": "sha256:d8973ce835fa7867e5cc79afee6fc6f1ae0117aa4bd5fc2546fd00c512f71386",
           "name": "bun-darwin-aarch64.zip"
         },
         {
-          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-linux-aarch64.zip",
-          "digest": "sha256:4b1a332ee861983eb93bcfe6f770fff94e3e31b2c388bdaea3c8ed35e58eed0e",
+          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.1/bun-linux-aarch64.zip",
+          "digest": "sha256:580ce77533108dc6b10bec1721397e4f5aa44e909726da2451d483dfc5e581d6",
           "name": "bun-linux-aarch64.zip"
         },
         {
-          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-linux-x64.zip",
-          "digest": "sha256:2d03fb5fb83ac8b567aca0a281b2ce1a1a19d488f56c2968d88c3f25e92fe452",
+          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.1/bun-linux-x64.zip",
+          "digest": "sha256:74c1c3bee7cd998500c8f969cd8972355ac6a07207e94a39eece1999b56ffabf",
           "name": "bun-linux-x64.zip"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "bun-v1.4.0"
+      "tag_name": "bun-v1.4.1"
     },
     "camoufox": {
       "assets": [
@@ -126,24 +126,24 @@
     "omp": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.9/omp-darwin-arm64",
-          "digest": "sha256:c8562d99ed98869abf732cc71894a600b3937db563aee9c6f42231c9d0c027b6",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.10/omp-darwin-arm64",
+          "digest": "sha256:f93613f5cc66a22e4368e955f7d121b9508306d4153b2932318e5d45ecf13a44",
           "name": "omp-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.9/omp-linux-musl-arm64",
-          "digest": "sha256:ebf1e922c4dd0b839c875e24db9ab1351ff3872d56f123150c739954d6558d32",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.10/omp-linux-musl-arm64",
+          "digest": "sha256:f78359968afc564ecac3279ed38700c236e9f25bd82a0c13a1063657cca1540b",
           "name": "omp-linux-musl-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.9/omp-linux-musl-x64",
-          "digest": "sha256:6de3d3b092dc07f6e93c2d66143c4759765a2c08e980d1534f2f9bf4bb4186f1",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.10/omp-linux-musl-x64",
+          "digest": "sha256:f5f58cd4d9acebf0684da86d65aae48219fb3140e6f22605f6ba1c17d5687ff9",
           "name": "omp-linux-musl-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v18.1.9"
+      "tag_name": "v18.1.10"
     },
     "posthog": [
       {
