@@ -197,7 +197,7 @@
     "gajae-code-manifest": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-VHtDW2LQMKVCSL+iI+HCG4X3ZuGRZdlpv6vLNdrfnu8=",
+        "narHash": "sha256-M7xE+Lu7GlAntFOfrFb63/VgO6HQjLVKPDziYWDFMss=",
         "type": "file",
         "url": "https://github.com/Yeachan-Heo/gajae-code/releases/latest/download/gajae-release-binaries-v1.json"
       },
@@ -209,10 +209,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1788435786,
-        "narHash": "sha256-kzMhkgxlEX8bGyOz65DXJkt4TTQzBbs0oK9CI3k3pzk=",
+        "lastModified": 1788469669,
+        "narHash": "sha256-VDSt9a1QWFliwynVPMW6P6TmMEcOyJT7PMKSAJ57XLQ=",
         "ref": "refs/heads/main",
-        "rev": "267568af97c9a1f530b8a84f04a786f3e04e3014",
+        "rev": "adf47dacd6d345a89b5372c510171a7c31646519",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -252,10 +252,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1788355065,
-        "narHash": "sha256-gAz5oTI7ur34CfuakQduiQd/2ZhO62Bn2XXg08nZYYQ=",
+        "lastModified": 1788458226,
+        "narHash": "sha256-UZTAlg8iKVEmyEXakzKmukrzFIKrXezYsRy9vajDrGw=",
         "ref": "master",
-        "rev": "d9d750e4fc11c10cab2da677bdd31e427f3a3a71",
+        "rev": "aa308770461dcf22c333a5e8a31c8bddbde5bee9",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -293,10 +293,10 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1788437273,
-        "narHash": "sha256-dn+N26nSI4WqryWWBUfClz6qSpFHGNGJmc9M46usr70=",
+        "lastModified": 1788479492,
+        "narHash": "sha256-ptqQ82rRExh3pg8O8dYmySZL9wW7rnu7drfXjRv+T6w=",
         "ref": "refs/heads/main",
-        "rev": "c48d91c89868c53dd0b51bf840977cc83f2544fb",
+        "rev": "412c668dfe7a19540f9265e0ac4d79554f69b54e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
