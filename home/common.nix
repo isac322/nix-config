@@ -11,27 +11,11 @@
 }:
 
 let
-  # llm-agents' own build of its own packages, not its overlay.
-  #
-  # Both exist and produce the same programs. `overlays.shared-nixpkgs` builds
-  # them against our nixpkgs, which shares dependencies with the rest of the
-  # system and applies our `nixpkgs.config` — and, as upstream's README says
-  # outright, hits their binary cache only while our nixpkgs revision matches
-  # theirs. Ours does not. `codex` and `omp` are Rust, so missing the cache
-  # means dragging in a toolchain and compiling; omp took long enough to be
-  # noticed, which is how this was found.
-  #
-  # `packages.<system>` is built against the nixpkgs they pinned, so the store
-  # path is the one they uploaded and it substitutes every time. What that
-  # costs is a second copy of whatever their revision disagrees with ours
-  # about — measured before switching, and on this machine it was two store
-  # paths, not a second dependency tree. Fine trade for not compiling Rust
-  # three times a week on three machines.
-  #
-  # `nixpkgs.config.allowUnfreePredicate` no longer reaches claude-code as a
-  # result; their instantiation allows it themselves. The entry stays in
-  # modules/common.nix because it is still what makes the name evaluable if
-  # anything here ever refers to nixpkgs' own claude-code.
+  # llm-agents' own package set is used for Claude Code and Codex because its
+  # cached outputs track upstream faster than nixpkgs without rebuilding their
+  # Rust dependency graphs against this flake's nixpkgs revision. OMP is
+  # different: upstream publishes self-contained release binaries, so
+  # pkgs.omp-bin follows the official release metadata directly.
   agents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
 
   # Runtime dependencies for the shared Zinit/Oh My Zsh configuration.
@@ -321,17 +305,9 @@ let
     skipDangerousModePermissionPrompt = true;
   };
 
-  # The plugins pkgs/omp-plugins builds, by the name each one takes inside
-  # node_modules.
-  ompPlugins = {
-    "pi-anthropic-web-fetch" = "0.1.0";
-    "pi-google-url-context" = "0.1.0";
-    "pi-anthropic-web-search" = "0.1.0";
-    "pi-google-google-search" = "0.1.0";
-    "pi-openai-web-search" = "0.1.0";
-    "@isac322/pi-codegraph" = "0.3.1";
-    "context-mode" = "1.0.169";
-  };
+  # The package exposes versions from each flake-locked upstream manifest, so
+  # updating a plugin source also updates OMP's registry without a second pin.
+  ompPlugins = pkgs.omp-plugins.pluginVersions;
 
   # omp keeps its own register of which plugins exist, and a package under
   # node_modules is invisible without an entry here. Found by watching what
@@ -572,12 +548,14 @@ in
     pkgs.bash
     pkgs.jq
 
-    # From llm-agents rather than nixpkgs: it tracks upstream daily, while the
-    # nixpkgs-unstable channel lags master by several days. It builds for
-    # aarch64-darwin, x86_64-linux and aarch64-linux, so this line is portable.
+    # llm-agents tracks these two upstreams daily and supplies matching cached
+    # outputs for every platform this configuration manages.
     agents.claude-code
     agents.codex
-    agents.omp
+
+    # Official OMP standalone binaries. The release metadata flake input moves
+    # version, platform asset, and sha256 digest together.
+    pkgs.omp-bin
 
     # Gajae Code is also an agent harness, tracking verified upstream release
     # binaries via flake input rather than the llm-agents input.
@@ -824,8 +802,8 @@ in
   # rather than one derivation per plugin.
   #
   # The trade, unchanged: these entries are store paths, so `omp plugin install`
-  # cannot replace them. Adding a plugin is a line in
-  # pkgs/omp-plugins/default.nix and a line here.
+  # cannot replace them. Adding a plugin is a single package entry in
+  # pkgs/omp-plugins/default.nix.
   home.file = {
     # Generated once by p10k's wizard, then shared unchanged by every host.
     # `force` migrates an existing mutable ~/.p10k.zsh to the declarative copy.

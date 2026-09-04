@@ -3,18 +3,17 @@
 # Desktop applications and interactive desktop integrations live here.
 # Everything shared by every Mac is in home/darwin.nix; everything shared by
 # every machine is in home/common.nix.
-{ lib, pkgs, ... }:
+{
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
-  # Laptop-only desktop notification plugin. fetchgit uses Git's smart
-  # protocol rather than GitHub's archive endpoint, which is rate-limited on
-  # this network; the revision and recursive source hash still make it a fixed
-  # Nix input.
-  zshAutoNotify = pkgs.fetchgit {
-    url = "https://github.com/MichaelAquilina/zsh-auto-notify.git";
-    rev = "b51c934d88868e56c1d55d0a2a36d559f21cb2ee";
-    hash = "sha256-s3TBAsXOpmiXMAQkbaS5de0t0hNC1EzUUb0ZG+p9keE=";
-  };
+  # Follow upstream through flake.lock rather than pinning an unrelated source
+  # hash in this module.
+  zshAutoNotify = inputs.zsh-auto-notify-source;
 
   # Vorta imports this profile export once from ~/.vorta-init.json. Keep the
   # export repository-less so first launch never needs a URL, password, or

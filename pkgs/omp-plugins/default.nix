@@ -1,133 +1,141 @@
-# omp's plugins, as one node_modules tree that Nix builds.
-#
-# omp takes two things to consider a plugin installed: an entry under
-# `~/.omp/plugins/node_modules`, and a matching line in
-# `~/.omp/plugins/omp-plugins.lock.json`. Found by watching what `omp plugin
-# link` writes — the link alone left `omp plugin list` empty, and
-# `~/.omp/plugins/package.json` stayed `{"dependencies": {}}` throughout, so it
-# is not the register it looks like. home/common.nix writes both halves.
-#
-# `omp plugin install` fetches from npm at run time, which makes the plugins on
-# a machine whatever it last downloaded rather than what this flake pins — the
-# same objection this repository already makes to rustup
-# (home/roles/darwin-server.nix). Doing it here means `flake.lock` and the
-# hashes below decide, and three machines agree.
-#
-# The cost, stated plainly: `~/.omp/plugins/node_modules` becomes a read-only
-# store path, so `omp plugin install` no longer works on these machines. Adding
-# a plugin means adding a line here.
-#
-# Two shapes, because the plugins come in two shapes.
-#
-#   All but one have no runtime dependencies at all — their manifests declare
-#   `dependencies: {}` and only peer dependencies, which omp itself provides.
-#   Those are just source trees, so they are fetched and placed.
-#
-#   `context-mode` does have dependencies, so it comes from `buildNpmPackage`
-#   against a committed lockfile, and that `node_modules` is merged into the
-#   same tree. One tree matters: Node resolves a dependency by walking up from
-#   the *real* path of the importing file, so a package and the things it
-#   imports have to share a directory.
 {
-  lib,
-  stdenvNoCC,
-  fetchFromGitHub,
-  fetchurl,
   buildNpmPackage,
+  bun2nix,
+  importNpmLock,
+  lib,
+  pkg-config,
+  python3,
+  stdenv,
+  stdenvNoCC,
+  sourceInputs,
 }:
 
 let
-  # Extensions for the pi/omp agent by one author, all the same shape: no
-  # dependencies, `type: module`, and a `pi.extensions` manifest key pointing at
-  # `src/index.ts` — omp loads the TypeScript directly, so there is nothing to
-  # build.
-  fromGitHub =
-    {
-      repo,
-      rev,
-      hash,
-    }:
-    fetchFromGitHub {
-      owner = "code-yeongyu";
-      inherit repo rev hash;
-    };
-
-  # npm packages that happen to have no dependencies, so the published tarball
-  # is the whole package. `buildNpmPackage` would only add a lockfile and a
-  # build step to something that needs neither.
-  fromNpm =
-    {
-      pname,
-      version,
-      url,
-      hash,
-    }:
+  sourcePackage =
+    name: source:
+    let
+      package = builtins.fromJSON (builtins.readFile "${source}/package.json");
+    in
     stdenvNoCC.mkDerivation {
-      inherit pname version;
-      src = fetchurl { inherit url hash; };
+      pname = name;
+      inherit (package) version;
+      src = source;
       dontBuild = true;
-      installPhase = "mkdir -p $out && cp -R . $out/";
+      installPhase = ''
+        runHook preInstall
+        mkdir -p "$out"
+        cp -R . "$out/"
+        runHook postInstall
+      '';
     };
 
-  standalone = {
-    "pi-anthropic-web-fetch" = fromGitHub {
-      repo = "pi-anthropic-web-fetch";
-      rev = "3e882310f4dd";
-      hash = "sha256-bK2KwLQyt5zXlg1v9dTLCeBrPd9NGj6ZSiOi0/MKGms=";
+  npmPackage =
+    name: source:
+    let
+      package = builtins.fromJSON (builtins.readFile "${source}/package.json");
+    in
+    buildNpmPackage {
+      pname = name;
+      inherit (package) version;
+      src = source;
+      npmDeps = importNpmLock { npmRoot = source; };
+      npmConfigHook = importNpmLock.npmConfigHook;
+
+      postBuild = ''
+        npm prune --omit=dev --ignore-scripts
+      '';
+
+      installPhase = ''
+        runHook preInstall
+        mkdir -p "$out"
+        cp -R . "$out/"
+        runHook postInstall
+      '';
     };
 
-    "pi-google-url-context" = fromGitHub {
-      repo = "pi-google-url-context";
-      rev = "4deb3b5a0995";
-      hash = "sha256-IEzCHJFCCwwy/BmjHhotqF/0uP7FzD1hBmF7G9WrKDw=";
+  contextModePackage =
+    let
+      source = sourceInputs.contextMode;
+      package = builtins.fromJSON (builtins.readFile "${source}/package.json");
+      lockLines = lib.splitString "\n" (builtins.readFile "${source}/bun.lock");
+      packageLines = builtins.filter (line: builtins.match ''^    ".*": [[].*$'' line != null) lockLines;
+      parseRegistryPackage =
+        line:
+        let
+          match = builtins.match ''^    "[^"]+": [[]"([^"]+)", "", .*"(sha512-[^"]+)"[]],?$'' line;
+        in
+        if match == null then
+          null
+        else
+          let
+            spec = builtins.elemAt match 0;
+            hash = builtins.elemAt match 1;
+            parts = lib.splitString "@" spec;
+            version = lib.last parts;
+            packageName = lib.concatStringsSep "@" (lib.init parts);
+            tarballName = lib.last (lib.splitString "/" packageName);
+          in
+          {
+            name = spec;
+            value = {
+              url = "https://registry.npmjs.org/${packageName}/-/${tarballName}-${version}.tgz";
+              inherit hash;
+            };
+          };
+      parsedPackages = map parseRegistryPackage packageLines;
+      registryPackages = builtins.filter (entry: entry != null) parsedPackages;
+      bunNix =
+        {
+          fetchurl,
+          ...
+        }:
+        assert lib.assertMsg (
+          builtins.length registryPackages == builtins.length packageLines
+        ) "context-mode bun.lock contains a non-registry or unhashed package";
+        builtins.listToAttrs (
+          map (entry: {
+            inherit (entry) name;
+            value = fetchurl entry.value;
+          }) registryPackages
+        );
+      bunDeps = bun2nix.fetchBunDeps { inherit bunNix; };
+    in
+    stdenv.mkDerivation {
+      pname = "context-mode";
+      inherit (package) version;
+      src = source;
+      inherit bunDeps;
+
+      nativeBuildInputs = [
+        bun2nix.hook
+        pkg-config
+        python3
+      ];
+      bunInstallFlags = [
+        "--production"
+        "--linker=hoisted"
+      ]
+      ++ lib.optionals stdenv.hostPlatform.isDarwin [ "--backend=copyfile" ];
+      dontUseBunBuild = true;
+
+      installPhase = ''
+        runHook preInstall
+        mkdir -p "$out"
+        cp -R . "$out/"
+        runHook postInstall
+      '';
     };
 
-    "pi-anthropic-web-search" = fromGitHub {
-      repo = "pi-anthropic-web-search";
-      rev = "f85d35421cef";
-      hash = "sha256-Qa6sAPRTYuYfasOdAsVeMHAYacecRXaAvgNu0Df155U=";
-    };
-
-    "pi-openai-web-search" = fromGitHub {
-      repo = "pi-openai-web-search";
-      rev = "39643380682f";
-      hash = "sha256-mxurTHanCTkS94wneMYmSY/aNH2m20YSaE/4v4cGXiU=";
-    };
-
-    "pi-google-google-search" = fromGitHub {
-      repo = "pi-google-google-search";
-      rev = "476db958f413";
-      hash = "sha256-YF1fnx+BjlWgeqePOXBiNhvqzwm6CnkqgcJ2x7ucsSs=";
-    };
-
-    "@isac322/pi-codegraph" = fromNpm {
-      pname = "pi-codegraph";
-      version = "0.3.1";
-      url = "https://registry.npmjs.org/@isac322/pi-codegraph/-/pi-codegraph-0.3.1.tgz";
-      hash = "sha256-kMetzmQqqYbLTX550FuRBto8JMtk9M+aehdcrOSSgqE=";
-    };
-
-  };
-
-  # The one that brings dependencies. `npmDepsHash` is the hash of everything the
-  # lockfile resolves to; regenerate it with `nix build` and the hash it prints
-  # when the lockfile changes.
-  withDeps = buildNpmPackage {
-    pname = "omp-plugins-npm";
-    version = "0";
-    src = ./npm;
-    npmDepsHash = "sha256-fsUC40omBVFjl9QmZ7qVrJx+gEMkKnsy5sorrl2CKDo=";
-
-    # There is nothing to compile — this exists only to resolve and place
-    # dependencies — and the package has no build script of its own.
-    dontNpmBuild = true;
-
-    installPhase = ''
-      runHook preInstall
-      mkdir -p $out
-      cp -R node_modules $out/node_modules
-      runHook postInstall
-    '';
+  plugins = {
+    "pi-anthropic-web-fetch" = sourcePackage "pi-anthropic-web-fetch" sourceInputs.piAnthropicWebFetch;
+    "pi-google-url-context" = sourcePackage "pi-google-url-context" sourceInputs.piGoogleUrlContext;
+    "pi-anthropic-web-search" =
+      sourcePackage "pi-anthropic-web-search" sourceInputs.piAnthropicWebSearch;
+    "pi-openai-web-search" = sourcePackage "pi-openai-web-search" sourceInputs.piOpenaiWebSearch;
+    "pi-google-google-search" =
+      sourcePackage "pi-google-google-search" sourceInputs.piGoogleGoogleSearch;
+    "@isac322/pi-codegraph" = npmPackage "pi-codegraph" sourceInputs.piCodegraph;
+    "context-mode" = contextModePackage;
   };
 in
 stdenvNoCC.mkDerivation {
@@ -139,28 +147,22 @@ stdenvNoCC.mkDerivation {
 
   installPhase = ''
     runHook preInstall
-
-    mkdir -p $out/node_modules
-
-    # The dependency tree first, then the standalone packages on top. They
-    # cannot collide: nothing in the lockfile is one of the standalone ones.
-    cp -R ${withDeps}/node_modules/. $out/node_modules/
-    chmod -R u+w $out/node_modules
+    mkdir -p "$out/node_modules"
 
     ${lib.concatStringsSep "\n" (
       lib.mapAttrsToList (name: drv: ''
         mkdir -p "$out/node_modules/$(dirname ${lib.escapeShellArg name})"
         cp -R ${drv} "$out/node_modules/${name}"
-      '') standalone
+      '') plugins
     )}
-
-    chmod -R u+w $out/node_modules
 
     runHook postInstall
   '';
 
+  passthru.pluginVersions = lib.mapAttrs (_: drv: drv.version) plugins;
+
   meta = {
-    description = "Plugins for omp, resolved and pinned rather than installed at run time";
+    description = "Plugins for OMP, resolved and pinned rather than installed at run time";
     platforms = lib.platforms.all;
   };
 }

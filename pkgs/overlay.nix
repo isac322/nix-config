@@ -8,29 +8,77 @@ argsOrFinal:
 let
   impl =
     {
+      beardriveChecksums ? null,
+      bun2nix ? null,
       gajaeCodeManifest ? null,
+      releaseManifests ? { },
+      sourceInputs ? { },
     }:
-    final: prev: {
-      posthog-cli = final.callPackage ./posthog-cli/package.nix { };
-      axiom-cli = final.callPackage ./axiom-cli/package.nix { };
-      langfuse-cli = final.callPackage ./langfuse-cli/package.nix { };
-      vercel-cli = final.callPackage ./vercel-cli/package.nix { };
-      beardrive = final.callPackage ./beardrive/package.nix { };
+    final: prev:
+    let
+      release = import ./release-manifest.nix { inherit (final) lib; };
+      bunAsset =
+        system:
+        let
+          names = {
+            "aarch64-darwin" = version: "bun-darwin-aarch64.zip";
+            "aarch64-linux" = version: "bun-linux-aarch64.zip";
+            "x86_64-linux" = version: "bun-linux-x64.zip";
+          };
+        in
+        release.github {
+          manifestFile = releaseManifests.bun;
+          tagPrefix = "bun-v";
+          assetName = names.${system};
+        };
+    in
+    {
+      posthog-cli = final.callPackage ./posthog-cli/package.nix {
+        manifestFile = releaseManifests.posthog;
+      };
+      axiom-cli = final.callPackage ./axiom-cli/package.nix {
+        manifestFile = releaseManifests.axiom;
+      };
+      langfuse-cli = final.callPackage ./langfuse-cli/package.nix {
+        manifestFile = releaseManifests.langfuse;
+      };
+      vercel-cli = final.callPackage ./vercel-cli/package.nix {
+        manifestFiles = {
+          "aarch64-darwin" = releaseManifests.vercelDarwinArm64;
+          "aarch64-linux" = releaseManifests.vercelLinuxArm64;
+          "x86_64-linux" = releaseManifests.vercelLinuxX64;
+        };
+      };
+      beardrive = final.callPackage ./beardrive/package.nix {
+        checksumsFile = beardriveChecksums;
+      };
       gajae-code = final.callPackage ./gajae-code/package.nix {
         manifestFile = gajaeCodeManifest;
       };
-      sentry = final.callPackage ./sentry/package.nix { };
+      sentry = final.callPackage ./sentry/package.nix {
+        manifestFile = releaseManifests.sentry;
+      };
 
       # Native Apple Silicon browser and remote-console components. Camofox uses
       # the immutable Camoufox browser; DeskPad supplies the virtual display,
       # macVNC exports its framebuffer, and displayplacer fixes its layout.
-      camoufox = final.callPackage ./camoufox/package.nix { };
-      camofox-browser = final.callPackage ./camofox-browser/package.nix { };
+      camoufox = final.callPackage ./camoufox/package.nix {
+        manifestFile = releaseManifests.camoufox;
+      };
+      camofox-browser = final.callPackage ./camofox-browser/package.nix {
+        source = sourceInputs.camofoxBrowser;
+      };
       camofox-mcp-session = final.callPackage ./camofox-mcp-session/package.nix { };
       camofox-url-handler = final.callPackage ./camofox-url-handler/package.nix { };
-      deskpad = final.callPackage ./deskpad/package.nix { };
-      displayplacer = final.callPackage ./displayplacer/package.nix { };
-      macvnc = final.callPackage ./macvnc/package.nix { };
+      deskpad = final.callPackage ./deskpad/package.nix {
+        manifestFile = releaseManifests.deskpad;
+      };
+      displayplacer = final.callPackage ./displayplacer/package.nix {
+        manifestFile = releaseManifests.displayplacer;
+      };
+      macvnc = final.callPackage ./macvnc/package.nix {
+        source = sourceInputs.macvnc;
+      };
 
       # macOS only in practice — it shells out to /usr/bin/security. Declared here
       # rather than in a role file because it is a program, and this is where this
@@ -39,59 +87,54 @@ let
 
       # omp's plugins as one node_modules tree, pinned here rather than fetched at
       # run time by `omp plugin install`.
-      omp-plugins = final.callPackage ./omp-plugins { };
+      omp-bin = final.callPackage ./omp-bin/package.nix {
+        manifestFile = releaseManifests.omp;
+      };
+      omp-plugins = final.callPackage ./omp-plugins {
+        inherit sourceInputs;
+        bun2nix = bun2nix.packages.${final.stdenv.hostPlatform.system}.default;
+      };
 
       # This one replaces an existing attribute rather than adding one: nixpkgs'
       # `slack-cli` is a different project that took the name first. The reasoning
       # is in the package, since that is where it would be read.
-      slack-cli = final.callPackage ./slack-cli/package.nix { };
+      slack-cli = final.callPackage ./slack-cli/package.nix {
+        manifestFile = releaseManifests.slack;
+      };
 
-      # bun, one release ahead of the pinned nixpkgs, because 1.3.14 is the version
-      # that was asked for. It has been upstream since 2026-05-13 and nixpkgs has
-      # not taken it: the bump, PR #519796, was opened the same day and is still
-      # open, with a duplicate (#537255) closed in between. Waiting for the channel
-      # is not a plan when the channel is already three months behind.
+      # Bun follows its official release metadata rather than the pinned nixpkgs
+      # snapshot. `nix flake update` therefore moves the version and all three
+      # platform artifacts together.
       #
-      # Overriding is cheap here in a way it would not be for, say, nodejs: nixpkgs
-      # does not build bun, it unzips a binary upstream published, so this changes a
-      # version string and three hashes and nothing else about the package.
+      # Overriding is cheap here in a way it would not be for, say, nodejs:
+      # nixpkgs does not build Bun, it unpacks an upstream binary. The package
+      # reads `passthru.sources`, not `src`, so replacing that set is the actual
+      # source override; finalAttrs then updates meta fields from the new version.
       #
-      # `passthru.sources` rather than `src`, because that is the attribute the
-      # package actually reads — `src = finalAttrs.passthru.sources.${system}` —
-      # and overrideAttrs re-evaluates finalAttrs, so replacing the set is what
-      # moves src. meta.platforms and meta.changelog follow from the same two
-      # attributes and come along on their own.
-      #
-      # All three platforms are replaced although only the Macs install bun. This
-      # overlay is applied on NixOS too (modules/common.nix), and a partially
-      # updated source set would leave another platform's old hash pointing at the
-      # new release URL.
-      #
-      # Delete this binding when nixpkgs catches up; nothing else refers to it.
+      # All three platforms are replaced although only the Macs currently install
+      # Bun. This overlay is also applied on NixOS, and a partial source set could
+      # combine one release version with another platform's artifact.
       bun = prev.bun.overrideAttrs (
-        finalAttrs: prevAttrs: {
-          version = "1.4.0";
-
-          # Changing `version` in an overrideAttrs draws a warning from nixpkgs on
-          # every evaluation, because the usual mistake is to move the version and
-          # leave src pointing at the old release — a build that succeeds and
-          # installs the wrong thing. src does move here, through the sources set
-          # below, so the warning has nothing to catch and this says so.
+        finalAttrs: prevAttrs:
+        let
+          darwinArm64 = bunAsset "aarch64-darwin";
+          linuxArm64 = bunAsset "aarch64-linux";
+          linuxX64 = bunAsset "x86_64-linux";
+        in
+        {
+          version = darwinArm64.version;
           __intentionallyOverridingVersion = true;
 
           passthru = prevAttrs.passthru // {
             sources = {
               "aarch64-darwin" = final.fetchurl {
-                url = "https://github.com/oven-sh/bun/releases/download/bun-v${finalAttrs.version}/bun-darwin-aarch64.zip";
-                hash = "sha256-xmnpf2Fk4cluBwF0jbmN+ndJKQjL2DlMdVcTSnNd44E=";
+                inherit (darwinArm64) url hash;
               };
               "aarch64-linux" = final.fetchurl {
-                url = "https://github.com/oven-sh/bun/releases/download/bun-v${finalAttrs.version}/bun-linux-aarch64.zip";
-                hash = "sha256-SxozLuhhmD65O8/m93D/+U4+MbLDiL2uo8jtNeWO7Q4=";
+                inherit (linuxArm64) url hash;
               };
               "x86_64-linux" = final.fetchurl {
-                url = "https://github.com/oven-sh/bun/releases/download/bun-v${finalAttrs.version}/bun-linux-x64.zip";
-                hash = "sha256-LQP7X7g6yLVnrKCigbLOGhoZ1Ij1bClo2Iw/Jekv5FI=";
+                inherit (linuxX64) url hash;
               };
             };
           };

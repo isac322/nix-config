@@ -9,19 +9,18 @@ let
   release = import ../release-manifest.nix { inherit lib; };
   asset = release.github {
     inherit manifestFile;
-    tagPrefix = "";
     assetName =
       {
-        "aarch64-darwin" = "sentry-darwin-arm64";
-        "aarch64-linux" = "sentry-linux-arm64";
-        "x86_64-linux" = "sentry-linux-x64";
+        "aarch64-darwin" = "omp-darwin-arm64";
+        "aarch64-linux" = "omp-linux-musl-arm64";
+        "x86_64-linux" = "omp-linux-musl-x64";
       }
       .${stdenvNoCC.hostPlatform.system}
-        or (throw "Sentry does not publish a binary for ${stdenvNoCC.hostPlatform.system}");
+        or (throw "OMP does not publish a binary for ${stdenvNoCC.hostPlatform.system}");
   };
 in
 stdenvNoCC.mkDerivation {
-  pname = "sentry";
+  pname = "omp-bin";
   inherit (asset) version;
 
   src = fetchurl { inherit (asset) url hash; };
@@ -30,7 +29,7 @@ stdenvNoCC.mkDerivation {
 
   installPhase = ''
     runHook preInstall
-    install -Dm755 "$src" "$out/bin/sentry"
+    install -Dm755 "$src" "$out/bin/omp"
     runHook postInstall
   '';
 
@@ -39,16 +38,16 @@ stdenvNoCC.mkDerivation {
     export HOME="$TMPDIR/home"
     mkdir -p "$HOME"
     runHook preInstallCheck
-    test "$("$out/bin/sentry" --version)" = "${asset.version}"
-    "$out/bin/sentry" --help > /dev/null
+    "$out/bin/omp" --version | grep -qF "${asset.version}"
+    "$out/bin/omp" --smoke-test | grep -qF "smoke-test: ok"
     runHook postInstallCheck
   '';
 
   meta = {
-    description = "Command-line interface for Sentry developers and AI agents";
-    homepage = "https://cli.sentry.dev/";
-    license = lib.licenses.fsl11Asl20;
-    mainProgram = "sentry";
+    description = "Terminal-based coding agent with multi-model support";
+    homepage = "https://github.com/can1357/oh-my-pi";
+    license = lib.licenses.mit;
+    mainProgram = "omp";
     platforms = [
       "aarch64-darwin"
       "aarch64-linux"

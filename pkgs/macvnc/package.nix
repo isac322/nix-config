@@ -1,7 +1,7 @@
 {
   lib,
   stdenv,
-  fetchFromGitHub,
+  source,
   cmake,
   pkg-config,
   libvncserver,
@@ -9,14 +9,9 @@
 
 stdenv.mkDerivation {
   pname = "macvnc";
-  version = "0-unstable-2024-12-22";
+  version = "0-unstable-${builtins.substring 0 8 (source.lastModifiedDate or "19700101")}";
 
-  src = fetchFromGitHub {
-    owner = "LibVNC";
-    repo = "macVNC";
-    rev = "6c45640168dd170120d96661b3b711d283257166";
-    hash = "sha256-5cPRDVzPWE8dcTf6hIk0mV+6Np2Z0sjW9YOOrQ1Idzg=";
-  };
+  src = source;
 
   patches = [
     ./accessibility-prompt.patch

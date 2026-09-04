@@ -5,9 +5,9 @@
 # integer and NixOS as a string, so it is set in modules/darwin.nix and
 # modules/nixos.nix separately.
 {
-  inputs,
   lib,
   pkgs,
+  packageOverlay,
   ...
 }:
 
@@ -18,12 +18,7 @@
   # `packages.<system>` instead, which is the build they actually uploaded.
   # The Firefox overlay is deliberately not here either — see modules/darwin.nix
   # for why it must stay off Linux.
-  nixpkgs.overlays = [
-    # Locally packaged CLIs — see pkgs/overlay.nix.
-    (import ../pkgs/overlay.nix {
-      gajaeCodeManifest = inputs.gajae-code-manifest or null;
-    })
-  ];
+  nixpkgs.overlays = [ packageOverlay ];
 
   nixpkgs.config.allowUnfreePredicate =
     pkg:

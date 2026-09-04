@@ -1,28 +1,29 @@
-# Upstream publishes a standalone Apple Silicon executable for each release.
 {
+  fetchurl,
   lib,
   stdenvNoCC,
-  fetchurl,
+  manifestFile,
 }:
 
-stdenvNoCC.mkDerivation (finalAttrs: {
-  pname = "displayplacer";
-  version = "1.4.0";
-
-  src = fetchurl {
-    url = "https://github.com/jakehilborn/displayplacer/releases/download/v${finalAttrs.version}/displayplacer-apple-v140";
-    hash = "sha256-BXLD0pGOR8fguddyOQeGTi6itTudOwI3l2n//PRPfqA=";
+let
+  release = import ../release-manifest.nix { inherit lib; };
+  asset = release.github {
+    inherit manifestFile;
+    assetName = version: "displayplacer-apple-v${lib.replaceStrings [ "." ] [ "" ] version}";
+    fallbackHashes."1.4.0" = "sha256-BXLD0pGOR8fguddyOQeGTi6itTudOwI3l2n//PRPfqA=";
   };
+in
+stdenvNoCC.mkDerivation {
+  pname = "displayplacer";
+  inherit (asset) version;
 
+  src = fetchurl { inherit (asset) url hash; };
   dontUnpack = true;
   dontFixup = true;
 
   installPhase = ''
     runHook preInstall
-
-    mkdir -p "$out/bin"
-    install -m 0755 "$src" "$out/bin/displayplacer"
-
+    install -Dm755 "$src" "$out/bin/displayplacer"
     runHook postInstall
   '';
 
@@ -35,4 +36,4 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
     maintainers = [ ];
   };
-})
+}

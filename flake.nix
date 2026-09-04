@@ -77,6 +77,112 @@
       flake = false;
     };
 
+    # BearDrive release checksums track the latest stable binaries. Updating
+    # this input moves the package version, asset URL, and hash together.
+    beardrive-release-checksums = {
+      url = "https://github.com/runbear-io/beardrive/releases/latest/download/checksums.txt";
+      flake = false;
+    };
+
+    # Machine-readable upstream release metadata. Package expressions select
+    # the platform asset and integrity value from these files, so `nix flake
+    # update` moves versions, URLs, and hashes together.
+    axiom-release-metadata = {
+      url = "https://api.github.com/repos/axiomhq/cli/releases/latest";
+      flake = false;
+    };
+    posthog-cli-releases = {
+      url = "https://api.github.com/repos/PostHog/posthog/releases?per_page=100";
+      flake = false;
+    };
+    langfuse-cli-release-metadata = {
+      url = "https://registry.npmjs.org/langfuse-cli/latest";
+      flake = false;
+    };
+    vercel-cli-darwin-arm64-release-metadata = {
+      url = "https://registry.npmjs.org/@vercel%2fvc-native-darwin-arm64/latest";
+      flake = false;
+    };
+    vercel-cli-linux-arm64-release-metadata = {
+      url = "https://registry.npmjs.org/@vercel%2fvc-native-linux-arm64/latest";
+      flake = false;
+    };
+    vercel-cli-linux-x64-release-metadata = {
+      url = "https://registry.npmjs.org/@vercel%2fvc-native-linux-x64/latest";
+      flake = false;
+    };
+    sentry-release-metadata = {
+      url = "https://api.github.com/repos/getsentry/cli/releases/latest";
+      flake = false;
+    };
+    slack-release-metadata = {
+      url = "https://api.github.com/repos/slackapi/slack-cli/releases/latest";
+      flake = false;
+    };
+    bun-release-metadata = {
+      url = "https://api.github.com/repos/oven-sh/bun/releases/latest";
+      flake = false;
+    };
+    camoufox-release-metadata = {
+      url = "https://api.github.com/repos/daijro/camoufox/releases/latest";
+      flake = false;
+    };
+    deskpad-release-metadata = {
+      url = "https://api.github.com/repos/Stengo/DeskPad/releases/latest";
+      flake = false;
+    };
+    displayplacer-release-metadata = {
+      url = "https://api.github.com/repos/jakehilborn/displayplacer/releases/latest";
+      flake = false;
+    };
+    omp-release-metadata = {
+      url = "https://api.github.com/repos/can1357/oh-my-pi/releases/latest";
+      flake = false;
+    };
+    pi-codegraph-source = {
+      url = "git+https://github.com/isac322/pi-codegraph.git?ref=main&shallow=1";
+      flake = false;
+    };
+
+    # Sources whose upstream does not publish a release manifest with a
+    # complete dependency graph. Their own lock files are consumed directly.
+    camofox-browser-source = {
+      url = "git+https://github.com/jo-inc/camofox-browser.git?ref=master&shallow=1";
+      flake = false;
+    };
+    context-mode-source = {
+      url = "git+https://github.com/mksglu/context-mode.git?ref=main&shallow=1";
+      flake = false;
+    };
+    macvnc-source = {
+      url = "git+https://github.com/LibVNC/macVNC.git?ref=main&shallow=1";
+      flake = false;
+    };
+    zsh-auto-notify-source = {
+      url = "git+https://github.com/MichaelAquilina/zsh-auto-notify.git?ref=master&shallow=1";
+      flake = false;
+    };
+    pi-anthropic-web-fetch-source = {
+      url = "git+https://github.com/code-yeongyu/pi-anthropic-web-fetch.git?ref=main&shallow=1";
+      flake = false;
+    };
+    pi-google-url-context-source = {
+      url = "git+https://github.com/code-yeongyu/pi-google-url-context.git?ref=main&shallow=1";
+      flake = false;
+    };
+    pi-anthropic-web-search-source = {
+      url = "git+https://github.com/code-yeongyu/pi-anthropic-web-search.git?ref=main&shallow=1";
+      flake = false;
+    };
+    pi-openai-web-search-source = {
+      url = "git+https://github.com/code-yeongyu/pi-openai-web-search.git?ref=main&shallow=1";
+      flake = false;
+    };
+    pi-google-google-search-source = {
+      url = "git+https://github.com/code-yeongyu/pi-google-google-search.git?ref=main&shallow=1";
+      flake = false;
+    };
+
     # Lets nix-darwin manage /etc/nix/nix.custom.conf declaratively. It forces
     # `nix.enable = false`, leaving /etc/nix/nix.conf to Determinate Nix.
     # No `follows` here either: upstream advises against it (FlakeHub cache).
@@ -106,6 +212,38 @@
     }:
     let
       user = "bhyoo";
+      releaseManifests = {
+        axiom = inputs.axiom-release-metadata;
+        posthog = inputs.posthog-cli-releases;
+        langfuse = inputs.langfuse-cli-release-metadata;
+        vercelDarwinArm64 = inputs.vercel-cli-darwin-arm64-release-metadata;
+        vercelLinuxArm64 = inputs.vercel-cli-linux-arm64-release-metadata;
+        vercelLinuxX64 = inputs.vercel-cli-linux-x64-release-metadata;
+        sentry = inputs.sentry-release-metadata;
+        slack = inputs.slack-release-metadata;
+        bun = inputs.bun-release-metadata;
+        camoufox = inputs.camoufox-release-metadata;
+        deskpad = inputs.deskpad-release-metadata;
+        displayplacer = inputs.displayplacer-release-metadata;
+        omp = inputs.omp-release-metadata;
+      };
+      sourceInputs = {
+        camofoxBrowser = inputs.camofox-browser-source;
+        contextMode = inputs.context-mode-source;
+        piCodegraph = inputs.pi-codegraph-source;
+        macvnc = inputs.macvnc-source;
+        piAnthropicWebFetch = inputs.pi-anthropic-web-fetch-source;
+        piGoogleUrlContext = inputs.pi-google-url-context-source;
+        piAnthropicWebSearch = inputs.pi-anthropic-web-search-source;
+        piOpenaiWebSearch = inputs.pi-openai-web-search-source;
+        piGoogleGoogleSearch = inputs.pi-google-google-search-source;
+      };
+      packageOverlay = import ./pkgs/overlay.nix {
+        inherit releaseManifests sourceInputs;
+        bun2nix = inputs.llm-agents.inputs.bun2nix;
+        beardriveChecksums = inputs.beardrive-release-checksums;
+        gajaeCodeManifest = inputs.gajae-code-manifest;
+      };
 
       # Systems the locally packaged cross-platform tools are offered for. Two
       # of these are machines that exist here; x86_64-linux is included because
@@ -133,7 +271,7 @@
           extraHomeModules ? [ ],
         }:
         nix-darwin.lib.darwinSystem {
-          specialArgs = { inherit inputs hostname; };
+          specialArgs = { inherit inputs hostname packageOverlay; };
           modules = [
             ./modules/common.nix
             ./modules/darwin.nix
@@ -180,7 +318,7 @@
           extraHomeModules ? [ ],
         }:
         nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs; };
+          specialArgs = { inherit inputs packageOverlay; };
           modules = [
             ./modules/common.nix
             ./modules/nixos.nix
@@ -213,20 +351,14 @@
       # an input instead of copying the directory. pkgs/overlay.nix remains the
       # single definition: the configurations below import the same file, so
       # there is no second copy to drift.
-      overlays.default = import ./pkgs/overlay.nix {
-        gajaeCodeManifest = inputs.gajae-code-manifest;
-      };
+      overlays.default = packageOverlay;
 
       packages = forAllSystems (
         system:
         let
           pkgs = import nixpkgs {
             inherit system;
-            overlays = [
-              (import ./pkgs/overlay.nix {
-                gajaeCodeManifest = inputs.gajae-code-manifest;
-              })
-            ];
+            overlays = [ packageOverlay ];
             config.allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getName pkg) [ "sentry" ];
           };
         in
@@ -240,6 +372,7 @@
             gajae-code
             sentry
             slack-cli
+            omp-bin
             tempo-cli
             ;
         }
@@ -267,11 +400,7 @@
       apps = forAllSystems (
         system:
         let
-          pkgs = nixpkgs.legacyPackages.${system}.extend (
-            import ./pkgs/overlay.nix {
-              gajaeCodeManifest = inputs.gajae-code-manifest;
-            }
-          );
+          pkgs = nixpkgs.legacyPackages.${system}.extend packageOverlay;
           inherit (nixpkgs) lib;
           targets = builtins.attrValues (
             builtins.removeAttrs self.packages.${system} [

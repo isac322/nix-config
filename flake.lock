@@ -17,6 +17,30 @@
         "url": "https://github.com/softaworks/agent-toolkit.git"
       }
     },
+    "axiom-release-metadata": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-H97Tyz+sl7NEHAguVCKB1wXdPjo+9QYxVwy11mM2SAs=",
+        "type": "file",
+        "url": "https://api.github.com/repos/axiomhq/cli/releases/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://api.github.com/repos/axiomhq/cli/releases/latest"
+      }
+    },
+    "beardrive-release-checksums": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-YmD9bPMTWo4BKQWfyYr2rC+gA34nH9gLkDmvomcGIcQ=",
+        "type": "file",
+        "url": "https://github.com/runbear-io/beardrive/releases/latest/download/checksums.txt"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/runbear-io/beardrive/releases/latest/download/checksums.txt"
+      }
+    },
     "brew-src": {
       "flake": false,
       "locked": {
@@ -33,6 +57,18 @@
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Homebrew/brew.git"
+      }
+    },
+    "bun-release-metadata": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-aVzDTgdX5pUBvdWHlY6x4KDuZLhC0qUkCAwj+rPYft0=",
+        "type": "file",
+        "url": "https://api.github.com/repos/oven-sh/bun/releases/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://api.github.com/repos/oven-sh/bun/releases/latest"
       }
     },
     "bun2nix": {
@@ -56,6 +92,66 @@
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/bun2nix.git"
+      }
+    },
+    "camofox-browser-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787171317,
+        "narHash": "sha256-POVwAiVoScS5c1QMZslz1wbfWttYdeQEy2msxoVt+uk=",
+        "ref": "master",
+        "rev": "e5a36f5cd0332fde6597de474329a308a53a0716",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/jo-inc/camofox-browser.git"
+      },
+      "original": {
+        "ref": "master",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/jo-inc/camofox-browser.git"
+      }
+    },
+    "camoufox-release-metadata": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-iuqlTMoGNnGewtBLvRGXyLF0AanB94GNOrjgglkGuh4=",
+        "type": "file",
+        "url": "https://api.github.com/repos/daijro/camoufox/releases/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://api.github.com/repos/daijro/camoufox/releases/latest"
+      }
+    },
+    "context-mode-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1788458737,
+        "narHash": "sha256-SHD4NeNIJqas4/ZdqYiT8WMzRNBsDTZHd8PRd26b0Y0=",
+        "ref": "main",
+        "rev": "0ebbc2b6b64e171b16ab30dcc8b5c0a43429bc0b",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/mksglu/context-mode.git"
+      },
+      "original": {
+        "ref": "main",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/mksglu/context-mode.git"
+      }
+    },
+    "deskpad-release-metadata": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-jf3tUjdjH+4bZZCcKM0A9h4ekxvq3YkIC3WtwJXeWsg=",
+        "type": "file",
+        "url": "https://api.github.com/repos/Stengo/DeskPad/releases/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://api.github.com/repos/Stengo/DeskPad/releases/latest"
       }
     },
     "determinate": {
@@ -113,6 +209,18 @@
       "original": {
         "type": "file",
         "url": "https://install.determinate.systems/determinate-nixd/tag/v3.22.3/x86_64-linux"
+      }
+    },
+    "displayplacer-release-metadata": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-QH9SCLdu/LxibJomgtgQbil8HNkllrl+OZ/UxqVRnoQ=",
+        "type": "file",
+        "url": "https://api.github.com/repos/jakehilborn/displayplacer/releases/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://api.github.com/repos/jakehilborn/displayplacer/releases/latest"
       }
     },
     "flake-compat": {
@@ -284,6 +392,18 @@
         "url": "https://github.com/blader/humanizer.git"
       }
     },
+    "langfuse-cli-release-metadata": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-0IFbS/a4fWgasu3ynVPynFLV8audXxgL8j4DFAAWL10=",
+        "type": "file",
+        "url": "https://registry.npmjs.org/langfuse-cli/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://registry.npmjs.org/langfuse-cli/latest"
+      }
+    },
     "llm-agents": {
       "inputs": {
         "bun2nix": "bun2nix",
@@ -305,6 +425,24 @@
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
+      }
+    },
+    "macvnc-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1734895073,
+        "narHash": "sha256-5cPRDVzPWE8dcTf6hIk0mV+6Np2Z0sjW9YOOrQ1Idzg=",
+        "ref": "main",
+        "rev": "6c45640168dd170120d96661b3b711d283257166",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/LibVNC/macVNC.git"
+      },
+      "original": {
+        "ref": "main",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/LibVNC/macVNC.git"
       }
     },
     "nix": {
@@ -554,20 +692,188 @@
         "url": "https://github.com/NixOS/nixpkgs.git"
       }
     },
+    "omp-release-metadata": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-zw992CWsCI+wfpAtnhVnh7FvG61nVaZh4QcXaihdl/w=",
+        "type": "file",
+        "url": "https://api.github.com/repos/can1357/oh-my-pi/releases/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://api.github.com/repos/can1357/oh-my-pi/releases/latest"
+      }
+    },
+    "pi-anthropic-web-fetch-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784998886,
+        "narHash": "sha256-bK2KwLQyt5zXlg1v9dTLCeBrPd9NGj6ZSiOi0/MKGms=",
+        "ref": "main",
+        "rev": "3e882310f4dde02995661c6d1114c3392bfeef85",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/code-yeongyu/pi-anthropic-web-fetch.git"
+      },
+      "original": {
+        "ref": "main",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/code-yeongyu/pi-anthropic-web-fetch.git"
+      }
+    },
+    "pi-anthropic-web-search-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784996821,
+        "narHash": "sha256-Qa6sAPRTYuYfasOdAsVeMHAYacecRXaAvgNu0Df155U=",
+        "ref": "main",
+        "rev": "f85d35421cef09423565415e687bc6d866324e97",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/code-yeongyu/pi-anthropic-web-search.git"
+      },
+      "original": {
+        "ref": "main",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/code-yeongyu/pi-anthropic-web-search.git"
+      }
+    },
+    "pi-codegraph-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784475955,
+        "narHash": "sha256-GQSg0IBY+p00F68FlkiN4C2lmAQZSmaFa9IJcaWyQ9M=",
+        "ref": "main",
+        "rev": "ed49e74efcc2d49e43de9bb67a244d242f79633f",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/isac322/pi-codegraph.git"
+      },
+      "original": {
+        "ref": "main",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/isac322/pi-codegraph.git"
+      }
+    },
+    "pi-google-google-search-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784998732,
+        "narHash": "sha256-YF1fnx+BjlWgeqePOXBiNhvqzwm6CnkqgcJ2x7ucsSs=",
+        "ref": "main",
+        "rev": "476db958f413fdb70787622cec9381368ebbbb83",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/code-yeongyu/pi-google-google-search.git"
+      },
+      "original": {
+        "ref": "main",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/code-yeongyu/pi-google-google-search.git"
+      }
+    },
+    "pi-google-url-context-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784999398,
+        "narHash": "sha256-IEzCHJFCCwwy/BmjHhotqF/0uP7FzD1hBmF7G9WrKDw=",
+        "ref": "main",
+        "rev": "4deb3b5a09953dc8c8a2f924097c2243092c37f8",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/code-yeongyu/pi-google-url-context.git"
+      },
+      "original": {
+        "ref": "main",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/code-yeongyu/pi-google-url-context.git"
+      }
+    },
+    "pi-openai-web-search-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784998273,
+        "narHash": "sha256-mxurTHanCTkS94wneMYmSY/aNH2m20YSaE/4v4cGXiU=",
+        "ref": "main",
+        "rev": "39643380682f02f306b0de2673ff136c45ccc2a2",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/code-yeongyu/pi-openai-web-search.git"
+      },
+      "original": {
+        "ref": "main",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/code-yeongyu/pi-openai-web-search.git"
+      }
+    },
+    "posthog-cli-releases": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-sWSDdgHCIS0iFS7vnzrtb3HihBQGRwlsyZott4dS8AQ=",
+        "type": "file",
+        "url": "https://api.github.com/repos/PostHog/posthog/releases?per_page=100"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://api.github.com/repos/PostHog/posthog/releases?per_page=100"
+      }
+    },
     "root": {
       "inputs": {
         "agent-toolkit": "agent-toolkit",
+        "axiom-release-metadata": "axiom-release-metadata",
+        "beardrive-release-checksums": "beardrive-release-checksums",
+        "bun-release-metadata": "bun-release-metadata",
+        "camofox-browser-source": "camofox-browser-source",
+        "camoufox-release-metadata": "camoufox-release-metadata",
+        "context-mode-source": "context-mode-source",
+        "deskpad-release-metadata": "deskpad-release-metadata",
         "determinate": "determinate",
+        "displayplacer-release-metadata": "displayplacer-release-metadata",
         "gajae-code-manifest": "gajae-code-manifest",
         "gentle-ai": "gentle-ai",
         "home-manager": "home-manager",
         "humanizer": "humanizer",
+        "langfuse-cli-release-metadata": "langfuse-cli-release-metadata",
         "llm-agents": "llm-agents",
+        "macvnc-source": "macvnc-source",
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",
         "nixpkgs": "nixpkgs_6",
         "nixpkgs-firefox-darwin": "nixpkgs-firefox-darwin",
-        "skillclaw": "skillclaw"
+        "omp-release-metadata": "omp-release-metadata",
+        "pi-anthropic-web-fetch-source": "pi-anthropic-web-fetch-source",
+        "pi-anthropic-web-search-source": "pi-anthropic-web-search-source",
+        "pi-codegraph-source": "pi-codegraph-source",
+        "pi-google-google-search-source": "pi-google-google-search-source",
+        "pi-google-url-context-source": "pi-google-url-context-source",
+        "pi-openai-web-search-source": "pi-openai-web-search-source",
+        "posthog-cli-releases": "posthog-cli-releases",
+        "sentry-release-metadata": "sentry-release-metadata",
+        "skillclaw": "skillclaw",
+        "slack-release-metadata": "slack-release-metadata",
+        "vercel-cli-darwin-arm64-release-metadata": "vercel-cli-darwin-arm64-release-metadata",
+        "vercel-cli-linux-arm64-release-metadata": "vercel-cli-linux-arm64-release-metadata",
+        "vercel-cli-linux-x64-release-metadata": "vercel-cli-linux-x64-release-metadata",
+        "zsh-auto-notify-source": "zsh-auto-notify-source"
+      }
+    },
+    "sentry-release-metadata": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-dFWZI9juslNezsg26sLTwpayN8WIKKw2CnFmA4ZS3MM=",
+        "type": "file",
+        "url": "https://api.github.com/repos/getsentry/cli/releases/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://api.github.com/repos/getsentry/cli/releases/latest"
       }
     },
     "skillclaw": {
@@ -585,6 +891,18 @@
         "shallow": true,
         "type": "git",
         "url": "https://github.com/AMAP-ML/SkillClaw.git"
+      }
+    },
+    "slack-release-metadata": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-YXizmPatzUCAK/6h6GWD2tyE9LmjIxWai+zfr8sAURk=",
+        "type": "file",
+        "url": "https://api.github.com/repos/slackapi/slack-cli/releases/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://api.github.com/repos/slackapi/slack-cli/releases/latest"
       }
     },
     "systems": {
@@ -662,6 +980,60 @@
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/treefmt-nix.git"
+      }
+    },
+    "vercel-cli-darwin-arm64-release-metadata": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-ENX+gXUKBCJy2ocH+WIYFuwTP2KpsAyM793pgnp4yMc=",
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vercel%2Fvc-native-darwin-arm64/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vercel%2Fvc-native-darwin-arm64/latest"
+      }
+    },
+    "vercel-cli-linux-arm64-release-metadata": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-Jvpfoo1iPtO5Fr6H8g4+5qPS1Z+PkfKUCAp1bLOVFWg=",
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vercel%2Fvc-native-linux-arm64/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vercel%2Fvc-native-linux-arm64/latest"
+      }
+    },
+    "vercel-cli-linux-x64-release-metadata": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-S3G/QXWC/xSVYdSaP46+kQ4M3sWBEDQEIbC12l4+zgo=",
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vercel%2Fvc-native-linux-x64/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vercel%2Fvc-native-linux-x64/latest"
+      }
+    },
+    "zsh-auto-notify-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1750669386,
+        "narHash": "sha256-s3TBAsXOpmiXMAQkbaS5de0t0hNC1EzUUb0ZG+p9keE=",
+        "ref": "master",
+        "rev": "b51c934d88868e56c1d55d0a2a36d559f21cb2ee",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/MichaelAquilina/zsh-auto-notify.git"
+      },
+      "original": {
+        "ref": "master",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/MichaelAquilina/zsh-auto-notify.git"
       }
     }
   },

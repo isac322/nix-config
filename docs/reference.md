@@ -233,20 +233,23 @@ password-file 형식으로 변환해 `/var/lib/camofox/vnc-auth`에
 (`home/common.nix`). 아래 두 CLI 묶음이 이 층에 있는 이유가 이것이라, 순서상
 여기가 먼저다.
 
-앞의 셋은 nixpkgs가 아니라 `llm-agents` 인풋에서 온다. nixpkgs-unstable 채널이
-master를 며칠씩 뒤따라오는 반면 이쪽은 매일 상류를 따라간다. `gjc`는
-`gajae-code-manifest` flake input을 통해 공식 standalone release manifest를
-추적하여 `nix flake update` 시 자동으로 최신 릴리스 바이너리를 가져온다.
-aarch64-darwin과 x86_64-linux·aarch64-linux를 지원하므로 리눅스 서버에서도 같은 줄이 통한다.
+`claude-code`와 `codex`는 `llm-agents` 인풋의 캐시된 패키지를 쓴다. `omp`는
+`omp-release-metadata`가 가리키는 공식 standalone binary를 직접 설치하므로 상류
+Rust·Bun 빌드를 반복하지 않는다. `gjc`도 `gajae-code-manifest`가 제공하는 공식
+standalone release binary를 쓴다. 두 release input 모두 `nix flake update` 때
+버전·asset URL·SHA-256을 함께 갱신하며 aarch64-darwin과
+x86_64-linux·aarch64-linux를 지원한다.
 
 **Orca 는 여기 없다.** GUI 앱이라 cask 로 오고, 그래서 맥 둘에만 있다 —
 위 [GUI 앱](#gui-앱) 을 보라.
 
 ### BearDrive — 실행 파일은 공통, 동기화 대상은 노드별
 
-`bdrive` 0.15.0을 **모든 기기**에 둔다. nixpkgs에는 아직 없으므로
-`pkgs/beardrive/package.nix`가 상류의 동일한 공식 release binary를 고정 hash로
-가져오고, `pkgs/overlay.nix`가 `pkgs.beardrive`로 노출한다.
+`bdrive`를 **모든 기기**에 둔다. nixpkgs에는 아직 없으므로
+`beardrive-release-checksums` flake input이 상류 최신 릴리스의 공식 checksum
+목록을 추적한다. `nix flake update`가 이 입력을 갱신하면
+`pkgs/beardrive/package.nix`가 버전과 platform별 hash를 함께 읽어 동일한 공식
+release binary를 가져오고, `pkgs/overlay.nix`가 `pkgs.beardrive`로 노출한다.
 
 Nix가 하는 일은 CLI 설치까지다. `bdrive init`은 동기화할 로컬 directory와 hub
 project를 고르고 로그인한 뒤 agent hook과 로그인 시 재개할 사용자 service를
@@ -343,8 +346,8 @@ endpoint, bucket, region과 S3 자격증명은
   넷을 모두 빌드하는데 셋은 여기서 돌리지 않는 트레이스 저장소의 서버 쪽이다.
   `cmd/tempo-cli` 만 남기면 클로저가 237 MiB 에서 72 MiB 로 줄고, 서버로 읽히는
   `tempo` 라는 이름의 바이너리가 PATH 에서 빠진다 (`pkgs/overlay.nix`).
-- **`sentry` 는 `getsentry/cli`다.** `pkgs/sentry/package.nix`가 공식 release의
-  npm bundle을 고정하고 `sentry` 바이너리를 설치한다.
+- **`sentry` 는 `getsentry/cli`다.** 공식 release metadata에서 현재 플랫폼의
+  standalone binary와 SHA-256을 함께 선택한다.
 - **`axiom` 은 `axiom-cli` 가 아니다.** 바이너리 이름이 `axiom` 이다. attribute 는
   여기 있는 다른 CLI 옆에서 찾을 수 있게 `axiom-cli` 로 두었다.
 
@@ -542,23 +545,34 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 
 | attribute | 출처 | 메모 |
 |---|---|---|
-| `posthog-cli` | crates.io | 모노레포라 git 대신 배포된 크레이트 |
-| `axiom-cli` | GitHub 타르볼 | 평범한 Go 모듈. 바이너리 이름은 `axiom` |
-| `langfuse-cli` | npm 타르볼 | lock을 직접 만들어 함께 담았다 |
-| `vercel-cli` | npm 타르볼 | manifest를 `postPatch`에서 편집 |
-| `beardrive` | GitHub release binaries | BearDrive 0.15.0의 platform별 `bdrive` |
-| `gajae-code` | GitHub release binaries | manifest flake input 추적 platform별 `gjc` |
-| `sentry` | GitHub release npm tarball | getsentry/cli 0.42.2 |
-| `slack-cli` | GitHub 타르볼 | nixpkgs의 동명 attribute를 갈아끼운다 |
-| `bun` | nixpkgs override | 1.4.0. 잠긴 nixpkgs의 1.3.13보다 앞선 임시 override |
+| `posthog-cli` | GitHub release binary | `@posthog/cli` 릴리스 태그의 최신 platform binary |
+| `axiom-cli` | GitHub release binary | 바이너리 이름은 `axiom` |
+| `langfuse-cli` | npm 타르볼 | dependency가 없는 published CLI |
+| `vercel-cli` | npm platform binary | 현재 플랫폼의 `vc-native` 패키지 |
+| `beardrive` | GitHub release binaries | checksum input이 추적하는 platform별 `bdrive` |
+| `gajae-code` | GitHub release binaries | manifest input이 추적하는 platform별 `gjc` |
+| `omp-bin` | GitHub release binary | 공식 standalone `omp`; 상류 Rust·Bun 빌드 생략 |
+| `sentry` | GitHub release binary | getsentry/cli의 현재 platform binary |
+| `slack-cli` | GitHub release binary | nixpkgs의 동명 attribute를 갈아끼운다 |
+| `bun` | GitHub release binary override | 잠긴 nixpkgs보다 최신인 동안만 override |
 | `tempo-cli` | nixpkgs override | `subPackages`를 하나로 줄인다 |
-| `camoufox` | GitHub macOS/Linux arm64 zip | 152.0.4-beta.28 코어. aarch64-darwin·aarch64-linux |
-| `camofox-browser` | npm 타르볼 | `@askjo/camofox-browser` 1.13.1 + immutable core·platform wrapper |
-| `camofox-url-handler` | 로컬 Objective-C/Cocoa | HTTP/HTTPS URL을 관리 Camofox API에 전달. aarch64-darwin 전용 |
-| `deskpad` | GitHub app zip | 1.3.2 virtual display. aarch64-darwin 전용 |
-| `displayplacer` | GitHub release binary | 1.4.0 display layout tool. aarch64-darwin 전용 |
-| `macvnc` | GitHub source revision | ScreenCaptureKit + LibVNCServer. aarch64-darwin 전용 |
+| `camoufox` | GitHub release archive | aarch64-darwin·aarch64-linux browser core |
+| `camofox-browser` | Git source + npm lock | source revision과 dependency lock을 함께 추적 |
+| `omp-plugins` | Git source + upstream npm/Bun locks | plugin version과 OMP registry를 같은 source snapshot에서 생성 |
+| `camofox-url-handler` | 로컬 Objective-C/Cocoa | HTTP/HTTPS URL을 관리 Camofox API에 전달 |
+| `deskpad` | GitHub app zip | aarch64-darwin virtual display |
+| `displayplacer` | GitHub release binary | aarch64-darwin display layout tool |
+| `macvnc` | Git source revision | ScreenCaptureKit + LibVNCServer |
 
+상류 package들은 release API, npm `latest`, 공식 checksum/manifest, 또는 source
+branch를 `flake = false` input으로 둔다. 따라서 `nix flake update` 한 번이
+`flake.lock`의 upstream snapshot을 갱신하고, package expression은 그 snapshot의
+버전·asset URL·digest·dependency lock을 읽는다. OMP plugin registry도 각 source의
+`package.json` version에서 만들어져 별도 version pin이 없다. `context-mode`는
+`bun.lock`의 registry package와 integrity를 직접 읽어 같은 flake에 잠긴
+`bun2nix` dependency cache로 넘기므로 로컬 npm lock도 유지하지 않는다.
+metadata가 asset digest를 제공하지 않는 오래된 release만 검증된 fallback hash를
+쓴다.
 CLI 패키징 결정과 각 패키지의 함정은
 [0019](decisions/0019-package-from-published-artifacts.md), Camofox 쪽 결정은
 [0031](decisions/0031-camofox-native-macos-over-wireguard.md)에 있다. 모든 호스트의
@@ -573,7 +587,7 @@ fixed-artifact repack이라 제외한다.
 다른 사람이 디렉터리를 복사하는 대신 인풋으로 가져갈 수 있게 하려는 것이다.
 
 ```nix
-inputs.bhyoo.url = "github:isac322/nix-config";
+inputs.bhyoo.url = "git+https://github.com/isac322/nix-config.git?shallow=1";
 # 이후
 nixpkgs.overlays = [ inputs.bhyoo.overlays.default ];
 # 또는

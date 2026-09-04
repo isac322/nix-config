@@ -1,33 +1,32 @@
-# DeskPad is distributed as a signed universal macOS application. Preserve the
-# upstream bundle intact: changing its contents would invalidate the Developer
-# ID signature and make Screen Recording consent harder to identify.
 {
+  fetchurl,
   lib,
   stdenvNoCC,
-  fetchurl,
   unzip,
+  manifestFile,
 }:
 
-stdenvNoCC.mkDerivation (finalAttrs: {
-  pname = "deskpad";
-  version = "1.3.2";
-
-  src = fetchurl {
-    url = "https://github.com/Stengo/DeskPad/releases/download/v${finalAttrs.version}/DeskPad.app.zip";
-    hash = "sha256-t6riEjZBkxd6b+sv7Wp5Qq6acF1tSRwV5HnFhYW4WuA=";
+let
+  release = import ../release-manifest.nix { inherit lib; };
+  asset = release.github {
+    inherit manifestFile;
+    assetName = "DeskPad.app.zip";
+    fallbackHashes."1.3.2" = "sha256-t6riEjZBkxd6b+sv7Wp5Qq6acF1tSRwV5HnFhYW4WuA=";
   };
+in
+stdenvNoCC.mkDerivation {
+  pname = "deskpad";
+  inherit (asset) version;
 
+  src = fetchurl { inherit (asset) url hash; };
   dontUnpack = true;
   dontFixup = true;
 
   installPhase = ''
     runHook preInstall
-
     mkdir -p "$out/Applications" "$out/bin"
     ${lib.getExe unzip} -q "$src" -d "$out/Applications"
-    ln -s ../Applications/DeskPad.app/Contents/MacOS/DeskPad \
-      "$out/bin/deskpad"
-
+    ln -s ../Applications/DeskPad.app/Contents/MacOS/DeskPad "$out/bin/deskpad"
     runHook postInstall
   '';
 
@@ -40,4 +39,4 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
     maintainers = [ ];
   };
-})
+}

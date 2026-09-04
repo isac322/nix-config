@@ -24,24 +24,31 @@
   pciutils,
   pipewire,
   adwaita-icon-theme,
+  manifestFile,
 }:
 
-stdenv.mkDerivation (finalAttrs: {
-  pname = "camoufox";
-  version = "152.0.4-beta.28";
-
-  src = fetchurl {
-    url =
+let
+  release = import ../release-manifest.nix { inherit lib; };
+  asset = release.github {
+    inherit manifestFile;
+    assetName =
+      version:
       if stdenv.hostPlatform.isDarwin then
-        "https://github.com/daijro/camoufox/releases/download/v${finalAttrs.version}/camoufox-${finalAttrs.version}-mac.arm64.zip"
+        "camoufox-${version}-mac.arm64.zip"
       else
-        "https://github.com/daijro/camoufox/releases/download/v${finalAttrs.version}/camoufox-${finalAttrs.version}-lin.arm64.zip";
-    hash =
-      if stdenv.hostPlatform.isDarwin then
-        "sha256-i3aAphgYJFz06wFQ7auBHU7ZN7ZyNRRWnnTD59+Whb0="
-      else
-        "sha256-OhBaL8kp6Ap5tLf84sk+1ixPssh388HtKl1mocT+lo8=";
+        "camoufox-${version}-lin.arm64.zip";
   };
+  versionParts = lib.splitString "-" asset.version;
+  versionJson = builtins.toJSON {
+    version = builtins.head versionParts;
+    release = lib.concatStringsSep "-" (builtins.tail versionParts);
+  };
+in
+stdenv.mkDerivation {
+  pname = "camoufox";
+  inherit (asset) version;
+
+  src = fetchurl { inherit (asset) url hash; };
 
   dontUnpack = true;
 
@@ -85,8 +92,7 @@ stdenv.mkDerivation (finalAttrs: {
         resources="$out/Applications/Camoufox.app/Contents/Resources"
         macos="$out/Applications/Camoufox.app/Contents/MacOS"
         mkdir -p "$resources/fontconfig"
-        printf '%s\n' '{"version":"152.0.4","release":"beta.28"}' \
-          > "$resources/version.json"
+        printf '%s\n' '${versionJson}' > "$resources/version.json"
 
         for resource in properties.json version.json fontconfig; do
           ln -s "../Resources/$resource" "$macos/$resource"
@@ -104,8 +110,7 @@ stdenv.mkDerivation (finalAttrs: {
         browser="$out/lib/camoufox"
         mkdir -p "$browser" "$out/bin"
         ${lib.getExe unzip} -q "$src" -d "$browser"
-        printf '%s\n' '{"version":"152.0.4","release":"beta.28"}' \
-          > "$browser/version.json"
+        printf '%s\n' '${versionJson}' > "$browser/version.json"
 
         # camoufox-js launches this binary name and discovers the immutable
         # properties.json, version.json and fontconfig/ tree beside it.
@@ -126,4 +131,4 @@ stdenv.mkDerivation (finalAttrs: {
     sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
     maintainers = [ ];
   };
-})
+}

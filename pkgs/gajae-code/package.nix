@@ -8,15 +8,11 @@
   stdenvNoCC,
   versionCheckHook,
   writableTmpDirAsHomeHook,
-  manifestFile ? null,
+  manifestFile,
 }:
 
 let
-  manifest =
-    if manifestFile != null then
-      builtins.fromJSON (builtins.readFile manifestFile)
-    else
-      builtins.fromJSON (builtins.readFile ./gajae-release-binaries-v1.json);
+  manifest = builtins.fromJSON (builtins.readFile manifestFile);
 
   binaryFor =
     name:

@@ -1,47 +1,55 @@
-# PostHog's own CLI, which nixpkgs does not carry.
-#
-# The source is taken from crates.io rather than GitHub: the CLI lives inside
-# the PostHog monorepo, so a git checkout would fetch an enormous tree to build
-# one small binary, and the published crate is the same code with a Cargo.lock
-# already in it.
 {
+  fetchurl,
   lib,
-  rustPlatform,
-  fetchCrate,
+  stdenvNoCC,
   versionCheckHook,
+  manifestFile,
 }:
 
-rustPlatform.buildRustPackage (finalAttrs: {
+let
+  releaseManifest = import ../release-manifest.nix { inherit lib; };
+  assetName =
+    {
+      "aarch64-darwin" = "posthog-cli-aarch64-apple-darwin.tar.gz";
+      "x86_64-darwin" = "posthog-cli-x86_64-apple-darwin.tar.gz";
+      "aarch64-linux" = "posthog-cli-aarch64-unknown-linux-gnu.tar.gz";
+      "x86_64-linux" = "posthog-cli-x86_64-unknown-linux-gnu.tar.gz";
+    }
+    .${stdenvNoCC.hostPlatform.system}
+      or (throw "PostHog CLI does not publish a binary for ${stdenvNoCC.hostPlatform.system}");
+  release = releaseManifest.githubTagged {
+    inherit manifestFile assetName;
+    tagPrefix = "posthog-cli/v";
+  };
+in
+stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "posthog-cli";
-  version = "0.5.11";
+  inherit (release) version;
 
-  src = fetchCrate {
-    inherit (finalAttrs) pname version;
-    hash = "sha256-IPJfr5bJjrYeg9HcZcmcrj7hQ2So2kaLW0cnCJQtmUU=";
+  src = fetchurl {
+    inherit (release) url hash;
   };
 
-  cargoHash = "sha256-CngA8eLSGMNkMssWmjrS+kE1Act53LdV/YBkxlhGSh8=";
+  installPhase = ''
+    runHook preInstall
+    install -Dm755 posthog-cli "$out/bin/posthog-cli"
+    runHook postInstall
+  '';
 
-  # No shell completions: the clap definition has no `completions` subcommand
-  # to generate them from.
-
-  # No system TLS to link against: the dependency tree resolves to rustls, with
-  # no openssl-sys anywhere in Cargo.lock. That is what keeps this buildable on
-  # darwin and linux from the same expression.
-
-  # Cheap sanity check that the binary starts and is the version claimed —
-  # worth having when the version is only ever bumped by hand.
   nativeInstallCheckInputs = [ versionCheckHook ];
-  doInstallCheck = true;
+  doInstallCheck = stdenvNoCC.buildPlatform.canExecute stdenvNoCC.hostPlatform;
 
   meta = {
     description = "Command line interface for PostHog";
     homepage = "https://github.com/PostHog/posthog/tree/master/rust/cli";
     license = lib.licenses.mit;
     mainProgram = "posthog-cli";
-    platforms = lib.platforms.unix;
-    # Empty rather than absent: nixpkgs requires the attribute on new packages,
-    # and there is no handle in the pinned tree to put in it.
+    platforms = [
+      "aarch64-darwin"
+      "x86_64-darwin"
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
     maintainers = [ ];
   };
 })
