@@ -29,6 +29,22 @@ determinateNixd.builder = {
 };
 ```
 
+## 패키지 릴리스 갱신
+
+공식 release binary와 npm package는 다음 명령으로 한 기기에서만 갱신한다.
+
+```sh
+nix run .#update-packages
+```
+
+명령은 release API·npm metadata·공식 checksum/manifest에서 package에 필요한
+안정 필드만 `pkgs/release-snapshots.json`에 기록하고, 이어서 Git source input을
+`flake.lock`에서 갱신한다. 같은 URL의 응답이 수시로 바뀌는 endpoint는 flake
+input으로 잠그지 않으므로, 새 release가 나온 뒤에도 평범한 `switch`가
+`narHash` 불일치로 깨지지 않는다. 어느 단계든 실패하면 snapshot과 lock을 둘 다
+실행 전 상태로 원복한다. 성공한 변경은 검증한 뒤 commit·push하고 다른 기기에서는
+pull·switch만 한다.
+
 ## 선언형 Borg 서버 백업
 
 NixOS 서버와 Darwin 서버는 둘 다 Borg를 설치하고 같은

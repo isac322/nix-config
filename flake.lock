@@ -17,30 +17,6 @@
         "url": "https://github.com/softaworks/agent-toolkit.git"
       }
     },
-    "axiom-release-metadata": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-q2csGWCWcmSyzGXzNmYVijwHSojDm1lQPWLf+NgYk+k=",
-        "type": "file",
-        "url": "https://api.github.com/repos/axiomhq/cli/releases/latest"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://api.github.com/repos/axiomhq/cli/releases/latest"
-      }
-    },
-    "beardrive-release-checksums": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-YmD9bPMTWo4BKQWfyYr2rC+gA34nH9gLkDmvomcGIcQ=",
-        "type": "file",
-        "url": "https://github.com/runbear-io/beardrive/releases/latest/download/checksums.txt"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://github.com/runbear-io/beardrive/releases/latest/download/checksums.txt"
-      }
-    },
     "brew-src": {
       "flake": false,
       "locked": {
@@ -57,18 +33,6 @@
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Homebrew/brew.git"
-      }
-    },
-    "bun-release-metadata": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-OPcbW+/8Vo1WZqMupsTij+0Zoca/pYw0XyNrelxitwA=",
-        "type": "file",
-        "url": "https://api.github.com/repos/oven-sh/bun/releases/latest"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://api.github.com/repos/oven-sh/bun/releases/latest"
       }
     },
     "bun2nix": {
@@ -112,18 +76,6 @@
         "url": "https://github.com/jo-inc/camofox-browser.git"
       }
     },
-    "camoufox-release-metadata": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-n5Ri6q7GwSqhBd8kboJE4/rQot4h6IsEzMYdrASLPnM=",
-        "type": "file",
-        "url": "https://api.github.com/repos/daijro/camoufox/releases/latest"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://api.github.com/repos/daijro/camoufox/releases/latest"
-      }
-    },
     "context-mode-source": {
       "flake": false,
       "locked": {
@@ -140,18 +92,6 @@
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
-      }
-    },
-    "deskpad-release-metadata": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-0Lvld/Wgex/VDY8/0opibPXLOGbAKTHYG6JHK3eJr10=",
-        "type": "file",
-        "url": "https://api.github.com/repos/Stengo/DeskPad/releases/latest"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://api.github.com/repos/Stengo/DeskPad/releases/latest"
       }
     },
     "determinate": {
@@ -209,18 +149,6 @@
       "original": {
         "type": "file",
         "url": "https://install.determinate.systems/determinate-nixd/tag/v3.22.3/x86_64-linux"
-      }
-    },
-    "displayplacer-release-metadata": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-GlQXDInBv6nUMG8w3njQVBsweLlraqpU+7H6ATq0uX4=",
-        "type": "file",
-        "url": "https://api.github.com/repos/jakehilborn/displayplacer/releases/latest"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://api.github.com/repos/jakehilborn/displayplacer/releases/latest"
       }
     },
     "flake-compat": {
@@ -302,18 +230,6 @@
         "url": "https://github.com/hercules-ci/flake-parts.git"
       }
     },
-    "gajae-code-manifest": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-7vCMznDuA1ltX/97Kf/ivPBQCCBxDtLN4ySF1yCD+yo=",
-        "type": "file",
-        "url": "https://github.com/Yeachan-Heo/gajae-code/releases/latest/download/gajae-release-binaries-v1.json"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://github.com/Yeachan-Heo/gajae-code/releases/latest/download/gajae-release-binaries-v1.json"
-      }
-    },
     "gentle-ai": {
       "flake": false,
       "locked": {
@@ -390,18 +306,6 @@
         "shallow": true,
         "type": "git",
         "url": "https://github.com/blader/humanizer.git"
-      }
-    },
-    "langfuse-cli-release-metadata": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-0IFbS/a4fWgasu3ynVPynFLV8audXxgL8j4DFAAWL10=",
-        "type": "file",
-        "url": "https://registry.npmjs.org/langfuse-cli/latest"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://registry.npmjs.org/langfuse-cli/latest"
       }
     },
     "llm-agents": {
@@ -692,18 +596,6 @@
         "url": "https://github.com/NixOS/nixpkgs.git"
       }
     },
-    "omp-release-metadata": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-iXJ9CRf/KhNLNa2Qoaup7hM38y49lMvkDwrlhUgI9Sk=",
-        "type": "file",
-        "url": "https://api.github.com/repos/can1357/oh-my-pi/releases/latest"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://api.github.com/repos/can1357/oh-my-pi/releases/latest"
-      }
-    },
     "pi-anthropic-web-fetch-source": {
       "flake": false,
       "locked": {
@@ -812,68 +704,29 @@
         "url": "https://github.com/code-yeongyu/pi-openai-web-search.git"
       }
     },
-    "posthog-cli-releases": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-yTrLM6YATWFKytrdtueKjN03Q6VjPR2Tn7i51iUT1AE=",
-        "type": "file",
-        "url": "https://api.github.com/repos/PostHog/posthog/releases?per_page=100"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://api.github.com/repos/PostHog/posthog/releases?per_page=100"
-      }
-    },
     "root": {
       "inputs": {
         "agent-toolkit": "agent-toolkit",
-        "axiom-release-metadata": "axiom-release-metadata",
-        "beardrive-release-checksums": "beardrive-release-checksums",
-        "bun-release-metadata": "bun-release-metadata",
         "camofox-browser-source": "camofox-browser-source",
-        "camoufox-release-metadata": "camoufox-release-metadata",
         "context-mode-source": "context-mode-source",
-        "deskpad-release-metadata": "deskpad-release-metadata",
         "determinate": "determinate",
-        "displayplacer-release-metadata": "displayplacer-release-metadata",
-        "gajae-code-manifest": "gajae-code-manifest",
         "gentle-ai": "gentle-ai",
         "home-manager": "home-manager",
         "humanizer": "humanizer",
-        "langfuse-cli-release-metadata": "langfuse-cli-release-metadata",
         "llm-agents": "llm-agents",
         "macvnc-source": "macvnc-source",
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",
         "nixpkgs": "nixpkgs_6",
         "nixpkgs-firefox-darwin": "nixpkgs-firefox-darwin",
-        "omp-release-metadata": "omp-release-metadata",
         "pi-anthropic-web-fetch-source": "pi-anthropic-web-fetch-source",
         "pi-anthropic-web-search-source": "pi-anthropic-web-search-source",
         "pi-codegraph-source": "pi-codegraph-source",
         "pi-google-google-search-source": "pi-google-google-search-source",
         "pi-google-url-context-source": "pi-google-url-context-source",
         "pi-openai-web-search-source": "pi-openai-web-search-source",
-        "posthog-cli-releases": "posthog-cli-releases",
-        "sentry-release-metadata": "sentry-release-metadata",
         "skillclaw": "skillclaw",
-        "slack-release-metadata": "slack-release-metadata",
-        "vercel-cli-darwin-arm64-release-metadata": "vercel-cli-darwin-arm64-release-metadata",
-        "vercel-cli-linux-arm64-release-metadata": "vercel-cli-linux-arm64-release-metadata",
-        "vercel-cli-linux-x64-release-metadata": "vercel-cli-linux-x64-release-metadata",
         "zsh-auto-notify-source": "zsh-auto-notify-source"
-      }
-    },
-    "sentry-release-metadata": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-K61vOnaZEFysg+r7txuBTI8zls4u+sLVNvvjr/gSCik=",
-        "type": "file",
-        "url": "https://api.github.com/repos/getsentry/cli/releases/latest"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://api.github.com/repos/getsentry/cli/releases/latest"
       }
     },
     "skillclaw": {
@@ -891,18 +744,6 @@
         "shallow": true,
         "type": "git",
         "url": "https://github.com/AMAP-ML/SkillClaw.git"
-      }
-    },
-    "slack-release-metadata": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-m/0aLq6m5j2jzuBEFyj7WcgHLtwFKZf767D71G9lpz4=",
-        "type": "file",
-        "url": "https://api.github.com/repos/slackapi/slack-cli/releases/latest"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://api.github.com/repos/slackapi/slack-cli/releases/latest"
       }
     },
     "systems": {
@@ -980,42 +821,6 @@
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/treefmt-nix.git"
-      }
-    },
-    "vercel-cli-darwin-arm64-release-metadata": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-ENX+gXUKBCJy2ocH+WIYFuwTP2KpsAyM793pgnp4yMc=",
-        "type": "file",
-        "url": "https://registry.npmjs.org/@vercel%2Fvc-native-darwin-arm64/latest"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://registry.npmjs.org/@vercel%2Fvc-native-darwin-arm64/latest"
-      }
-    },
-    "vercel-cli-linux-arm64-release-metadata": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-Jvpfoo1iPtO5Fr6H8g4+5qPS1Z+PkfKUCAp1bLOVFWg=",
-        "type": "file",
-        "url": "https://registry.npmjs.org/@vercel%2Fvc-native-linux-arm64/latest"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://registry.npmjs.org/@vercel%2Fvc-native-linux-arm64/latest"
-      }
-    },
-    "vercel-cli-linux-x64-release-metadata": {
-      "flake": false,
-      "locked": {
-        "narHash": "sha256-S3G/QXWC/xSVYdSaP46+kQ4M3sWBEDQEIbC12l4+zgo=",
-        "type": "file",
-        "url": "https://registry.npmjs.org/@vercel%2Fvc-native-linux-x64/latest"
-      },
-      "original": {
-        "type": "file",
-        "url": "https://registry.npmjs.org/@vercel%2Fvc-native-linux-x64/latest"
       }
     },
     "zsh-auto-notify-source": {

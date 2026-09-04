@@ -14,8 +14,8 @@ let
   # llm-agents' own package set is used for Claude Code and Codex because its
   # cached outputs track upstream faster than nixpkgs without rebuilding their
   # Rust dependency graphs against this flake's nixpkgs revision. OMP is
-  # different: upstream publishes self-contained release binaries, so
-  # pkgs.omp-bin follows the official release metadata directly.
+  # different: upstream publishes self-contained release binaries selected by
+  # the version-controlled package release snapshot.
   agents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
 
   # Runtime dependencies for the shared Zinit/Oh My Zsh configuration.
@@ -553,8 +553,8 @@ in
     agents.claude-code
     agents.codex
 
-    # Official OMP standalone binaries. The release metadata flake input moves
-    # version, platform asset, and sha256 digest together.
+    # Official OMP standalone binaries. `nix run .#update-packages` refreshes
+    # the version, platform assets, and sha256 digests in one snapshot.
     pkgs.omp-bin
 
     # Gajae Code is also an agent harness, tracking verified upstream release

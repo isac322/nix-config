@@ -234,10 +234,10 @@ password-file 형식으로 변환해 `/var/lib/camofox/vnc-auth`에
 여기가 먼저다.
 
 `claude-code`와 `codex`는 `llm-agents` 인풋의 캐시된 패키지를 쓴다. `omp`는
-`omp-release-metadata`가 가리키는 공식 standalone binary를 직접 설치하므로 상류
-Rust·Bun 빌드를 반복하지 않는다. `gjc`도 `gajae-code-manifest`가 제공하는 공식
-standalone release binary를 쓴다. 두 release input 모두 `nix flake update` 때
-버전·asset URL·SHA-256을 함께 갱신하며 aarch64-darwin과
+공식 standalone binary를 직접 설치하므로 상류 Rust·Bun 빌드를 반복하지 않는다.
+`gjc`도 공식 standalone release binary를 쓴다. 두 패키지의 버전·asset
+URL·SHA-256은 `pkgs/release-snapshots.json`에 함께 고정되며
+`nix run .#update-packages`가 원자적으로 갱신한다. aarch64-darwin과
 x86_64-linux·aarch64-linux를 지원한다.
 
 **Orca 는 여기 없다.** GUI 앱이라 cask 로 오고, 그래서 맥 둘에만 있다 —
@@ -246,8 +246,8 @@ x86_64-linux·aarch64-linux를 지원한다.
 ### BearDrive — 실행 파일은 공통, 동기화 대상은 노드별
 
 `bdrive`를 **모든 기기**에 둔다. nixpkgs에는 아직 없으므로
-`beardrive-release-checksums` flake input이 상류 최신 릴리스의 공식 checksum
-목록을 추적한다. `nix flake update`가 이 입력을 갱신하면
+`pkgs/release-snapshots.json`이 상류 최신 릴리스의 공식 checksum 목록을
+보존한다. `nix run .#update-packages`가 스냅샷을 갱신하면
 `pkgs/beardrive/package.nix`가 버전과 platform별 hash를 함께 읽어 동일한 공식
 release binary를 가져오고, `pkgs/overlay.nix`가 `pkgs.beardrive`로 노출한다.
 
@@ -549,8 +549,8 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `axiom-cli` | GitHub release binary | 바이너리 이름은 `axiom` |
 | `langfuse-cli` | npm 타르볼 | dependency가 없는 published CLI |
 | `vercel-cli` | npm platform binary | 현재 플랫폼의 `vc-native` 패키지 |
-| `beardrive` | GitHub release binaries | checksum input이 추적하는 platform별 `bdrive` |
-| `gajae-code` | GitHub release binaries | manifest input이 추적하는 platform별 `gjc` |
+| `beardrive` | GitHub release binaries | snapshot이 보존하는 platform별 공식 checksum |
+| `gajae-code` | GitHub release binaries | snapshot이 보존하는 platform별 공식 manifest |
 | `omp-bin` | GitHub release binary | 공식 standalone `omp`; 상류 Rust·Bun 빌드 생략 |
 | `sentry` | GitHub release binary | getsentry/cli의 현재 platform binary |
 | `slack-cli` | GitHub release binary | nixpkgs의 동명 attribute를 갈아끼운다 |
@@ -564,15 +564,16 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `displayplacer` | GitHub release binary | aarch64-darwin display layout tool |
 | `macvnc` | Git source revision | ScreenCaptureKit + LibVNCServer |
 
-상류 package들은 release API, npm `latest`, 공식 checksum/manifest, 또는 source
-branch를 `flake = false` input으로 둔다. 따라서 `nix flake update` 한 번이
-`flake.lock`의 upstream snapshot을 갱신하고, package expression은 그 snapshot의
-버전·asset URL·digest·dependency lock을 읽는다. OMP plugin registry도 각 source의
-`package.json` version에서 만들어져 별도 version pin이 없다. `context-mode`는
-`bun.lock`의 registry package와 integrity를 직접 읽어 같은 flake에 잠긴
-`bun2nix` dependency cache로 넘기므로 로컬 npm lock도 유지하지 않는다.
-metadata가 asset digest를 제공하지 않는 오래된 release만 검증된 fallback hash를
-쓴다.
+Git branch 기반 source는 `flake = false` input으로 두어 revision과 dependency
+lock을 `flake.lock`에 고정한다. release API, npm `latest`, 공식 checksum처럼
+내용이 같은 URL에서 바뀌는 응답은 flake input으로 삼지 않는다.
+`nix run .#update-packages`가 필요한 안정 필드만
+`pkgs/release-snapshots.json`에 원자적으로 기록한 뒤 Git source input도
+갱신한다. 어느 단계든 실패하면 snapshot과 `flake.lock`을 모두 원복한다. OMP
+plugin registry는 각 source의 `package.json` version에서 만들어져 별도 version
+pin이 없다. `context-mode`는 `bun.lock`의 registry package와 integrity를 직접
+읽어 같은 flake에 잠긴 `bun2nix` dependency cache로 넘기므로 로컬 npm lock도
+유지하지 않는다.
 CLI 패키징 결정과 각 패키지의 함정은
 [0019](decisions/0019-package-from-published-artifacts.md), Camofox 쪽 결정은
 [0031](decisions/0031-camofox-native-macos-over-wireguard.md)에 있다. 모든 호스트의

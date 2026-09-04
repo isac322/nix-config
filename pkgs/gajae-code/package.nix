@@ -1,6 +1,6 @@
 # Gajae Code publishes one self-contained executable per supported platform.
-# Using the upstream release binaries manifest avoids rebuilding its Bun workspace
-# and native addons while keeping hosts synchronized with latest releases via flake update.
+# The version-controlled upstream manifest snapshot avoids rebuilding its Bun
+# workspace and native addons while keeping every host on one verified release.
 {
   autoPatchelfHook,
   fetchurl,

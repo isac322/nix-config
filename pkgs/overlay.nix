@@ -102,9 +102,9 @@ let
         manifestFile = releaseManifests.slack;
       };
 
-      # Bun follows its official release metadata rather than the pinned nixpkgs
-      # snapshot. `nix flake update` therefore moves the version and all three
-      # platform artifacts together.
+      # Bun follows the version-controlled official release snapshot rather than
+      # the pinned nixpkgs snapshot. `nix run .#update-packages` moves the version
+      # and all three platform artifacts together.
       #
       # Overriding is cheap here in a way it would not be for, say, nodejs:
       # nixpkgs does not build Bun, it unpacks an upstream binary. The package

@@ -1,6 +1,6 @@
 # BearDrive publishes static Go binaries for every platform this configuration
-# manages. The release checksum file keeps their version, URLs, and hashes on
-# one upstream-controlled release.
+# manages. The version-controlled upstream checksum snapshot keeps their
+# version, URLs, and hashes on one verified release.
 {
   checksumsFile,
   fetchurl,

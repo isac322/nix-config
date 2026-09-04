@@ -70,75 +70,6 @@
       flake = false;
     };
 
-    # Gajae Code standalone release binary manifest. Tracks the latest stable
-    # release binaries and their sha256 checksums, updated by `nix flake update`.
-    gajae-code-manifest = {
-      url = "https://github.com/Yeachan-Heo/gajae-code/releases/latest/download/gajae-release-binaries-v1.json";
-      flake = false;
-    };
-
-    # BearDrive release checksums track the latest stable binaries. Updating
-    # this input moves the package version, asset URL, and hash together.
-    beardrive-release-checksums = {
-      url = "https://github.com/runbear-io/beardrive/releases/latest/download/checksums.txt";
-      flake = false;
-    };
-
-    # Machine-readable upstream release metadata. Package expressions select
-    # the platform asset and integrity value from these files, so `nix flake
-    # update` moves versions, URLs, and hashes together.
-    axiom-release-metadata = {
-      url = "https://api.github.com/repos/axiomhq/cli/releases/latest";
-      flake = false;
-    };
-    posthog-cli-releases = {
-      url = "https://api.github.com/repos/PostHog/posthog/releases?per_page=100";
-      flake = false;
-    };
-    langfuse-cli-release-metadata = {
-      url = "https://registry.npmjs.org/langfuse-cli/latest";
-      flake = false;
-    };
-    vercel-cli-darwin-arm64-release-metadata = {
-      url = "https://registry.npmjs.org/@vercel%2fvc-native-darwin-arm64/latest";
-      flake = false;
-    };
-    vercel-cli-linux-arm64-release-metadata = {
-      url = "https://registry.npmjs.org/@vercel%2fvc-native-linux-arm64/latest";
-      flake = false;
-    };
-    vercel-cli-linux-x64-release-metadata = {
-      url = "https://registry.npmjs.org/@vercel%2fvc-native-linux-x64/latest";
-      flake = false;
-    };
-    sentry-release-metadata = {
-      url = "https://api.github.com/repos/getsentry/cli/releases/latest";
-      flake = false;
-    };
-    slack-release-metadata = {
-      url = "https://api.github.com/repos/slackapi/slack-cli/releases/latest";
-      flake = false;
-    };
-    bun-release-metadata = {
-      url = "https://api.github.com/repos/oven-sh/bun/releases/latest";
-      flake = false;
-    };
-    camoufox-release-metadata = {
-      url = "https://api.github.com/repos/daijro/camoufox/releases/latest";
-      flake = false;
-    };
-    deskpad-release-metadata = {
-      url = "https://api.github.com/repos/Stengo/DeskPad/releases/latest";
-      flake = false;
-    };
-    displayplacer-release-metadata = {
-      url = "https://api.github.com/repos/jakehilborn/displayplacer/releases/latest";
-      flake = false;
-    };
-    omp-release-metadata = {
-      url = "https://api.github.com/repos/can1357/oh-my-pi/releases/latest";
-      flake = false;
-    };
     pi-codegraph-source = {
       url = "git+https://github.com/isac322/pi-codegraph.git?ref=main&shallow=1";
       flake = false;
@@ -212,21 +143,11 @@
     }:
     let
       user = "bhyoo";
-      releaseManifests = {
-        axiom = inputs.axiom-release-metadata;
-        posthog = inputs.posthog-cli-releases;
-        langfuse = inputs.langfuse-cli-release-metadata;
-        vercelDarwinArm64 = inputs.vercel-cli-darwin-arm64-release-metadata;
-        vercelLinuxArm64 = inputs.vercel-cli-linux-arm64-release-metadata;
-        vercelLinuxX64 = inputs.vercel-cli-linux-x64-release-metadata;
-        sentry = inputs.sentry-release-metadata;
-        slack = inputs.slack-release-metadata;
-        bun = inputs.bun-release-metadata;
-        camoufox = inputs.camoufox-release-metadata;
-        deskpad = inputs.deskpad-release-metadata;
-        displayplacer = inputs.displayplacer-release-metadata;
-        omp = inputs.omp-release-metadata;
-      };
+      releaseSnapshots = builtins.fromJSON (builtins.readFile ./pkgs/release-snapshots.json);
+      snapshotFile = name: value: builtins.toFile "release-snapshot-${name}.json" (builtins.toJSON value);
+      releaseManifests = nixpkgs.lib.mapAttrs snapshotFile releaseSnapshots.releaseManifests;
+      beardriveChecksums = builtins.toFile "beardrive-checksums.txt" releaseSnapshots.beardriveChecksums;
+      gajaeCodeManifest = snapshotFile "gajae-code" releaseSnapshots.gajaeCodeManifest;
       sourceInputs = {
         camofoxBrowser = inputs.camofox-browser-source;
         contextMode = inputs.context-mode-source;
@@ -239,10 +160,13 @@
         piGoogleGoogleSearch = inputs.pi-google-google-search-source;
       };
       packageOverlay = import ./pkgs/overlay.nix {
-        inherit releaseManifests sourceInputs;
+        inherit
+          beardriveChecksums
+          gajaeCodeManifest
+          releaseManifests
+          sourceInputs
+          ;
         bun2nix = inputs.llm-agents.inputs.bun2nix;
-        beardriveChecksums = inputs.beardrive-release-checksums;
-        gajaeCodeManifest = inputs.gajae-code-manifest;
       };
 
       # Systems the locally packaged cross-platform tools are offered for. Two
@@ -426,6 +350,22 @@
                     exit 2
                   fi
                   exec cachix push "$cache" ${lib.concatStringsSep " " (map toString targets)}
+                '';
+              }
+            );
+          };
+          update-packages = {
+            type = "app";
+            meta.description = "Refresh packaged upstream releases and flake inputs atomically";
+            program = lib.getExe (
+              pkgs.writeShellApplication {
+                name = "update-packages";
+                runtimeInputs = [
+                  pkgs.nix
+                  pkgs.python3
+                ];
+                text = ''
+                  exec python3 ${./pkgs/release-snapshots/update.py} --repo "$PWD" "$@"
                 '';
               }
             );

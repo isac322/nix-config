@@ -1,0 +1,244 @@
+{
+  "beardriveChecksums": "577c8b911067dce90d2f3027b1620fb251b38ac32ceb444b182dc11143ad80d0  beardrive_0.15.0_darwin_amd64.tar.gz\n5861f1a2acdd5b1e7251db7cfc562e8586bbde0bcbb9d0b03bf8167a5ca36fb4  beardrive_0.15.0_darwin_arm64.tar.gz\n96ee946708ff62f1d4f349fd06faeb1bd82d058eaff7c5f14d01903ecb70e240  beardrive_0.15.0_linux_amd64.tar.gz\n85597ad92ba8e78e3dc2bab884876af3f2afe537efcd203942c13c5620686ac2  beardrive_0.15.0_linux_arm64.tar.gz\n",
+  "gajaeCodeManifest": {
+    "binaries": [
+      {
+        "name": "gjc-darwin-arm64",
+        "sha256": "d1b393a69c545e32e82358164508a3fb5b29eb75d809f5dafdb46e3dbd45b805",
+        "size": 137770352
+      },
+      {
+        "name": "gjc-darwin-x64",
+        "sha256": "321b3ca99dd88258cc02cfb9375c2133816a51231cf9b8e9bf6f60c948a3a718",
+        "size": 145766944
+      },
+      {
+        "name": "gjc-linux-arm64",
+        "sha256": "6e4ad9beb6872b86a4b8a52337c3ee4acd44c5b85e9c208da505c2f060d106df",
+        "size": 158124024
+      },
+      {
+        "name": "gjc-linux-x64",
+        "sha256": "6a62e0d268d84ab75af4a58513e849b03c30c17f487b7b524dd4783dca8cf5af",
+        "size": 159241416
+      }
+    ],
+    "release_channel": "stable",
+    "release_version": "0.16.3",
+    "schema": "gajae-release-binaries-v1",
+    "schema_version": 1,
+    "tag": "v0.16.3"
+  },
+  "releaseManifests": {
+    "axiom": {
+      "assets": [
+        {
+          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.19.1/axiom_0.19.1_darwin_arm64.tar.gz",
+          "digest": "sha256:8025b742e720c8914c71e4cbed2e548179c11e1fee50ea9d831f3b8c58efd1c7",
+          "name": "axiom_0.19.1_darwin_arm64.tar.gz"
+        },
+        {
+          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.19.1/axiom_0.19.1_linux_arm64.tar.gz",
+          "digest": "sha256:441c9fb37bfd164a5655596dfbe8975c737889d7749e40d0832da01e1e9be2ea",
+          "name": "axiom_0.19.1_linux_arm64.tar.gz"
+        },
+        {
+          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.19.1/axiom_0.19.1_linux_amd64.tar.gz",
+          "digest": "sha256:134d19ff97481b0d0ee518644ab6dfaaaad90c93aae7ca7c1c024fd73ec850e9",
+          "name": "axiom_0.19.1_linux_amd64.tar.gz"
+        }
+      ],
+      "draft": false,
+      "prerelease": false,
+      "tag_name": "v0.19.1"
+    },
+    "bun": {
+      "assets": [
+        {
+          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-darwin-aarch64.zip",
+          "digest": "sha256:c669e97f6164e1c96e0701748db98dfa77492908cbd8394c7557134a735de381",
+          "name": "bun-darwin-aarch64.zip"
+        },
+        {
+          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-linux-aarch64.zip",
+          "digest": "sha256:4b1a332ee861983eb93bcfe6f770fff94e3e31b2c388bdaea3c8ed35e58eed0e",
+          "name": "bun-linux-aarch64.zip"
+        },
+        {
+          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-linux-x64.zip",
+          "digest": "sha256:2d03fb5fb83ac8b567aca0a281b2ce1a1a19d488f56c2968d88c3f25e92fe452",
+          "name": "bun-linux-x64.zip"
+        }
+      ],
+      "draft": false,
+      "prerelease": false,
+      "tag_name": "bun-v1.4.0"
+    },
+    "camoufox": {
+      "assets": [
+        {
+          "browser_download_url": "https://github.com/daijro/camoufox/releases/download/v152.0.4-beta.29/camoufox-152.0.4-beta.29-mac.arm64.zip",
+          "digest": "sha256:620d33289b5d52154cc7d92a9cca5915329aa6684105ab0f371d01480768eb53",
+          "name": "camoufox-152.0.4-beta.29-mac.arm64.zip"
+        },
+        {
+          "browser_download_url": "https://github.com/daijro/camoufox/releases/download/v152.0.4-beta.29/camoufox-152.0.4-beta.29-lin.arm64.zip",
+          "digest": "sha256:c8844c03f3c233d6a466d59fd3f4e6f21470bd685e1b7cc82d650379a9b23e35",
+          "name": "camoufox-152.0.4-beta.29-lin.arm64.zip"
+        }
+      ],
+      "draft": false,
+      "prerelease": false,
+      "tag_name": "v152.0.4-beta.29"
+    },
+    "deskpad": {
+      "assets": [
+        {
+          "browser_download_url": "https://github.com/Stengo/DeskPad/releases/download/v1.3.2/DeskPad.app.zip",
+          "digest": "sha256:b7aae212364193177a6feb2fed6a7942ae9a705d6d491c15e479c58585b85ae0",
+          "name": "DeskPad.app.zip"
+        }
+      ],
+      "draft": false,
+      "prerelease": false,
+      "tag_name": "v1.3.2"
+    },
+    "displayplacer": {
+      "assets": [
+        {
+          "browser_download_url": "https://github.com/jakehilborn/displayplacer/releases/download/v1.4.0/displayplacer-apple-v140",
+          "digest": "sha256:0572c3d2918e47c7e0b9d7723907864e2ea2b53b9d3b02379769fffcf44f7ea0",
+          "name": "displayplacer-apple-v140"
+        }
+      ],
+      "draft": false,
+      "prerelease": false,
+      "tag_name": "v1.4.0"
+    },
+    "langfuse": {
+      "dependencies": {},
+      "dist": {
+        "integrity": "sha512-SdyCGi0eqlIapB/Ya/SmLTTpDYGwFoT9/BKRL1SSwxjI/WOVhUYHB3k/35nWSzyybEgIRn4azG58mIdzcRInfQ==",
+        "tarball": "https://registry.npmjs.org/langfuse-cli/-/langfuse-cli-1.2.0.tgz"
+      },
+      "version": "1.2.0"
+    },
+    "omp": {
+      "assets": [
+        {
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.9/omp-darwin-arm64",
+          "digest": "sha256:c8562d99ed98869abf732cc71894a600b3937db563aee9c6f42231c9d0c027b6",
+          "name": "omp-darwin-arm64"
+        },
+        {
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.9/omp-linux-musl-arm64",
+          "digest": "sha256:ebf1e922c4dd0b839c875e24db9ab1351ff3872d56f123150c739954d6558d32",
+          "name": "omp-linux-musl-arm64"
+        },
+        {
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.9/omp-linux-musl-x64",
+          "digest": "sha256:6de3d3b092dc07f6e93c2d66143c4759765a2c08e980d1534f2f9bf4bb4186f1",
+          "name": "omp-linux-musl-x64"
+        }
+      ],
+      "draft": false,
+      "prerelease": false,
+      "tag_name": "v18.1.9"
+    },
+    "posthog": [
+      {
+        "assets": [
+          {
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.0/posthog-cli-aarch64-apple-darwin.tar.gz",
+            "digest": "sha256:96b01e4f0b0853b3ad56907a97cb9423cd83278752e72f08ca30be78b32777de",
+            "name": "posthog-cli-aarch64-apple-darwin.tar.gz"
+          },
+          {
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.0/posthog-cli-x86_64-apple-darwin.tar.gz",
+            "digest": "sha256:b285e97ead866c87c159d22d9b5dc70e1f8ed0c8bc1ca4c8e77a7464eeb2dcfa",
+            "name": "posthog-cli-x86_64-apple-darwin.tar.gz"
+          },
+          {
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.0/posthog-cli-aarch64-unknown-linux-gnu.tar.gz",
+            "digest": "sha256:e8372b24c0ac47282c3ce43f3de53437f1d59f7cbabac890061c4047079e1a1a",
+            "name": "posthog-cli-aarch64-unknown-linux-gnu.tar.gz"
+          },
+          {
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.0/posthog-cli-x86_64-unknown-linux-gnu.tar.gz",
+            "digest": "sha256:b6f6782120f9c0650bc5a7d5a857615d1fa5aced4f20e8a22b3563aea7ea2b2f",
+            "name": "posthog-cli-x86_64-unknown-linux-gnu.tar.gz"
+          }
+        ],
+        "draft": false,
+        "prerelease": false,
+        "tag_name": "posthog-cli/v0.18.0"
+      }
+    ],
+    "sentry": {
+      "assets": [
+        {
+          "browser_download_url": "https://github.com/getsentry/cli/releases/download/0.44.1/sentry-darwin-arm64",
+          "digest": "sha256:7e58b8950090dc61e09e0340d46d58f1be1b64ff687a14c4a323018d1a56fb3a",
+          "name": "sentry-darwin-arm64"
+        },
+        {
+          "browser_download_url": "https://github.com/getsentry/cli/releases/download/0.44.1/sentry-linux-arm64",
+          "digest": "sha256:8653ee066e0a182060c6fe2bc9d3de04b97fab66112ece14133c1b01a5149a23",
+          "name": "sentry-linux-arm64"
+        },
+        {
+          "browser_download_url": "https://github.com/getsentry/cli/releases/download/0.44.1/sentry-linux-x64",
+          "digest": "sha256:d000a52536c93ca7eaf2a9ed37cdcaa17853efdc5ef93ca559297d3d1c415d39",
+          "name": "sentry-linux-x64"
+        }
+      ],
+      "draft": false,
+      "prerelease": false,
+      "tag_name": "0.44.1"
+    },
+    "slack": {
+      "assets": [
+        {
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.7.0/slack_cli_4.7.0_macOS_arm64.tar.gz",
+          "digest": "sha256:ccb6dc5910e06e8b12ff4d9690d015b72f8a81249ea716e8829dddddfd39d404",
+          "name": "slack_cli_4.7.0_macOS_arm64.tar.gz"
+        },
+        {
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.7.0/slack_cli_4.7.0_linux_arm64.tar.gz",
+          "digest": "sha256:365834eda454783c6229a4cf5fe392df650d81a0465b8701c57b7c2a544db11a",
+          "name": "slack_cli_4.7.0_linux_arm64.tar.gz"
+        },
+        {
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.7.0/slack_cli_4.7.0_linux_amd64.tar.gz",
+          "digest": "sha256:9d06c481bca07c1afffd106462e5ad3a8748334eb3b09aba3911a557673b5429",
+          "name": "slack_cli_4.7.0_linux_amd64.tar.gz"
+        }
+      ],
+      "draft": false,
+      "prerelease": false,
+      "tag_name": "v4.7.0"
+    },
+    "vercelDarwinArm64": {
+      "dist": {
+        "integrity": "sha512-Uay/TyJ8e6u1PHedoNsYYkZoi0RCGhOdBZwk9JWowk/MZF1wKEZ1znveXf0F14iPt+IOuEr/gkaNKow5dGGz9Q==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-59.11.2.tgz"
+      },
+      "version": "59.11.2"
+    },
+    "vercelLinuxArm64": {
+      "dist": {
+        "integrity": "sha512-N+UXVw9rKXTH4eylgGVTDuM2ezo1H+NKRI730EkOMxv5snpaER+qzmjVgzQIrB4n0GbN8Se72ow3iNAL9Una3g==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-59.11.2.tgz"
+      },
+      "version": "59.11.2"
+    },
+    "vercelLinuxX64": {
+      "dist": {
+        "integrity": "sha512-tZ1QHiQcdHcQKeHBKLdGecxc6ylc+OADUaL2/1iI7CVsZ7bwwzsH3HrgmELNOJfR/seNC+D21sytjhl4xRWGEA==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-59.11.2.tgz"
+      },
+      "version": "59.11.2"
+    }
+  },
+  "schema": 1
+}
