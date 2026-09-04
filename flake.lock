@@ -197,7 +197,7 @@
     "gajae-code-manifest": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-M7xE+Lu7GlAntFOfrFb63/VgO6HQjLVKPDziYWDFMss=",
+        "narHash": "sha256-7vCMznDuA1ltX/97Kf/ivPBQCCBxDtLN4ySF1yCD+yo=",
         "type": "file",
         "url": "https://github.com/Yeachan-Heo/gajae-code/releases/latest/download/gajae-release-binaries-v1.json"
       },
@@ -252,10 +252,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1788458226,
-        "narHash": "sha256-UZTAlg8iKVEmyEXakzKmukrzFIKrXezYsRy9vajDrGw=",
+        "lastModified": 1788487777,
+        "narHash": "sha256-Ro/e1N4ZR8/XaFF+sF9SgfPK79HM5YNEppzFj8p+0Ak=",
         "ref": "master",
-        "rev": "aa308770461dcf22c333a5e8a31c8bddbde5bee9",
+        "rev": "693e8ce0fb240a73c116a03cfd7b19269c87af88",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -293,10 +293,10 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1788481344,
-        "narHash": "sha256-3jEfPEkegrp3ps+VuNT0i+kI4hhfDKoSICoUzZrXDOE=",
+        "lastModified": 1788492770,
+        "narHash": "sha256-Kb78FrBnNihluUyd4n/a/J6aj70/1LOJbtHKLmmsVFA=",
         "ref": "refs/heads/main",
-        "rev": "496d8f2d508dcd4673a1480cd58b3e9bf3400c15",
+        "rev": "7ffe3c9953624b8237339ae7860223cb04bb89a1",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -407,10 +407,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1788402376,
-        "narHash": "sha256-FsSKI68aj5Ty+5Cf8AM1t5p/2VvbgCBNGXXmDg+g8cY=",
+        "lastModified": 1788488443,
+        "narHash": "sha256-QjbTZrLeyeHjdrwuZ2K6I0XHOogD0JBL6pi/0nhh7J8=",
         "ref": "refs/heads/main",
-        "rev": "99a6a02f4fb8f7f531b657b275d525429663a3d6",
+        "rev": "c8f5824e02829c08628e31686f6e023b0218ea96",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
