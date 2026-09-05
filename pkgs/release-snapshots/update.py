@@ -114,19 +114,27 @@ def github_latest(
 def posthog_release(
     previous_releases: list[dict[str, Any]] | None,
 ) -> list[dict[str, Any]]:
-    releases = fetch_json(f"{GITHUB_API}/PostHog/posthog/releases?per_page=100")
-    release = next(
-        (
-            item
-            for item in releases
-            if not item.get("draft")
-            and not item.get("prerelease")
-            and item.get("tag_name", "").startswith("posthog-cli/v")
-        ),
-        None,
-    )
-    if release is None:
-        raise RuntimeError("no stable PostHog CLI release found")
+    page = 1
+    while True:
+        releases = fetch_json(
+            f"{GITHUB_API}/PostHog/posthog/releases?per_page=100&page={page}"
+        )
+        release = next(
+            (
+                item
+                for item in releases
+                if not item.get("draft")
+                and not item.get("prerelease")
+                and item.get("tag_name", "").startswith("posthog-cli/v")
+            ),
+            None,
+        )
+        if release is not None:
+            break
+        if len(releases) < 100:
+            raise RuntimeError("no stable PostHog CLI release found")
+        page += 1
+
     previous_release = previous_releases[0] if previous_releases else None
     return [
         select_assets(
