@@ -86,11 +86,7 @@ edit:
 hindsight:
   apiUrl: https://hindsight-api.bhyoo.com
   scoping: per-project
-compaction:
-  methodOrder:
-    - snapcompact
-    - remote
-    - soft
+extendedContext: true
 worktree:
   base: ""
 stt:
