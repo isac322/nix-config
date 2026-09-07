@@ -87,6 +87,10 @@ hindsight:
   apiUrl: https://hindsight-api.bhyoo.com
   scoping: per-project
 extendedContext: true
+compaction:
+  idleEnabled: true
+  idleThresholdTokens: 200000
+  idleTimeoutSeconds: 300
 worktree:
   base: ""
 stt:
