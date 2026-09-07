@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import functools
 import hashlib
 import json
 import os
@@ -18,12 +19,33 @@ GITHUB_API = "https://api.github.com/repos"
 USER_AGENT = "nix-config-release-updater/1"
 
 
+@functools.cache
+def github_token() -> str | None:
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        return token
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "token", "--hostname", "github.com"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            token = result.stdout.strip()
+            if token:
+                return token
+    except (FileNotFoundError, OSError):
+        pass
+    return None
+
+
 def request_headers(url: str) -> dict[str, str]:
     headers = {"User-Agent": USER_AGENT}
     if url.startswith("https://api.github.com/"):
         headers["Accept"] = "application/vnd.github+json"
         headers["X-GitHub-Api-Version"] = "2022-11-28"
-        token = os.environ.get("GITHUB_TOKEN")
+        token = github_token()
         if token:
             headers["Authorization"] = f"Bearer {token}"
     return headers

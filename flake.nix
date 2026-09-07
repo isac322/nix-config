@@ -361,6 +361,7 @@
               pkgs.writeShellApplication {
                 name = "update-packages";
                 runtimeInputs = [
+                  pkgs.gh
                   pkgs.nix
                   pkgs.python3
                 ];
