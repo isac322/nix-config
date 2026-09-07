@@ -77,19 +77,19 @@
     "camoufox": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/daijro/camoufox/releases/download/v152.0.4-beta.29/camoufox-152.0.4-beta.29-mac.arm64.zip",
-          "digest": "sha256:620d33289b5d52154cc7d92a9cca5915329aa6684105ab0f371d01480768eb53",
-          "name": "camoufox-152.0.4-beta.29-mac.arm64.zip"
+          "browser_download_url": "https://github.com/daijro/camoufox/releases/download/v152.0.4-beta.30/camoufox-152.0.4-beta.30-mac.arm64.zip",
+          "digest": "sha256:3b43e766574f286a6a63296cf58b660b7a3120952086c869b4df4c9a71604bc3",
+          "name": "camoufox-152.0.4-beta.30-mac.arm64.zip"
         },
         {
-          "browser_download_url": "https://github.com/daijro/camoufox/releases/download/v152.0.4-beta.29/camoufox-152.0.4-beta.29-lin.arm64.zip",
-          "digest": "sha256:c8844c03f3c233d6a466d59fd3f4e6f21470bd685e1b7cc82d650379a9b23e35",
-          "name": "camoufox-152.0.4-beta.29-lin.arm64.zip"
+          "browser_download_url": "https://github.com/daijro/camoufox/releases/download/v152.0.4-beta.30/camoufox-152.0.4-beta.30-lin.arm64.zip",
+          "digest": "sha256:60447260af8bebdb0ec3f2aa72f687b879e5598367303de2e3fdbc7a5be8c124",
+          "name": "camoufox-152.0.4-beta.30-lin.arm64.zip"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v152.0.4-beta.29"
+      "tag_name": "v152.0.4-beta.30"
     },
     "deskpad": {
       "assets": [
@@ -126,24 +126,24 @@
     "omp": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.11/omp-darwin-arm64",
-          "digest": "sha256:a81b2a98d99d5b34491d25232020d53cb0e5526095ef21c4cb9d4283e6511807",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.12/omp-darwin-arm64",
+          "digest": "sha256:7cfd90e0b3f3ff6e4a949314b01045f19cb25f2f2d9d85c3c64bce4704be867d",
           "name": "omp-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.11/omp-linux-musl-arm64",
-          "digest": "sha256:f89c763d8e1cc7fd47455e94f58cbfbe224475be084c9faa08709547919733b5",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.12/omp-linux-musl-arm64",
+          "digest": "sha256:510644046a64e55611e80e6b32749f1dd78e71000b20a878f253760badf6e965",
           "name": "omp-linux-musl-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.11/omp-linux-musl-x64",
-          "digest": "sha256:a4fb5dc37ec7dd2124b36faeed2fac2076b2a0316ed6e1f4aeeccaa1a490f814",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.12/omp-linux-musl-x64",
+          "digest": "sha256:a3879953be46d80dd7602d09415bf33c87a4496fcee43c0c2780c3424919be7b",
           "name": "omp-linux-musl-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v18.1.11"
+      "tag_name": "v18.1.12"
     },
     "posthog": [
       {
