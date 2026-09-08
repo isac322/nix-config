@@ -79,10 +79,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1788696346,
-        "narHash": "sha256-bDvRJvgRtLrSYiVnqsd/qxN1lDNZUZxgR1igEGvwPJE=",
+        "lastModified": 1788782811,
+        "narHash": "sha256-s7KaaOqnC2NoBLF3JZ3eOTPR0YzARjGdir0yCpX+iD8=",
         "ref": "main",
-        "rev": "53ec5c5b73f46fef7e6ea84bc4d0b186447c0718",
+        "rev": "33f7eb90f17bbe1b7c39aa126b989b6fa73850c8",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -233,10 +233,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1788779500,
-        "narHash": "sha256-wV+xwQvyMZBGiWYlxewYiK8QfnrV1iSkx+o4vqnX1z4=",
+        "lastModified": 1788832142,
+        "narHash": "sha256-rxgTM0Aja8zBsSTi1SLrGFcBbVDfEWNdIrS/9BHIzfc=",
         "ref": "refs/heads/main",
-        "rev": "8ef692ef6e5960728a04015682d049642b0c4758",
+        "rev": "e4659896a5127a70b45d91b17fe185aad7c9a4b7",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -317,10 +317,10 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1788778790,
-        "narHash": "sha256-SWJA3/xQhqjpQuBnmDHNWW4s0nW0exdMW/Itx5VEhVA=",
+        "lastModified": 1788819613,
+        "narHash": "sha256-ByNLlNXbsvxwiJ004wVgp5oRJ8pvrgJafEeK7bTWwIo=",
         "ref": "refs/heads/main",
-        "rev": "c246aa6d43a378f24c2410d4c062b12f2e8ccee7",
+        "rev": "868527bc9eb4e8bee8610fa1d4027fbb37cfc012",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -581,10 +581,10 @@
     },
     "nixpkgs_6": {
       "locked": {
-        "lastModified": 1788608636,
-        "narHash": "sha256-RqeFOwW329f4i1f5QlJgQYwgEZvxIHJsUYlzIBxsKsY=",
+        "lastModified": 1788746152,
+        "narHash": "sha256-RaKngusl5I8pNi8RfrVvsHq3NZe7eFWzDlb01+hEVqY=",
         "ref": "nixpkgs-unstable",
-        "rev": "0af3d1402dec3fc7e93635e511d1f7428c89cebf",
+        "rev": "42f17a57f4f6e33b3de3dca0a2a5ea5233169d02",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
