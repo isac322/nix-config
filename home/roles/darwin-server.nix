@@ -431,7 +431,7 @@ in
   programs.zsh.initContent = lib.mkAfter ''
     if [[ -o interactive ]] && [ -n "''${SSH_CONNECTION:-}''${SSH_CLIENT:-}''${SSH_TTY:-}" ]; then
       if ! op whoami >/dev/null 2>&1; then
-        eval "$(/usr/bin/security find-generic-password -s "op-master-password" -a "default" -w 2>/dev/null | op signin 2>/dev/null)" || true
+        eval "$(/usr/bin/security find-generic-password -s "op-master-password" -a "isac@runbear.io" -w 2>/dev/null | op signin 2>/dev/null)" || true
       fi
     fi
   '';
