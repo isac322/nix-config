@@ -57,20 +57,19 @@ task:
   agentAdvisor:
     task: "off"
   agentModelOverrides:
-    librarian: anthropic/claude-sonnet-5:medium
+    reviewer: anthropic/claude-opus-5:high
     sonic: openai-codex/gpt-5.6-luna:low
-    security-reviewer: "@slow"
+    security-reviewer: openai-codex/gpt-6-astra:high
 modelRoles:
-  slow: anthropic/claude-opus-5:xhigh
-  designer: anthropic/claude-opus-5:xhigh
-  task: openai-codex/gpt-5.6-sol
-  plan: anthropic/claude-opus-5:xhigh
-  vision: google/gemini-3.8-flash:high
-  commit: openai-codex/gpt-5.6-luna:low
-  advisor: anthropic/claude-opus-5:high
-  tiny: google/gemini-3.5-flash-lite:minimal
-  smol: google/gemini-3.8-flash:medium
   default: openai-codex/gpt-5.6-sol:high
+  plan: anthropic/claude-opus-5:high
+  slow: anthropic/claude-fable-5-1:high
+  task: openai-codex/gpt-5.6-sol:high
+  advisor: anthropic/claude-sonnet-5:medium
+  smol: google/gemini-3.8-flash:medium
+  vision: google/gemini-3.8-flash:high
+  tiny: google/gemini-3.5-flash-lite:minimal
+  commit: openai-codex/gpt-5.6-luna:low
   TRIVIAL: google/gemini-3.8-flash:high
 enabledModels:
   []
