@@ -49,6 +49,11 @@ let
     fi
     [ -f "$keychain" ] || exit 0
 
+    # Already unlocked in this session: nothing to do.
+    if /usr/bin/security show-keychain-info "$keychain" >/dev/null 2>&1; then
+      exit 0
+    fi
+
     # `security -i` splits its input the way a shell would, so a password
     # holding a quote or a backslash has to survive that. Built in perl rather
     # than with shell expansions — the same reason the rest of this repository's
@@ -413,6 +418,23 @@ in
       StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/unlock-login-keychain.log";
     };
   };
+
+  # Unattended server sessions over SSH get their own security context, separate
+  # from the Aqua GUI session. Unlock the login keychain on shell initialization.
+  programs.zsh.envExtra = lib.mkIf autoLogin.enable ''
+    if [ -n "''${SSH_CONNECTION:-}''${SSH_CLIENT:-}''${SSH_TTY:-}" ]; then
+      ${unlockKeychain}
+    fi
+  '';
+
+  # Automatically sign in to 1Password CLI on interactive SSH sessions
+  programs.zsh.initContent = lib.mkAfter ''
+    if [[ -o interactive ]] && [ -n "''${SSH_CONNECTION:-}''${SSH_CLIENT:-}''${SSH_TTY:-}" ]; then
+      if ! op whoami >/dev/null 2>&1; then
+        eval "$(/usr/bin/security find-generic-password -s "op-master-password" -a "default" -w 2>/dev/null | op signin 2>/dev/null)" || true
+      fi
+    fi
+  '';
 
   # No authorized_keys handling here, of either kind. The file is not declared
   # (`users.users.<name>.openssh.authorizedKeys`) because this repository is
