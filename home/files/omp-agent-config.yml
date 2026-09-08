@@ -1,5 +1,5 @@
 providers:
-  webSearchGeminiModel: gemini-3.8-flash
+  webSearchGeminiModel: gemini-3.5-flash-lite
   anthropic:
     serverSideFallback: false
   kimiApiFormat: auto
