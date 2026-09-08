@@ -117,8 +117,8 @@ Never edit these deployment targets directly:
 ## Repository anchors
 
 Current canonical meanings include:
-
 - universal truthfulness and secret-handling invariants: `guardrails` (`persistent`);
+- Runbear infrastructure, telemetry, and environment routing: `runbear` (`context`);
 - OMP response style: `response-style` (`personality`, OMP only);
 - public API migration checks: `public-api` (`onDemand`);
 - destructive operation preparation: `destructive-operations` (`onDemand`);

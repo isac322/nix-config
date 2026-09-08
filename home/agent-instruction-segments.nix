@@ -15,6 +15,7 @@ let
 in
 {
   core = segment ./files/agent-instructions/segments/core.md "context" allHarnesses 100;
+  runbear = segment ./files/agent-instructions/segments/runbear.md "context" allHarnesses 200;
   claude-tools = segment ./files/agent-instructions/segments/claude-tools.md "context" [
     "claude"
   ] 900;
