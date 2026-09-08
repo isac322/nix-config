@@ -630,6 +630,11 @@ in
     # home/darwin.nix; nobody has asked for it away from a Mac.
     pkgs.actionlint
 
+    # The 1Password CLI is on every machine, including headless servers. `op` is
+    # a standalone binary and can use a service-account token without the desktop
+    # app.
+    pkgs._1password-cli
+
     # Shared native-build tools, configured below as Cargo defaults. Native
     # Darwin builds use LLD's Mach-O linker; mold-unwrapped remains available
     # there for ELF work because nixpkgs' Darwin wrapper injects rejected ld64

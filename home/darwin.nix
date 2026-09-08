@@ -295,9 +295,7 @@ in
     tag.gpgsign = true;
   };
 
-  # The 1Password CLI is on every Mac, including the headless one. `op` is a
-  # standalone binary and can use a service-account token without the desktop
-  # app. gpg-ssh-authorize is on PATH as well as wired into activation, so a key
+  # gpg-ssh-authorize is on PATH as well as wired into activation, so a key
   # imported between switches can be put to work immediately.
   #
   # The shared Zsh configuration now owns the CLIs its plugins invoke: gh, Go,
@@ -323,7 +321,6 @@ in
   # vercel-cli is packaged locally from its published npm tarball and
   # authenticates under the user's own configuration directory.
   home.packages = [
-    pkgs._1password-cli
     pkgs.bun
     pkgs.golangci-lint
     gpgSshAuthorize

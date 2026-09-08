@@ -70,7 +70,7 @@ in
   homebrew.brews = [ "borgbackup-fuse" ];
 
   homebrew.casks = [
-    "1password" # the desktop app; the `op` CLI is in home/darwin.nix
+    "1password" # the desktop app; the `op` CLI is in home/common.nix
     "ente-auth"
     "ghostty" # nixpkgs builds it for Linux only; config is in home/roles/
     "intellij-idea" # Ultimate; the community edition is intellij-idea-ce

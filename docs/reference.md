@@ -213,7 +213,7 @@ password-file 형식으로 변환해 `/var/lib/camofox/vnc-auth`에
   기계에 앱이 없으면 switch 가 매번 알린다 — `local.masApps`,
   `modules/mas-apps.nix`.
 
-**1Password 는 나눠 담는다.** `op` CLI는 **모든 맥**에 (`home/darwin.nix`),
+**1Password 는 나눠 담는다.** `op` CLI는 **모든 기기**에 (`home/common.nix`),
 데스크톱 앱은 **랩탑에만** (`modules/roles/darwin-laptop.nix`). `op`는 시스템
 통합이 없는 단일 바이너리라 nixpkgs에서 와도 되고, 그래서 `flake.lock`에
 고정된다. 데스크톱 앱은 그렇지 않다 — nixpkgs의 darwin 분기는 dmg에서 `.app`만
