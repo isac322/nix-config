@@ -220,24 +220,24 @@
     },
     "vercelDarwinArm64": {
       "dist": {
-        "integrity": "sha512-PGNDXWhQQ0oTcISSr9JzrPY0zSW7yp30X1byCtZhm6DCdo3pWK+vuoHrJ1NHvkesTeSRNk14ejDPWfDYWNgHDg==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-59.13.1.tgz"
+        "integrity": "sha512-775VERTIxx9nBlwvc+aTDkLpwrNHKUXjRutCWAb0pZH/MTgGUirui9MJDVtNqQhW9U1mTmGn8CXmkcJatZcpAw==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-59.14.0.tgz"
       },
-      "version": "59.13.1"
+      "version": "59.14.0"
     },
     "vercelLinuxArm64": {
       "dist": {
-        "integrity": "sha512-vWLGdCrQSGUuS4csFCAZ2rpQ2MJkxfFoLFcOkPA5xT0Nwgoc7CQLBLxZm3ri0DUXTFU4phrdav00e3rlgV6C+Q==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-59.13.1.tgz"
+        "integrity": "sha512-sJytB8vSS0ZpANFEJ6AMwYyKP8U9yycY+qDasXCbZOUKawHPno4SWrwwCirNbL9Gcz5WcjwHbnQAfHL0pv/m6A==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-59.14.0.tgz"
       },
-      "version": "59.13.1"
+      "version": "59.14.0"
     },
     "vercelLinuxX64": {
       "dist": {
-        "integrity": "sha512-sZlkpA+1NqeLEilNSeo/A0QnxtnvY8hT5C2YAzRupfAmXQFcPvppfu2bz7eQOua1msJJFQDi9V9Au+KJCbSfdg==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-59.13.1.tgz"
+        "integrity": "sha512-YDflhqPrgyyXPnC5ydUvheuhTyvTzGY+GJJX9kxPqPOKeTevlS4B5FurqBThn4V7Eq96vzYxOFShaRyZ4hsSvg==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-59.14.0.tgz"
       },
-      "version": "59.13.1"
+      "version": "59.14.0"
     }
   },
   "schema": 1
