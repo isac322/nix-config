@@ -646,6 +646,10 @@ in
 
   programs.git = {
     enable = true;
+    lfs = {
+      enable = true;
+      skipSmudge = true;
+    };
     settings.user = {
       name = "Byeonghoon Yoo";
       email = "bhyoo@bhyoo.com";
