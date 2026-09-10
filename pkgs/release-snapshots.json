@@ -177,24 +177,24 @@
     "sentry": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/getsentry/cli/releases/download/0.44.1/sentry-darwin-arm64",
-          "digest": "sha256:7e58b8950090dc61e09e0340d46d58f1be1b64ff687a14c4a323018d1a56fb3a",
+          "browser_download_url": "https://github.com/getsentry/cli/releases/download/0.45.0/sentry-darwin-arm64",
+          "digest": "sha256:68a5f9a7fd24d5be67a40afbada46bce30f9855926f948e06b1e5d2408b94cc4",
           "name": "sentry-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/getsentry/cli/releases/download/0.44.1/sentry-linux-arm64",
-          "digest": "sha256:8653ee066e0a182060c6fe2bc9d3de04b97fab66112ece14133c1b01a5149a23",
+          "browser_download_url": "https://github.com/getsentry/cli/releases/download/0.45.0/sentry-linux-arm64",
+          "digest": "sha256:667d2a1c5dc1c2d03192604bb538e88d9145b56ffdca67be9eae177f11fb5523",
           "name": "sentry-linux-arm64"
         },
         {
-          "browser_download_url": "https://github.com/getsentry/cli/releases/download/0.44.1/sentry-linux-x64",
-          "digest": "sha256:d000a52536c93ca7eaf2a9ed37cdcaa17853efdc5ef93ca559297d3d1c415d39",
+          "browser_download_url": "https://github.com/getsentry/cli/releases/download/0.45.0/sentry-linux-x64",
+          "digest": "sha256:658363afd0c6d581b887de41160c40adc7e29c79c015569a57aaf01532ed47be",
           "name": "sentry-linux-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "0.44.1"
+      "tag_name": "0.45.0"
     },
     "slack": {
       "assets": [
