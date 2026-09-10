@@ -77,7 +77,7 @@ in
       200
     )
     // {
-      description = "Require Runbear Slack automation to use the Slack CLI and only the approved Keychain-backed isac@runbear.io identity.";
+      description = "Require the isacbear Slack user token and user approval for Slack mutations outside approved test conversations.";
     };
 
   pull-request-creation-approval =
