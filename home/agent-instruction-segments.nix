@@ -72,6 +72,11 @@ in
     // {
       description = "Require explicit user approval before modifying application runtime code, product behavior, or business logic.";
     };
+  slack-qa-account-guard =
+    (segment ./files/agent-instructions/segments/slack-qa-account-guard.md "critical" allHarnesses 200)
+    // {
+      description = "Require every Slack QA action to use only Isac Yoo-owned accounts, credentials, bots, channels, and account-scoped resources.";
+    };
 
   pull-request-creation-approval =
     (segment ./files/agent-instructions/segments/pull-request-creation-approval.md "critical"
