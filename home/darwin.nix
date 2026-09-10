@@ -112,14 +112,22 @@ in
     ./keyboard.nix
   ];
 
+  # Keep Coder's generated host stanzas out of Home Manager's ~/.ssh/config.
+  # The absolute path also works for non-interactive Coder invocations.
+  home.sessionVariables.CODER_SSH_CONFIG_FILE =
+    "${config.home.homeDirectory}/.ssh/coder-config";
+
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;
 
-    # OrbStack writes this Include at the top of ~/.ssh/config and restores it
-    # when removed. Declaring the same line through home-manager keeps ownership
-    # on one side and prevents the next activation from fighting OrbStack.
-    includes = [ "~/.orbstack/ssh/config" ];
+    # OrbStack and Coder own dynamic SSH fragments. Including their files keeps
+    # ~/.ssh/config exclusively Home Manager-owned; Coder otherwise replaces
+    # the managed symlink when `coder config-ssh` updates its host stanzas.
+    includes = [
+      "~/.orbstack/ssh/config"
+      "~/.ssh/coder-config"
+    ];
 
     settings."*" = {
       # Measure one. ssh reads this file no matter who launched it, so this
@@ -145,6 +153,21 @@ in
         "LANG"
         "LC_*"
       ];
+    };
+  };
+
+  # Home Manager session variables cover shells. Publish the same Coder path
+  # through launchd so GUI and other non-shell invocations inherit it too.
+  launchd.agents.coder-ssh-config-environment = {
+    enable = true;
+    config = {
+      ProgramArguments = [
+        "/bin/launchctl"
+        "setenv"
+        "CODER_SSH_CONFIG_FILE"
+        "${config.home.homeDirectory}/.ssh/coder-config"
+      ];
+      RunAtLoad = true;
     };
   };
 
