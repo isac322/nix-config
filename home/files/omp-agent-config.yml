@@ -101,7 +101,7 @@ advisor:
   enabled: false
 tier:
   advisor: inherit
-  openai: priority
+  openai: none
   anthropic: none
   google: priority
   subagent: inherit
