@@ -119,6 +119,7 @@ Never edit these deployment targets directly:
 Current canonical meanings include:
 - universal truthfulness and secret-handling invariants: `guardrails` (`persistent`);
 - Runbear infrastructure, telemetry, and environment routing: `runbear` (`context`);
+- Runbear Slack automation identity and permission boundary: `runbear-slack-automation` (`critical`);
 - OMP response style: `response-style` (`personality`, OMP only);
 - public API migration checks: `public-api` (`onDemand`);
 - destructive operation preparation: `destructive-operations` (`onDemand`);

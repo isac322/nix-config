@@ -72,10 +72,12 @@ in
     // {
       description = "Require explicit user approval before modifying application runtime code, product behavior, or business logic.";
     };
-  slack-qa-account-guard =
-    (segment ./files/agent-instructions/segments/slack-qa-account-guard.md "critical" allHarnesses 200)
+  runbear-slack-automation =
+    (segment ./files/agent-instructions/segments/runbear-slack-automation.md "critical" allHarnesses
+      200
+    )
     // {
-      description = "Require every Slack QA action to use only Isac Yoo-owned accounts, credentials, bots, channels, and account-scoped resources.";
+      description = "Require Runbear Slack automation to use the Slack CLI and only the approved Keychain-backed isac@runbear.io identity.";
     };
 
   pull-request-creation-approval =
