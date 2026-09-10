@@ -378,9 +378,10 @@ NixOS server에는 별도 Chrome/Chromium 패키지를 설치하지 않는다.
 위의 두 CLI 묶음은 **모든 기기**에 있지만, 컴파일러와 개발 도구는 맥에만 둔다
 (`home/darwin.nix`). 리눅스 서버는 서비스를 돌리는 기계라 컴파일할 것이 없다.
 
-**언어 툴체인** — `go`, `nodejs_24` + `pnpm`, `bun`, `uv`. Rust 는 여기 없고
-서버 맥에만 `cargo`, `rustc`, `rustfmt`, `rust-analyzer` 가 있다
-(`home/roles/darwin-server.nix`) — 요청이 그 기계에 한정돼 있었다.
+**언어 툴체인** — `go`, `nodejs_24` + `pnpm`, `bun`, `uv`. Rust는 서버 맥에만
+공식 1.98.1 통합 toolchain으로 설치한다(`home/roles/darwin-server.nix`). 해당
+toolchain 하나가 `rustc`, `cargo`, `rustfmt`, Clippy, `rust-analyzer`, `rust-src`,
+`wasm32-unknown-unknown`, `wasm32v1-none`을 함께 제공한다.
 
 - **`go` 는 버전 없는 이름 그대로 쓴다.** nixpkgs 가 현재로 취급하는 것을 따라가는
   게 맞다고 봤다. **`nodejs_24` 는 반대로 버전을 박았다** — 오늘은 `nodejs` 와 같은
@@ -391,9 +392,14 @@ NixOS server에는 별도 Chrome/Chromium 패키지를 설치하지 않는다.
   그 뒤로 받아오는 버전은 프로젝트의 `packageManager` 필드가 런타임에 정한다 —
   rustup 을 쓰지 않는 것과 정확히 같은 이유다. nixpkgs 패키지는 자기 `nodejs-slim`
   을 들고 오므로 위의 `nodejs_24` 를 가리지도, 의존하지도 않는다.
-- **bun 은 이 목록에서 유일하게 nixpkgs 그대로가 아니다.** 필요한 버전은 1.4.0이고
+- **bun도 nixpkgs 그대로가 아니다.** 필요한 버전은 1.4.0이고
   잠긴 nixpkgs 는 아직 1.3.13이라 `pkgs/overlay.nix` 에서 덮어썼다. 노드를 대체하러
   온 게 아니라 옆에 선다 — 둘은 같은 `package.json` 을 읽고 서로를 대신하지 않는다.
+- **Rust는 nixpkgs의 개별 패키지를 조합하지 않는다.** `rust-overlay-source`를
+  non-flake source로 고정하고 `rust-bin.stable."1.98.1"`을 선택한다. 컴파일러,
+  Cargo, 포매터, LSP와 표준 라이브러리 target이 같은 공식 release manifest에서
+  나오므로 서로 다른 Rust release로 어긋나지 않는다. `rustup`은 계속 설치하지
+  않는다.
 - **uv 옆에 파이썬 인터프리터가 없는 건 빠뜨린 게 아니다.** uv 가
   `~/.local/share/uv` 밑에 자기 standalone CPython 을 받아 거기에 virtualenv 를
   만든다. 그건 의도적으로 nix 바깥이고 — 프로젝트마다 다르고 `pyproject.toml` 을

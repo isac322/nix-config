@@ -725,8 +725,27 @@
         "pi-google-google-search-source": "pi-google-google-search-source",
         "pi-google-url-context-source": "pi-google-url-context-source",
         "pi-openai-web-search-source": "pi-openai-web-search-source",
+        "rust-overlay-source": "rust-overlay-source",
         "skillclaw": "skillclaw",
         "zsh-auto-notify-source": "zsh-auto-notify-source"
+      }
+    },
+    "rust-overlay-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1789024335,
+        "narHash": "sha256-kCy/MVLRIr95DJ4vspVzWj+kO/x+JuwSHmYZCvShg8w=",
+        "ref": "refs/heads/master",
+        "rev": "577bb1e1fc5af0713169176c5c76622c21fa3ec0",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/oxalica/rust-overlay.git"
+      },
+      "original": {
+        "rev": "577bb1e1fc5af0713169176c5c76622c21fa3ec0",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/oxalica/rust-overlay.git"
       }
     },
     "skillclaw": {

@@ -19,6 +19,17 @@ let
   cfg = osConfig.local.orca;
   autoLogin = osConfig.local.autoLogin;
 
+  rustToolchain = pkgs.rust-bin.stable."1.98.1".default.override {
+    extensions = [
+      "rust-analyzer"
+      "rust-src"
+    ];
+    targets = [
+      "wasm32-unknown-unknown"
+      "wasm32v1-none"
+    ];
+  };
+
   # The bill for automatic login, and the thing that pays it.
   #
   # When a person types their password at the login window, that keystroke does
@@ -444,54 +455,25 @@ in
   # is not something this configuration has a stake in. sshd is declared here;
   # who is allowed through it is not.
 
-  # Rust straight from nixpkgs, not through rustup.
+  # Rust uses one official 1.98.1 toolchain assembled by the rust-overlay
+  # source pinned in flake.lock. The source is imported as a plain overlay,
+  # not as another flake package graph, and its checked-in component hashes
+  # keep evaluation pure.
   #
-  # rustup earns its place when a project pins a toolchain in
-  # rust-toolchain.toml, or when several versions have to coexist and switch
-  # per directory. Neither applies here — one current toolchain is the whole
-  # requirement — and what it costs is the property this repository exists for:
-  # rustup downloads its toolchains into ~/.rustup at run time, so the compiler
-  # on this machine would be whatever it last fetched rather than what
-  # flake.lock pins, and a rebuild from this flake would not reproduce it.
-  # rust-overlay or fenix is the declarative answer if per-project pinning ever
-  # does become the requirement; rustup is not.
+  # One combined derivation supplies rustc, cargo, rustfmt, Clippy,
+  # rust-analyzer, rust-src, and the two wasm standard-library targets. This
+  # prevents separately selected nixpkgs packages from drifting across Rust
+  # releases while retaining IDE standard-library navigation and the existing
+  # wasm build support.
   #
-  # wasm needs no extra step. nixpkgs configures rustc with
-  # `--target=wasm32-unknown-unknown,wasm32v1-none,…` next to the host target,
-  # so the standard library for both is built into the package already and
-  # `cargo build --target wasm32-unknown-unknown` works as it stands. There is
-  # nothing here corresponding to `rustup target add`. What is genuinely
-  # separate is the tooling that wraps the output — wasm-bindgen-cli,
-  # wasm-pack, binaryen — and none of it is listed because nothing has asked
-  # for it yet.
-  #
-  # Both packages are needed: rustc is the compiler alone, and cargo is a
-  # separate derivation in nixpkgs rather than something it brings along.
-  # `cargo fmt` is an external Cargo subcommand, not part of the cargo
-  # derivation. nixpkgs supplies its `cargo-fmt` executable through the
-  # separate rustfmt package, so it must be listed explicitly too.
-  #
-  # The two language servers are here rather than in home/darwin.nix because
-  # this is the machine an editor or a coding agent actually runs on. Neither
-  # is configured: an LSP client starts the binary and speaks to it over stdio,
-  # so being on PATH under the name the client looks for is the whole
-  # integration.
-  #
-  # `rust-analyzer`, not `rust-analyzer-unwrapped`. The plain attribute is a
-  # wrapper whose only job is to set RUST_SRC_PATH to rustPlatform.rustLibSrc,
-  # and without it the server runs perfectly well while knowing nothing about
-  # the standard library — no completion or go-to-definition on anything from
-  # std. That fails as missing features rather than as an error, which is the
-  # kind of wrong that goes unnoticed.
+  # rustup remains intentionally absent: it would download mutable toolchains
+  # into ~/.rustup at runtime, outside the version pinned by this repository.
   #
   # terraform-ls is HashiCorp's own and, unlike terraform itself, is still
   # MPL-2.0 — so it needs no allowUnfreePredicate entry. It shells out to
   # `terraform` for validation, and finds the one from home/darwin.nix.
   home.packages = [
-    pkgs.cargo
-    pkgs.rust-analyzer
-    pkgs.rustc
-    pkgs.rustfmt
+    rustToolchain
     pkgs.terraform-ls
   ];
 }

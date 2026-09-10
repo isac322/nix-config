@@ -70,6 +70,14 @@
       flake = false;
     };
 
+    # Rust's official release components, pinned as a source tree so the
+    # configuration can select one exact toolchain without rustup or a second
+    # flake package graph.
+    rust-overlay-source = {
+      url = "git+https://github.com/oxalica/rust-overlay.git?rev=577bb1e1fc5af0713169176c5c76622c21fa3ec0&shallow=1";
+      flake = false;
+    };
+
     pi-codegraph-source = {
       url = "git+https://github.com/isac322/pi-codegraph.git?ref=main&shallow=1";
       flake = false;
@@ -159,15 +167,17 @@
         piOpenaiWebSearch = inputs.pi-openai-web-search-source;
         piGoogleGoogleSearch = inputs.pi-google-google-search-source;
       };
-      packageOverlay = import ./pkgs/overlay.nix {
-        inherit
-          beardriveChecksums
-          gajaeCodeManifest
-          releaseManifests
-          sourceInputs
-          ;
-        bun2nix = inputs.llm-agents.inputs.bun2nix;
-      };
+      packageOverlay = nixpkgs.lib.composeExtensions (import inputs.rust-overlay-source) (
+        import ./pkgs/overlay.nix {
+          inherit
+            beardriveChecksums
+            gajaeCodeManifest
+            releaseManifests
+            sourceInputs
+            ;
+          bun2nix = inputs.llm-agents.inputs.bun2nix;
+        }
+      );
 
       # Systems the locally packaged cross-platform tools are offered for. Two
       # of these are machines that exist here; x86_64-linux is included because
