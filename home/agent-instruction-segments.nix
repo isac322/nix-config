@@ -64,6 +64,14 @@ in
     // {
       description = "Prevent OMP from turning analysis, investigation, review, reporting, confirmation, or dry-run requests into unauthorized implementation.";
     };
+  application-code-change-approval =
+    (segment ./files/agent-instructions/segments/application-code-change-approval.md "critical"
+      allHarnesses
+      150
+    )
+    // {
+      description = "Require explicit user approval before modifying application runtime code, product behavior, or business logic.";
+    };
 
   pull-request-creation-approval =
     (segment ./files/agent-instructions/segments/pull-request-creation-approval.md "critical"
