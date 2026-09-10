@@ -79,10 +79,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1788869246,
-        "narHash": "sha256-s6+f5pY9BCyrOLtanScEGpnLHfjp9xItSLZ96V1+EAo=",
+        "lastModified": 1788977134,
+        "narHash": "sha256-AQQG6eNRTlpVX1BdsqbMvcgcjkfPWpGeENDFxJwbZQg=",
         "ref": "main",
-        "rev": "95b4e08bf07c5e16690d8669643f9d1b825d51be",
+        "rev": "705ea0603dfab133135ecf76bb278aab06958509",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -233,10 +233,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1788913365,
-        "narHash": "sha256-KL5X2UehK17oJKSZTqhm5H/zWHbHsJQLdsVj8RnDO3U=",
+        "lastModified": 1788983984,
+        "narHash": "sha256-+6Fk5XrPQ3C0IhQcIEsRBz2tn2a7lCWWPtQOE7AqBrc=",
         "ref": "refs/heads/main",
-        "rev": "acc62463a0e7d7c097c0178ea8e6aabc0f63c186",
+        "rev": "5c184843b127295156cfb17675cb643fea81ea9c",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -276,10 +276,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1788921139,
-        "narHash": "sha256-2wRuvf9UDw1SYWtBcxNmxLeAtNU1i/hc1c0AKQHdvlM=",
+        "lastModified": 1788988965,
+        "narHash": "sha256-7xl3XjXv2uVxe/18efxaKYsMD7skQqCx/YSWw/lI3w8=",
         "ref": "master",
-        "rev": "a2dbe7c2c9333e8234ae8114c7f731784201d108",
+        "rev": "448c15a7fe6aa7693f63b9e8d1803bdc3dd6368d",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -317,10 +317,10 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1788948595,
-        "narHash": "sha256-rqeK3hPxa6960ivXTRb+wO74tKKecqeH2CiKIxxFJuU=",
+        "lastModified": 1788999531,
+        "narHash": "sha256-TQ9gW8By5PDWiLqRn5oKkJjk0eBckPT/40Bu6Iwhpso=",
         "ref": "refs/heads/main",
-        "rev": "26c3794de36bba9afdb0cb269fa4ab390e09f9ca",
+        "rev": "491971d8ac6340acf0fe99711191ac47ebc7b990",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -397,10 +397,10 @@
         "brew-src": "brew-src"
       },
       "locked": {
-        "lastModified": 1788444135,
-        "narHash": "sha256-ChwTDZPvTmEgZdS30dUfgdXlzAPtZAUWwEH/PfDXZmg=",
+        "lastModified": 1788981439,
+        "narHash": "sha256-fEaFq0XgpgWFPLfpq1UK4/8ylHd2T0+fo6O3hKz1LUM=",
         "ref": "refs/heads/main",
-        "rev": "ec8417a617de4d3c739aed40837e308ebd667165",
+        "rev": "09a921d0181146cf6163ec2cc1db7b6fd539a885",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/zhaofengli/nix-homebrew.git"
@@ -581,10 +581,10 @@
     },
     "nixpkgs_6": {
       "locked": {
-        "lastModified": 1788922888,
-        "narHash": "sha256-QMX3uerxnW2R5dHcWpIQILHDltOZnon3x3Spq7EzBFI=",
+        "lastModified": 1788953386,
+        "narHash": "sha256-dIqD4NX3Uldk29CBqKt9dRdSxh/+Ba8lVPu2xEsLTJo=",
         "ref": "nixpkgs-unstable",
-        "rev": "a391f95d4557d685fd8e5dc0d4b1f9271aa2f342",
+        "rev": "19a27817106f9449970edb3a398ab5349666466f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
