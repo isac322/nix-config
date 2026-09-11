@@ -233,10 +233,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1789076504,
-        "narHash": "sha256-YV90fiUxiOCd6zNCLANkyJhZGpG9HsNB4y9Do9fA2wc=",
+        "lastModified": 1789086571,
+        "narHash": "sha256-drhybAMYyOopKCGl7+eBHVm6rmgd59G0xD6k31CU0K0=",
         "ref": "refs/heads/main",
-        "rev": "b0fe284b9758159f392ad305645359ab6b4f3df2",
+        "rev": "df21d32b4badd3123c02afe62398ba0dbb557d94",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -276,10 +276,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1789071706,
-        "narHash": "sha256-S+oyh2YSP9V5bSjWbbK0N7GxdxxMwgBfUOtUdVcAWc4=",
+        "lastModified": 1789099078,
+        "narHash": "sha256-zzHj2wl69724lzx7DLAVziWbL75wRIk+xJ3duD0Bgrc=",
         "ref": "master",
-        "rev": "150f9ce4ddd41544ea42eb9d6043a75bd615fa24",
+        "rev": "f10b3f2ad4aae9259617a1ff518cc921e3394228",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -317,10 +317,10 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1789084061,
-        "narHash": "sha256-edX4FF5jLmFX0WdG5jQ7jo919xVaFN1k3YUvJbP28HE=",
+        "lastModified": 1789098570,
+        "narHash": "sha256-0i3Gd0hjiXLeQGPrpvNx85iynzG/5/Q7523pTdt1kwA=",
         "ref": "refs/heads/main",
-        "rev": "396894b83c286c9f091e9e19de5a856bb0c3c47f",
+        "rev": "3a31e665ca59fc6e553610d96100cc08cbbc759f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -449,10 +449,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1789007380,
-        "narHash": "sha256-PS1vUnYpladvo72Ntec6jLpiT6MjJTkMVWq/WQXDiMA=",
+        "lastModified": 1789093440,
+        "narHash": "sha256-tdNIQDMS5WwddF3+pTYmJrRaI/4ocCQD+n5GEW+B3CI=",
         "ref": "refs/heads/main",
-        "rev": "baea52269dd7392eb21acdf80c9ea3994118322f",
+        "rev": "77ef98486d2058c36a773258785be156aca58aec",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
@@ -581,10 +581,10 @@
     },
     "nixpkgs_6": {
       "locked": {
-        "lastModified": 1789012029,
-        "narHash": "sha256-1CBkBf+Nhggykzlx0jvXrj5rk20btl+tK8Fa8Ml/BL4=",
+        "lastModified": 1789073787,
+        "narHash": "sha256-xfX/toC2QV707s06GbP4II/TxYF0fNQj7s5/LClNDKc=",
         "ref": "nixpkgs-unstable",
-        "rev": "d5dfd8e6716dde34398bc14bc87c10dece9c8c68",
+        "rev": "aff8a0b28396750446e5537a96461bc4facdb287",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"

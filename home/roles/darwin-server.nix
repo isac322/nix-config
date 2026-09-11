@@ -89,6 +89,55 @@ let
     fi
   '';
 
+  # 1Password CLI session keeper for unattended server SSH sessions.
+  # Caches a session token in ~/.config/op/session.env (valid for 30 minutes).
+  # Sourcing the cached file takes 0ms. When missing or older than 25 minutes,
+  # it signs in non-interactively using the master password stored in the login
+  # keychain and updates the cache.
+  ensureOpSession = pkgs.writeText "ensure-op-session.sh" ''
+    _op_session_file="$HOME/.config/op/session.env"
+    _op_renew=1
+    _op_tmpdir="''${_DARWIN_USER_TEMP_DIR:-$(/usr/bin/getconf DARWIN_USER_TEMP_DIR 2>/dev/null || echo /tmp)}"
+
+    if [ -r "$_op_session_file" ]; then
+      _op_mtime=$(/usr/bin/stat -f %m "$_op_session_file" 2>/dev/null || echo 0)
+      _op_now=$(/bin/date +%s)
+      if [ $(( _op_now - _op_mtime )) -lt 1500 ]; then
+        . "$_op_session_file"
+        if TMPDIR="$_op_tmpdir" ${pkgs._1password-cli}/bin/op item list >/dev/null 2>&1; then
+          _op_renew=0
+        fi
+      fi
+    fi
+
+    if [ "$_op_renew" -eq 1 ]; then
+      /bin/mkdir -p "$HOME/.config/op"
+      _op_pw=$(/usr/bin/security find-generic-password -s "op-master-password" -a "isac@runbear.io" -w 2>/dev/null || true)
+      if [ -n "$_op_pw" ]; then
+        _op_out=$(printf '%s\n' "$_op_pw" | TMPDIR="$_op_tmpdir" ${pkgs._1password-cli}/bin/op signin 2>/dev/null || true)
+        if [ -n "$_op_out" ]; then
+          _op_tmp_file="$_op_session_file.$$.tmp"
+          (
+            umask 077
+            printf '%s\n' "$_op_out" > "$_op_tmp_file"
+            echo 'export OP_ACCOUNT="runbear"' >> "$_op_tmp_file"
+            _op_val=$(printf '%s\n' "$_op_out" | /usr/bin/sed -n 's/^export OP_SESSION_[^=]*=//p')
+            if [ -n "$_op_val" ]; then
+              echo "export OP_SESSION_runbear=$_op_val" >> "$_op_tmp_file"
+            fi
+          )
+          /bin/mv -f "$_op_tmp_file" "$_op_session_file"
+          . "$_op_session_file"
+        elif [ -r "$_op_session_file" ]; then
+          . "$_op_session_file"
+        fi
+      elif [ -r "$_op_session_file" ]; then
+        . "$_op_session_file"
+      fi
+    fi
+    unset _op_session_file _op_renew _op_mtime _op_now _op_pw _op_out _op_tmp_file _op_val _op_tmpdir
+  '';
+
   # Both Macs follow Orca's Homebrew cask. The server calls the CLI symlink
   # installed by the cask rather than carrying a separately pinned Nix package.
   orca = "/opt/homebrew/bin/orca";
@@ -431,19 +480,16 @@ in
   };
 
   # Unattended server sessions over SSH get their own security context, separate
-  # from the Aqua GUI session. Unlock the login keychain on shell initialization.
+  # from the Aqua GUI session. Unlock the login keychain and ensure a valid
+  # 1Password CLI session token on shell initialization (interactive & non-interactive).
   programs.zsh.envExtra = lib.mkIf autoLogin.enable ''
     if [ -n "''${SSH_CONNECTION:-}''${SSH_CLIENT:-}''${SSH_TTY:-}" ]; then
       ${unlockKeychain}
-    fi
-  '';
+      . ${ensureOpSession}
 
-  # Automatically sign in to 1Password CLI on interactive SSH sessions
-  programs.zsh.initContent = lib.mkAfter ''
-    if [[ -o interactive ]] && [ -n "''${SSH_CONNECTION:-}''${SSH_CLIENT:-}''${SSH_TTY:-}" ]; then
-      if ! op whoami >/dev/null 2>&1; then
-        eval "$(/usr/bin/security find-generic-password -s "op-master-password" -a "isac@runbear.io" -w 2>/dev/null | op signin 2>/dev/null)" || true
-      fi
+      op() {
+        TMPDIR="''${_DARWIN_USER_TEMP_DIR:-$(/usr/bin/getconf DARWIN_USER_TEMP_DIR 2>/dev/null || echo /tmp)}" ${pkgs._1password-cli}/bin/op "$@"
+      }
     fi
   '';
 
