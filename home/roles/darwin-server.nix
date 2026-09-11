@@ -479,11 +479,11 @@ in
     };
   };
 
-  # Unattended server sessions over SSH get their own security context, separate
-  # from the Aqua GUI session. Unlock the login keychain and ensure a valid
-  # 1Password CLI session token on shell initialization (interactive & non-interactive).
+  # Unattended server sessions over SSH or interactive zsh sessions get their own
+  # security context, separate from the Aqua GUI session. Unlock the login keychain
+  # and ensure a valid 1Password CLI session token on shell initialization.
   programs.zsh.envExtra = lib.mkIf autoLogin.enable ''
-    if [ -n "''${SSH_CONNECTION:-}''${SSH_CLIENT:-}''${SSH_TTY:-}" ]; then
+    if [[ -o interactive ]] || [ -n "''${SSH_CONNECTION:-}''${SSH_CLIENT:-}''${SSH_TTY:-}" ]; then
       ${unlockKeychain}
       . ${ensureOpSession}
 
