@@ -20,34 +20,53 @@ fi
 Only proceed to step 2 if the token print fails or credentials have expired.
 
 ### 2. Initiate Login Process
-Launch `gcloud auth login --update-adc` in a managed background process (`hub` start) or capture the OAuth URL:
-```bash
-# gcloud starts local redirect server on localhost:8085
+Launch `gcloud auth login --update-adc` in a managed background process (`hub` start) with `BROWSER="true"`:
+```ts
+hub(
+  op: "start",
+  name: "gcloud-auth",
+  application: "gcloud",
+  args: ["auth", "login", "--update-adc"],
+  env: { "BROWSER": "true" },
+  ready: { log: "localhost:8085|accounts\\.google\\.com", timeout: 30 }
+)
 ```
-Retrieve the OAuth authorization URL from process stdout/logs (`https://accounts.google.com/o/oauth2/auth?...`).
+> **Note**: Setting `BROWSER="true"` is essential on macOS to prevent Python's `webbrowser` module from launching desktop browsers (e.g. Arc/Chrome), while still letting gcloud start its local redirect server on `localhost:8085`.
+
+Retrieve the OAuth authorization URL from process stdout/logs (`hub(op="logs", name="gcloud-auth")`): `https://accounts.google.com/o/oauth2/auth?...`.
 
 ### 3. Camofox Browser Automation
 1. **Create Tab**: Call `camofox_create_tab` with the authorization URL.
-2. **Email Entry**:
+2. **Account Selection or Email Entry**:
    - Take snapshot with `camofox_snapshot`.
-   - Snapshot ref IDs (e.g. `e1`, `e2`) change per session; inspect snapshot output dynamically to find the email input field (or use selector `input[type="email"]` / `#identifierId`).
-   - Type email (`isac@runbear.io`) and submit (press Enter or click Next).
-3. **Password Entry**:
+   - **Case A: Account Chooser** (page title "Choose an account" or list containing `isac@runbear.io`):
+     Click the account directly via `camofox_evaluate`:
+     ```js
+     document.querySelector('[data-identifier="isac@runbear.io"]')?.click()
+     ```
+   - **Case B: Email Entry Form** (`#identifierId` or `input[type="email"]`):
+     Type email (`isac@runbear.io`) and submit (press Enter or click Next).
+3. **Password Entry** (if prompted):
    - Retrieve password from macOS Keychain:
      ```bash
      security find-generic-password -a "isac@runbear.io" -s "google-login" -w
      ```
      *(If Keychain is locked or lookup fails with error code 36, prompt the user to unlock the keychain or enter password).*
    - Type into `input[type="password"]` and submit.
-4. **2-Step Verification (2FA)**:
+4. **2-Step Verification (2FA)** (if prompted):
    - **DO NOT** attempt to bypass or simulate hardware 2FA / push notifications.
    - Prompt the user using `ask` tool with clear instructions (e.g. tap 'Yes' on Galaxy Tab S7+ or mobile device).
    - Wait for user confirmation.
 5. **Consent Approval**:
-   - On Google Cloud SDK consent screen, locate the "Allow" button.
-   - Click "Allow" using `camofox_evaluate` or `camofox_click`.
-6. **Cleanup**: Close the browser tab with `camofox_close_tab`.
-
+   - On Google Cloud SDK consent screen ("Google Cloud SDK wants access to your Google Account"), locate the "Allow" button.
+   - Click "Allow" using `camofox_evaluate` (prefer over `camofox_click` to avoid native mouse move timeouts):
+     ```js
+     Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Allow')?.click()
+     ```
+     *(Note: Do not pass `view: window` in `MouseEventInit` inside Camofox sandbox; use direct `.click()`)*.
+6. **Wait & Cleanup**:
+   - Wait for the supervised `gcloud-auth` process to complete (it exits with code 0 once redirect lands on `http://localhost:8085/`).
+   - Close the browser tab with `camofox_close_tab`.
 ### 4. Quota Project & Verification
 1. Confirm active account:
    ```bash
