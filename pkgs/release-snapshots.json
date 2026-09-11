@@ -33,24 +33,24 @@
     "axiom": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.19.1/axiom_0.19.1_darwin_arm64.tar.gz",
-          "digest": "sha256:8025b742e720c8914c71e4cbed2e548179c11e1fee50ea9d831f3b8c58efd1c7",
-          "name": "axiom_0.19.1_darwin_arm64.tar.gz"
+          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.20.0/axiom_0.20.0_darwin_arm64.tar.gz",
+          "digest": "sha256:072194ca1d03a74a857eb87c50d93d4ff5019009d33d3b22abb574f27ed90d73",
+          "name": "axiom_0.20.0_darwin_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.19.1/axiom_0.19.1_linux_arm64.tar.gz",
-          "digest": "sha256:441c9fb37bfd164a5655596dfbe8975c737889d7749e40d0832da01e1e9be2ea",
-          "name": "axiom_0.19.1_linux_arm64.tar.gz"
+          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.20.0/axiom_0.20.0_linux_arm64.tar.gz",
+          "digest": "sha256:6dea307417cb750c1c9c9a0b10cc34909531480dd5da8154dffc66ed1570bd95",
+          "name": "axiom_0.20.0_linux_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.19.1/axiom_0.19.1_linux_amd64.tar.gz",
-          "digest": "sha256:134d19ff97481b0d0ee518644ab6dfaaaad90c93aae7ca7c1c024fd73ec850e9",
-          "name": "axiom_0.19.1_linux_amd64.tar.gz"
+          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.20.0/axiom_0.20.0_linux_amd64.tar.gz",
+          "digest": "sha256:c34a1e74ecfee600efb4823287b6ccf0a27e52b7ae889a6d1a66f7c28a33ea48",
+          "name": "axiom_0.20.0_linux_amd64.tar.gz"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v0.19.1"
+      "tag_name": "v0.20.0"
     },
     "bun": {
       "assets": [
@@ -118,10 +118,10 @@
     "langfuse": {
       "dependencies": {},
       "dist": {
-        "integrity": "sha512-SdyCGi0eqlIapB/Ya/SmLTTpDYGwFoT9/BKRL1SSwxjI/WOVhUYHB3k/35nWSzyybEgIRn4azG58mIdzcRInfQ==",
-        "tarball": "https://registry.npmjs.org/langfuse-cli/-/langfuse-cli-1.2.0.tgz"
+        "integrity": "sha512-F6yDsAZdYDH45V68dlh4YEXEp7lvryv/W//LeohcjsP770VdljtDIllrkVkbgWlJcOTxIK4GEAFlxI4DXsLZwg==",
+        "tarball": "https://registry.npmjs.org/langfuse-cli/-/langfuse-cli-1.2.3.tgz"
       },
-      "version": "1.2.0"
+      "version": "1.2.3"
     },
     "omp": {
       "assets": [
@@ -149,29 +149,29 @@
       {
         "assets": [
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.1/posthog-cli-aarch64-apple-darwin.tar.gz",
-            "digest": "sha256:84d161300a4c8aacd0f6445299481f48b0be25c8c247b8cdf295384798d9a02e",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.2/posthog-cli-aarch64-apple-darwin.tar.gz",
+            "digest": "sha256:56684f42989bcce6c8167d9748fe78cdfe9854e2180705bcb661852860f62529",
             "name": "posthog-cli-aarch64-apple-darwin.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.1/posthog-cli-x86_64-apple-darwin.tar.gz",
-            "digest": "sha256:76ed921dd90b1e05fae1a5d00aef58710e857fd423187e55b5a66f22e97f19fe",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.2/posthog-cli-x86_64-apple-darwin.tar.gz",
+            "digest": "sha256:563b08f87db4f80bd68eed54c96cea59ffb0bff7fc1b3df49d44d582ef339907",
             "name": "posthog-cli-x86_64-apple-darwin.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.1/posthog-cli-aarch64-unknown-linux-gnu.tar.gz",
-            "digest": "sha256:c18294a75d725b49802df417aa45e81c9511132f66c757510286ed0bac234273",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.2/posthog-cli-aarch64-unknown-linux-gnu.tar.gz",
+            "digest": "sha256:23e64dfd6e52b403b6f1feacc3cc834c59f5cada66c00868b7ee803a39268ebc",
             "name": "posthog-cli-aarch64-unknown-linux-gnu.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.1/posthog-cli-x86_64-unknown-linux-gnu.tar.gz",
-            "digest": "sha256:ebd2753e39c20a93ef3458cbb9b49b3ce8585fa5f92235e364bc0785c5ed7c66",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.2/posthog-cli-x86_64-unknown-linux-gnu.tar.gz",
+            "digest": "sha256:097a2731868ebd7a6e802c3cebf26d546f049bdf7ab0df943cc1dd48082382e1",
             "name": "posthog-cli-x86_64-unknown-linux-gnu.tar.gz"
           }
         ],
         "draft": false,
         "prerelease": false,
-        "tag_name": "posthog-cli/v0.18.1"
+        "tag_name": "posthog-cli/v0.18.2"
       }
     ],
     "sentry": {
