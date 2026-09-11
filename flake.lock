@@ -61,10 +61,10 @@
     "camofox-browser-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1787171317,
-        "narHash": "sha256-POVwAiVoScS5c1QMZslz1wbfWttYdeQEy2msxoVt+uk=",
+        "lastModified": 1789072741,
+        "narHash": "sha256-XdNnWS088fOhl1BsbrP7VylKt4sLKj7jKVhhS20EYpY=",
         "ref": "master",
-        "rev": "e5a36f5cd0332fde6597de474329a308a53a0716",
+        "rev": "2c0036a8b18bf9cd983376751ff4d52dfd9add0f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/jo-inc/camofox-browser.git"
@@ -79,10 +79,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1789041997,
-        "narHash": "sha256-ojYmY2R7NpN2WX2QF03VCvgNFWR9TPlVMz15VZXRDy4=",
+        "lastModified": 1789063581,
+        "narHash": "sha256-7fVB2F8o/CMEzqQ5FCHizdb20RS6QUQsDhBp+Tyb5Ww=",
         "ref": "main",
-        "rev": "c0c5556cdd12c3eccb0279a2579be08a26ad6cf3",
+        "rev": "8d9d546a78e8791fd27b54fb46dc0018fce1a860",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -233,10 +233,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1789058487,
-        "narHash": "sha256-v3D0A4zymOm3aJjMAJT8V7joI56wEWLrBP8IyumCJeI=",
+        "lastModified": 1789076504,
+        "narHash": "sha256-YV90fiUxiOCd6zNCLANkyJhZGpG9HsNB4y9Do9fA2wc=",
         "ref": "refs/heads/main",
-        "rev": "5f1815f67ef0edb52a5faea30276f085b06e6b27",
+        "rev": "b0fe284b9758159f392ad305645359ab6b4f3df2",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -276,10 +276,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1789047607,
-        "narHash": "sha256-TvkqeCjWyQvQs7jZ/2WcOWF1GMSgKtAP3qrw7eKpp1k=",
+        "lastModified": 1789071706,
+        "narHash": "sha256-S+oyh2YSP9V5bSjWbbK0N7GxdxxMwgBfUOtUdVcAWc4=",
         "ref": "master",
-        "rev": "f7f333f04ff6e2f94f955642a1b4956d4fcd3010",
+        "rev": "150f9ce4ddd41544ea42eb9d6043a75bd615fa24",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -317,10 +317,10 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1789031966,
-        "narHash": "sha256-9iJmspIpxKjkAIgDA8MI23Us2C7BRAc2PWcHedd3NcI=",
+        "lastModified": 1789084061,
+        "narHash": "sha256-edX4FF5jLmFX0WdG5jQ7jo919xVaFN1k3YUvJbP28HE=",
         "ref": "refs/heads/main",
-        "rev": "f9d6a07194a3d5bfe2743e9b8460207fe87da15c",
+        "rev": "396894b83c286c9f091e9e19de5a856bb0c3c47f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"

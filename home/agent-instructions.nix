@@ -161,6 +161,12 @@ let
       target = "${ompAgentDir}/RULES.md";
       source = compose "omp-RULES.md" (selectSegments "omp" [ "persistent" ]);
     }
+    {
+      target = "${ompAgentDir}/agents/browser.md";
+      source = pkgs.writeText "omp-agent-browser.md" (
+        builtins.readFile ./files/agent-instructions/agents/browser.md
+      );
+    }
   ];
   installFile =
     {

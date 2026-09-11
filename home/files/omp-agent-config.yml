@@ -66,6 +66,7 @@ modelRoles:
   slow: anthropic/claude-fable-5-1:high
   task: openai-codex/gpt-5.6-sol:high
   advisor: anthropic/claude-sonnet-5:medium
+  browser: google/gemini-3.8-flash:medium
   smol: google/gemini-3.8-flash:medium
   vision: google/gemini-3.8-flash:high
   tiny: google/gemini-3.5-flash-lite:minimal
