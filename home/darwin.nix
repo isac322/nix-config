@@ -114,8 +114,11 @@ in
 
   # Keep Coder's generated host stanzas out of Home Manager's ~/.ssh/config.
   # The absolute path also works for non-interactive Coder invocations.
-  home.sessionVariables.CODER_SSH_CONFIG_FILE =
-    "${config.home.homeDirectory}/.ssh/coder-config";
+  home.sessionVariables.CODER_SSH_CONFIG_FILE = "${config.home.homeDirectory}/.ssh/coder-config";
+
+  # Reclaim ~/.ssh/config without colliding with an existing backup even if an
+  # external tool (e.g. Coder) replaced the managed symlink with a regular file.
+  home.file.".ssh/config".force = true;
 
   programs.ssh = {
     enable = true;
