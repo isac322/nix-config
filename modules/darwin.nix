@@ -105,7 +105,12 @@ in
     # Without this, `brew bundle` runs with HOMEBREW_NO_AUTO_UPDATE=1 and
     # `upgrade` only sees the formula index as of the last manual `brew update`.
     onActivation.autoUpdate = true;
-    taps = [ "stablyai/orca" ];
+    taps = [
+      {
+        name = "stablyai/orca";
+        trusted = true;
+      }
+    ];
 
     casks = [
       # Orca owns updates to its writable app bundle itself. Keep this non-greedy

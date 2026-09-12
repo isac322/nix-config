@@ -64,7 +64,10 @@ in
   # first installation still needs interactive approval and a reboot; keeping
   # it here makes subsequent upgrades declarative.
   homebrew.taps = [
-    "borgbackup/tap"
+    {
+      name = "borgbackup/tap";
+      trusted = true;
+    }
   ];
 
   homebrew.brews = [ "borgbackup-fuse" ];
