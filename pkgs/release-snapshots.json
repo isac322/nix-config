@@ -126,24 +126,24 @@
     "omp": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.17/omp-darwin-arm64",
-          "digest": "sha256:1c310974d4be8de4e5b7285e9c52647321b412c219790fe0243cf804d5c9d5cc",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.18/omp-darwin-arm64",
+          "digest": "sha256:035a35dcb249edb939fa02b74fc7c0df9b2eb659079349fbffb188e1b558957a",
           "name": "omp-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.17/omp-linux-musl-arm64",
-          "digest": "sha256:304b95000209425f4294a8ee0ca8214c69275dec5e8295c080bcb4aeae28b68e",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.18/omp-linux-musl-arm64",
+          "digest": "sha256:24b80ad97661d3f76fbffa3f63121a33d744f87ba8c1ae40aa2c885152d5b677",
           "name": "omp-linux-musl-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.17/omp-linux-musl-x64",
-          "digest": "sha256:6f8db6439b9a5c5eb9b7b6257d7de648034e9178322fac15d0abda6ad0940134",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.1.18/omp-linux-musl-x64",
+          "digest": "sha256:23e2b7170a47f83cd2941e5f6fe51b2218873b8fe0de97a0d2170afa3cdba406",
           "name": "omp-linux-musl-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v18.1.17"
+      "tag_name": "v18.1.18"
     },
     "posthog": [
       {
@@ -199,24 +199,24 @@
     "slack": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.7.0/slack_cli_4.7.0_macOS_arm64.tar.gz",
-          "digest": "sha256:ccb6dc5910e06e8b12ff4d9690d015b72f8a81249ea716e8829dddddfd39d404",
-          "name": "slack_cli_4.7.0_macOS_arm64.tar.gz"
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.8.0/slack_cli_4.8.0_macOS_arm64.tar.gz",
+          "digest": "sha256:56bae70638ce8fba568423fa408ab2e3da095bcef82d07904ff191535db415c5",
+          "name": "slack_cli_4.8.0_macOS_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.7.0/slack_cli_4.7.0_linux_arm64.tar.gz",
-          "digest": "sha256:365834eda454783c6229a4cf5fe392df650d81a0465b8701c57b7c2a544db11a",
-          "name": "slack_cli_4.7.0_linux_arm64.tar.gz"
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.8.0/slack_cli_4.8.0_linux_arm64.tar.gz",
+          "digest": "sha256:dbfc62385ac35d66aa3356d2a99ee1444bd05eafb7b14ef08235e408a2fae6cb",
+          "name": "slack_cli_4.8.0_linux_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.7.0/slack_cli_4.7.0_linux_amd64.tar.gz",
-          "digest": "sha256:9d06c481bca07c1afffd106462e5ad3a8748334eb3b09aba3911a557673b5429",
-          "name": "slack_cli_4.7.0_linux_amd64.tar.gz"
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.8.0/slack_cli_4.8.0_linux_amd64.tar.gz",
+          "digest": "sha256:533ebc242561a79c6aaf238c3417ce113d1257ace80cf90f1e5f852d8ec9ca7b",
+          "name": "slack_cli_4.8.0_linux_amd64.tar.gz"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v4.7.0"
+      "tag_name": "v4.8.0"
     },
     "vercelDarwinArm64": {
       "dist": {
