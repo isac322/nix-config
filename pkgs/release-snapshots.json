@@ -4,30 +4,30 @@
     "binaries": [
       {
         "name": "gjc-darwin-arm64",
-        "sha256": "c3d8ec73a6fd68b0b2e9b31b420f7ffc339d4d71ce67cef0f8a9b6bbc541b2ce",
+        "sha256": "0de8fa71d57cb3b30072d05a33bf51ae1c82d993329ebd83f61d143cc9b4acc1",
         "size": 138183152
       },
       {
         "name": "gjc-darwin-x64",
-        "sha256": "5912799cea01b7755e2d2d5664fffefcb8542ccdba2f7fcf1cb4028128b8d393",
+        "sha256": "4d89130684bf3cbb26bcfb71b38fd41add29a1d77d122150cbe6b7d0b2946bab",
         "size": 146196256
       },
       {
         "name": "gjc-linux-arm64",
-        "sha256": "ef42bb90f1516af32a65838e95200ebf1eefbc3ffec046c813ed6eeb8bf8d673",
+        "sha256": "54f37e66ca962c2c767a35f6595b1ec0e01f368be78883711a7e3cb13b9fc8f4",
         "size": 158517240
       },
       {
         "name": "gjc-linux-x64",
-        "sha256": "f0b3865e63333adda68b6a6f176086b4cbe456f8cf37d1ca1425890c96a55ee8",
-        "size": 159667400
+        "sha256": "7e54f541b62ddf87dde2f317acd8de96b4f4b4173f9f91fe8d5fb4d69bd1f28e",
+        "size": 159675592
       }
     ],
     "release_channel": "stable",
-    "release_version": "0.16.6",
+    "release_version": "0.16.7",
     "schema": "gajae-release-binaries-v1",
     "schema_version": 1,
-    "tag": "v0.16.6"
+    "tag": "v0.16.7"
   },
   "releaseManifests": {
     "axiom": {
