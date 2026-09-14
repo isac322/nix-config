@@ -202,9 +202,10 @@ password-file 형식으로 변환해 `/var/lib/camofox/vnc-auth`에
   homebrew-cask의 맨 `orca`는 plotly의 무관한 chart renderer다.
 
 - **서버 맥의 Camoufox · DeskPad · macVNC** — Nix가 고정한 macOS 앱이다.
-  Camoufox와 DeskPad는 Camofox LaunchAgent가 store에서 직접 실행한다. macVNC는
-  같은 LaunchAgent가 실행하지만 Screen Recording·Accessibility 권한을 보존하도록
-  Home Manager Apps의 안정된 경로로 노출한다
+  Camoufox와 DeskPad는 Camofox LaunchAgent가 store에서 직접 실행한다. macVNC
+  payload도 store package를 따르지만, 고정 출력 `Camofox VNC Host.app`이 별도
+  LaunchAgent에서 자식으로 실행해 Screen Recording·Accessibility 권한을 Nix
+  generation과 분리한다
   ([0031](decisions/0031-camofox-native-macos-over-wireguard.md)).
 - **KakaoTalk · WireGuard** — Mac App Store 전용이라 손으로 깐다
   ([0016](decisions/0016-mas-only-apps-installed-by-hand.md)). 둘 다 랩탑 전용이

@@ -1,8 +1,8 @@
 # Camofox browser automation and its optional unattended remote console.
 #
 # The browser API and desktop integration belong to the logged-in Aqua session
-# and are declared in Home Manager. This root module owns the VNC secret, RFB
-# auth file, and HTTPS noVNC bridge used only by the remote console.
+# and are declared in Home Manager. This root module owns the permission-host
+# configuration, VNC secret, RFB auth file, and HTTPS noVNC bridge.
 #
 # The browser API and VNC backend bind loopback only. When the remote console is
 # enabled, noVNC is the sole network-facing component and refuses to start until
@@ -18,6 +18,27 @@ let
   cfg = config.local.camofox;
   wireguardAddressFile = "/var/run/wireguard-addresses";
   primaryUser = config.system.primaryUser;
+  primaryHome = config.users.users.${primaryUser}.home;
+  vncHostExecutable = "${primaryHome}/Applications/Home Manager Apps/Camofox VNC Host.app/Contents/MacOS/camofox-vnc-host";
+  vncHostArguments = lib.optionals cfg.vncViewOnly [ "-viewonly" ] ++ [
+    "-rfbport"
+    (toString cfg.vncPort)
+    "-rfbportv6"
+    "0"
+    "-listen"
+    "localhost"
+    "-rfbauth"
+    cfg.rfbAuthFile
+    "-alwaysshared"
+    "-dontdisconnect"
+  ];
+  vncHostConfiguration = {
+    Executable = "${pkgs.macvnc}/Applications/macVNC.app/Contents/MacOS/macVNC";
+    Arguments = vncHostArguments;
+    Environment.MACVNC_EXCLUDE_BUNDLE_ID = "com.stengo.DeskPad";
+    RequireScreenRecording = true;
+    RequireAccessibility = !cfg.vncViewOnly;
+  };
 
   # Eight characters from 62 possibilities, sampled without modulo bias. This
   # writes the secret itself to stdout; it is redirected straight into a
@@ -313,6 +334,24 @@ in
         message = "Camofox remote-console master password and RFB auth paths must differ.";
       }
     ];
+
+    # The native host has a stable ad-hoc identity, while this root-owned
+    # configuration can continue following the current macVNC package.
+    environment.etc."camofox-vnc-host.plist" = lib.mkIf cfg.remoteConsole {
+      text = lib.generators.toPlist { escape = true; } vncHostConfiguration;
+    };
+
+    # Register the permission host in the logged-in Aqua session, but leave its
+    # lifetime to the Home Manager supervisor after DeskPad is ready.
+    launchd.user.agents.camofox-vnc-host = lib.mkIf cfg.remoteConsole {
+      serviceConfig = {
+        ProgramArguments = [ vncHostExecutable ];
+        RunAtLoad = false;
+        KeepAlive = false;
+        StandardOutPath = "${primaryHome}/Library/Logs/camofox-browser.log";
+        StandardErrorPath = "${primaryHome}/Library/Logs/camofox-browser.log";
+      };
+    };
 
     # noVNC needs no window server, so keep it in the system domain. The Aqua
     # LaunchAgent may arrive later; websockify connects to the loopback backend

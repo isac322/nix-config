@@ -486,18 +486,21 @@ orca account list
 
 ## Camofox + noVNC (서버 맥)
 
-Camofox API, DeskPad, macVNC는 `bhyoo`의 Aqua LaunchAgent가 함께 감독한다.
-DeskPad 1.3.2가 전용 가상 모니터를 만들고, displayplacer 1.4.0이 그 화면을
-1920×1080 main display로 배치한다. 상류 `LibVNC/macVNC`는 ScreenCaptureKit으로
-그 디스플레이 전체를 캡처해 `127.0.0.1:5901`의 VNC로 내보낸다. root noVNC
-LaunchDaemon은 이 loopback VNC를 WireGuard 주소의 HTTPS WebSocket으로 중계한다
+Camofox API와 DeskPad는 `bhyoo`의 Aqua LaunchAgent가 감독한다. DeskPad 1.3.2가
+전용 가상 모니터를 만들고, displayplacer 1.4.0이 그 화면을 1920×1080 main
+display로 배치한다. 별도 `Camofox VNC Host.app` LaunchAgent가 상류
+`LibVNC/macVNC`를 자식으로 실행하고, ScreenCaptureKit으로 그 디스플레이 전체를
+캡처해 `127.0.0.1:5901`의 VNC로 내보낸다. root noVNC LaunchDaemon은 이 loopback
+VNC를 WireGuard 주소의 HTTPS WebSocket으로 중계한다
 ([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 구성요소는 모두
 고정한 upstream release 또는 source revision이다. 상류 Camofox Linux/Xvfb
 플러그인은 계속 끈다.
 
-LaunchAgent는 Camofox와 DeskPad를 Nix store에서 직접 실행한다. macVNC만 macOS
-Screen Recording·Accessibility 권한의 안정된 대상을 위해
-`~/Applications/Home Manager Apps/macVNC.app` 경로를 쓴다.
+Camofox LaunchAgent는 Camofox와 DeskPad를 Nix store에서 직접 실행한다. macVNC
+payload도 현재 store package를 따르지만, macOS Screen Recording·Accessibility의
+책임 주체는 고정 출력 앱 `com.bhyoo.camofox-vnc-host`다. root가 생성하는
+`/etc/camofox-vnc-host.plist`만 실행 경로와 인수를 정하고, host는 임의 명령행
+인수를 받지 않는다. nixpkgs나 macVNC가 바뀌어도 host의 고정 `cdhash`는 바뀌지 않는다.
 
 닫힌 뚜껑 상태로 자동 로그인하면 DeskPad 프로세스가 살아 있어도 macOS가 가상
 디스플레이를 꺼둘 수 있다. LaunchAgent는 시작할 때 사용자 활동 assertion으로
@@ -522,7 +525,7 @@ download-disabled addon 구성을 쓰며 `HOME` 아래 browser cache를 만들�
 비관리 잔재다. 그 경로에서 실행 중인 process를 먼저 종료한 뒤 전체 cache를
 삭제한다.
 
-LaunchAgent가 성공하면 로그에 macVNC의 다음 줄이 남고 port 5901이 열린다.
+Camofox LaunchAgent와 permission host가 성공하면 로그에 macVNC의 다음 줄이 남고 port 5901이 열린다.
 
 ```text
 Listening for VNC connections on TCP port 5901
@@ -530,8 +533,9 @@ Listening for VNC connections on TCP port 5901
 
 이 줄이 없으면 noVNC를 반복해서 재접속하지 말고
 `~/Library/Logs/camofox-browser.log`에서 DeskPad 준비, displayplacer layout,
-Screen Recording, Accessibility 오류를 확인한다. DeskPad, macVNC, Camofox API
-daemon 중 하나가 끝나면 LaunchAgent가 나머지도 끝내고 전체 스택을 재시작한다.
+`Camofox VNC Host`의 Screen Recording·Accessibility 오류를 확인한다. DeskPad,
+permission host, Camofox API daemon 중 하나가 끝나면 supervisor가 필요한
+구성요소를 정리하거나 다시 시작한다.
 
 **주소.** API는 이 Mac 안에서만 열고, 원격 화면은 WireGuard 주소의 HTTPS noVNC로
 연다.
@@ -553,26 +557,36 @@ noVNC 인증에는 username이 없다. 브라우저가 묻는 VNC 비밀번호�
 첫 접속에서는 브라우저의 인증서 경고를 확인하고 진행한다. WireGuard 주소가 바뀌면
 noVNC가 재시작되며 새 IP용 인증서를 만든다.
 
-**새 서버 또는 privacy 권한 초기화 때만.** macVNC에는 Screen Recording과
-Accessibility 권한이 필요하다. Camofox 구성은 native Screen Sharing을 원격
-fallback으로 준비하지 않으므로 물리 Aqua console이나 별도로 마련한 관리 경로에서
-다음 switch와 권한 부여를 진행한다.
+**새 서버, privacy 권한 초기화, 또는 permission host 자체를 의도적으로 갱신했을
+때만.** `Camofox VNC Host`에는 Screen Recording과 Accessibility 권한이 필요하다.
+Camofox 구성은 native Screen Sharing을 원격 fallback으로 준비하지 않으므로 물리
+Aqua console이나 별도로 마련한 관리 경로에서 다음 switch와 권한 부여를 진행한다.
 
 ```sh
 sudo darwin-rebuild switch --flake /etc/nix-darwin#bhyoo-macbook-pro
 ```
 
-switch가 설치한 다음 앱을 두 privacy pane에 모두 추가하고 허용한다.
+host는 권한이 없으면 status 77로 끝나고 Camofox supervisor가 10초마다 다시
+시작한다. Home Manager가 설치한 다음 앱을 System Settings의 두 privacy pane에서
+허용한다.
 
 ```text
-~/Applications/Home Manager Apps/macVNC.app
+~/Applications/Home Manager Apps/Camofox VNC Host.app
 ```
 
 - System Settings > Privacy & Security > Screen & System Audio Recording
 - System Settings > Privacy & Security > Accessibility
 
-그 뒤 LaunchAgent를 재시작한다. macVNC는 권한이 없을 때 조용히 view-only로
-후퇴하지 않고 종료하므로 port와 로그를 함께 확인한다.
+Accessibility 토글이 유지되지 않으면 해당 앱의 거부 레코드만 초기화하고
+LaunchServices로 한 번 실행한 뒤 다시 허용한다.
+
+```sh
+tccutil reset Accessibility com.bhyoo.camofox-vnc-host
+open -n -g ~/Applications/Home\ Manager\ Apps/Camofox\ VNC\ Host.app
+```
+
+승인 뒤 별도 재시작은 필요 없다. 즉시 확인하려면 supervisor를 다시 시작하고 port와
+로그를 함께 본다.
 
 ```sh
 launchctl kickstart -k gui/$(id -u)/org.nix-community.home.camofox-browser
@@ -585,8 +599,8 @@ nc -z 127.0.0.1 5901
 noVNC에 보이고 입력도 전달되는 것이 정상이다. 관찰만 진단하려면
 `local.camofox.vncViewOnly = true`를 쓸 수 있다.
 
-macVNC 패키지 바이너리가 바뀌면 macOS가 privacy 권한을 다시 요구할 수 있으므로
-새 generation에서 화면과 입력을 다시 검증한다.
+macVNC나 nixpkgs가 바뀌어도 privacy 권한은 고정 permission host에 남는다. host
+source나 출력 hash를 바꿀 때만 새 identity로 보고 화면과 입력을 다시 검증한다.
 
 Camofox API는 loopback 밖에서 접근할 수 없다. OMP가
 `~/.omp/agent/mcp.json`에 선언된 `camofox-browser-mcp-session omp`를 시작하면

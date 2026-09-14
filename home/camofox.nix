@@ -63,6 +63,7 @@ let
     export CAMOFOX_HEADLESS=false
 
     deskpadApp=${lib.escapeShellArg "${pkgs.deskpad}/Applications/DeskPad.app/Contents/MacOS/DeskPad"}
+    vncJob="gui/$(/usr/bin/id -u)/org.nixos.camofox-vnc-host"
     beforeDisplaySpecs=""
     deskpadDisplayId=""
     deskpadPersistentId=""
@@ -70,6 +71,7 @@ let
     layoutConfigured=0
     deskpadPid=0
     vncPid=0
+    vncLastExitStatus=""
     browserPid=0
     displayAwakePid=0
     restoreDisplayLayout() {
@@ -204,14 +206,79 @@ let
       wait "$targetPid" 2>/dev/null || true
       return 0
     }
+    refreshVncJob() {
+      local jobState parsedPid parsedStatus
+      if ! jobState=$(/bin/launchctl print "$vncJob" 2>/dev/null); then
+        vncPid=0
+        vncLastExitStatus=""
+        return 1
+      fi
+
+      parsedPid=$(printf '%s\n' "$jobState" |
+        /usr/bin/awk '$1 == "pid" && $2 == "=" { print $3; exit }')
+      case "$parsedPid" in
+        "" | *[!0-9]*) parsedPid=0 ;;
+      esac
+      parsedStatus=$(printf '%s\n' "$jobState" |
+        /usr/bin/awk '
+          $1 == "last" && $2 == "exit" && $3 == "code" && $4 == "=" {
+            status = $5
+            sub(/:.*/, "", status)
+            if (status ~ /^[0-9]+$/) {
+              print status
+            }
+            exit
+          }
+        ')
+      case "$parsedStatus" in
+        "" | *[!0-9]*) parsedStatus="" ;;
+      esac
+
+      vncPid=$parsedPid
+      vncLastExitStatus=$parsedStatus
+      return 0
+    }
+    stopVncJob() {
+      local stoppingPid
+      refreshVncJob || true
+      stoppingPid=$vncPid
+      /bin/launchctl kill SIGTERM "$vncJob" 2>/dev/null || true
+      [ "$stoppingPid" -gt 0 ] || return 0
+      if ! waitForProcessExit "$stoppingPid" 10; then
+        echo "camofox-browser: Camofox VNC Host $stoppingPid did not exit after 10s; killing it." >&2
+        /bin/launchctl kill SIGKILL "$vncJob" 2>/dev/null || true
+        waitForProcessExit "$stoppingPid" 5 || true
+      fi
+      refreshVncJob || true
+    }
+    handleVncExit() {
+      local exitStatus=$1
+      vncPid=0
+      vncReadyLogged=0
+      vncReadinessChecks=0
+
+      if [ "$exitStatus" -eq 77 ]; then
+        if [ "$vncPermissionUnavailable" -eq 0 ]; then
+          echo "camofox-browser: Camofox VNC Host lacks its required macOS privacy permissions (status 77)." >&2
+          echo "camofox-browser: waiting for approval; checking again every 10s." >&2
+        fi
+        vncPermissionUnavailable=1
+        vncAttempts=0
+        return
+      fi
+
+      if [ "$vncPermissionUnavailable" -eq 1 ]; then
+        echo "camofox-browser: macVNC permissions are available; resuming VNC startup." >&2
+      fi
+      vncPermissionUnavailable=0
+      echo "camofox-browser: Camofox VNC Host exited with status $exitStatus; Camofox and DeskPad remain active." >&2
+    }
     stopChildren() {
       trap - TERM INT
       if [ "$browserPid" -gt 0 ]; then
         /bin/kill "$browserPid" 2>/dev/null || true
       fi
-      if [ "$vncPid" -gt 0 ]; then
-        /bin/kill "$vncPid" 2>/dev/null || true
-      fi
+      stopVncJob
       if [ "$deskpadPid" -gt 0 ]; then
         restoreDisplayLayout || true
         /bin/kill "$deskpadPid" 2>/dev/null || true
@@ -221,9 +288,6 @@ let
       fi
       if [ "$browserPid" -gt 0 ]; then
         wait "$browserPid" 2>/dev/null || true
-      fi
-      if [ "$vncPid" -gt 0 ]; then
-        wait "$vncPid" 2>/dev/null || true
       fi
       if [ "$deskpadPid" -gt 0 ] &&
         ! waitForProcessExit "$deskpadPid" 10; then
@@ -414,21 +478,6 @@ let
     ${pkgs.camofox-browser}/bin/camofox-browser &
     browserPid=$!
 
-    export MACVNC_EXCLUDE_BUNDLE_ID=com.stengo.DeskPad
-    macvnc=${lib.escapeShellArg "${config.home.homeDirectory}/Applications/Home Manager Apps/macVNC.app/Contents/MacOS/macVNC"}
-    set -- \
-      -rfbport ${lib.escapeShellArg (toString camofoxCfg.vncPort)} \
-      -rfbportv6 0 \
-      -listen localhost \
-      -rfbauth ${lib.escapeShellArg camofoxCfg.rfbAuthFile} \
-      -alwaysshared \
-      -dontdisconnect
-    permissionArgs=()
-    ${lib.optionalString camofoxCfg.vncViewOnly ''
-      set -- -viewonly "$@"
-      permissionArgs=(-viewonly)
-    ''}
-
     vncAttempts=0
     vncMaxAttempts=3
     vncDisabled=0
@@ -530,37 +579,45 @@ let
         exit "$status"
       fi
 
-      if [ "$vncPid" -gt 0 ] && ! /bin/kill -0 "$vncPid" 2>/dev/null; then
-        status=0
-        wait "$vncPid" || status=$?
-        echo "camofox-browser: macVNC exited with status $status; Camofox and DeskPad remain active." >&2
-        vncPid=0
-        vncReadyLogged=0
-        vncReadinessChecks=0
+      if [ "$vncPid" -gt 0 ]; then
+        previousVncPid=$vncPid
+        refreshVncJob || true
+        if [ "$vncPid" -eq 0 ]; then
+          status=$vncLastExitStatus
+          [ -n "$status" ] || status=1
+          handleVncExit "$status"
+        elif [ "$vncPid" -ne "$previousVncPid" ]; then
+          echo "camofox-browser: Camofox VNC Host replaced PID $previousVncPid with $vncPid; continuing." >&2
+          vncReadyLogged=0
+          vncReadinessChecks=0
+        fi
       fi
 
       if [ "$vncPid" -eq 0 ] && [ "$vncDisabled" -eq 0 ]; then
-        permissionError=""
-        if ! permissionError=$("$macvnc" "''${permissionArgs[@]}" -checkpermissions 2>&1); then
-          if [ "$vncPermissionUnavailable" -eq 0 ]; then
-            echo "camofox-browser: macVNC unavailable: $permissionError" >&2
-            echo "camofox-browser: waiting for Screen Recording approval; checking again every 10s." >&2
-          fi
-          vncPermissionUnavailable=1
-          vncAttempts=0
+        if [ "$vncAttempts" -ge "$vncMaxAttempts" ]; then
+          echo "camofox-browser: Camofox VNC Host failed $vncAttempts consecutive starts; continuing without VNC." >&2
+          vncDisabled=1
         else
-          if [ "$vncPermissionUnavailable" -eq 1 ]; then
-            echo "camofox-browser: macVNC permissions are available; resuming VNC startup." >&2
-          fi
-          vncPermissionUnavailable=0
-          if [ "$vncAttempts" -ge "$vncMaxAttempts" ]; then
-            echo "camofox-browser: macVNC failed $vncAttempts consecutive starts; continuing without VNC." >&2
-            vncDisabled=1
+          vncLastExitStatus=""
+          if ! /bin/launchctl kickstart "$vncJob"; then
+            echo "camofox-browser: could not kickstart Camofox VNC Host; retrying." >&2
           else
             vncAttempts=$((vncAttempts + 1))
-            "$macvnc" "$@" &
-            vncPid=$!
-            vncReadinessChecks=0
+            # Give launchd enough time to publish the real host PID or the exit
+            # status from a permission check that failed immediately.
+            /bin/sleep 1
+            refreshVncJob || true
+            if [ "$vncPid" -gt 0 ]; then
+              if [ "$vncPermissionUnavailable" -eq 1 ]; then
+                echo "camofox-browser: macVNC permissions are available; resuming VNC startup." >&2
+              fi
+              vncPermissionUnavailable=0
+              vncReadinessChecks=0
+            else
+              status=$vncLastExitStatus
+              [ -n "$status" ] || status=1
+              handleVncExit "$status"
+            fi
           fi
         fi
       fi
@@ -574,7 +631,10 @@ let
           vncReadinessChecks=$((vncReadinessChecks + 1))
           if [ "$vncReadinessChecks" -ge 3 ]; then
             echo "camofox-browser: macVNC did not become ready after 30s; retrying it alone." >&2
-            /bin/kill "$vncPid" 2>/dev/null || true
+            stopVncJob
+            vncPid=0
+            vncLastExitStatus=""
+            vncReadinessChecks=0
           fi
         fi
       fi
@@ -660,8 +720,9 @@ in
       camofoxUrlHandler
     ]
     ++ lib.optionals camofoxCfg.remoteConsole [
-      # Keep the stable app path so macOS privacy grants survive store changes.
-      pkgs.macvnc
+      # The fixed-output host is copied to a visible, stable app path so macOS
+      # privacy settings can retain its Accessibility and Screen Recording grants.
+      pkgs.camofox-vnc-host
     ];
   };
 }

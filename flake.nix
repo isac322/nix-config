@@ -315,6 +315,7 @@
             camoufox
             camofox-browser
             camofox-url-handler
+            camofox-vnc-host
             deskpad
             displayplacer
             macvnc

@@ -3,10 +3,11 @@
 **결정** — 서버 맥에서 `@askjo/camofox-browser` API를 Aqua LaunchAgent로
 headful 실행하고, 브라우저 코어는 `daijro/camoufox`의 macOS arm64 릴리스를 쓴다.
 같은 LaunchAgent가 MIT 라이선스의 DeskPad 1.3.2로 가상 디스플레이를 만들고,
-displayplacer 1.4.0으로 1920×1080 main display를 정한다. GPL-2.0의
-`LibVNC/macVNC`는 그 디스플레이 전체를 `127.0.0.1:5901`의 VNC로 내보낸다.
-root noVNC LaunchDaemon은 이를 WireGuard 주소의 HTTPS WebSocket으로만 중계한다.
-API는 loopback에만 열고, 실행 중 다운로드는 없다.
+displayplacer 1.4.0으로 1920×1080 main display를 정한다. 고정 출력
+`Camofox VNC Host.app`은 별도 user LaunchAgent로 등록하고, GPL-2.0의
+`LibVNC/macVNC`를 자식으로 실행해 그 디스플레이 전체를 `127.0.0.1:5901`의 VNC로
+내보낸다. root noVNC LaunchDaemon은 이를 WireGuard 주소의 HTTPS WebSocket으로만
+중계한다. API는 loopback에만 열고, 실행 중 다운로드는 없다.
 
 ## macOS 코어는 추측이 아니라 그 기계에서 확인했다
 
@@ -73,10 +74,13 @@ API다. 이 위험은 남지만, 이 저장소가 private API VNC 서버를 새�
 OS 업데이트로 가상 디스플레이가 깨지면 DeskPad 준비 단계가 실패하고 LaunchAgent가
 전체 스택을 재시도한다. 검은 화면을 성공으로 취급하는 fallback은 두지 않는다.
 
-macVNC의 기본 모드는 키보드와 포인터 입력을 허용하므로 Accessibility 권한이 없으면
-시작하지 않는다. Screen Recording 권한도 full-display 캡처에 필요하다. 관찰 경로만
-진단할 때 명시적으로 `local.camofox.vncViewOnly = true`를 쓸 수 있지만 자동으로
-view-only로 후퇴해 권한 실패를 숨기지는 않는다.
+macVNC의 기본 모드는 키보드와 포인터 입력을 허용한다. 고정 출력
+`Camofox VNC Host.app`이 Screen Recording과 Accessibility를 먼저 확인한 뒤 현재
+Nix generation의 macVNC를 자식으로 실행하므로, TCC 책임 주체는 바뀌는 Nix bash나
+macVNC store path가 아니라 `com.bhyoo.camofox-vnc-host`다. host의 recursive output
+hash가 바뀌면 빌드가 실패하고, 의도적으로 hash를 갱신할 때만 privacy 승인을 다시
+검토한다. 관찰 경로만 진단할 때 명시적으로 `local.camofox.vncViewOnly = true`를 쓸
+수 있지만 자동으로 view-only로 후퇴해 권한 실패를 숨기지는 않는다.
 
 `userId`는 macOS 로그인 사용자가 아니라 Camofox 내부 세션 식별자다. 서버 하나가
 필요할 때 공유 Camoufox 브라우저 프로세스 하나를 띄우고, `userId`마다 별도

@@ -70,6 +70,7 @@ let
       };
       camofox-mcp-session = final.callPackage ./camofox-mcp-session/package.nix { };
       camofox-url-handler = final.callPackage ./camofox-url-handler/package.nix { };
+      camofox-vnc-host = final.callPackage ./camofox-vnc-host/package.nix { };
       deskpad = final.callPackage ./deskpad/package.nix {
         manifestFile = releaseManifests.deskpad;
       };
