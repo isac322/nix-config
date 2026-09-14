@@ -102,9 +102,13 @@ in
     enable = true;
     onActivation.cleanup = "zap";
     onActivation.upgrade = true;
-    # Without this, `brew bundle` runs with HOMEBREW_NO_AUTO_UPDATE=1 and
-    # `upgrade` only sees the formula index as of the last manual `brew update`.
+    # Keep Homebrew's index fresh before upgrading managed packages.
     onActivation.autoUpdate = true;
+    # Homebrew upgrades `auto_updates` casks during `brew bundle` activation
+    # unless this is set. Those apps own their writable bundles; letting both
+    # updaters act leaves Homebrew's Caskroom metadata inconsistent. Casks
+    # explicitly marked `greedy = true`, such as Cloudflare WARP, still update.
+    onActivation.extraEnv.HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS = "1";
     taps = [
       {
         name = "stablyai/orca";
@@ -113,13 +117,9 @@ in
     ];
 
     casks = [
-      # Orca owns updates to its writable app bundle itself. Keep this non-greedy
-      # so `brew upgrade` skips it; the bundled updater and supervisor handoff
-      # replace in-place releases automatically.
-      {
-        name = "stablyai/orca/orca";
-        greedy = false;
-      }
+      # Orca owns updates to its writable app bundle itself. The activation
+      # environment above keeps Homebrew from competing with that updater.
+      "stablyai/orca/orca"
 
       # Karabiner-Elements deliberately absent: it cannot be brought up without
       # a console session approving its driver extension and Input Monitoring.

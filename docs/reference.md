@@ -195,10 +195,11 @@ password-file 형식으로 변환해 `/var/lib/camofox/vnc-auth`에
 
 - **Orca** (Stably) — 두 Mac 모두 `stablyai/orca` tap의 cask를 쓰지만,
   `auto_updates`인 이 앱은 메모리로 Orca 자체 updater가 `/Applications/Orca.app`을
-  제자리에서 교체한다. Nix는 cask의 설치 여부만 선언하고 `greedy = false`로
-  그 updater와 경쟁하지 않는다. 1.4.190~1.4.194에 있던 macOS `serve` 회귀가
-  1.4.196에서 해결됨을 확인하여 서버도 별도 Nix 패키지 대신 cask 런타임과 자체
-  updater handoff를 따른다 ([0028](decisions/0028-orca-runtime-on-the-server-mac.md)).
+  제자리에서 교체한다. Nix는 cask의 설치 여부만 선언하고 activation에
+  `HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS=1`을 주어 Homebrew와 자체 updater의
+  경쟁을 막는다. 1.4.190~1.4.194에 있던 macOS `serve` 회귀가 1.4.196에서
+  해결됨을 확인하여 서버도 별도 Nix 패키지 대신 cask 런타임과 자체 updater
+  handoff를 따른다 ([0028](decisions/0028-orca-runtime-on-the-server-mac.md)).
   homebrew-cask의 맨 `orca`는 plotly의 무관한 chart renderer다.
 
 - **서버 맥의 Camoufox · DeskPad · macVNC** — Nix가 고정한 macOS 앱이다.
