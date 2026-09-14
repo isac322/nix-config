@@ -263,6 +263,41 @@ let
     fi
   '';
 
+  rustdeskDirectHost = pkgs.writeShellScript "rustdesk-direct-host" ''
+    set -u
+
+    app=/Applications/RustDesk.app/Contents/MacOS/RustDesk
+    marker=/var/run/rustdesk-firewall-ready
+
+    while [ ! -x "$app" ] || [ ! -s "$marker" ]; do
+      /bin/sleep 2
+    done
+    markerIdentity=$(/usr/bin/stat -f '%d:%i' "$marker") || exit 1
+
+    "$app" --server &
+    serverPid=$!
+    cleanup() {
+      /bin/kill "$serverPid" >/dev/null 2>&1 || true
+      wait "$serverPid" >/dev/null 2>&1 || true
+    }
+    trap 'cleanup; exit 143' TERM INT
+
+    while /bin/kill -0 "$serverPid" 2>/dev/null; do
+      currentIdentity=$(/usr/bin/stat -f '%d:%i' "$marker" 2>/dev/null || true)
+      if [ "$currentIdentity" != "$markerIdentity" ]; then
+        echo "rustdesk-direct-host: firewall generation changed; restarting." >&2
+        cleanup
+        exit 1
+      fi
+      /bin/sleep 1
+    done
+
+    wait "$serverPid"
+    status=$?
+    [ "$status" -ne 0 ] || status=1
+    exit "$status"
+  '';
+
   orcaServe = pkgs.writeShellScript "orca-serve" ''
     set -u
 
@@ -367,6 +402,22 @@ in
       RunAtLoad = true;
       StandardOutPath = "${config.home.homeDirectory}/Library/Logs/orbstack.log";
       StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/orbstack.log";
+    };
+  };
+
+  # The vendor LaunchAgent is disabled by the system activation. This wrapper
+  # is the only unattended host path and cannot start before PF publishes a
+  # ready generation for the current WireGuard interface.
+  launchd.agents.rustdesk-direct-host = {
+    enable = true;
+    config = {
+      ProgramArguments = [ "${rustdeskDirectHost}" ];
+      RunAtLoad = true;
+      KeepAlive.SuccessfulExit = false;
+      ThrottleInterval = 10;
+      ProcessType = "Background";
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/rustdesk-direct-host.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/rustdesk-direct-host.log";
     };
   };
 

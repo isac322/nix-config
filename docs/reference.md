@@ -179,6 +179,13 @@ Camofox API와 macVNC는 loopback 전용이다. 각 MCP adapter는 기존 Camofo
 `/var/run/wireguard-addresses`의 첫 줄에 bind하며, 파일이나 주소가 아직 없으면
 fallback 주소를 열지 않고 실패한다.
 
+RustDesk는 일반 원격 데스크톱 경로다. macOS 앱의 Direct IP Access가 TCP 21118에서
+화면과 입력을 제공한다. `com.apple/rustdesk` PF anchor는 현재 WireGuard
+interface의 IPv4 연결만 허용하고, 다른 IPv4 interface와 모든 IPv6 연결을
+차단한다. 별도 ID·relay server와 서버 공개키는 없다. Linux·Android·macOS
+클라이언트는 `<WireGuard 주소>:21118`로 직접 접속한다. 무인 접속 비밀번호는
+login Keychain의 `rustdesk-unattended-password` 항목에만 둔다.
+
 `/var/lib/nix-darwin/camofox-vnc-password`는 activation이 처음 한 번 만든 정확히
 8자의 영숫자이고 `root:wheel 0600`이다. activation은 이를 표준 LibVNCServer
 password-file 형식으로 변환해 `/var/lib/camofox/vnc-auth`에

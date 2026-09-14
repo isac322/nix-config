@@ -55,6 +55,127 @@ let
     fi
   '';
 
+  rustdeskAddressFile = "/var/run/wireguard-addresses";
+  rustdeskFirewallReady = "/var/run/rustdesk-firewall-ready";
+  rustdeskFirewallAnchor = "com.apple/rustdesk";
+  rustdeskFirewallToken = "/var/run/rustdesk-pf-token";
+
+  rustdeskFirewall = pkgs.writeShellScript "rustdesk-firewall" ''
+    set -eu
+
+    rules=$(/usr/bin/mktemp /var/run/rustdesk-pf.XXXXXX)
+    loadDeny() {
+      printf '%s\n' \
+        'block drop in quick inet proto tcp from any to any port 21118' \
+        'block drop in quick inet6 proto tcp from any to any port 21118' \
+        > "$rules"
+      /sbin/pfctl -a ${rustdeskFirewallAnchor} -f "$rules"
+    }
+    cleanup() {
+      # Direct IP access can remain enabled while launchd replaces this daemon.
+      # Preserve denial across that generation boundary.
+      loadDeny >/dev/null 2>&1 || true
+      /bin/rm -f ${rustdeskFirewallReady} "$rules"
+    }
+    trap cleanup EXIT
+    trap 'exit 143' TERM INT
+
+    # Install denial before waiting for WireGuard. The user host is separately
+    # gated on the ready marker, so no boot ordering can expose port 21118.
+    loadDeny
+    if [ ! -s ${rustdeskFirewallToken} ] ||
+      ! /sbin/pfctl -s info |
+        /usr/bin/awk '$1 == "Status:" && $2 == "Enabled" { found = 1 } END { exit !found }'; then
+      enableOut=$(/sbin/pfctl -E 2>&1)
+      token=$(printf '%s\n' "$enableOut" |
+        /usr/bin/awk '$1 == "Token" && $2 == ":" { print $3; exit }')
+      if [ -z "$token" ]; then
+        echo "rustdesk-firewall: pfctl did not return an enable token." >&2
+        exit 1
+      fi
+      printf '%s\n' "$token" > ${rustdeskFirewallToken}
+      /bin/chmod 0600 ${rustdeskFirewallToken}
+    fi
+
+    address=""
+    interface=""
+    waited=0
+    while [ "$waited" -lt 60 ]; do
+      if [ -s ${rustdeskAddressFile} ]; then
+        address=$(/usr/bin/head -n 1 ${rustdeskAddressFile})
+        case "$address" in
+          *[!0-9.]* | "" | 0.0.0.0) address="" ;;
+        esac
+        if [ -n "$address" ]; then
+          for candidate in $(/sbin/ifconfig -l); do
+            if /sbin/ifconfig "$candidate" |
+              /usr/bin/awk -v address="$address" '
+                $1 == "inet" && $2 == address { found = 1 }
+                END { exit !found }
+              '; then
+              interface=$candidate
+              break
+            fi
+          done
+        fi
+        [ -n "$interface" ] && break
+      fi
+      /bin/sleep 2
+      waited=$((waited + 2))
+    done
+    if [ -z "$interface" ]; then
+      echo "rustdesk-firewall: no WireGuard IPv4 interface after ''${waited}s." >&2
+      exit 1
+    fi
+    addressFileIdentity=$(/usr/bin/stat -f '%d:%i' ${rustdeskAddressFile}) || exit 1
+
+    printf '%s\n' \
+      "pass in quick on $interface inet proto tcp from any to any port 21118" \
+      'block drop in quick inet proto tcp from any to any port 21118' \
+      'block drop in quick inet6 proto tcp from any to any port 21118' \
+      > "$rules"
+    /sbin/pfctl -a ${rustdeskFirewallAnchor} -f "$rules"
+
+    printf '%s\t%s\n' "$address" "$interface" > ${rustdeskFirewallReady}
+    /bin/chmod 0644 ${rustdeskFirewallReady}
+    echo "rustdesk-firewall: allowing direct access only on $interface ($address):21118."
+    rustdesk=/Applications/RustDesk.app/Contents/MacOS/RustDesk
+    rustdeskUser=${config.system.primaryUser}
+    clientConfigured=0
+
+    while true; do
+      if [ "$clientConfigured" -eq 0 ] &&
+        [ -x "$rustdesk" ] &&
+        /usr/bin/pgrep -u "$rustdeskUser" -f \
+          "/Applications/RustDesk.app/Contents/MacOS/RustDesk --server" \
+          >/dev/null 2>&1; then
+        if "$rustdesk" --option custom-rendezvous-server "" >/dev/null &&
+          "$rustdesk" --option relay-server "" >/dev/null &&
+          "$rustdesk" --option key "" >/dev/null &&
+          "$rustdesk" --option direct-access-port 21118 >/dev/null &&
+          "$rustdesk" --option direct-server Y >/dev/null; then
+          clientConfigured=1
+        else
+          echo "rustdesk-firewall: could not configure Direct IP Access yet." >&2
+        fi
+      fi
+
+      currentIdentity=$(/usr/bin/stat -f '%d:%i' ${rustdeskAddressFile} 2>/dev/null || true)
+      currentAddress=$(/usr/bin/head -n 1 ${rustdeskAddressFile} 2>/dev/null || true)
+      if [ "$currentIdentity" != "$addressFileIdentity" ] ||
+        [ "$currentAddress" != "$address" ] ||
+        ! /sbin/ifconfig "$interface" |
+          /usr/bin/awk -v address="$address" '
+            $1 == "inet" && $2 == address { found = 1 }
+            END { exit !found }
+          '; then
+        echo "rustdesk-firewall: WireGuard interface changed; restarting." >&2
+        exit 1
+      fi
+      /bin/sleep 2
+    done
+  '';
+
 in
 
 {
@@ -127,6 +248,10 @@ in
   # not by anything here.
   local.wireguard.enable = true;
 
+  # RustDesk Direct IP Access replaces Jump Desktop. DeskPad remains the stable
+  # display for this closed-lid Mac.
+  homebrew.casks = [ "rustdesk" ];
+
   # The Orca runtime. The address it advertises is not written here — it is read
   # off the tunnel above at run time, because that is where the answer is
   # already decided (0028).
@@ -175,6 +300,19 @@ in
     "com.apple.loginwindow".DisableScreenLockImmediate = true;
   };
 
+  # RustDesk Direct IP Access listens on its upstream port. PF admits it only
+  # on the current WireGuard interface.
+  launchd.daemons.rustdesk-firewall = {
+    command = "${rustdeskFirewall}";
+    serviceConfig = {
+      RunAtLoad = true;
+      KeepAlive.SuccessfulExit = false;
+      ThrottleInterval = 10;
+      StandardOutPath = "/var/log/rustdesk-firewall.log";
+      StandardErrorPath = "/var/log/rustdesk-firewall.log";
+    };
+  };
+
   # Idle timers, written per power source.
   #
   # nix-darwin's `power.sleep.*` options are deliberately not used here. They
@@ -187,13 +325,18 @@ in
   # a laptop, because on battery that is what it is — see the daemon below.
   # `ttyskeepawake` is on by default and counts an active SSH session as
   # activity, so the battery timer does not cut a session short.
-  # Two unrelated things share this block because `postActivation.text` can only
-  # be assigned once per module, and both belong to this file.
+  # Several unrelated things share this block because `postActivation.text`
+  # can only be assigned once per module, and all belong to this server role.
   system.activationScripts.postActivation.text = ''
     /usr/bin/pmset -c sleep 0 disksleep 0 displaysleep 0
     /usr/bin/pmset -b sleep 10 disksleep 10 displaysleep 2
 
     ${sshdEnsureListening}
+
+    rustdeskUid=$(/usr/bin/id -u ${config.system.primaryUser})
+    rustdeskVendor="gui/$rustdeskUid/com.carriez.RustDesk_server"
+    /bin/launchctl disable "$rustdeskVendor"
+    /bin/launchctl bootout "$rustdeskVendor" >/dev/null 2>&1 || true
   '';
 
   # Clamshell — keep running with the lid shut, but only while on power.

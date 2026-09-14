@@ -484,6 +484,48 @@ orca account list
 있으므로, 막는 것은 런타임이 아니라 네트워크 쪽 일이다. 공개 인터넷으로
 포워딩하지 않는다.
 
+## RustDesk (서버 맥)
+
+RustDesk 앱의 Direct IP Access가 MBP 화면과 입력을 TCP 21118에서 직접 제공한다.
+별도 ID server, relay server, Docker container는 없다.
+
+상류 앱은 모든 인터페이스에 listen하므로 네트워크 경계는
+`com.apple/rustdesk` PF anchor가 맡는다. 현재 WireGuard interface의 IPv4
+TCP 21118만 허용하고, 다른 IPv4 interface와 모든 IPv6 연결은 차단한다.
+firewall daemon은 WireGuard를 기다리기 전에 deny 규칙부터 적재한다. Home Manager의
+`rustdesk-direct-host` LaunchAgent도 firewall ready marker가 생길 때까지
+`RustDesk --server`를 시작하지 않는다. vendor LaunchAgent는 비활성화한다.
+
+```sh
+sudo launchctl print system/org.nixos.rustdesk-firewall
+sudo pfctl -a com.apple/rustdesk -sr
+launchctl print gui/$(id -u)/org.nix-community.home.rustdesk-direct-host
+```
+
+Linux·Android·macOS 클라이언트에서는 ID가 아니라 다음 주소를 원격 ID 입력란에
+그대로 넣는다.
+
+```text
+10.222.0.7:21118
+```
+
+기존 self-hosted 설정을 넣었던 클라이언트는 ID server, relay server, API server,
+Key를 모두 비운 뒤 앱을 완전히 종료하고 다시 실행한다.
+
+무인 접속 비밀번호는 MBP login Keychain에 있고 화면이나 저장소에는 남기지 않는다.
+
+```sh
+security find-generic-password \
+  -s rustdesk-unattended-password -a bhyoo -w
+```
+
+이 명령은 비밀번호를 터미널에 출력하므로 본인 세션에서만 실행한다.
+
+PF는 macOS가 처리하는 host ingress 경계다. OrbStack 컨테이너에서 host의 LAN
+주소로 접속하는 경로는 이 anchor를 통과하지 않는 것으로 관찰했다. 따라서 로컬
+컨테이너를 비신뢰 경계로 보지 않는다. 물리 LAN 차단과 WireGuard 허용은 실제 다른
+기기에서 각각 확인한다.
+
 ## Camofox + noVNC (서버 맥)
 
 Camofox API와 DeskPad는 `bhyoo`의 Aqua LaunchAgent가 감독한다. DeskPad 1.3.2가
