@@ -79,10 +79,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1789301167,
-        "narHash": "sha256-3LEXZNS57x1OozSECZcHYm5+VIjqErC1x+EgIKGV6z4=",
+        "lastModified": 1789387612,
+        "narHash": "sha256-VanUjsIGz/kwh9hmpQgZcaAAB7D35NBpvIL+PiCy4So=",
         "ref": "main",
-        "rev": "ba5f5dfd1a0cd3e8a8f812c219d50390ed0a61c8",
+        "rev": "f889a0537dc1fd264bb5e39299db8f9be1ef3fb6",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -233,10 +233,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1789349348,
-        "narHash": "sha256-iWREWIGCnNPJD/QYsNgeMt95BhnbuqFEjlh736lIsoM=",
+        "lastModified": 1789377457,
+        "narHash": "sha256-1TIC3gCIa9YPY3z6TvXTlgkIB5HLSsD+YGXfGAogJJo=",
         "ref": "refs/heads/main",
-        "rev": "f2b6370a517fea78d1dfdcf615456c0e931b1844",
+        "rev": "be49554794917ae92a6dc9dbfa2eb3db5cf70084",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -276,10 +276,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1789352311,
-        "narHash": "sha256-E9hlcRNSRQ1vb+UicOusX/ucroGlBAz/pYhCBorLOn4=",
+        "lastModified": 1789386765,
+        "narHash": "sha256-4hyLFBhzQC7+qPMELWc7J/sbdA6ckXZxXU9CYRsGhsc=",
         "ref": "master",
-        "rev": "cfcda3f99334c8459fa4cd46cce87502e0b48f0a",
+        "rev": "87c391f49a34660de6010f35bb50fb1bf811be9f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -317,10 +317,10 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1789357600,
-        "narHash": "sha256-cMBFxKDaM2MDDvPJeABerT77i15WcZjNiAiVFNifIo8=",
+        "lastModified": 1789387663,
+        "narHash": "sha256-35S1VbQZgCzo5vd0dHZ2mpzEwDPlXkS3E02kd8pohcY=",
         "ref": "refs/heads/main",
-        "rev": "71c8a0257bc8848879bcca6fe951ff65b81f1d8d",
+        "rev": "8789d35418faa994adf0f46b2e76933cf41a5854",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -635,10 +635,10 @@
     "pi-codegraph-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1784475955,
-        "narHash": "sha256-GQSg0IBY+p00F68FlkiN4C2lmAQZSmaFa9IJcaWyQ9M=",
+        "lastModified": 1789371054,
+        "narHash": "sha256-oYsx+VkTsaeVVOoNVukup2HxmvvSYz5FNXZ227q+FOo=",
         "ref": "main",
-        "rev": "ed49e74efcc2d49e43de9bb67a244d242f79633f",
+        "rev": "dc9101df9b339f4d53ce78d61b16f824725e3f4b",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/isac322/pi-codegraph.git"
