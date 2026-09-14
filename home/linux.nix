@@ -5,7 +5,8 @@
 # clipboard setting is guarded by `has('clipboard')`). This file is the seam for
 # what genuinely cannot be shared — put Linux-only programs and any
 # `pkgs.firefox` desktop configuration here rather than widening common.nix.
-{ ... }:
+{ pkgs, ... }:
 
 {
+  home.packages = [ pkgs.rustdesk-flutter ];
 }

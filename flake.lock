@@ -331,24 +331,6 @@
         "url": "https://github.com/numtide/llm-agents.nix.git"
       }
     },
-    "macvnc-source": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1734895073,
-        "narHash": "sha256-5cPRDVzPWE8dcTf6hIk0mV+6Np2Z0sjW9YOOrQ1Idzg=",
-        "ref": "main",
-        "rev": "6c45640168dd170120d96661b3b711d283257166",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/LibVNC/macVNC.git"
-      },
-      "original": {
-        "ref": "main",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/LibVNC/macVNC.git"
-      }
-    },
     "nix": {
       "inputs": {
         "flake-parts": "flake-parts",
@@ -714,7 +696,6 @@
         "home-manager": "home-manager",
         "humanizer": "humanizer",
         "llm-agents": "llm-agents",
-        "macvnc-source": "macvnc-source",
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",
         "nixpkgs": "nixpkgs_6",

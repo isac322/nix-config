@@ -129,6 +129,10 @@ in
       # its automatically-created Aqua session in home/roles/darwin-server.nix;
       # the laptop lets the application manage its own interactive lifecycle.
       "orbstack"
+
+      # RustDesk is installed on both Macs; only the server role enables
+      # Direct IP services.
+      "rustdesk"
     ];
   };
 

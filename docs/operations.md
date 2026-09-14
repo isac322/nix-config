@@ -198,7 +198,7 @@ sudo launchctl kickstart -k system/org.nixos.wireguard
 ```sh
 sudo wg show
 cat /var/log/wireguard.log
-cat /var/run/wireguard-addresses   # 데몬이 발행한 주소. Orca·Camofox·noVNC 가 읽는다
+cat /var/run/wireguard-addresses   # 데몬이 발행한 주소. Orca·RustDesk 경계가 읽는다
 ```
 
 파일이 없으면 데몬은 터널을 안 올리고 그 사실을 로그에 남긴다 — 설정이 깨지지는
@@ -345,11 +345,11 @@ SkillClaw의 `auto_pull_on_start`와 원격 reload polling은 끈다. 둘은 clo
 
 ## 자동 로그인 (서버 맥)
 
-Orca 런타임과 headful Camofox 가 Aqua 세션을 요구하고, LaunchAgent 는 세션이
-만들어질 때만 뜬다
+Orca 런타임, headful Camofox, DeskPad 가상 디스플레이가 Aqua 세션을 요구하고,
+LaunchAgent는 세션이 만들어질 때만 뜬다
 ([0028](decisions/0028-orca-runtime-on-the-server-mac.md),
-[0031](decisions/0031-camofox-native-macos-over-wireguard.md)).
-sshd·WireGuard·키 매핑·noVNC 는 루트 데몬이라 이게 필요 없다.
+[0031](decisions/0031-deskpad-virtual-display-on-clamshell-macos.md)).
+sshd·WireGuard·키 매핑은 루트 데몬이라 이게 필요 없다.
 
 **손으로 하는 것은 파일 하나다.** 나머지는 switch 가 한다 — `/etc/kcpassword`
 생성과 FileVault 끄기 둘 다.
@@ -422,9 +422,9 @@ store, `mcp.json`에 넣지 않는다.
 ```
 
 첫 명령은 Linear 로그인·승인 페이지를 열고, 성공한 OAuth credential은 OMP의 auth
-storage에 endpoint URL 기준으로 저장한다. 서버 맥에서 실행했다면 noVNC로 그 Aqua
-세션의 브라우저를 열어 승인한다. 이후 OMP 재시작과 Home Manager switch를 넘어
-재사용하며, definition-only MCP 선언이라 OMP 17.3.4는 read-only Home Manager
+storage에 endpoint URL 기준으로 저장한다. 서버 맥에서 실행했다면 RustDesk Direct
+IP로 Aqua 세션의 브라우저를 열어 승인한다. 이후 OMP 재시작과 Home Manager switch를
+넘어 재사용하며, definition-only MCP 선언이라 OMP 17.3.4는 read-only Home Manager
 symlink에 auth stanza를 다시 쓰지 않는다.
 
 계정을 바꾸거나 권한을 완전히 초기화할 때만 다음을 실행한다.
@@ -484,10 +484,17 @@ orca account list
 있으므로, 막는 것은 런타임이 아니라 네트워크 쪽 일이다. 공개 인터넷으로
 포워딩하지 않는다.
 
-## RustDesk (서버 맥)
+## RustDesk (관리 대상 3대, Direct IP host는 서버 맥)
 
-RustDesk 앱의 Direct IP Access가 MBP 화면과 입력을 TCP 21118에서 직접 제공한다.
-별도 ID server, relay server, Docker container는 없다.
+RustDesk 클라이언트는 세 관리 대상에 선언적으로 설치한다.
+
+- 두 Mac은 공통 Darwin 구성의 Homebrew RustDesk cask를 쓴다.
+- aarch64-linux NixOS server는 `pkgs.rustdesk-flutter`를 쓴다.
+
+MBP만 Direct IP host를 실행한다. 이 host가 DeskPad가 유지하는 Aqua 데스크톱의
+화면과 입력을 TCP 21118에서 직접 제공한다. MBA와 NixOS server는 접속
+클라이언트이며 host 서비스를 실행하지 않는다. 별도 ID server, relay server,
+Docker container는 없다.
 
 상류 앱은 모든 인터페이스에 listen하므로 네트워크 경계는
 `com.apple/rustdesk` PF anchor가 맡는다. 현재 WireGuard interface의 IPv4
@@ -502,8 +509,7 @@ sudo pfctl -a com.apple/rustdesk -sr
 launchctl print gui/$(id -u)/org.nix-community.home.rustdesk-direct-host
 ```
 
-Linux·Android·macOS 클라이언트에서는 ID가 아니라 다음 주소를 원격 ID 입력란에
-그대로 넣는다.
+클라이언트에서는 ID가 아니라 다음 주소를 원격 ID 입력란에 그대로 넣는다.
 
 ```text
 10.222.0.7:21118
@@ -526,123 +532,33 @@ PF는 macOS가 처리하는 host ingress 경계다. OrbStack 컨테이너에서 
 컨테이너를 비신뢰 경계로 보지 않는다. 물리 LAN 차단과 WireGuard 허용은 실제 다른
 기기에서 각각 확인한다.
 
-## Camofox + noVNC (서버 맥)
+## Camofox + DeskPad 가상 디스플레이 (서버 맥)
 
-Camofox API와 DeskPad는 `bhyoo`의 Aqua LaunchAgent가 감독한다. DeskPad 1.3.2가
-전용 가상 모니터를 만들고, displayplacer 1.4.0이 그 화면을 1920×1080 main
-display로 배치한다. 별도 `Camofox VNC Host.app` LaunchAgent가 상류
-`LibVNC/macVNC`를 자식으로 실행하고, ScreenCaptureKit으로 그 디스플레이 전체를
-캡처해 `127.0.0.1:5901`의 VNC로 내보낸다. root noVNC LaunchDaemon은 이 loopback
-VNC를 WireGuard 주소의 HTTPS WebSocket으로 중계한다
-([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 구성요소는 모두
-고정한 upstream release 또는 source revision이다. 상류 Camofox Linux/Xvfb
-플러그인은 계속 끈다.
+MBP는 `local.camofox.virtualDisplay = true`로 DeskPad 가상 디스플레이를 켠다.
+이 옵션은 `local.camofox.enable = true`와 `local.autoLogin.enable = true`를
+요구한다. MBA는 기본값 `false`를 써서 실제 데스크톱에서 Camofox를 실행한다.
 
-Camofox LaunchAgent는 Camofox와 DeskPad를 Nix store에서 직접 실행한다. macVNC
-payload도 현재 store package를 따르지만, macOS Screen Recording·Accessibility의
-책임 주체는 고정 출력 앱 `com.bhyoo.camofox-vnc-host`다. root가 생성하는
-`/etc/camofox-vnc-host.plist`만 실행 경로와 인수를 정하고, host는 임의 명령행
-인수를 받지 않는다. nixpkgs나 macVNC가 바뀌어도 host의 고정 `cdhash`는 바뀌지 않는다.
+서버 맥의 단일 `camofox-browser` Aqua LaunchAgent는 기존 display layout을
+기억한 뒤 `caffeinate -d`를 시작하고, DeskPad를 실행해 숨긴다. DeskPad 화면을
+찾으면 displayplacer로 1920×1080 main display로 배치한 다음 headful Camofox
+daemon을 시작한다. 실행 중에는 세 프로세스를 감시하고, DeskPad가 교체되면
+persistent display ID로 새 프로세스와 화면을 다시 채택한다. 종료할 때는 이전
+layout을 복원한 뒤 DeskPad를 끝낸다. 이 흐름이 닫힌 뚜껑으로 부팅하거나 오래
+유휴 상태여도 Camofox가 사용할 안정적인 Aqua 화면을 유지한다
+([0031](decisions/0031-deskpad-virtual-display-on-clamshell-macos.md)).
 
-닫힌 뚜껑 상태로 자동 로그인하면 DeskPad 프로세스가 살아 있어도 macOS가 가상
-디스플레이를 꺼둘 수 있다. LaunchAgent는 시작할 때 사용자 활동 assertion으로
-디스플레이를 한 번 깨우고, 스택 수명 동안 `PreventUserIdleDisplaySleep` assertion을
-유지한다. 이 assertion이 끝나면 전체 스택을 재시작한다.
-
-native Screen Sharing은 Camofox의 data path가 아니며 이 구성은 그 서비스의
-enable·disable 상태를 관리하지 않는다. 운영자가 별도로 켜면 port 5900에 독립된
-전체 데스크톱 경로가 생길 수 있지만, noVNC는 계속 port 5901의 macVNC만 쓴다.
-
-noVNC framebuffer는 전용 가상 디스플레이 전체다. desktop·Dock·menu bar와 그
-디스플레이 위에 놓인 모든 앱이 보이고 키보드와 포인터도 Aqua 세션 좌표로 전달된다.
-따라서 다른 앱을 이 디스플레이로 옮기지 않는다. 여러 `userId`의 BrowserContext는
-쿠키와 웹 스토리지를 나누지만 화면·포커스·키보드·마우스·클립보드는 공유한다.
-noVNC는 사용자별 접속점이 아니라 신뢰된 운영자의 공용 콘솔이다.
+DeskPad 스택의 책임은 디스플레이 제공까지다. 전체 데스크톱의 원격 화면과
+키보드·포인터 입력은 [RustDesk Direct IP](#rustdesk-관리-대상-3대-direct-ip-host는-서버-맥)가
+담당한다. Camofox API는 계속 `127.0.0.1:9377`에만 열리며 외부 네트워크에
+노출되지 않는다.
 
 Camofox browser는 활성 세션이 없으면 상류 기본 idle timeout인 약 5분 뒤 종료된다.
-Node API daemon, DeskPad, macVNC, noVNC는 계속 실행되고 다음 요청이 Camoufox를 다시
-띄운다. 관리되는 server는 Nix store의 Camoufox, camoufox-js compatibility layout,
-download-disabled addon 구성을 쓰며 `HOME` 아래 browser cache를 만들지 않는다.
-`~/Library/Caches/camoufox`가 있다면 과거 `npx camoufox-js fetch`가 내려받은
-비관리 잔재다. 그 경로에서 실행 중인 process를 먼저 종료한 뒤 전체 cache를
-삭제한다.
-
-Camofox LaunchAgent와 permission host가 성공하면 로그에 macVNC의 다음 줄이 남고 port 5901이 열린다.
-
-```text
-Listening for VNC connections on TCP port 5901
-```
-
-이 줄이 없으면 noVNC를 반복해서 재접속하지 말고
-`~/Library/Logs/camofox-browser.log`에서 DeskPad 준비, displayplacer layout,
-`Camofox VNC Host`의 Screen Recording·Accessibility 오류를 확인한다. DeskPad,
-permission host, Camofox API daemon 중 하나가 끝나면 supervisor가 필요한
-구성요소를 정리하거나 다시 시작한다.
-
-**주소.** API는 이 Mac 안에서만 열고, 원격 화면은 WireGuard 주소의 HTTPS noVNC로
-연다.
-
-```sh
-wg_ip=$(sed -n '1p' /var/run/wireguard-addresses)
-printf 'Camofox API: http://127.0.0.1:9377\n'
-printf 'VNC backend: 127.0.0.1:5901\n'
-printf 'noVNC:       https://%s:6080/vnc.html\n' "$wg_ip"
-```
-
-noVNC 인증에는 username이 없다. 브라우저가 묻는 VNC 비밀번호는
-`/var/lib/nix-darwin/camofox-vnc-password`의 8자리 값이다. activation은 이 원문을
-표준 LibVNCServer 형식으로 변환해 macVNC가 읽는 `/var/lib/camofox/vnc-auth`를
-`bhyoo:staff 0400`으로 만든다. auth 파일은 로그인 입력값이 아니다.
-
-인증서는 `/var/run/wireguard-addresses`의 현재 주소를 IP SAN으로 넣어 런타임에
-`/var/lib/nix-darwin/camofox-novnc-tls` 아래에 생성하는 self-signed 인증서다.
-첫 접속에서는 브라우저의 인증서 경고를 확인하고 진행한다. WireGuard 주소가 바뀌면
-noVNC가 재시작되며 새 IP용 인증서를 만든다.
-
-**새 서버, privacy 권한 초기화, 또는 permission host 자체를 의도적으로 갱신했을
-때만.** `Camofox VNC Host`에는 Screen Recording과 Accessibility 권한이 필요하다.
-Camofox 구성은 native Screen Sharing을 원격 fallback으로 준비하지 않으므로 물리
-Aqua console이나 별도로 마련한 관리 경로에서 다음 switch와 권한 부여를 진행한다.
-
-```sh
-sudo darwin-rebuild switch --flake /etc/nix-darwin#bhyoo-macbook-pro
-```
-
-host는 권한이 없으면 status 77로 끝나고 Camofox supervisor가 10초마다 다시
-시작한다. Home Manager가 설치한 다음 앱을 System Settings의 두 privacy pane에서
-허용한다.
-
-```text
-~/Applications/Home Manager Apps/Camofox VNC Host.app
-```
-
-- System Settings > Privacy & Security > Screen & System Audio Recording
-- System Settings > Privacy & Security > Accessibility
-
-Accessibility 토글이 유지되지 않으면 해당 앱의 거부 레코드만 초기화하고
-LaunchServices로 한 번 실행한 뒤 다시 허용한다.
-
-```sh
-tccutil reset Accessibility com.bhyoo.camofox-vnc-host
-open -n -g ~/Applications/Home\ Manager\ Apps/Camofox\ VNC\ Host.app
-```
-
-승인 뒤 별도 재시작은 필요 없다. 즉시 확인하려면 supervisor를 다시 시작하고 port와
-로그를 함께 본다.
-
-```sh
-launchctl kickstart -k gui/$(id -u)/org.nix-community.home.camofox-browser
-tail -n 100 ~/Library/Logs/camofox-browser.log
-nc -z 127.0.0.1 5901
-```
-
-새 HTTPS noVNC 세션에서 인증, 전용 1920×1080 디스플레이 전체, 화면 갱신,
-키보드와 포인터 입력을 모두 확인한다. 진단용 앱을 그 디스플레이로 옮겼을 때
-noVNC에 보이고 입력도 전달되는 것이 정상이다. 관찰만 진단하려면
-`local.camofox.vncViewOnly = true`를 쓸 수 있다.
-
-macVNC나 nixpkgs가 바뀌어도 privacy 권한은 고정 permission host에 남는다. host
-source나 출력 hash를 바꿀 때만 새 identity로 보고 화면과 입력을 다시 검증한다.
+Node API daemon과 DeskPad 가상 디스플레이는 계속 실행되고 다음 요청이 Camoufox를
+다시 띄운다. 관리되는 server는 Nix store의 Camoufox,
+camoufox-js compatibility layout, download-disabled addon 구성을 쓰며 `HOME`
+아래 browser cache를 만들지 않는다. `~/Library/Caches/camoufox`가 있다면 과거
+`npx camoufox-js fetch`가 내려받은 비관리 잔재다. 그 경로에서 실행 중인 process를
+먼저 종료한 뒤 전체 cache를 삭제한다.
 
 Camofox API는 loopback 밖에서 접근할 수 없다. OMP가
 `~/.omp/agent/mcp.json`에 선언된 `camofox-browser-mcp-session omp`를 시작하면
@@ -699,74 +615,6 @@ Claude Code는 stdio MCP 자식에게 `CLAUDE_CODE_SESSION_ID`를 전달하며 r
 wrapper는 `CODEX_THREAD_ID` 또는 `CODEX_SESSION_ID`가 제공되면 이를 우선 사용하므로,
 Codex가 해당 값을 전달하는 시점부터 별도 구성 변경 없이 resume 안정성도 얻는다.
 
-noVNC는 WireGuard 주소만 사용한다. 주소 파일이 없거나 첫 줄이 비어 있으면
-`0.0.0.0`이나 LAN 주소로 물러서지 않고 실패한다. launchd가 10초 간격으로 다시
-부르므로 터널이 뒤에 올라오면 그때 정확한 주소에 바인딩한다. macOS에서는 자기
-utun 주소로 건 TCP 연결이 정상 listener에도 timeout될 수 있으므로 HTTPS self-probe는
-쓰지 않는다. kernel socket table로 listener 유무를 확인하고, WireGuard가 주소
-파일을 원자적으로 교체하면 주소가 같아도 새 interface generation으로 보고 noVNC를
-재시작한다. 따라서 websockify가 폐기된 utun에 남지 않는다.
-
-**VNC 비밀번호.** activation이 처음 한 번만 만든 정확히 8자의 영숫자다.
-
-```sh
-sudo stat -f '%Sp %Su:%Sg %N' /var/lib/nix-darwin/camofox-vnc-password
-sudo sh -c 'wc -c < /var/lib/nix-darwin/camofox-vnc-password'
-sudo cat /var/lib/nix-darwin/camofox-vnc-password; printf '\n'
-stat -f '%Sp %Su:%Sg %N' /var/lib/camofox/vnc-auth
-wc -c < /var/lib/camofox/vnc-auth
-```
-
-master는 `-rw------- root:wheel`, runtime RFB auth 파일은
-`-r-------- bhyoo:staff`, 길이는 둘 다 8이어야 한다. 출력한 master 값은 noVNC
-페이지의 VNC Password 칸에 넣는다. auth 파일은 고정 DES key로 변환한 binary이므로
-로그인 값으로 쓰거나 출력하지 않는다. noVNC가 아니라 loopback macVNC의
-LibVNCServer가 자격증명을 검사한다.
-
-**상태·로그·재시작.**
-
-```sh
-launchctl print gui/$(id -u)/org.nix-community.home.camofox-browser
-sudo launchctl print system/org.nixos.camofox-novnc
-
-tail -f ~/Library/Logs/camofox-browser.log
-sudo tail -f /var/log/camofox-novnc.log
-
-launchctl kickstart -k gui/$(id -u)/org.nix-community.home.camofox-browser
-sudo launchctl kickstart -k system/org.nixos.camofox-novnc
-```
-
-Camofox와 VNC 백엔드는 WireGuard와 무관하게 loopback에서 시작한다. noVNC 로그의
-`refusing noVNC's all-interfaces default`는 넓은 주소로 열린 것이 아니라 의도적인
-실패다. 터널과 `/var/run/wireguard-addresses`를 확인한다.
-
-**바인딩과 VNC 경계 확인.**
-
-```sh
-wg_ip=$(sed -n '1p' /var/run/wireguard-addresses)
-sudo lsof -nP -iTCP:9377 -sTCP:LISTEN
-sudo lsof -nP -iTCP:5901 -sTCP:LISTEN
-sudo lsof -nP -iTCP:6080 -sTCP:LISTEN
-
-printf 'loopback VNC:  '
-nc -w 2 127.0.0.1 5901 | head -1
-printf 'WireGuard VNC: '
-nc -w 2 "$wg_ip" 5901 | head -1
-```
-
-앞의 `lsof`에는 각각 **`127.0.0.1:9377`, `127.0.0.1:5901`,
-`$wg_ip:6080`만** 있어야 한다. loopback VNC는 `RFB ...` 배너를 내지만 같은
-5901 포트를 WireGuard 주소로 물으면 배너가 없어야 한다. TCP listener 자체가
-loopback에 묶이므로 별도 macOS Screen Sharing 설정에 의존하지 않는다.
-
-OMP 안에서는 `/mcp list`로 `camofox`의 출처를 확인하고 `/mcp test camofox`로
-stdio 어댑터와 loopback REST 데몬의 연결을 검사한다. 노출되는 도구 이름은
-`mcp__camofox_*` 형태다. 어댑터는 브라우저를 새로 실행하지 않는다.
-
-8자 제한은 RFB VNCAuth의 한계다. 그래서 5901은 loopback 전용이고, 그 앞의
-6080만 WireGuard 주소에 연다. 이 두 경계가 빠지면 이 비밀번호 길이는 인터넷에
-직접 노출할 만한 보안 수준이 아니다.
-
 ## RSA 호스트 키가 3072 비트일 때
 
 sshd 를 켠 기계만 해당하고, 프로파일보다 먼저 만들어진 키가 있을 때만 해당한다.
@@ -817,9 +665,9 @@ agenix나 sops-nix로 레포에 암호화해 넣으면 이 한 단계도 사라�
 [0017](decisions/0017-warp-enrollment-via-mdm-xml.md).
 
 ## 캐시 푸시
-모든 호스트가 쓰는 custom package output과 Darwin에서 source-built하는 `macvnc`를
-Cachix에 올린다. 서버 전용 fixed-artifact repack인 `camoufox`,
-`camofox-browser`, `deskpad`, `displayplacer`는 제외한다
+모든 호스트가 쓰는 custom package output을 Cachix에 올린다. 고정한 상류
+artifact를 다시 포장하는 `camoufox`, `camofox-browser`, `deskpad`,
+`displayplacer`는 제외한다
 ([0018](decisions/0018-cachix-not-flakehub-cache.md)).
 
 처음 한 번:

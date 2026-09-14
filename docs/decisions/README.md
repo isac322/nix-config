@@ -45,7 +45,7 @@
 - [0021. Firefox 정책을 두 경로로 넣는 이유](0021-firefox-policies-two-paths.md)
 - [0022. Vim 이 vim-sensible 위에 얹히는 방식](0022-vim-on-top-of-vim-sensible.md)
 - [0028. 서버 맥에서 Orca 런타임을 계속 띄운다](0028-orca-runtime-on-the-server-mac.md) — LaunchAgent 가 콘솔 로그인에 안 묶이게
-- [0031. Camofox 는 macOS 에서 네이티브로, 화면은 WireGuard 너머로](0031-camofox-native-macos-over-wireguard.md) — DeskPad · macVNC · noVNC, 두 주소 경계
+- [0031. 클램쉘 서버 맥의 Aqua 화면은 DeskPad로 유지한다](0031-deskpad-virtual-display-on-clamshell-macos.md) — 1920×1080 가상 디스플레이와 RustDesk Direct IP의 책임 분리
 
 ## 패키징 · 캐시
 

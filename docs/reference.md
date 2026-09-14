@@ -14,7 +14,7 @@ modules/           시스템 레벨
   darwin.nix         모든 macOS
   nixos.nix          모든 NixOS
   orca.nix           `local.*` 옵션 선언. 광고 주소는 터널에서 읽는다
-  camofox.nix        Darwin Camofox LaunchAgent와 서버 맥의 VNC/noVNC 원격 콘솔
+  camofox.nix        Darwin Camofox LaunchAgent와 서버 맥의 DeskPad 가상 디스플레이
   camofox-linux.nix  NixOS headless Camofox systemd 서비스
   wireguard.nix      서버 맥의 터널. 앱이 아니라 wg-quick 을 도는 루트 데몬
   auto-login.nix     kcpassword 생성 + FileVault 끄기. Aqua 서비스 때문에 있다
@@ -70,7 +70,7 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 
 | | 랩탑 | 서버 |
 |---|---|---|
-| 데스크톱 앱 (Firefox + cask 14개 + MAS 2개) | ✅ | ✖ |
+| 랩탑 전용 데스크톱 앱 (Firefox + cask + MAS) | ✅ | ✖ |
 | `nixpkgs-firefox-darwin` 오버레이 | ✅ | ✖ |
 | Touch ID 로 sudo (`pam_tid`) | ✅ | ✖ |
 | [sshd — 키 전용, root 금지](decisions/0026-sshd-on-the-server-mac.md) | ✖ | ✅ |
@@ -79,8 +79,9 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 | [Orca 런타임을 계속 띄우는 LaunchAgent](decisions/0028-orca-runtime-on-the-server-mac.md) · 자동 로그인 | ✖ | ✅ |
 | [GPG pinentry](decisions/0030-gpg-passphrase-without-a-console.md) | pinentry-mac | 키체인 + tty |
 | [WireGuard — 앱(랩탑) 대 루트 데몬(서버)](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md) | 앱 | 데몬 |
-| Camofox API · MCP bridge | ✅ (로컬 데스크톱) | ✅ (전용 화면) |
-| [DeskPad/macVNC + noVNC](decisions/0031-camofox-native-macos-over-wireguard.md) | ✖ | ✅ |
+| Camofox API · MCP bridge | ✅ (실제 화면) | ✅ (DeskPad 화면) |
+| [DeskPad 1920×1080 Aqua 가상 디스플레이](decisions/0031-deskpad-virtual-display-on-clamshell-macos.md) | ✖ | ✅ |
+| RustDesk Homebrew client / Direct IP host | client | client + host |
 
 두 맥 다 MacBook Pro 급 하드웨어이고 Touch ID 센서도 둘 다 달려 있다. 랩탑에만
 있는 이유는 하드웨어가 아니라 역할이다 — 서버 맥은 뚜껑을 닫은 채 SSH 로만
@@ -115,24 +116,25 @@ store에 비밀을 복사하지 않는다. 최초 인증과 검증 절차는
 
 `local.camofox.enable`은 모든 호스트에 loopback Camofox API와 session-aware MCP
 bridge를 띄운다. macOS에서는 로그인한 사용자의 Aqua 세션에서 LaunchAgent로
-실행한다. 랩탑은 `remoteConsole = false`라 실제 데스크톱을 바로 쓰며 WireGuard,
-자동 로그인, VNC가 필요 없다. 서버 맥은 `remoteConsole = true`로 DeskPad virtual
-display, macVNC, HTTPS noVNC를 함께 켠다
-([0031](decisions/0031-camofox-native-macos-over-wireguard.md)). 서버의 Camofox,
-DeskPad 1.3.2, `LibVNC/macVNC`는 자동 로그인으로 생긴 `bhyoo`의 Aqua 세션에서
-한 LaunchAgent가 감독하고, noVNC는 root LaunchDaemon이다. displayplacer 1.4.0이
-DeskPad 화면을 1920×1080 main display로 정한 뒤 상류 macVNC가 ScreenCaptureKit과
-LibVNCServer로 그 디스플레이 전체를 내보낸다. LaunchAgent는 닫힌 뚜껑으로
-부팅했을 때 가상 디스플레이를 한 번 깨우고, 수명 동안 display idle sleep
-assertion을 유지해 ScreenCaptureKit 캡처 대상이 꺼지지 않게 한다. macOS Screen
-Sharing은 독립된 운영체제 서비스이며 Camofox 구성은 그 enable·disable 상태나
-legacy VNC 인증을 관리하지 않는다. 운영자가 별도로 켜더라도 port 5900을 사용할
-뿐, noVNC는 port 5901의 macVNC를 계속 쓴다.
+실행한다. MBA는 `local.camofox.virtualDisplay`의 기본값 `false`를 써서 실제
+데스크톱을 사용한다. MBP는 이 옵션을 `true`로 켜고 DeskPad 전용 화면을 사용한다.
+`virtualDisplay = true`는 `local.autoLogin.enable = true`를 요구한다
+([0031](decisions/0031-deskpad-virtual-display-on-clamshell-macos.md)).
+
+서버 맥의 단일 Camofox LaunchAgent는 기존 display layout을 기억하고
+`caffeinate -d`를 시작한 뒤, 자동 로그인한 `bhyoo`의 Aqua 세션에서 DeskPad를
+실행해 숨긴다. displayplacer가 DeskPad 화면을 1920×1080 main display로 정한
+다음 Camofox daemon을 시작한다. LaunchAgent는 세 프로세스를 감시하고, DeskPad가
+교체되면 persistent display ID로 새 화면을 다시 채택한다. 종료할 때는 이전
+layout을 복원한다. 따라서 닫힌 뚜껑으로 부팅하거나 유휴 상태가 길어져도
+Camofox가 사용할 Aqua 화면이 유지된다. 이 스택은 화면만 제공하고, 전체
+데스크톱의 원격 화면과 입력은 RustDesk Direct IP가 맡는다.
 
 NixOS server에서는 `modules/camofox-linux.nix`가 `bhyoo` 사용자로 headless systemd
 서비스를 실행한다. API는 `127.0.0.1:9377`에만 열리고, 쿠키·프로필·trace와 HOME은
-`/var/lib/camofox` 아래에 둔다. 별도 Chrome/Chromium이나 VNC stack은 설치하지
-않으며, Nix로 패키징한 Camoufox가 `CAMOFOX_HEADLESS=true`로 직접 실행된다.
+`/var/lib/camofox` 아래에 둔다. 별도 Chrome/Chromium이나 그래픽 원격 접속
+스택은 설치하지 않으며, Nix로 패키징한 Camoufox가 `CAMOFOX_HEADLESS=true`로
+직접 실행된다.
 
 Home Manager는 OMP, Claude Code, Codex의 `camofox` MCP 등록을 모두 선언적으로
 관리한다. OMP는 registry 파일 전체를 받고, Claude Code는 기존 사용자 상태를
@@ -157,48 +159,43 @@ API에 POST한다. 앱 등록은 switch가 하지만, 기본 브라우저 선택
 사용자 설정이므로 자동화하지 않는다. 원본 `Camoufox.app`을 직접 기본 브라우저로
 선택하면 daemon 밖의 별도 Firefox process와 profile이 생기므로 그 경로는 쓰지 않는다.
 
-각 `userId`의 BrowserContext는 쿠키와 웹 스토리지를 나누지만 전용 가상
-디스플레이는 공유한다. noVNC는 그 디스플레이 전체와 그 위의 모든 앱을 내보내며
-화면·포커스·키보드·마우스·클립보드도 공유한다. 따라서 noVNC는 신뢰된 운영자용
-공용 관리 콘솔이지 애플리케이션이나 사용자별 격리 경계가 아니다.
+각 `userId`의 BrowserContext는 쿠키와 웹 스토리지를 나누지만 같은 Aqua 화면을
+사용할 수 있다. RustDesk는 그 화면의 desktop·Dock·menu bar와 위에 놓인 모든 앱을
+함께 보여 주며 키보드·포인터·클립보드도 공유한다. 따라서 Camofox의 `userId`나
+`sessionKey`는 원격 화면의 격리 경계가 아니다.
 
 Camofox browser는 활성 세션이 없으면 상류 기본값인 약 5분 뒤 종료된다. Node API
-daemon, DeskPad, macVNC, noVNC는 계속 실행되며 다음 브라우저 요청이 공유 Camoufox
-프로세스를 다시 띄운다.
+daemon은 계속 실행되며 다음 브라우저 요청이 공유 Camoufox 프로세스를 다시 띄운다.
+MBP에서는 같은 LaunchAgent가 DeskPad 가상 디스플레이도 계속 유지한다.
 
 | 용도 | 주소 | 주체 |
 |---|---|---|
 | Camofox API listener | `127.0.0.1:9377` | `@askjo/camofox-browser` |
 | OMP/Claude/Codex control bridge | session-aware stdio → `127.0.0.1:9377` | `camofox-browser-mcp-session` → `camofox-browser-mcp` |
 | macOS HTTP/HTTPS bridge | LaunchServices → `127.0.0.1:9377/tabs` | `camofox-url-handler` |
-| noVNC listener | `<WireGuard 주소>:6080` | nixpkgs `novnc`의 웹 frontend와 WebSocket proxy |
-| noVNC의 VNC backend target | `127.0.0.1:5901` | `LibVNC/macVNC`의 LibVNCServer |
 
-Camofox API와 macVNC는 loopback 전용이다. 각 MCP adapter는 기존 Camofox daemon으로
-전달할 뿐 두 번째 브라우저를 실행하지 않는다. noVNC만
-`/var/run/wireguard-addresses`의 첫 줄에 bind하며, 파일이나 주소가 아직 없으면
-fallback 주소를 열지 않고 실패한다.
+각 MCP adapter는 기존 Camofox daemon으로 전달할 뿐 두 번째 브라우저를 실행하지
+않는다. Camofox API는 모든 호스트에서 loopback에만 묶인다.
 
-RustDesk는 일반 원격 데스크톱 경로다. macOS 앱의 Direct IP Access가 TCP 21118에서
-화면과 입력을 제공한다. `com.apple/rustdesk` PF anchor는 현재 WireGuard
-interface의 IPv4 연결만 허용하고, 다른 IPv4 interface와 모든 IPv6 연결을
-차단한다. 별도 ID·relay server와 서버 공개키는 없다. Linux·Android·macOS
-클라이언트는 `<WireGuard 주소>:21118`로 직접 접속한다. 무인 접속 비밀번호는
-login Keychain의 `rustdesk-unattended-password` 항목에만 둔다.
+RustDesk 클라이언트도 세 관리 대상에 선언적으로 배포한다.
 
-`/var/lib/nix-darwin/camofox-vnc-password`는 activation이 처음 한 번 만든 정확히
-8자의 영숫자이고 `root:wheel 0600`이다. activation은 이를 표준 LibVNCServer
-password-file 형식으로 변환해 `/var/lib/camofox/vnc-auth`에
-`bhyoo:staff 0400`으로 원자적으로 교체한다. **noVNC가 아니라 loopback macVNC가 이
-자격증명을 검사한다.** 짧은 VNCAuth 비밀번호를 허용하는 대신 backend를 loopback에
-가두고 frontend는 WireGuard 주소 하나에만 연다. 조회와 검증 절차는
-[운영](operations.md#camofox--novnc-서버-맥)에 있다.
+| 기기 | 패키지 | 역할 |
+|---|---|---|
+| MBP | Homebrew RustDesk cask | client + WireGuard 전용 Direct IP host |
+| MBA | Homebrew RustDesk cask | client |
+| aarch64-linux NixOS server | `pkgs.rustdesk-flutter` | client |
+
+MBP의 Direct IP host는 TCP 21118에서 화면과 입력을 제공한다.
+`com.apple/rustdesk` PF anchor는 현재 WireGuard interface의 IPv4 연결만 허용하고,
+다른 IPv4 interface와 모든 IPv6 연결을 차단한다. 별도 ID·relay server와 서버
+공개키는 없다. 클라이언트는 `<WireGuard 주소>:21118`로 직접 접속한다. 무인 접속
+비밀번호는 login Keychain의 `rustdesk-unattended-password` 항목에만 둔다.
 
 ## GUI 앱
 
 대부분 nixpkgs가 아니라 Homebrew에서 온다
 ([0015](decisions/0015-gui-apps-come-from-homebrew.md)). `onActivation.upgrade`가
-켜져 있어 최신 유지도 Homebrew가 한다. 예외 셋:
+켜져 있어 최신 유지도 Homebrew가 한다. 설치 경로가 갈리는 앱은 다음과 같다.
 
 - **Orca** (Stably) — 두 Mac 모두 `stablyai/orca` tap의 cask를 쓰지만,
   `auto_updates`인 이 앱은 메모리로 Orca 자체 updater가 `/Applications/Orca.app`을
@@ -209,18 +206,23 @@ password-file 형식으로 변환해 `/var/lib/camofox/vnc-auth`에
   handoff를 따른다 ([0028](decisions/0028-orca-runtime-on-the-server-mac.md)).
   homebrew-cask의 맨 `orca`는 plotly의 무관한 chart renderer다.
 
-- **서버 맥의 Camoufox · DeskPad · macVNC** — Nix가 고정한 macOS 앱이다.
-  Camoufox와 DeskPad는 Camofox LaunchAgent가 store에서 직접 실행한다. macVNC
-  payload도 store package를 따르지만, 고정 출력 `Camofox VNC Host.app`이 별도
-  LaunchAgent에서 자식으로 실행해 Screen Recording·Accessibility 권한을 Nix
-  generation과 분리한다
-  ([0031](decisions/0031-camofox-native-macos-over-wireguard.md)).
+- **Camoufox · DeskPad** — Nix가 고정한 macOS 앱이다. Camoufox는 Camofox를 켠
+  Mac의 LaunchAgent가 store에서 직접 실행한다. DeskPad는
+  `local.camofox.virtualDisplay = true`인 MBP에서만 실행해 1920×1080 Aqua
+  가상 디스플레이를 유지한다
+  ([0031](decisions/0031-deskpad-virtual-display-on-clamshell-macos.md)).
+
+- **RustDesk** — 두 Mac은 공통 Darwin 구성의 Homebrew cask를 쓴다. aarch64-linux
+  NixOS server는 `pkgs.rustdesk-flutter`를 쓴다. 세 기기 모두 client를 갖지만
+  WireGuard 전용 Direct IP host는 MBP만 실행한다.
+
 - **KakaoTalk · WireGuard** — Mac App Store 전용이라 손으로 깐다
   ([0016](decisions/0016-mas-only-apps-installed-by-hand.md)). 둘 다 랩탑 전용이
-  됐다: 서버 맥은 WireGuard 앱 대신 `wireguard-tools` 를 루트 데몬으로 돌린다
+  됐다: 서버 맥은 WireGuard 앱 대신 `wireguard-tools`를 루트 데몬으로 돌린다
   ([0029](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md)). 선언한
-  기계에 앱이 없으면 switch 가 매번 알린다 — `local.masApps`,
+  기계에 앱이 없으면 switch가 매번 알린다 — `local.masApps`,
   `modules/mas-apps.nix`.
+
 
 **1Password 는 나눠 담는다.** `op` CLI는 **모든 기기**에 (`home/common.nix`),
 데스크톱 앱은 **랩탑에만** (`modules/roles/darwin-laptop.nix`). `op`는 시스템
@@ -578,7 +580,6 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `camofox-url-handler` | 로컬 Objective-C/Cocoa | HTTP/HTTPS URL을 관리 Camofox API에 전달 |
 | `deskpad` | GitHub app zip | aarch64-darwin virtual display |
 | `displayplacer` | GitHub release binary | aarch64-darwin display layout tool |
-| `macvnc` | Git source revision | ScreenCaptureKit + LibVNCServer |
 
 Git branch 기반 source는 `flake = false` input으로 두어 revision과 dependency
 lock을 `flake.lock`에 고정한다. release API, npm `latest`, 공식 checksum처럼
@@ -592,11 +593,11 @@ pin이 없다. `context-mode`는 `bun.lock`의 registry package와 integrity를 
 유지하지 않는다.
 CLI 패키징 결정과 각 패키지의 함정은
 [0019](decisions/0019-package-from-published-artifacts.md), Camofox 쪽 결정은
-[0031](decisions/0031-camofox-native-macos-over-wireguard.md)에 있다. 모든 호스트의
-custom package output과 Darwin의 source-built `macvnc`,
-`camofox-url-handler`만 [Cachix로 올린다](operations.md#캐시-푸시).
-`camoufox`, `camofox-browser`, `deskpad`, `displayplacer`는 server-only
-fixed-artifact repack이라 제외한다.
+[0031](decisions/0031-deskpad-virtual-display-on-clamshell-macos.md)에 있다.
+모든 호스트의 custom package output과 로컬에서 빌드하는
+`camofox-url-handler`는 [Cachix로 올린다](operations.md#캐시-푸시).
+`camoufox`, `camofox-browser`, `deskpad`, `displayplacer`는 고정한 상류
+artifact를 다시 포장하므로 제외한다.
 
 ## 이 레포를 패키지 저장소로 쓰기
 
@@ -614,8 +615,7 @@ environment.systemPackages = [ inputs.bhyoo.packages.${system}.posthog-cli ];
 `overlays.default` 와 `packages.<system>` 둘 다 `pkgs/overlay.nix` **같은 파일**을
 읽는다. 여기 있는 설정들도 같은 파일을 import 하므로 정의가 둘로 갈라져 어긋날
 일이 없다. 공통 패키지는 `aarch64-darwin`, `aarch64-linux`, `x86_64-linux` 셋에
-제공하고, Camofox·VNC의 macOS package output은 `packages.aarch64-darwin`에만
-제공한다.
+제공하고, Camofox의 macOS package output은 `packages.aarch64-darwin`에만 제공한다.
 
 Nix 에서 "저장소" 는 AUR 처럼 중앙 집중이 아니다. 레포가 이 두 출력을 갖는 순간
 그것이 곧 패키지 저장소이고, 등록 절차도 심사도 없다. 남이 **발견**하게 하려면

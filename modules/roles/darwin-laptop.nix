@@ -28,12 +28,9 @@ in
   # names for anything else that might want them.
   nixpkgs.overlays = [ inputs.nixpkgs-firefox-darwin.overlay ];
 
-  # Run Camofox on the desktop session already in front of the user. The local
-  # API needs neither the unattended remote console nor its WireGuard tunnel.
-  local.camofox = {
-    enable = true;
-    remoteConsole = false;
-  };
+  # Run Camofox on the desktop session already in front of the user. The
+  # laptop does not need the unattended server's virtual display.
+  local.camofox.enable = true;
 
   # The two App Store only applications (0016). Both are role-level rather than
   # shared, for different reasons: KakaoTalk is a window and the server Mac has

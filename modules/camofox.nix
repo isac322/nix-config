@@ -1,239 +1,27 @@
-# Camofox browser automation and its optional unattended remote console.
+# Camofox browser automation and optional dedicated virtual display.
 #
-# The browser API and desktop integration belong to the logged-in Aqua session
-# and are declared in Home Manager. This root module owns the permission-host
-# configuration, VNC secret, RFB auth file, and HTTPS noVNC bridge.
-#
-# The browser API and VNC backend bind loopback only. When the remote console is
-# enabled, noVNC is the sole network-facing component and refuses to start until
-# WireGuard publishes the one address it may bind.
+# The browser API and display lifecycle belong to the logged-in Aqua session
+# and are declared in Home Manager. This module only defines the system options
+# and the unattended-session requirement.
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
 let
   cfg = config.local.camofox;
-  wireguardAddressFile = "/var/run/wireguard-addresses";
-  primaryUser = config.system.primaryUser;
-  primaryHome = config.users.users.${primaryUser}.home;
-  vncHostExecutable = "${primaryHome}/Applications/Home Manager Apps/Camofox VNC Host.app/Contents/MacOS/camofox-vnc-host";
-  vncHostArguments = lib.optionals cfg.vncViewOnly [ "-viewonly" ] ++ [
-    "-rfbport"
-    (toString cfg.vncPort)
-    "-rfbportv6"
-    "0"
-    "-listen"
-    "localhost"
-    "-rfbauth"
-    cfg.rfbAuthFile
-    "-alwaysshared"
-    "-dontdisconnect"
-  ];
-  vncHostConfiguration = {
-    Executable = "${pkgs.macvnc}/Applications/macVNC.app/Contents/MacOS/macVNC";
-    Arguments = vncHostArguments;
-    Environment.MACVNC_EXCLUDE_BUNDLE_ID = "com.stengo.DeskPad";
-    RequireScreenRecording = true;
-    RequireAccessibility = !cfg.vncViewOnly;
-  };
-
-  # Eight characters from 62 possibilities, sampled without modulo bias. This
-  # writes the secret itself to stdout; it is redirected straight into a
-  # root-only file and never exists in argv or in the Nix store.
-  passwordPerl = ''
-    my @alphabet = ("A" .. "Z", "a" .. "z", "0" .. "9");
-    open my $random, "<:raw", "/dev/urandom" or die "open /dev/urandom: $!\n";
-    my $password = "";
-    while (length($password) < 8) {
-      read($random, my $byte, 1) == 1 or die "read /dev/urandom: $!\n";
-      my $number = ord($byte);
-      next if $number >= 248;
-      $password .= $alphabet[$number % @alphabet];
-    }
-    print $password;
-  '';
-
-  validatePasswordPerl = ''
-    my $password = do { local $/; <STDIN> };
-    $password = "" unless defined $password;
-    die "Camofox VNC password must be exactly 8 alphanumeric characters\n"
-      unless $password =~ /\A[A-Za-z0-9]{8}\z/;
-  '';
-
-  novnc = pkgs.writeShellScript "camofox-novnc" ''
-    set -u
-
-    tlsDirectory=${lib.escapeShellArg cfg.tlsDirectory}
-    certificateFile="$tlsDirectory/certificate.pem"
-    keyFile="$tlsDirectory/key.pem"
-
-    # WireGuard and this daemon both start at boot, with no useful ordering
-    # guarantee between them. Wait for the address file, but only for a bounded
-    # interval: a non-zero exit lets launchd's KeepAlive retry while leaving a
-    # clear line in the log. Binding noVNC's default, 0.0.0.0, is never a
-    # fallback.
-    address=""
-    waited=0
-    while [ "$waited" -lt 60 ]; do
-      if [ -s ${wireguardAddressFile} ]; then
-        address=$(/usr/bin/head -n 1 ${wireguardAddressFile})
-        case "$address" in
-          "" | 0.0.0.0 | ::) address="" ;;
-        esac
-        [ -n "$address" ] && break
-      fi
-      /bin/sleep 2
-      waited=$((waited + 2))
-    done
-
-    if [ -z "$address" ]; then
-      echo "camofox-novnc: no usable WireGuard address after ''${waited}s." >&2
-      echo "camofox-novnc: refusing noVNC's all-interfaces default; retrying." >&2
-      exit 1
-    fi
-    addressFileIdentity=$(/usr/bin/stat -f '%d:%i' ${wireguardAddressFile}) || {
-      echo "camofox-novnc: could not identify the WireGuard address publication." >&2
-      exit 1
-    }
-
-
-    # noVNC needs a secure browser context for Web Crypto. The address is
-    # runtime machine state, so the self-signed certificate is generated here,
-    # not in the Nix store. Regenerate it when WireGuard changes address or the
-    # certificate has less than 30 days remaining.
-    /usr/bin/install -d -m 0700 -o root -g wheel "$tlsDirectory"
-    certificateAddress=""
-    if [ -s "$certificateFile" ]; then
-      certificateAddress=$(${pkgs.openssl}/bin/openssl x509 \
-        -in "$certificateFile" -noout -ext subjectAltName 2>/dev/null |
-        /usr/bin/sed -n 's/.*IP Address://p' |
-        /usr/bin/tr -d '[:space:]')
-    fi
-    certificateValid=false
-    if [ -s "$certificateFile" ] &&
-      ${pkgs.openssl}/bin/openssl x509 -in "$certificateFile" \
-        -noout -checkend 2592000 >/dev/null 2>&1; then
-      certificateValid=true
-    fi
-    keyValid=false
-    if [ -s "$keyFile" ] &&
-      ${pkgs.openssl}/bin/openssl pkey -in "$keyFile" -noout >/dev/null 2>&1; then
-      keyValid=true
-    fi
-
-    if [ "$certificateAddress" != "$address" ] ||
-      [ "$certificateValid" != true ] ||
-      [ "$keyValid" != true ]; then
-      certificateTemp="$certificateFile.new.$$"
-      keyTemp="$keyFile.new.$$"
-      /bin/rm -f "$certificateTemp" "$keyTemp"
-      if ! (
-        umask 077
-        ${pkgs.openssl}/bin/openssl req -x509 -newkey rsa:2048 -nodes \
-          -sha256 -days 825 \
-          -subj "/CN=camofox-novnc" \
-          -addext "subjectAltName=IP:$address" \
-          -keyout "$keyTemp" -out "$certificateTemp"
-      ); then
-        /bin/rm -f "$certificateTemp" "$keyTemp"
-        echo "camofox-novnc: could not generate a certificate for $address." >&2
-        exit 1
-      fi
-      /usr/sbin/chown root:wheel "$certificateTemp" "$keyTemp"
-      /bin/chmod 0600 "$certificateTemp" "$keyTemp"
-      /bin/mv -f "$certificateTemp" "$certificateFile"
-      /bin/mv -f "$keyTemp" "$keyFile"
-      echo "camofox-novnc: generated a self-signed certificate for $address." >&2
-    fi
-
-    # Keep the daemon tied to the currently published WireGuard address. If
-    # WireGuard replaces that address while noVNC is running, exit non-zero so
-    # launchd retries, regenerates the SAN, and binds the new address.
-    novncPid=0
-    stopNovnc() {
-      if [ "$novncPid" -gt 0 ]; then
-        /bin/kill "$novncPid" 2>/dev/null || true
-      fi
-      exit 143
-    }
-    trap stopNovnc TERM INT
-
-    # The Aqua LaunchAgent owns a password-protected LibVNCServer listener on
-    # loopback. The standard noVNC client therefore negotiates VNCAuth type 2
-    # without the Apple ARD compatibility patch used by the retired backend.
-    ${pkgs.novnc}/bin/novnc \
-      --listen "$address:${toString cfg.novncPort}" \
-      --vnc "127.0.0.1:${toString cfg.vncPort}" \
-      --web "${pkgs.novnc}/share/webapps/novnc" \
-      --cert "$certificateFile" \
-      --key "$keyFile" \
-      --ssl-only &
-    novncPid=$!
-
-    # A TCP connection to this Mac's own utun address is not a valid health
-    # probe: macOS can time it out even while the listener is reachable from a
-    # peer. The kernel socket table catches a process that lost its listener.
-    #
-    # It cannot tell whether that socket is attached to a retired utun carrying
-    # the same address. wireguard-up atomically replaces the public address file
-    # after every interface creation, so its device and inode are the interface
-    # generation signal. Restart when either that identity or the address
-    # changes, then websockify binds the current utun.
-    listenerCountdown=10
-    while /bin/kill -0 "$novncPid" 2>/dev/null; do
-      currentAddress=""
-      currentAddressFileIdentity=""
-      if [ -s ${wireguardAddressFile} ]; then
-        currentAddress=$(/usr/bin/head -n 1 ${wireguardAddressFile})
-        currentAddressFileIdentity=$(/usr/bin/stat -f '%d:%i' ${wireguardAddressFile} 2>/dev/null || true)
-      fi
-      if [ "$currentAddressFileIdentity" != "$addressFileIdentity" ]; then
-        echo "camofox-novnc: WireGuard address publication was replaced; restarting." >&2
-        /bin/kill "$novncPid" 2>/dev/null || true
-        wait "$novncPid" || true
-        exit 1
-      fi
-      if [ "$currentAddress" != "$address" ]; then
-        echo "camofox-novnc: WireGuard address changed from $address to $currentAddress; restarting." >&2
-        /bin/kill "$novncPid" 2>/dev/null || true
-        wait "$novncPid" || true
-        exit 1
-      fi
-
-      if [ "$listenerCountdown" -le 0 ]; then
-        if ! /usr/sbin/netstat -anv -p tcp |
-          /usr/bin/awk \
-            -v endpoint="$address.${toString cfg.novncPort}" \
-            '$4 == endpoint && $6 == "LISTEN" { found = 1 } END { exit found ? 0 : 1 }'; then
-          echo "camofox-novnc: listener on $address:${toString cfg.novncPort} is missing; restarting." >&2
-          /bin/kill "$novncPid" 2>/dev/null || true
-          wait "$novncPid" || true
-          exit 1
-        fi
-        listenerCountdown=30
-      fi
-
-      /bin/sleep 5
-      listenerCountdown=$((listenerCountdown - 5))
-    done
-
-    wait "$novncPid"
-  '';
 in
 {
   options.local.camofox = {
     enable = lib.mkEnableOption "the loopback Camofox browser API and local desktop integration";
 
-    remoteConsole = lib.mkOption {
+    virtualDisplay = lib.mkOption {
       type = lib.types.bool;
       default = false;
       description = ''
-        Run Camofox on a dedicated virtual display and expose its VNC backend
-        through WireGuard-only HTTPS noVNC. This mode is for unattended Macs;
-        local desktop use needs only local.camofox.enable.
+        Run Camofox on a dedicated DeskPad virtual display. This mode is for
+        unattended Macs; local desktop use needs only local.camofox.enable.
       '';
     };
 
@@ -241,12 +29,6 @@ in
       type = lib.types.port;
       default = 9377;
       description = "Loopback TCP port for the Camofox browser API.";
-    };
-
-    vncPort = lib.mkOption {
-      type = lib.types.port;
-      default = 5901;
-      description = "Loopback TCP port for the dedicated virtual-display VNC backend.";
     };
 
     displayWidth = lib.mkOption {
@@ -260,165 +42,18 @@ in
       default = 1080;
       description = "Pixel height of the Camofox virtual display.";
     };
-
-    novncPort = lib.mkOption {
-      type = lib.types.port;
-      default = 6080;
-      description = "TCP port for noVNC on the active WireGuard address.";
-    };
-
-    passwordFile = lib.mkOption {
-      type = lib.types.str;
-      default = "/var/lib/nix-darwin/camofox-vnc-password";
-      description = ''
-        Persistent eight-character VNC password. Activation generates this
-        root-owned master once and never places the secret in the Nix store.
-      '';
-    };
-
-    rfbAuthFile = lib.mkOption {
-      type = lib.types.str;
-      default = "/var/lib/camofox/vnc-auth";
-      description = ''
-        Runtime LibVNCServer password file derived from passwordFile. It is
-        generated atomically on every switch and readable only by the primary
-        Aqua user.
-      '';
-    };
-
-    vncViewOnly = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = ''
-        Disable remote keyboard and pointer input in macVNC. This is intended
-        only for diagnosis before macVNC receives Accessibility permission.
-      '';
-    };
-
-    tlsDirectory = lib.mkOption {
-      type = lib.types.str;
-      default = "/var/lib/nix-darwin/camofox-novnc-tls";
-      description = ''
-        Root-only directory for the self-signed noVNC certificate and key.
-        The certificate is generated at runtime with the current WireGuard
-        address in its IP subjectAltName and regenerated when that address
-        changes.
-      '';
-    };
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = lib.optionals cfg.remoteConsole [
+    assertions = lib.optionals cfg.virtualDisplay [
       {
         assertion = config.local.autoLogin.enable;
         message = ''
-          local.camofox.remoteConsole requires local.autoLogin.enable: the
+          local.camofox.virtualDisplay requires local.autoLogin.enable: the
           dedicated display is headful and must run in an automatically-created
           Aqua session after an unattended reboot.
         '';
       }
-      {
-        assertion = config.local.wireguard.enable;
-        message = ''
-          local.camofox.remoteConsole requires local.wireguard.enable: noVNC
-          is not allowed to fall back to an ordinary network interface.
-        '';
-      }
-      {
-        assertion =
-          cfg.apiPort != cfg.vncPort && cfg.apiPort != cfg.novncPort && cfg.vncPort != cfg.novncPort;
-        message = "Camofox remote-console API, VNC, and noVNC ports must be distinct.";
-      }
-      {
-        assertion = cfg.passwordFile != cfg.rfbAuthFile;
-        message = "Camofox remote-console master password and RFB auth paths must differ.";
-      }
     ];
-
-    # The native host has a stable ad-hoc identity, while this root-owned
-    # configuration can continue following the current macVNC package.
-    environment.etc."camofox-vnc-host.plist" = lib.mkIf cfg.remoteConsole {
-      text = lib.generators.toPlist { escape = true; } vncHostConfiguration;
-    };
-
-    # Register the permission host in the logged-in Aqua session, but leave its
-    # lifetime to the Home Manager supervisor after DeskPad is ready.
-    launchd.user.agents.camofox-vnc-host = lib.mkIf cfg.remoteConsole {
-      serviceConfig = {
-        ProgramArguments = [ vncHostExecutable ];
-        RunAtLoad = false;
-        KeepAlive = false;
-        StandardOutPath = "${primaryHome}/Library/Logs/camofox-browser.log";
-        StandardErrorPath = "${primaryHome}/Library/Logs/camofox-browser.log";
-      };
-    };
-
-    # noVNC needs no window server, so keep it in the system domain. The Aqua
-    # LaunchAgent may arrive later; websockify connects to the loopback backend
-    # only when a browser client requests a VNC session.
-    launchd.daemons.camofox-novnc = lib.mkIf cfg.remoteConsole {
-      # Like the WireGuard daemon, use `command` so nix-darwin puts wait4path in
-      # front of the store path during early boot.
-      command = "${novnc}";
-      serviceConfig = {
-        RunAtLoad = true;
-        KeepAlive.SuccessfulExit = false;
-        ThrottleInterval = 10;
-        StandardOutPath = "/var/log/camofox-novnc.log";
-        StandardErrorPath = "/var/log/camofox-novnc.log";
-      };
-    };
-
-    system.activationScripts.postActivation.text = lib.mkIf cfg.remoteConsole ''
-      passwordFile=${lib.escapeShellArg cfg.passwordFile}
-      passwordDir=${lib.escapeShellArg (dirOf cfg.passwordFile)}
-      rfbAuthFile=${lib.escapeShellArg cfg.rfbAuthFile}
-      rfbAuthDir=${lib.escapeShellArg (dirOf cfg.rfbAuthFile)}
-
-      # The master password is machine state, not generation state. Generate it
-      # once, validate it before every use, and keep it out of argv and the Nix
-      # store.
-      /usr/bin/install -d -m 0700 -o root -g wheel "$passwordDir"
-      if [ ! -e "$passwordFile" ]; then
-        umask 077
-        /usr/bin/perl -e ${lib.escapeShellArg passwordPerl} > "$passwordFile.new"
-        /usr/sbin/chown root:wheel "$passwordFile.new"
-        /bin/chmod 0600 "$passwordFile.new"
-        /bin/mv -f "$passwordFile.new" "$passwordFile"
-      fi
-
-      if [ ! -f "$passwordFile" ]; then
-        echo "Camofox VNC password path is not a regular file: $passwordFile" >&2
-        exit 1
-      fi
-      /usr/bin/perl -e ${lib.escapeShellArg validatePasswordPerl} < "$passwordFile"
-      /usr/sbin/chown root:wheel "$passwordFile"
-      /bin/chmod 0600 "$passwordFile"
-
-      # LibVNCServer's password file is the eight-byte password encrypted with
-      # the RFB fixed DES key. Generate it in a root-owned directory, then make
-      # only the Aqua user able to read it. The password never enters argv.
-      /usr/bin/install -d -m 0711 -o root -g wheel "$rfbAuthDir"
-      umask 077
-      if ! /usr/bin/head -c 8 "$passwordFile" |
-        ${pkgs.openssl}/bin/openssl enc -des-ecb \
-          -provider legacy -provider default \
-          -K e84ad660c4721ae0 -nopad -nosalt > "$rfbAuthFile.new"; then
-        /bin/rm -f "$rfbAuthFile.new"
-        echo "camofox: could not generate the LibVNCServer password file." >&2
-        exit 1
-      fi
-      if [ "$(/usr/bin/stat -f %z "$rfbAuthFile.new")" -ne 8 ]; then
-        /bin/rm -f "$rfbAuthFile.new"
-        echo "camofox: generated LibVNCServer password file is not eight bytes." >&2
-        exit 1
-      fi
-      /usr/sbin/chown ${lib.escapeShellArg primaryUser}:staff "$rfbAuthFile.new"
-      /bin/chmod 0400 "$rfbAuthFile.new"
-      /bin/mv -f "$rfbAuthFile.new" "$rfbAuthFile"
-      /usr/sbin/chown ${lib.escapeShellArg primaryUser}:staff "$rfbAuthFile"
-      /bin/chmod 0400 "$rfbAuthFile"
-
-    '';
   };
 }

@@ -39,12 +39,11 @@ let
       ${hideApplicationSource} -o "$out/bin/hide-application"
   '';
 
-  camofoxRemoteConsole = pkgs.writeShellScript "camofox-browser" ''
+  camofoxVirtualDisplay = pkgs.writeShellScript "camofox-browser" ''
     set -u
 
-    # OMP reaches the browser API through loopback. Remote observation remains
-    # HTTPS noVNC over WireGuard; neither the control API nor the VNC backend
-    # needs a network-facing listener.
+    # OMP reaches the browser API through loopback while DeskPad provides the
+    # dedicated Aqua display used by the headful browser.
     stateRoot=${lib.escapeShellArg "${config.home.homeDirectory}/.camofox"}
     /usr/bin/install -d -m 0700 \
       "$stateRoot" \
@@ -63,15 +62,12 @@ let
     export CAMOFOX_HEADLESS=false
 
     deskpadApp=${lib.escapeShellArg "${pkgs.deskpad}/Applications/DeskPad.app/Contents/MacOS/DeskPad"}
-    vncJob="gui/$(/usr/bin/id -u)/org.nixos.camofox-vnc-host"
     beforeDisplaySpecs=""
     deskpadDisplayId=""
     deskpadPersistentId=""
     restoreDisplayX=0
     layoutConfigured=0
     deskpadPid=0
-    vncPid=0
-    vncLastExitStatus=""
     browserPid=0
     displayAwakePid=0
     restoreDisplayLayout() {
@@ -206,79 +202,11 @@ let
       wait "$targetPid" 2>/dev/null || true
       return 0
     }
-    refreshVncJob() {
-      local jobState parsedPid parsedStatus
-      if ! jobState=$(/bin/launchctl print "$vncJob" 2>/dev/null); then
-        vncPid=0
-        vncLastExitStatus=""
-        return 1
-      fi
-
-      parsedPid=$(printf '%s\n' "$jobState" |
-        /usr/bin/awk '$1 == "pid" && $2 == "=" { print $3; exit }')
-      case "$parsedPid" in
-        "" | *[!0-9]*) parsedPid=0 ;;
-      esac
-      parsedStatus=$(printf '%s\n' "$jobState" |
-        /usr/bin/awk '
-          $1 == "last" && $2 == "exit" && $3 == "code" && $4 == "=" {
-            status = $5
-            sub(/:.*/, "", status)
-            if (status ~ /^[0-9]+$/) {
-              print status
-            }
-            exit
-          }
-        ')
-      case "$parsedStatus" in
-        "" | *[!0-9]*) parsedStatus="" ;;
-      esac
-
-      vncPid=$parsedPid
-      vncLastExitStatus=$parsedStatus
-      return 0
-    }
-    stopVncJob() {
-      local stoppingPid
-      refreshVncJob || true
-      stoppingPid=$vncPid
-      /bin/launchctl kill SIGTERM "$vncJob" 2>/dev/null || true
-      [ "$stoppingPid" -gt 0 ] || return 0
-      if ! waitForProcessExit "$stoppingPid" 10; then
-        echo "camofox-browser: Camofox VNC Host $stoppingPid did not exit after 10s; killing it." >&2
-        /bin/launchctl kill SIGKILL "$vncJob" 2>/dev/null || true
-        waitForProcessExit "$stoppingPid" 5 || true
-      fi
-      refreshVncJob || true
-    }
-    handleVncExit() {
-      local exitStatus=$1
-      vncPid=0
-      vncReadyLogged=0
-      vncReadinessChecks=0
-
-      if [ "$exitStatus" -eq 77 ]; then
-        if [ "$vncPermissionUnavailable" -eq 0 ]; then
-          echo "camofox-browser: Camofox VNC Host lacks its required macOS privacy permissions (status 77)." >&2
-          echo "camofox-browser: waiting for approval; checking again every 10s." >&2
-        fi
-        vncPermissionUnavailable=1
-        vncAttempts=0
-        return
-      fi
-
-      if [ "$vncPermissionUnavailable" -eq 1 ]; then
-        echo "camofox-browser: macVNC permissions are available; resuming VNC startup." >&2
-      fi
-      vncPermissionUnavailable=0
-      echo "camofox-browser: Camofox VNC Host exited with status $exitStatus; Camofox and DeskPad remain active." >&2
-    }
     stopChildren() {
       trap - TERM INT
       if [ "$browserPid" -gt 0 ]; then
         /bin/kill "$browserPid" 2>/dev/null || true
       fi
-      stopVncJob
       if [ "$deskpadPid" -gt 0 ]; then
         restoreDisplayLayout || true
         /bin/kill "$deskpadPid" 2>/dev/null || true
@@ -370,8 +298,8 @@ let
         }
       ')
 
-    # ScreenCaptureKit stops when macOS powers the virtual display down. Keep
-    # display idle sleep inhibited for exactly the lifetime of this stack.
+    # macOS can power the virtual display down while unattended. Keep display
+    # idle sleep inhibited for exactly the lifetime of this display session.
     /usr/bin/caffeinate -d &
     displayAwakePid=$!
 
@@ -398,7 +326,7 @@ let
 
     # A closed lid can leave the new virtual display powered off even though
     # DeskPad is running. Wake it once; the lifetime assertion above keeps it
-    # available to ScreenCaptureKit afterward.
+    # available to the headful browser afterward.
     /usr/bin/caffeinate -u -t 5
 
     deskpadDisplayId=""
@@ -478,18 +406,12 @@ let
     ${pkgs.camofox-browser}/bin/camofox-browser &
     browserPid=$!
 
-    vncAttempts=0
-    vncMaxAttempts=3
-    vncDisabled=0
-    vncPermissionUnavailable=0
-    vncReadyLogged=0
-    vncReadinessChecks=0
     while true; do
       if ! /bin/kill -0 "$displayAwakePid" 2>/dev/null; then
         status=0
         wait "$displayAwakePid" || status=$?
         [ "$status" -eq 0 ] && status=1
-        echo "camofox-browser: display sleep assertion exited with status $status; stopping the stack." >&2
+        echo "camofox-browser: display sleep assertion exited with status $status; stopping the display session." >&2
         stopChildren
         exit "$status"
       fi
@@ -500,8 +422,8 @@ let
         waitForProcessExit "$deadDeskpadPid" 1 || true
 
         # DeskPad can replace its process while preserving the same virtual
-        # display. Adopt that singleton instead of taking down a healthy VNC
-        # stack because the originally launched PID disappeared.
+        # display. Adopt that singleton instead of taking down a healthy
+        # browser session because the originally launched PID disappeared.
         replacementPid=""
         replacementAttempts=0
         while [ "$replacementAttempts" -lt 5 ]; do
@@ -551,7 +473,7 @@ let
                 break
               fi
               if [ "$hideAttempts" -ge 5 ]; then
-                echo "camofox-browser: replacement DeskPad $deskpadPid could not be hidden; capture exclusion remains active." >&2
+                echo "camofox-browser: replacement DeskPad $deskpadPid could not be hidden; continuing with its window visible." >&2
                 break
               fi
               /bin/sleep 1
@@ -561,11 +483,11 @@ let
         fi
 
         if [ -n "$replacementPid" ] && /bin/kill -0 "$deskpadPid" 2>/dev/null; then
-          echo "camofox-browser: DeskPad replaced PID $deadDeskpadPid with $deskpadPid; continuing the stack." >&2
+          echo "camofox-browser: DeskPad replaced PID $deadDeskpadPid with $deskpadPid; continuing the display session." >&2
           continue
         fi
 
-        echo "camofox-browser: DeskPad exited with status $status; stopping the stack." >&2
+        echo "camofox-browser: DeskPad exited with status $status; stopping the display session." >&2
         stopChildren
         exit "$status"
       fi
@@ -574,69 +496,9 @@ let
         status=0
         wait "$browserPid" || status=$?
         [ "$status" -eq 0 ] && status=1
-        echo "camofox-browser: browser service exited with status $status; stopping the stack." >&2
+        echo "camofox-browser: browser service exited with status $status; stopping the display session." >&2
         stopChildren
         exit "$status"
-      fi
-
-      if [ "$vncPid" -gt 0 ]; then
-        previousVncPid=$vncPid
-        refreshVncJob || true
-        if [ "$vncPid" -eq 0 ]; then
-          status=$vncLastExitStatus
-          [ -n "$status" ] || status=1
-          handleVncExit "$status"
-        elif [ "$vncPid" -ne "$previousVncPid" ]; then
-          echo "camofox-browser: Camofox VNC Host replaced PID $previousVncPid with $vncPid; continuing." >&2
-          vncReadyLogged=0
-          vncReadinessChecks=0
-        fi
-      fi
-
-      if [ "$vncPid" -eq 0 ] && [ "$vncDisabled" -eq 0 ]; then
-        if [ "$vncAttempts" -ge "$vncMaxAttempts" ]; then
-          echo "camofox-browser: Camofox VNC Host failed $vncAttempts consecutive starts; continuing without VNC." >&2
-          vncDisabled=1
-        else
-          vncLastExitStatus=""
-          if ! /bin/launchctl kickstart "$vncJob"; then
-            echo "camofox-browser: could not kickstart Camofox VNC Host; retrying." >&2
-          else
-            vncAttempts=$((vncAttempts + 1))
-            # Give launchd enough time to publish the real host PID or the exit
-            # status from a permission check that failed immediately.
-            /bin/sleep 1
-            refreshVncJob || true
-            if [ "$vncPid" -gt 0 ]; then
-              if [ "$vncPermissionUnavailable" -eq 1 ]; then
-                echo "camofox-browser: macVNC permissions are available; resuming VNC startup." >&2
-              fi
-              vncPermissionUnavailable=0
-              vncReadinessChecks=0
-            else
-              status=$vncLastExitStatus
-              [ -n "$status" ] || status=1
-              handleVncExit "$status"
-            fi
-          fi
-        fi
-      fi
-
-      if [ "$vncPid" -gt 0 ] && [ "$vncReadyLogged" -eq 0 ]; then
-        if /usr/bin/nc -z 127.0.0.1 ${lib.escapeShellArg (toString camofoxCfg.vncPort)}; then
-          echo "camofox-browser: macVNC ready on 127.0.0.1:${toString camofoxCfg.vncPort}." >&2
-          vncReadyLogged=1
-          vncAttempts=0
-        else
-          vncReadinessChecks=$((vncReadinessChecks + 1))
-          if [ "$vncReadinessChecks" -ge 3 ]; then
-            echo "camofox-browser: macVNC did not become ready after 30s; retrying it alone." >&2
-            stopVncJob
-            vncPid=0
-            vncLastExitStatus=""
-            vncReadinessChecks=0
-          fi
-        fi
       fi
 
       /bin/sleep 10
@@ -663,12 +525,12 @@ let
     exec ${pkgs.camofox-browser}/bin/camofox-browser
   '';
 
-  camofox = if camofoxCfg.remoteConsole then camofoxRemoteConsole else camofoxCore;
+  camofox = if camofoxCfg.virtualDisplay then camofoxVirtualDisplay else camofoxCore;
 in
 {
   config = lib.mkIf camofoxCfg.enable {
     # Camofox runs in the logged-in Aqua session so its headful browser can use
-    # the interactive desktop or the server's dedicated remote console.
+    # either the interactive desktop or a dedicated DeskPad virtual display.
     launchd.agents.camofox-browser = {
       enable = true;
       config = {
@@ -676,8 +538,8 @@ in
         ProgramArguments = [ "${camofox}" ];
         RunAtLoad = true;
 
-        # A core failure stays stopped rather than relaunching the browser or,
-        # in remote-console mode, recreating the virtual display in a loop.
+        # A core failure stays stopped rather than relaunching the browser or
+        # recreating the virtual display in a loop.
         KeepAlive = false;
 
         StandardOutPath = "${config.home.homeDirectory}/Library/Logs/camofox-browser.log";
@@ -718,11 +580,6 @@ in
       # LaunchServices registers this bridge during activation. Selecting it as
       # the default web browser remains a one-time System Settings choice.
       camofoxUrlHandler
-    ]
-    ++ lib.optionals camofoxCfg.remoteConsole [
-      # The fixed-output host is copied to a visible, stable app path so macOS
-      # privacy settings can retain its Accessibility and Screen Recording grants.
-      pkgs.camofox-vnc-host
     ];
   };
 }

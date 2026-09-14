@@ -93,10 +93,6 @@
       url = "git+https://github.com/mksglu/context-mode.git?ref=main&shallow=1";
       flake = false;
     };
-    macvnc-source = {
-      url = "git+https://github.com/LibVNC/macVNC.git?ref=main&shallow=1";
-      flake = false;
-    };
     zsh-auto-notify-source = {
       url = "git+https://github.com/MichaelAquilina/zsh-auto-notify.git?ref=master&shallow=1";
       flake = false;
@@ -160,7 +156,6 @@
         camofoxBrowser = inputs.camofox-browser-source;
         contextMode = inputs.context-mode-source;
         piCodegraph = inputs.pi-codegraph-source;
-        macvnc = inputs.macvnc-source;
         piAnthropicWebFetch = inputs.pi-anthropic-web-fetch-source;
         piGoogleUrlContext = inputs.pi-google-url-context-source;
         piAnthropicWebSearch = inputs.pi-anthropic-web-search-source;
@@ -315,19 +310,17 @@
             camoufox
             camofox-browser
             camofox-url-handler
-            camofox-vnc-host
             deskpad
             displayplacer
-            macvnc
             ;
         }
       );
 
       # `nix run .#cache-push -- <cache>` builds and uploads the custom CLI
-      # packages above plus source-built macVNC on Darwin. Fixed upstream
-      # artifact repacks are still exposed as package outputs, but pushing them
-      # saves only an unpack and consumes cache bandwidth, so they are excluded
-      # explicitly below. A newly added package remains included by default.
+      # packages above. Fixed upstream artifact repacks are still exposed as
+      # package outputs, but pushing them saves only an unpack and consumes
+      # cache bandwidth, so they are excluded explicitly below. A newly added
+      # package remains included by default.
       #
       # The store paths are baked in rather than resolved from `.#` at run
       # time: building this app builds precisely what it will push, and it

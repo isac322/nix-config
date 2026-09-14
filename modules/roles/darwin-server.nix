@@ -232,8 +232,8 @@ in
   # Log in without someone being there to do it.
   #
   # For the two application stacks that need Aqua: Orca is Electron, and
-  # native Camofox owns Camoufox, DeskPad, and macVNC in one LaunchAgent.
-  # The other machine services are root daemons on purpose — sshd, WireGuard,
+  # native Camofox owns Camoufox and DeskPad in one LaunchAgent. The other
+  # machine services are root daemons on purpose — sshd, WireGuard,
   # and the keyboard mapping need none of this. That is the general rule; these
   # are the exceptions to it, not the pattern.
   #
@@ -248,21 +248,16 @@ in
   # not by anything here.
   local.wireguard.enable = true;
 
-  # RustDesk Direct IP Access replaces Jump Desktop. DeskPad remains the stable
-  # display for this closed-lid Mac.
-  homebrew.casks = [ "rustdesk" ];
-
   # The Orca runtime. The address it advertises is not written here — it is read
   # off the tunnel above at run time, because that is where the answer is
   # already decided (0028).
   local.orca.enable = true;
 
-  # The headful browser API and its dedicated-display remote console. noVNC
-  # learns its bind address from WireGuard at run time and has no
-  # ordinary-interface fallback.
+  # The headful browser API and its dedicated display belong to the logged-in
+  # Aqua session.
   local.camofox = {
     enable = true;
-    remoteConsole = true;
+    virtualDisplay = true;
   };
 
   # Come back without someone pressing the button.
@@ -288,8 +283,8 @@ in
 
   # Camofox renders on a dedicated virtual display, but its windows still
   # belong to the logged-in Aqua session. A screen saver or login-window lock
-  # would replace those windows even though the browser and VNC processes stay
-  # healthy. Keep the unattended session unlocked and its displays awake while
+  # would replace those windows even though the browser processes stay healthy.
+  # Keep the unattended session unlocked and its displays awake while
   # the machine is acting as a server.
   system.defaults.screensaver = {
     askForPassword = false;

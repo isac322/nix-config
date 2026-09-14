@@ -59,9 +59,9 @@ let
         manifestFile = releaseManifests.sentry;
       };
 
-      # Native Apple Silicon browser and remote-console components. Camofox uses
+      # Native Apple Silicon browser and virtual-display utilities. Camofox uses
       # the immutable Camoufox browser; DeskPad supplies the virtual display,
-      # macVNC exports its framebuffer, and displayplacer fixes its layout.
+      # and displayplacer fixes its layout.
       camoufox = final.callPackage ./camoufox/package.nix {
         manifestFile = releaseManifests.camoufox;
       };
@@ -70,15 +70,11 @@ let
       };
       camofox-mcp-session = final.callPackage ./camofox-mcp-session/package.nix { };
       camofox-url-handler = final.callPackage ./camofox-url-handler/package.nix { };
-      camofox-vnc-host = final.callPackage ./camofox-vnc-host/package.nix { };
       deskpad = final.callPackage ./deskpad/package.nix {
         manifestFile = releaseManifests.deskpad;
       };
       displayplacer = final.callPackage ./displayplacer/package.nix {
         manifestFile = releaseManifests.displayplacer;
-      };
-      macvnc = final.callPackage ./macvnc/package.nix {
-        source = sourceInputs.macvnc;
       };
 
       # macOS only in practice — it shells out to /usr/bin/security. Declared here
