@@ -64,7 +64,7 @@ modelRoles:
   default: openai-codex/gpt-5.6-sol:high
   plan: anthropic/claude-opus-5:high
   slow: anthropic/claude-fable-5-1:high
-  task: openai-codex/gpt-5.6-sol:high
+  task: devin/swe-2:high
   advisor: anthropic/claude-sonnet-5:medium
   browser: google/gemini-3.8-flash:medium
   smol: google/gemini-3.8-flash:medium
