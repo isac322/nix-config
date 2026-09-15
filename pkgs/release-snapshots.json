@@ -118,10 +118,10 @@
     "langfuse": {
       "dependencies": {},
       "dist": {
-        "integrity": "sha512-F6yDsAZdYDH45V68dlh4YEXEp7lvryv/W//LeohcjsP770VdljtDIllrkVkbgWlJcOTxIK4GEAFlxI4DXsLZwg==",
-        "tarball": "https://registry.npmjs.org/langfuse-cli/-/langfuse-cli-1.2.3.tgz"
+        "integrity": "sha512-wq6AnzBdBhiFUshc2Z95jvsaa0JW1bQsn/qkVqex022axVpXpgl4QwRpU9j9mcR5MMUj6ydWYbU1RXn3vmHumw==",
+        "tarball": "https://registry.npmjs.org/langfuse-cli/-/langfuse-cli-1.2.4.tgz"
       },
-      "version": "1.2.3"
+      "version": "1.2.4"
     },
     "omp": {
       "assets": [
