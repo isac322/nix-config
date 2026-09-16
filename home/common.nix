@@ -327,6 +327,7 @@ in
   imports = [
     ./agent-instructions.nix
     ./agent-skills.nix
+    ./cloud-sql-proxy.nix
     ./skillclaw.nix
   ];
 
