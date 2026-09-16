@@ -6,6 +6,29 @@ When inspecting runtime metrics, agent traces, errors, billing, cloud resources,
 - Internal endpoints such as Thanos (`https://thanos-query.runbear.io`) and Tempo (`tempo.runbear.io`) require Cloudflare WARP.
 - If queries to internal endpoints fail with network timeouts, connection refused, or DNS resolution errors, it is likely a Cloudflare WARP connection or login issue. Verify with `warp-cli status`.
 
+## PostgreSQL access
+
+Use the local Cloud SQL Proxy endpoint for the target environment:
+
+| Environment | Local endpoint | Cloud SQL instance |
+|---|---|---|
+| Prod | `127.0.0.1:15432` | `runbear:us-east4:runbear-prod-pg` |
+| Staging | `127.0.0.1:15433` | `runbear:us-east4:runbear-staging-pg` |
+
+Connect with `psql` by supplying the database and read-only account:
+
+```sh
+psql -h 127.0.0.1 -p 15432 -U <user> -d <database> # Prod
+psql -h 127.0.0.1 -p 15433 -U <user> -d <database> # Staging
+```
+
+If a proxy is not accepting connections, restart only the affected environment:
+
+| Platform | Prod | Staging |
+|---|---|---|
+| macOS | `launchctl kickstart -k "gui/$(id -u)/org.nix-community.home.cloud-sql-proxy-prod"` | `launchctl kickstart -k "gui/$(id -u)/org.nix-community.home.cloud-sql-proxy-staging"` |
+| Linux | `systemctl --user restart cloud-sql-proxy-prod.service` | `systemctl --user restart cloud-sql-proxy-staging.service` |
+
 ## Telemetry and data retrieval routing
 
 | Target | Tool | Command / Pattern | Key rules |
