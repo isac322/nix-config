@@ -53,7 +53,10 @@ let
     };
 in
 {
-  home.packages = [ pkgs.google-cloud-sql-proxy ];
+  home.packages = [
+    pkgs.google-cloud-sql-proxy
+    pkgs.postgresql_15
+  ];
 
   launchd.agents = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin (lib.mapAttrs' launchdAgent instances);
   systemd.user.services = lib.mkIf pkgs.stdenv.hostPlatform.isLinux (
