@@ -244,6 +244,8 @@ rule과 Claude skill tree는 기존 registry를 cleanup seed로 사용할 수 �
 - `softaworks/agent-toolkit`: `writing-clearly-and-concisely`
 - 저장소 소유 `home/skills/instruction-architect`: `instruction-architect`
 - 저장소 소유 `home/skills/receiving-code-review`: `receiving-code-review`
+- 저장소 소유 `home/skills/issue-validation`: `issue-validation`
+- 저장소 소유 `home/skills/five-whys-root-cause-analysis`: `five-whys-root-cause-analysis`
 
 `humanizer`는 repository root의 `SKILL.md`가 canonical entrypoint라서 repository
 전체가 설치된다. 다른 공개 upstream은 선택한 skill directory만 설치된다.
@@ -260,8 +262,9 @@ sudo darwin-rebuild switch --flake .#<hostname>
 
 새 input을 처음 추가할 때는 `nix flake lock`이 기존 input을 재해석하지 않고 누락된
 lock node만 만든다. 이후에는 위처럼 이름을 지정해 갱신한다. 공개 upstream의 최종
-authority는 `flake.lock`이다. `instruction-architect`와
-`receiving-code-review`의 authority는 각각 이 저장소의
+authority는 `flake.lock`이다. `instruction-architect`,
+`receiving-code-review`, `issue-validation`,
+`five-whys-root-cause-analysis`의 authority는 각각 이 저장소의
 `home/skills/<name>/SKILL.md`다.
 
 SkillClaw는 공통 tree `~/.agents/skills`만 동기화한다. Nix-managed regular 및
