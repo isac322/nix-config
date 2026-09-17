@@ -276,10 +276,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1789614380,
-        "narHash": "sha256-ICTfpiJGmdTqIak5YEmRwdATy1JqzpWhagmifpkUlgg=",
+        "lastModified": 1789618856,
+        "narHash": "sha256-OSqj7eOijvCZfN7owFWRxLWRhej5lZI+Kt82q3INLvc=",
         "ref": "master",
-        "rev": "ac84366d68d5d79ea1bb8c2cec30917527f92fbd",
+        "rev": "afa6821c70560bb19d1a8c577bff398f7f239869",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -317,10 +317,10 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1789616995,
-        "narHash": "sha256-Rs5atV7wJs+XC+C2kdZtEisfow994EkPEP0VQFxz2yY=",
+        "lastModified": 1789617436,
+        "narHash": "sha256-sOUoC+cv/4JHMY76R+0T9SSBwrnMaPwCqmfkI1KG+ts=",
         "ref": "refs/heads/main",
-        "rev": "0eef5302a0bec7e12d0d8bee1e86e1845b74ac49",
+        "rev": "3c63fa93104923430cc7c699e9da277ea49a08c5",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
