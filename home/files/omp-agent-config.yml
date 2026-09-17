@@ -41,6 +41,9 @@ bash:
     enabled: true
 bashInterceptor:
   enabled: true
+eval:
+  autoBackground:
+    enabled: true
 astGrep:
   enabled: true
 checkpoint:
@@ -87,7 +90,7 @@ edit:
 hindsight:
   apiUrl: https://hindsight-api.bhyoo.com
   scoping: per-project
-extendedContext: true
+extendedContext: false
 compaction:
   idleEnabled: true
   idleThresholdTokens: 500000
@@ -127,8 +130,6 @@ error:
   notify: "off"
 features:
   unexpectedStopDetection: true
-composer:
-  shape: box
 exa:
   enabled: true
 secrets:
