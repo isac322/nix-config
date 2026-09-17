@@ -28,11 +28,13 @@ Programmed never converges + pods recycle every ~2s
     │       └── omission and intentional revocation are not distinct
     │           in the apply contract
     └── Credential-wait branch tears down the dataplane
-        evidence: 9187ade added retractGatewayDataplane() and
-        created=true to that branch (gateway_cloudflare.go:294-296),
-        so every 2s requeue patches replicas to zero and a recovered
-        pass restores them (gateway_controller.go:73, :286-287,
-        :1113-1151)
+        evidence: code-path attribution — 9187ade added
+        retractGatewayDataplane() and created=true to that
+        branch (gateway_cloudflare.go:294-296), so every 2s
+        requeue patches replicas to zero and a recovered pass
+        restores them (gateway_controller.go:73, :286-287,
+        :1113-1151); the ~2s recycling itself was observed live
+        on the deployed image
 ```
 
 **Bounded open branch — exact stale-apply trigger.** The deletion mechanism is executed-proven. The specific early-return path that supplied each stale document remains open: first-convergence informer lag alone, or that lag combined with a transient `GetTunnel`, `GetTunnelToken`, or connection-listing failure. The discriminator is a continuous tunnel condition/status/Secret/managedFields series. This uncertainty does not weaken the proven invariant failure.
@@ -96,7 +98,7 @@ runs with owned=true, ConditionFalse
 
 ## Case #13 — Namespace grant label changes do not requeue ServiceToken
 
-**Defect.** A `Ready=True` ServiceToken keeps its authorization after its namespace stops matching the account's `namespaceSelector`; it flips to `RefNotPermitted` only after an unrelated annotation forces a reconcile.
+**Defect.** A `Ready=True` ServiceToken keeps its authorization after its namespace stops matching the account's `namespaceSelector`; it flips to `RefNotPermitted` only after an unrelated annotation forces a reconcile (observed live).
 
 **Causal graph.**
 
@@ -105,7 +107,7 @@ Stale authorization after namespace-label revocation
 └── No event source enqueues the token on label change
     evidence: ServiceTokenReconciler.SetupWithManager watches the
     ServiceToken, its owned Secret, and CloudflareAccount — not
-    Namespace (verified on v0.1.1: For(ServiceToken).Owns(Secret)
+    Namespace (source-verified on v0.1.1: For(ServiceToken).Owns(Secret)
     .Watches(CloudflareAccount)); authorization is evaluated from
     current namespace labels inside Reconcile, so after a
     successful reconcile nothing re-triggers evaluation
@@ -114,7 +116,7 @@ Stale authorization after namespace-label revocation
         only as fresh as the last event
 ```
 
-**Counterfactual.** With a Namespace watch (or an index mapping namespaces to granted objects), the label removal enqueues the token and revocation lands within one reconcile — the observed 30-second-plus staleness cannot occur. The missing watch is necessary and sufficient for the defect.
+**Counterfactual.** With a Namespace watch (or an index mapping namespaces to granted objects), the label removal enqueues the token and revocation lands within one reconcile — the observed 30-second-plus staleness cannot occur. Necessity was live-observed; sufficiency is source-verified, with the executed check being PR #16's envtest (fixed-in-PR, unmerged).
 
 **Branches.**
 
@@ -134,10 +136,12 @@ Stale authorization after namespace-label revocation
 ```text
 Namespace stuck Terminating, tunnel CleanupBlocked
 └── Account deleted before dependents finished cleanup
-    evidence: AfterSuite deletes CloudflareAccount and the
-    namespace immediately (suite_test.go:157-158 on v0.1.1) with
-    no drain of namespaced Flareway resources; tunnel condition
-    reads "get CloudflareAccount for cleanup: ... not found"
+    evidence: code-path attribution — AfterSuite deletes
+    CloudflareAccount and the namespace immediately
+    (suite_test.go:157-158 on v0.1.1) with no drain of
+    namespaced Flareway resources; the missing-account tunnel
+    condition "get CloudflareAccount for cleanup: ... not
+    found" was observed live
     └── AND: tunnel cleanup legitimately requires account
         credentials — the controller correctly refuses
         unauthenticated remote deletion (fail-closed is the

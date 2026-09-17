@@ -14,7 +14,7 @@ Start only from a validated atomic issue. The `issue-validation` skill owns clai
 Required inputs before the first "why":
 
 - one atomic claim with a CONFIRMED_CURRENT, CONFIRMED_HISTORICAL_FIXED, or PARTIALLY_FIXED verdict;
-- the reproduction or mechanical proof that demonstrates the defect;
+- the executed reproduction that demonstrates the defect — the `issue-validation` executed-evidence gate applies; source, logs, or reports alone are not a validated input;
 - the expected contract the behavior violates;
 - the code state (commit, artifact, or branch) on which the defect was observed.
 
@@ -109,13 +109,12 @@ Record interim containment separately from the permanent correction, including i
 A fix is adequate only when:
 
 - it repairs the broken invariant identified in the graph, not a symptom downstream of it;
-- it fails on the pre-fix state and passes post-fix under the same reproduction;
-- the healthy path still works;
+- it fails on the pre-fix state and passes post-fix under the same executed reproducer, with a healthy control still passing;
 - adjacent failure modes do not merely relocate the symptom;
 - escape and containment branches get their own actions when warranted;
 - it adds no retry, special case, or message check that suppresses the symptom while the mechanism survives.
 
-Do not accept a PR description or commit message as proof. Reproduce or establish the effect mechanically.
+Do not accept a PR description, commit message, or source diff as proof. The `issue-validation` executed-evidence gate applies unchanged: run the same reproducer pre- and post-fix plus a healthy control; when a live dependency is unavailable, its contract-faithful-mock requirements govern any substitute.
 
 This step verifies the new corrective action derived by this analysis. `issue-validation` separately verifies pre-existing fix claims when determining a verdict and tracing provenance.
 
@@ -167,7 +166,7 @@ The analysis is complete only when:
 - each proposed corrective action maps to a graph node and a hierarchy level;
 - the extent-of-condition sweep covers sibling sites that share the invariant, or records why it is not applicable;
 - interim containment is recorded with a retirement condition, or marked not applicable;
-- any corrective action claimed as implemented has pre-fix and post-fix evidence under the same reproduction.
+- any corrective action claimed as implemented has executed pre-fix and post-fix reproductions under the same reproducer, plus a healthy control.
 
 ## Anti-patterns
 
@@ -181,6 +180,7 @@ Never:
 - merge occurrence, escape, and containment into one cause;
 - propose a fix that suppresses the symptom — retries, special cases, message parsing — while the mechanism survives;
 - claim a fix works from its description alone;
+- treat a source diff, log, or report as proof of a fix — the `issue-validation` executed-evidence gate applies to corrective actions too;
 - repeat the `issue-validation` dossier: verdicts, artifact/tag/main comparison, and fix provenance live there, not here.
 
 ## References

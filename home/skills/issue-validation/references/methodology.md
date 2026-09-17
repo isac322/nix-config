@@ -38,12 +38,14 @@ Source: Richard Cook, *How Complex Systems Fail* — https://how.complexsystems.
 
 The four grades in the skill are an operational compression, not a universal standard:
 
-- **A:** direct reproduction on the real path or deterministic mechanical proof;
-- **B:** controlled proxy reproduction or authoritative source-level proof with stated limits;
-- **C:** the core effect is not reproduced, but some hypotheses are supported or disproved;
+- **A:** executed reproduction on the real path;
+- **B:** executed reproduction through a contract-faithful mock or controlled proxy, with stated limits;
+- **C:** the core effect is not reproduced, but some hypotheses are supported or disproved — source-only analysis, however rigorous, caps here;
 - **D:** inference dominates, so the verdict remains provisional.
 
 The grade limits how strongly the dossier may speak. It does not replace the evidence itself.
+
+The executed-evidence gate follows the same hypothetico-deductive discipline: a defect is confirmed only by running the real project code against a minimal reproducer, or — when a live dependency is unavailable — against a contract-faithful mock whose modeled behaviors are grounded in the official primary specification. Logs, reports, and source reading generate and support hypotheses; they never confirm one.
 
 ## Why version and fix provenance are separate
 

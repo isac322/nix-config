@@ -46,12 +46,12 @@ An open PR, a closed-but-unmerged PR, or a PR merged only in a fork is not an up
 
 One verdict per atomic claim:
 
-- **CONFIRMED_CURRENT:** reproduced or mechanically proved in the current supported code or artifact.
+- **CONFIRMED_CURRENT:** executed reproduction of the defect on the current supported code or artifact (see the executed-evidence gate).
 - **CONFIRMED_HISTORICAL_FIXED:** valid historical defect whose fix is verified on the target branch.
   - Record the exact fix state: **merged**, **released**, or **deployed**.
   - A repair that exists only on an open, unmerged, closed-without-merge, or fork-only PR remains **CONFIRMED_CURRENT**; record **fixed-in-PR** only in fix provenance.
 - **PARTIALLY_FIXED:** one mechanism or symptom is fixed, but material reported behavior remains.
-- **DUPLICATE:** the same proven mechanism as a canonical issue. Name the canonical issue and the shared mechanism.
+- **DUPLICATE:** the same executed-proven mechanism as a canonical issue. Name the canonical issue and the shared mechanism.
 - **ENVIRONMENTAL:** the primary cause is outside the project's code or supported contract.
 - **NOT_REPRODUCED:** the observation did not reproduce; state which hypotheses were disproved and which environment gaps remain.
 - **NOT_A_BUG:** behavior matches the current contract or an intentional upstream boundary.
@@ -59,6 +59,18 @@ One verdict per atomic claim:
 - **INCONCLUSIVE:** available evidence cannot distinguish the remaining explanations.
 
 Never give a compound issue one verdict. Split it into atomic claims first.
+
+## Executed-evidence gate
+
+No defect-positive verdict (CONFIRMED_CURRENT, CONFIRMED_HISTORICAL_FIXED, PARTIALLY_FIXED, DUPLICATE) and no verified-fix claim stands without an executed reproduction. Run the real project code with a minimal reproducer and record the exact version, command, input, output, and assertion, plus an independent observable of the failure — never a tool's success string. Source reading, logs, reports, and stack traces are hypotheses and support; they never substitute for a run. Reproduce each duplicate claim and demonstrate the shared mechanism; a canonical issue's reproduction is supporting evidence, not a substitute. For a reported malfunction, ENVIRONMENTAL or NOT_A_BUG also requires execution of the reported scenario and comparison with the expected contract; do not use these labels to dismiss an unexecuted report. A pure capability request without a malfunction claim may be classified as FEATURE_REQUEST from its contract.
+
+When a live external dependency is unavailable, substitute a contract-faithful mock or fake at the dependency boundary:
+
+- never mock the project logic under investigation or hard-code its expected defective result; injected dependency faults must themselves be contract-supported and the real project code must produce the observed failure;
+- document the official primary spec or documentation URL with version and section, each modeled behavior (errors, ordering, timing, state transitions as relevant), the conformance checks run against it, and every assumption;
+- behavior the mock cannot ground in the cited spec cannot confirm the claim.
+
+A verdict reached through a mock is recorded as reproduced against a contract-faithful mock, not as a demonstrated live-provider incident; unknown real-provider triggers stay open. If the dependency is unreachable and no faithful mock is possible, report the blocker and return NOT_REPRODUCED or INCONCLUSIVE — never force a verdict.
 
 ## Validation dossier
 
@@ -76,7 +88,10 @@ Deployed-artifact result:
 Release-tag result:
 Current-main result:
 Introduced by (commit / first affected release):
-Reproduction commands and outputs:
+Reproduction execution (version / command / input / output / assertion):
+Execution basis (live | contract-faithful mock):
+Mock contract (spec URL+version / modeled behaviors / conformance checks / assumptions):
+Healthy-control result:
 Mechanism bound (defect -> observable failure):
 Disproved hypotheses:
 Fix provenance:
@@ -140,7 +155,7 @@ An unsupported capability can be a useful feature request without being a defect
 
 ### 4. Build a minimal, representative reproducer
 
-Prefer the repository's existing Docker, VM, e2e, or CLI harness. Install missing packages inside a disposable environment when needed. Reduce the reproducer to the smallest input that triggers the claim.
+Prefer the repository's existing Docker, VM, e2e, or CLI harness. Install missing packages inside a disposable environment when needed. Reduce the reproducer to the smallest input that triggers the claim — then execute it; an unrun reproducer is a hypothesis, not evidence.
 
 Before interpreting a clean run, verify the test bed can express the reported condition:
 
@@ -185,14 +200,14 @@ Then trace any behavior difference to its origin:
 
 A verified fix requires:
 
-1. pre-fix code or artifact fails under the reproduction;
-2. post-fix code succeeds under the same reproduction;
-3. the healthy path still works;
+1. an executed reproduction in which pre-fix code or artifact fails;
+2. post-fix code passes under the same reproducer;
+3. a healthy control still works;
 4. adjacent failure modes do not merely move the symptom;
 5. fix provenance is complete;
 6. release and deployment availability are separately verified.
 
-Do not accept a PR description or commit message as proof. Reproduce the behavior or establish it mechanically.
+Do not accept a PR description or commit message as proof; the executed-evidence gate applies to fix claims exactly as to defect claims.
 
 This step verifies a fix already claimed by the issue, PR, release, or artifact so the verdict and provenance are accurate. The Five Whys skill separately verifies a new corrective action derived from its causal graph.
 
@@ -206,9 +221,9 @@ Issues fixed in one PR are not automatically duplicates. One PR may repair sever
 
 ### 8. Grade evidence
 
-- **A:** direct reproduction on the real path or mechanical proof such as registers, bytes, resolver output, or protocol events.
-- **B:** controlled proxy reproduction or authoritative source-level proof, with environment limits stated.
-- **C:** core symptom not reproduced; some hypotheses supported or disproved.
+- **A:** executed reproduction on the real path.
+- **B:** executed reproduction through a contract-faithful mock or controlled proxy, with environment limits stated.
+- **C:** the core symptom is not reproduced; some hypotheses supported or disproved. Source-only analysis, however rigorous, caps here.
 - **D:** inference dominates; verdict remains provisional.
 
 The verdict must not be stronger than the evidence grade permits.
@@ -228,14 +243,14 @@ Explain why each relation applies. Do not use "related" without a mechanism.
 
 ## Handoff to five-whys-root-cause-analysis
 
-A claim is ready for causal analysis when its dossier is complete and the verdict is CONFIRMED_CURRENT, CONFIRMED_HISTORICAL_FIXED, or PARTIALLY_FIXED. Hand off this schema:
+A claim is ready for causal analysis when its dossier is complete and the verdict is CONFIRMED_CURRENT, CONFIRMED_HISTORICAL_FIXED, or PARTIALLY_FIXED — each of which already requires an executed reproduction under the gate above. Never hand off a claim confirmed only by source, logs, or reports. Hand off this schema:
 
 ```text
 Validated claim:
 Verdict + evidence grade:
 As-of (UTC timestamp / main HEAD SHA / artifact digest):
 Expected contract:
-Minimal reproducer:
+Minimal reproducer (executed; version / command / input / output / assertion; live or mock basis):
 Mechanism bound (defect -> observable failure):
 Disproved hypotheses:
 Open hypotheses for RCA:
@@ -255,8 +270,8 @@ For an INCONCLUSIVE claim whose observable effect is confirmed but whose explana
 Validation is complete only when:
 
 - every issue and atomic claim has a verdict;
-- the mechanism is independently observed or the remaining uncertainty is bounded;
 - pre-fix and post-fix behavior are compared for every fixed claim;
+- the mechanism is independently observed through an executed reproduction, or the remaining uncertainty is bounded;
 - deployed artifact, release tag, and current main are distinguished;
 - every verdict is anchored to an exact as-of state, and provenance is re-verified when HEAD or the deployed digest has moved;
 - every claim records the introducing commit and first affected release, or the explicit provenance bound that remains when a full bisection is impractical;
@@ -272,6 +287,10 @@ Validation is complete only when:
 Never:
 
 - promote a version correlation into a mechanism;
+- confirm a defect from source reading, logs, or reports alone — they are hypotheses and support, never a substitute for an executed reproduction;
+- mock the project logic under investigation, encode the desired failure into a fake, or let spec-ungrounded mock behavior confirm a claim;
+- report a mock-based reproduction as a demonstrated live-provider incident;
+- force a verdict when a dependency is unreachable and no faithful mock exists — report the blocker and return NOT_REPRODUCED or INCONCLUSIVE;
 - trust a fix PR or commit message without verifying its effect;
 - inspect only current main and declare the user problem fixed;
 - write "main fixed, unreleased" without the fixing PR, commits, first containing release, and current artifact status;
@@ -283,7 +302,7 @@ Never:
 - treat process liveness, or an artifact's absence from a different namespace or vantage point, as proof of function or failure;
 - use a clean run on another architecture or incapable environment as disproof;
 - claim behavior was tested when the environment could not express it;
-- verify only the failure direction and skip the healthy path;
+- verify a fix without a healthy control and the same reproducer pre- and post-fix;
 - omit limitations, disproved hypotheses, or release and deployment availability;
 - continue past a bounded mechanism into why-chains or corrective-action design — that is the Five Whys skill's scope.
 

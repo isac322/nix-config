@@ -63,6 +63,10 @@ Prefer, in order:
 
 Every action maps to a causal node. The extent-of-condition sweep then searches for sibling sites that share the same broken invariant.
 
+## Verification of corrective actions
+
+Corrective-action verification follows the executed-evidence contract owned by `issue-validation`: the same reproducer must fail pre-fix and pass post-fix against the real code, with a healthy control, and any dependency substitute must be a contract-faithful mock grounded in the official primary specification. A source diff, log, or report is never proof that a corrective action works.
+
 ## Method limits
 
 Five Whys remains an investigator-guided model. It can miss unobserved states, feedback loops, or emergent interactions; different investigators can build different graphs from the same sparse evidence. For high-consequence or strongly coupled failures, escalate from the compact causal graph to a fuller fault tree, barrier analysis, or STAMP/CAST study.
