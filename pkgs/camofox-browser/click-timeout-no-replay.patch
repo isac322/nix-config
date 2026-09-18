@@ -1,20 +1,14 @@
 --- a/server.js
 +++ b/server.js
-@@ -3883,12 +3883,20 @@
+@@ -3883,12 +3883,16 @@
              log('info', 'click constrained selector to visible match', { selector: locatorOrSelector });
            }
          }
--        const click = async (options) => clickWithDownloadGuard(tabState, () => locator.click(options));
-+        // Spend the remaining handler budget on each click attempt, reserving
-+        // 2500ms: the existing 500ms post-click wait plus the 2000ms post-click
-+        // refs floor, so both still fit inside HANDLER_TIMEOUT_MS.
-+        const click = async (options) => clickWithDownloadGuard(tabState, () =>
-+          locator.click({ timeout: Math.max(1, remainingBudget() - 2500), ...options }));
+         const click = async (options) => clickWithDownloadGuard(tabState, () => locator.click(options));
          
          if (onGoogleSerp) {
            try {
--            await click({ timeout: 3000, force: true });
-+            await click({ force: true });
+             await click({ timeout: 3000, force: true });
            } catch (forceErr) {
 +            // A timed-out click is ambiguous: the event may already have
 +            // dispatched. Re-dispatching would click twice, so propagate the
@@ -23,12 +17,11 @@
              log('warn', 'google force click failed, trying mouse sequence');
              await dispatchMouseSequence(locator);
            }
-@@ -3897,14 +3905,19 @@
+@@ -3897,14 +3901,19 @@
          
          try {
            // First try normal click (respects visibility, enabled, not-obscured)
--          await click({ timeout: 3000 });
-+          await click();
+           await click({ timeout: 3000 });
          } catch (err) {
 +          // A timed-out click is ambiguous: the event may already have
 +          // dispatched. Re-dispatching would click twice, so propagate the
@@ -38,14 +31,13 @@
            if (err.message.includes('intercepts pointer events')) {
              log('warn', 'click intercepted, retrying with force');
              try {
--              await click({ timeout: 3000, force: true });
-+              await click({ force: true });
+               await click({ timeout: 3000, force: true });
              } catch (forceErr) {
 +              if (isTimeoutError(forceErr)) throw forceErr;
                // Fallback 2: Full mouse event sequence for stubborn JS handlers
                log('warn', 'force click failed, trying mouse sequence');
                await dispatchMouseSequence(locator);
-@@ -6812,6 +6825,7 @@
+@@ -6812,6 +6821,7 @@
              try {
                await locator.click(clickOpts);
              } catch (err) {

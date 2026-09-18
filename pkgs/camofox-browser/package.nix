@@ -73,9 +73,8 @@ buildNpmPackage {
   # mouse sequence) re-dispatch on that timeout, so one client click can
   # land twice. Propagate timeout errors instead of re-dispatching; real
   # intercept timeouts also fail closed because the call log cannot prove a
-  # retry is safe. Each attempt now spends the remaining handler budget
-  # instead of a fixed 3s, reserving the existing post-click wait and refs
-  # floor. Non-timeout failures keep the existing fallback behavior.
+  # retry is safe. Keep the upstream 3s click timeout and the existing
+  # fallback behavior for non-timeout failures.
   #
   # Upstream ships a POST /tabs/:tabId/select route for native <select>
   # dropdowns but never exposes it through the MCP/OpenClaw tool contracts,
