@@ -68,13 +68,12 @@ buildNpmPackage {
   # REST compatibility path when no sessionKey is supplied, but make the MCP
   # adapter send it on every operation and enforce that group on the server.
   #
-  # A timed-out locator click is ambiguous: the click event may already have
-  # been dispatched. Upstream's click fallbacks (force retry, then a raw
-  # mouse sequence) re-dispatch on that timeout, so one client click can
-  # land twice. Propagate timeout errors instead of re-dispatching; real
-  # intercept timeouts also fail closed because the call log cannot prove a
-  # retry is safe. Keep the upstream 3s click timeout and the existing
-  # fallback behavior for non-timeout failures.
+  # Playwright can deliver a click to the page and still time out waiting for
+  # its own acknowledgement. Upstream then runs a raw mouse sequence, so the
+  # page receives a second click about 130ms later; a save button submits
+  # twice. Witness page-level clicks around each attempt and skip the fallback
+  # when the click already landed, keeping the fallback for pages where the
+  # event never arrives.
   #
   # Upstream ships a POST /tabs/:tabId/select route for native <select>
   # dropdowns but never exposes it through the MCP/OpenClaw tool contracts,
@@ -82,10 +81,17 @@ buildNpmPackage {
   # Add camofox_select to the canonical tool list and forward sessionKey on
   # the select route's findTab so it honors the same session isolation as
   # every other MCP-exposed operation.
+  #
+  # Upstream also ships POST /tabs/:tabId/press without an MCP tool, so agents
+  # cannot activate a focused control by keyboard. Mouse dispatch on this stack
+  # can deliver a second click ~130ms later, which lands on whatever replaced
+  # the button and submits an unintended write. Expose camofox_press and honor
+  # sessionKey on that route so a keyboard activation is available.
   patches = [
     ./session-isolation.patch
-    ./click-timeout-no-replay.patch
+    ./click-witness.patch
     ./select-tool.patch
+    ./press-tool.patch
   ];
   postPatch = ''
     substituteInPlace lib/config.js \

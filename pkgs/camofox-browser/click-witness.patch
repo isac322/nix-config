@@ -1,0 +1,102 @@
+--- a/server.js
++++ b/server.js
+@@ -3871,6 +3871,38 @@
+         
+         log('info', 'mouse sequence dispatched', { x: x.toFixed(0), y: y.toFixed(0) });
+       };
++      // Playwright can deliver the click to the page and still time out waiting
++      // for its own acknowledgement; the fallback below then delivers a second
++      // click. A duplicate click is not idempotent for callers (a save button
++      // submits twice), so witness page-level clicks and skip the fallback when
++      // the click already landed.
++      const armClickWitness = async () => {
++        try {
++          await tabState.page.evaluate(() => {
++            globalThis.__camofoxClickWitness = { count: 0, last_epoch_ms: 0 };
++            if (globalThis.__camofoxClickWitnessArmed) return;
++            globalThis.__camofoxClickWitnessArmed = true;
++            document.addEventListener('click', () => {
++              const current = globalThis.__camofoxClickWitness;
++              if (!current) return;
++              current.count += 1;
++              current.last_epoch_ms = Date.now();
++            }, true);
++          });
++          return true;
++        } catch {
++          return false;
++        }
++      };
++      const clickAlreadyLanded = async () => {
++        try {
++          return await tabState.page.evaluate(
++            () => (globalThis.__camofoxClickWitness ? globalThis.__camofoxClickWitness.count : 0) > 0,
++          );
++        } catch {
++          return false;
++        }
++      };
+       
+       // On Google SERPs, skip the normal click attempt (always intercepted by overlays)
+       // and go directly to force click -- saves 5s timeout per click
+@@ -3890,12 +3922,26 @@
+             log('info', 'click constrained selector to visible match', { selector: locatorOrSelector });
+           }
+         }
+-        const click = async (options) => clickWithDownloadGuard(tabState, () => locator.click(options));
++        // Spend the remaining handler budget on the click itself, reserving
++        // 2500ms for the existing post-click wait and refs floor. The upstream
++        // 3s cap expired while the click was still in flight on slower pages,
++        // which pushed every click into the mouse-sequence fallback.
++        const click = async (options) =>
++          clickWithDownloadGuard(tabState, () =>
++            locator.click({ timeout: Math.max(1, remainingBudget() - 2500), ...options }));
++        // Playwright can also deliver the click and still fail its own wait, so
++        // witness page-level clicks and skip the fallback once one landed: a
++        // duplicate click submits a second write.
++        const witnessed = await armClickWitness();
+         
+         if (onGoogleSerp) {
+           try {
+-            await click({ timeout: 3000, force: true });
++            await click({ force: true });
+           } catch (forceErr) {
++            if (witnessed && (await clickAlreadyLanded())) {
++              log('info', 'google force click landed before its wait failed; skipping mouse sequence');
++              return;
++            }
+             log('warn', 'google force click failed, trying mouse sequence');
+             await dispatchMouseSequence(locator);
+           }
+@@ -3904,14 +3950,22 @@
+         
+         try {
+           // First try normal click (respects visibility, enabled, not-obscured)
+-          await click({ timeout: 3000 });
++          await click();
+         } catch (err) {
++          if (witnessed && (await clickAlreadyLanded())) {
++            log('info', 'click landed before its wait failed; skipping fallbacks');
++            return;
++          }
+           // Fallback 1: If intercepted by overlay, retry with force
+           if (err.message.includes('intercepts pointer events')) {
+             log('warn', 'click intercepted, retrying with force');
+             try {
+-              await click({ timeout: 3000, force: true });
++              await click({ force: true });
+             } catch (forceErr) {
++              if (witnessed && (await clickAlreadyLanded())) {
++                log('info', 'force click landed before its wait failed; skipping mouse sequence');
++                return;
++              }
+               // Fallback 2: Full mouse event sequence for stubborn JS handlers
+               log('warn', 'force click failed, trying mouse sequence');
+               await dispatchMouseSequence(locator);
+@@ -7187,4 +7241,4 @@
+   }
+   log('error', 'server error', { error: err.message });
+   process.exit(1);
+-});
++});
+\ No newline at end of file

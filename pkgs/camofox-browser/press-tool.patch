@@ -1,0 +1,57 @@
+--- a/mcp/lib/tool-contracts.mjs
++++ b/mcp/lib/tool-contracts.mjs
+@@ -64,7 +64,7 @@
+ ];
+ 
+ /**
+- * The 12 tools, identical schema for both hosts. Edit here and both update.
++ * The 13 tools, identical schema for both hosts. Edit here and both update.
+  * @type {ToolDef[]}
+  */
+ export const TOOL_DEFS = [
+@@ -127,6 +127,19 @@
+     },
+   },
+   {
++    name: 'camofox_press',
++    description:
++      'Press a keyboard key in a Camoufox tab. Activates the focused control without a mouse dispatch, e.g. Enter on a focused button.',
++    inputSchema: {
++      type: 'object',
++      properties: {
++        tabId: { type: 'string', description: 'Tab identifier' },
++        key: { type: 'string', description: 'Key name such as Enter, Escape, Tab, or ArrowDown' },
++      },
++      required: ['tabId', 'key'],
++    },
++  },
++  {
+     name: 'camofox_select',
+     description:
+       'Select an option in a native <select> dropdown in a Camoufox tab by ref (e.g., e1) or CSS selector. Matches by visible label or HTML value.',
+@@ -302,6 +315,14 @@
+         responseKind: 'json',
+         body: { ...without(args), userId, sessionKey },
+       };
++    case 'camofox_press':
++      return {
++        method: 'POST',
++        path: `/tabs/${args.tabId}/press`,
++        auth: 'accessKey',
++        responseKind: 'json',
++        body: { ...without(args), userId, sessionKey },
++      };
+     case 'camofox_select':
+       return {
+         method: 'POST',
+--- a/server.js
++++ b/server.js
+@@ -4567,7 +4567,7 @@
+   try {
+     const { userId, key } = req.body;
+     const session = sessions.get(normalizeUserId(userId));
+-    const found = session && findTab(session, tabId);
++    const found = session && findTab(session, tabId, req.body.sessionKey);
+     if (!found) return tabNotFoundResponse(res, req.params.tabId || req.body?.tabId);
+     session.lastAccess = Date.now();
+     
