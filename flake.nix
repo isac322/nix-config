@@ -41,9 +41,9 @@
         treefmt-nix.url = "git+https://github.com/numtide/treefmt-nix.git?rev=df3c0640565d04a0261253cdd89fce78ec50168a&shallow=1";
         treefmt-nix.inputs.nixpkgs.url = "git+https://github.com/NixOS/nixpkgs.git?rev=4533d9293756b63904b7238acb84ac8fe4c8c2c4&shallow=1";
       };
-      flake-parts.url = "git+https://github.com/hercules-ci/flake-parts.git?rev=f16b25b8c3d2809b87925d0b76652d7821a75c68&shallow=1";
+      flake-parts.url = "git+https://github.com/hercules-ci/flake-parts.git?rev=31729ca8cbdb4fa927b34e5f4353e6a83f39e993&shallow=1";
       flake-parts.inputs.nixpkgs-lib.url = "git+https://github.com/nix-community/nixpkgs.lib.git?rev=596e2e3940e09b2abbeb03f75fa1828c57fcd72c&shallow=1";
-      nixpkgs.url = "git+https://github.com/NixOS/nixpkgs.git?rev=e8be7818e19ada32105a8af937a6a473b38167ca&shallow=1";
+      nixpkgs.url = "git+https://github.com/NixOS/nixpkgs.git?rev=c7def046b9a883d46974757852106483d741586f&shallow=1";
       systems.url = "git+https://github.com/nix-systems/default.git?rev=da67096a3b9bf56a91d16901293e51ba5b49a27e&shallow=1";
       treefmt-nix.url = "git+https://github.com/numtide/treefmt-nix.git?rev=27b3b12a8e6375f28ebe122f07d230ca5459bbfa&shallow=1";
     };
