@@ -1,0 +1,59 @@
+--- a/mcp/lib/tool-contracts.mjs
++++ b/mcp/lib/tool-contracts.mjs
+@@ -64,6 +64,6 @@
+ ];
+ 
+ /**
+- * The 11 tools, identical schema for both hosts. Edit here and both update.
++ * The 12 tools, identical schema for both hosts. Edit here and both update.
+  * @type {ToolDef[]}
+  */
+@@ -126,6 +126,21 @@
+       required: ['tabId', 'text'],
+     },
+   },
++  {
++    name: 'camofox_select',
++    description:
++      'Select an option in a native <select> dropdown in a Camoufox tab by ref (e.g., e1) or CSS selector. Matches by visible label or HTML value.',
++    inputSchema: {
++      type: 'object',
++      properties: {
++        tabId: { type: 'string', description: 'Tab identifier' },
++        ref: { type: 'string', description: 'Element ref from snapshot (e.g., e1)' },
++        selector: { type: 'string', description: 'CSS selector (alternative to ref)' },
++        option: { type: 'string', description: 'Visible option label or HTML value to select' },
++      },
++      required: ['tabId', 'option'],
++    },
++  },
+   {
+     name: 'camofox_navigate',
+     description:
+@@ -285,6 +298,14 @@
+         responseKind: 'json',
+         body: { ...without(args), userId, sessionKey },
+       };
++    case 'camofox_select':
++      return {
++        method: 'POST',
++        path: `/tabs/${args.tabId}/select`,
++        auth: 'accessKey',
++        responseKind: 'json',
++        body: { ...without(args), userId, sessionKey },
++      };
+     case 'camofox_navigate':
+       return {
+         method: 'POST',
+--- a/server.js
++++ b/server.js
+@@ -4433,8 +4433,8 @@
+   const tabId = req.params.tabId;
+   try {
+     const { userId, ref, selector, option } = req.body;
+     const session = sessions.get(normalizeUserId(userId));
+-    const found = session && findTab(session, tabId);
++    const found = session && findTab(session, tabId, req.body.sessionKey);
+     if (!found) return tabNotFoundResponse(res, req.params.tabId || req.body?.tabId);
+     if ((!ref && !selector) || typeof option !== 'string' || !option) {
+       return res.status(400).json({ error: 'ref or selector and a nonempty option are required' });

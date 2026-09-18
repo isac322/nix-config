@@ -67,7 +67,27 @@ buildNpmPackage {
   # so clients sharing cookies also shared tab visibility and control. Keep the
   # REST compatibility path when no sessionKey is supplied, but make the MCP
   # adapter send it on every operation and enforce that group on the server.
-  patches = [ ./session-isolation.patch ];
+  #
+  # A timed-out locator click is ambiguous: the click event may already have
+  # been dispatched. Upstream's click fallbacks (force retry, then a raw
+  # mouse sequence) re-dispatch on that timeout, so one client click can
+  # land twice. Propagate timeout errors instead of re-dispatching; real
+  # intercept timeouts also fail closed because the call log cannot prove a
+  # retry is safe. Each attempt now spends the remaining handler budget
+  # instead of a fixed 3s, reserving the existing post-click wait and refs
+  # floor. Non-timeout failures keep the existing fallback behavior.
+  #
+  # Upstream ships a POST /tabs/:tabId/select route for native <select>
+  # dropdowns but never exposes it through the MCP/OpenClaw tool contracts,
+  # so agents must fall back to synthetic clicks that many dropdowns ignore.
+  # Add camofox_select to the canonical tool list and forward sessionKey on
+  # the select route's findTab so it honors the same session isolation as
+  # every other MCP-exposed operation.
+  patches = [
+    ./session-isolation.patch
+    ./click-timeout-no-replay.patch
+    ./select-tool.patch
+  ];
   postPatch = ''
     substituteInPlace lib/config.js \
       --replace-fail \
