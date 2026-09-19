@@ -87,11 +87,16 @@ buildNpmPackage {
   # can deliver a second click ~130ms later, which lands on whatever replaced
   # the button and submits an unintended write. Expose camofox_press and honor
   # sessionKey on that route so a keyboard activation is available.
+  #
+  # Camoufox humanizes every cursor path, which costs seconds per click and is
+  # unwanted while measuring UI latency. Keep it on by default and allow
+  # CAMOFOX_HUMANIZE=0 to turn it off for a measurement run.
   patches = [
     ./session-isolation.patch
     ./click-witness.patch
     ./select-tool.patch
     ./press-tool.patch
+    ./humanize-toggle.patch
   ];
   postPatch = ''
     substituteInPlace lib/config.js \

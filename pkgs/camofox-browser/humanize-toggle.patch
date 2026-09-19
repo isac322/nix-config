@@ -1,0 +1,13 @@
+--- a/server.js
++++ b/server.js
+@@ -1163,7 +1163,9 @@
+         executable_path: externalCamoufox?.executablePath,
+         headless: useVirtualDisplay ? false : !useDesktopWindow,
+         os: hostOS,
+-        humanize: true,
++        // Humanized cursor paths add seconds to every click. Keep them on by
++        // default and let a measurement run opt out with CAMOFOX_HUMANIZE=0.
++        humanize: process.env.CAMOFOX_HUMANIZE !== '0',
+         enable_cache: true,
+         proxy: launchProxy,
+         geoip: !!launchProxy,
