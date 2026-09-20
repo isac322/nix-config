@@ -79,10 +79,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1789668360,
-        "narHash": "sha256-MFw90P3iLhh59qzSX/GrbnJqGY16OKj/D6YTPL2gWzY=",
+        "lastModified": 1789819540,
+        "narHash": "sha256-/yWSkEo99ERmC7msac2SpCFT95yQCizxa/eaBSOO12k=",
         "ref": "main",
-        "rev": "c127f2fe8496fefc36e0ebef36ded92d4fa8f570",
+        "rev": "5283a70780305994433cb65d6a0275386e797172",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -233,10 +233,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1789696004,
-        "narHash": "sha256-6ZKPgCYCMJ6JvQyVOClhYLMKMAF8NUvVaXuyd5TeII0=",
+        "lastModified": 1789856044,
+        "narHash": "sha256-4CCJwbhAv7z9V1bLwR7y9QjR6rqKxx/xl6sMWAR4frw=",
         "ref": "refs/heads/main",
-        "rev": "664bcda63dd638da1e72f094fa63d52717aa458b",
+        "rev": "95edf9ff9172ca82f18ef34ccca2776b15348bb1",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -276,10 +276,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1789695075,
-        "narHash": "sha256-HREFWgmCTp28ZdMkSFOW2QW8uI17v5CNc04W46h6aPo=",
+        "lastModified": 1789867870,
+        "narHash": "sha256-sOag/7DTqw4tXLI7UxjrZxPGV+dlTe6zFtJn0VSkgFM=",
         "ref": "master",
-        "rev": "4ac5a2ae9025eab1ebece4f9df8c315fd84a738a",
+        "rev": "d2a22a3659a6ae99847ea9176114f6957b8ac62e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -317,10 +317,10 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1789704697,
-        "narHash": "sha256-xDcbtGGYHIwNkAWJtf9MJ0/+Y/dbx3zfRGjdMDfNBRA=",
+        "lastModified": 1789858916,
+        "narHash": "sha256-y1ktPuDcgROTj+8KAuj1h0DTCMp4qUlVczzkfDd1z2g=",
         "ref": "refs/heads/main",
-        "rev": "e22caee8b8e21297ac672acf8f4451a34d6bae4c",
+        "rev": "91412318114998c8dbbda4fd873af413d3e7bfd6",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -431,10 +431,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1789698917,
-        "narHash": "sha256-dXOL11p6qPHdDDGwbpLy2Fe9LcyjpdWw/b7XzqQm60c=",
+        "lastModified": 1789785315,
+        "narHash": "sha256-TkqyYtbi/r0yOiAMaF/3BsWZIG8BzX0Oq4WQ8uswXxc=",
         "ref": "refs/heads/main",
-        "rev": "0742c611b98c9a008a6ae299ed6c36d82359a307",
+        "rev": "6288b37fb86a60b750cae3c9b0584e8386f7b4fe",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
