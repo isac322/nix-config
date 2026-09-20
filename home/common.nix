@@ -514,7 +514,9 @@ in
     # wrapper.
     googleCloudSdk
     pkgs.kubernetes-helm
-    pkgs.nodejs_24
+    # The Current release line, not the LTS alias: user-facing Node tracks the
+    # newest stable nixpkgs ships rather than a named major.
+    pkgs.nodejs_latest
     pkgs.pnpm
     python
     pkgs.rsync

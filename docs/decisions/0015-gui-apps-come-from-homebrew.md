@@ -4,7 +4,8 @@
 [레퍼런스 · GUI 앱](../reference.md#gui-앱)에 둔다.
 
 대부분은 nixpkgs에 Darwin 빌드가 없고, 있는 것도 특권 구성요소가 빠진 앱 번들
-복사본이다. `onActivation.upgrade`가 켜져 있어 최신 유지도 Homebrew가 맡는다.
+복사본이다. `onActivation.upgrade`와 모든 cask의 `greedy = true`로 switch가
+최신 유지도 맡는다. 자체 업데이트 기능이나 `version :latest`는 제외 사유가 아니다.
 
 **실체가 시스템 서비스인 패키지는 store에서 설치할 수 없다.** WARP가 그 전형이다.
 nixpkgs도 `cloudflare-warp`를 aarch64-darwin으로 빌드하지만, Darwin 분기는 `.pkg`

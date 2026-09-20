@@ -104,11 +104,12 @@ in
     onActivation.upgrade = true;
     # Keep Homebrew's index fresh before upgrading managed packages.
     onActivation.autoUpdate = true;
-    # Homebrew upgrades `auto_updates` casks during `brew bundle` activation
-    # unless this is set. Those apps own their writable bundles; letting both
-    # updaters act leaves Homebrew's Caskroom metadata inconsistent. Casks
-    # explicitly marked `greedy = true`, such as Cloudflare WARP, still update.
-    onActivation.extraEnv.HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS = "1";
+    # Upgrade every declared cask on switch, including `auto_updates` and
+    # `version :latest` ones. `brew bundle` only consults the per-cask
+    # `greedy:` Brewfile option — HOMEBREW_UPGRADE_GREEDY never reaches it —
+    # and this default lands on every cask below and any added later, so a
+    # new declaration is covered without remembering a flag.
+    greedyCasks = true;
     taps = [
       {
         name = "stablyai/orca";
@@ -117,8 +118,8 @@ in
     ];
 
     casks = [
-      # Orca owns updates to its writable app bundle itself. The activation
-      # environment above keeps Homebrew from competing with that updater.
+      # Headless Orca has no in-app updater, so the switch upgrade is the
+      # only update path it has.
       "stablyai/orca/orca"
 
       # Karabiner-Elements deliberately absent: it cannot be brought up without
@@ -135,6 +136,31 @@ in
       "rustdesk"
     ];
   };
+
+  # Fail closed on the two ways "upgrade every declared cask" could silently
+  # not happen. nix-darwin's homebrew activation only echoes "skipping" when
+  # the brew binary is absent and still exits 0, so check it ourselves. This
+  # lives in the homebrew activation at order 600 — after nix-homebrew's
+  # setup-homebrew (mkBefore) has had its chance to create bin/brew, before
+  # the macFUSE bootstrap (750) and the bundle itself (1000) — so a first
+  # activation that installs Homebrew is not failed by its own check.
+  system.activationScripts.homebrew.text = lib.mkOrder 600 ''
+    if [ ! -x "${config.homebrew.prefix}/bin/brew" ]; then
+      echo "" >&2
+      echo "  homebrew.enable is set but ${config.homebrew.prefix}/bin/brew does" >&2
+      echo "  not exist after Homebrew setup ran. The nix-homebrew prefix" >&2
+      echo "  setup above should have created it; read its output for why." >&2
+      echo "" >&2
+      exit 1
+    fi
+  '';
+
+  assertions = [
+    {
+      assertion = lib.all (cask: cask.greedy == true) config.homebrew.casks;
+      message = "every homebrew.casks entry must resolve greedy == true; do not set greedy = false on a cask";
+    }
+  ];
 
   # Why a switch asks for a password a second time, after the one that started
   # it. Homebrew refuses to run as root, so nix-darwin's activation — which is

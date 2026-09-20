@@ -85,10 +85,10 @@ nixos-rebuild switch --flake ~/nix-config#server \
 7. **GPG 키 가져오기.** 커밋 서명과 SSH 인증이 둘 다 이 키를 쓰므로 없으면 둘 다
    먹통이다. activation 이 없다는 걸 알아채고 절차를 그 자리에서 안내한다 —
    [운영 · GPG 키 가져오기](docs/operations.md#gpg-키-가져오기) 와 같은 내용이다.
-8. **App Store 전용 앱 두 개** — 랩탑만. KakaoTalk 과 WireGuard 는 손으로 깐다
-   ([0016](docs/decisions/0016-mas-only-apps-installed-by-hand.md)). 없으면
-   switch 가 매번 알리므로 잊고 넘어갈 일은 없다. 서버 맥은 WireGuard 앱을 안
-   쓰고 터널을 데몬으로 돌린다 —
+8. **App Store 로그인** — 랩탑만. KakaoTalk과 WireGuard를 받을 Apple 계정으로
+   App Store에 로그인하고 두 앱을 계정에 등록한다. 이후 switch가 설치·업데이트한다
+   ([0016](docs/decisions/0016-mas-only-apps-installed-by-hand.md)). 로그인·권한 문제는
+   switch 실패로 표시한다. 서버 맥은 WireGuard 앱 대신 터널 데몬을 쓴다 —
    [0029](docs/decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md), 대신
    `/etc/wireguard/<iface>.conf` 를 놓는다
    ([운영](docs/operations.md#wireguard-서버-맥)).
@@ -106,21 +106,24 @@ nixos-rebuild switch --flake ~/nix-config#server \
 
 ## 업데이트
 
-버전은 전부 `flake.lock`에 고정돼 있다. lock을 갱신해야 올라간다.
+전체 갱신은 릴리스 스냅샷과 flake 입력을 함께 갱신한 뒤 각 기기에서 적용한다.
 
 ```sh
-nix flake update                    # 전체
-nix flake update nixpkgs            # 특정 인풋만
-# 그리고 각 기기에서 switch
+nix run .#update-packages
+sudo darwin-rebuild switch --flake .#<hostname>  # macOS
+# NixOS는 해당 기기에서 nixos-rebuild switch
 ```
 
-lock 은 공유 상태다 — 한 기기에서 갱신하고 나머지는 pull 한다
+lock과 스냅샷은 공유 상태다 — 한 기기에서 갱신하고 나머지는 pull 후 switch한다
 ([운영 · 기기 간 독립성](docs/operations.md#기기-간-독립성)).
+`nix flake update`만 실행하면 별도 릴리스 스냅샷과 하위 입력 override는 갱신되지 않는다.
+switch는 선언된 Homebrew 앱과 App Store 앱도 갱신한다. 인증·권한·호환성 문제로
+완료하지 못한 업데이트는 실패로 보고하며, 실행 중인 앱의 새 버전 전환에는
+별도 재시작이 필요할 수 있다.
 
-flake 밖에서 관리되는 것:
-
-- **Nix 자체 (맥)** — `sudo determinate-nixd upgrade`
-- **Homebrew** — `onActivation.{upgrade,autoUpdate}`가 켜져 있어 switch 때 같이 올라간다
+macOS의 `update-packages`는 소스 갱신을 마친 뒤 Determinate Nix 자체도 stable
+채널로 갱신한다. 이 단계에는 관리자 권한이 필요하며 Nix 데몬이 재시작될 수 있다.
+Homebrew와 App Store 앱은 뒤이은 switch에서 갱신한다.
 
 ## 문서
 

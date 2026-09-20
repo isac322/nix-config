@@ -4,11 +4,13 @@
   bun2nix,
   importNpmLock,
   lib,
+  nodejs,
   pkg-config,
   python3,
   stdenv,
   stdenvNoCC,
   sourceInputs,
+  npmSourceOverrides ? { },
 }:
 
 let
@@ -151,6 +153,7 @@ let
 
       nativeBuildInputs = [
         bun2nix.hook
+        nodejs
         pkg-config
         python3
       ];
@@ -173,24 +176,26 @@ let
     builtins.readFile "${sourceInputs.piCodegraph}/package-lock.json"
   );
   piCodingAgentPath = "node_modules/@earendil-works/pi-coding-agent";
-  piCodingAgentExpected = {
-    version = "0.85.1";
-    resolved = "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.85.1.tgz";
-    integrity = "sha512-FGRN+OHbWaefBPGaTggAdLjrIHW+s2PzLyglz/5dfLzb9of7uuXMXYC0fJIeZTw+shS32o2cuQ9jF7YSDuL/oQ==";
-  };
   piCodingAgentLocked = piCodegraphPackageLock.packages.${piCodingAgentPath} or { };
+  piCodingAgentHasShrinkwrap = piCodingAgentLocked.hasShrinkwrap or false;
+
+  # pi-coding-agent's published tarball carries an npm-shrinkwrap.json that
+  # pins its own dependency tree. importNpmLock already resolves that tree
+  # from the lock entries below, so the bundled shrinkwrap is repacked out —
+  # which changes the tarball and is why the lock's integrity for this entry
+  # is dropped in favor of the repacked source. When upstream stops shipping
+  # the shrinkwrap the lock entry is used untouched and no override is made.
   piCodingAgentWithoutShrinkwrap =
     assert lib.assertMsg (
-      (piCodingAgentLocked.version or null) == piCodingAgentExpected.version
-      && (piCodingAgentLocked.resolved or null) == piCodingAgentExpected.resolved
-      && (piCodingAgentLocked.integrity or null) == piCodingAgentExpected.integrity
-      && (piCodingAgentLocked.hasShrinkwrap or false)
-    ) "pi-codegraph: pi-coding-agent shrinkwrap contract changed";
+      (piCodingAgentLocked.resolved or null) != null
+      && lib.hasPrefix "https://" piCodingAgentLocked.resolved
+      && (piCodingAgentLocked.integrity or null) != null
+    ) "pi-codegraph: pi-coding-agent lock entry lost its resolved URL or integrity";
     stdenvNoCC.mkDerivation {
-      name = "pi-coding-agent-without-shrinkwrap-${piCodingAgentExpected.version}.tgz";
+      name = "pi-coding-agent-without-shrinkwrap-${piCodingAgentLocked.version}.tgz";
       src = fetchurl {
-        url = piCodingAgentExpected.resolved;
-        hash = piCodingAgentExpected.integrity;
+        url = piCodingAgentLocked.resolved;
+        hash = piCodingAgentLocked.integrity;
       };
       dontUnpack = true;
       installPhase = ''
@@ -204,42 +209,19 @@ let
         runHook postInstall
       '';
     };
-  piCodegraphPackageLockWithoutShrinkwrap = piCodegraphPackageLock // {
-    packages = piCodegraphPackageLock.packages // {
-      ${piCodingAgentPath} = builtins.removeAttrs piCodingAgentLocked [
-        "hasShrinkwrap"
-        "integrity"
-      ];
-    };
-  };
-
-  piCodegraphMissingIntegrityOverrides = {
-    "node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/chord" = {
-      version = "0.85.1";
-      resolved = "https://registry.npmjs.org/@earendil-works/chord/-/chord-0.85.1.tgz";
-      integrity = "sha512-VDlkEC3dhCzQ5fcyH1OhG19dq+6jCn+rqc/iXFivwDYGR5anwo2RCiXij9PpHhqNR5GuhhE+Er69Zi1Sn4eY6w==";
-    };
-    "node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-agent-core" = {
-      version = "0.85.1";
-      resolved = "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.85.1.tgz";
-      integrity = "sha512-hIXIP3eAWueAYiAl8aMvWCvvZ8Q5gT3Dip5bE5uJyIGh4+YlWRjtMLI4BaeoXoSs93zndjue61u1B/vhefLnuA==";
-    };
-    "node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai" = {
-      version = "0.85.1";
-      resolved = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.85.1.tgz";
-      integrity = "sha512-+VgVIJDkDO2efYJKEEqvPTH4zmnIaXdAppGbO+vKFA9qy5PdhFiAenuFAkU+oiCSfOC4dMHDyrjdQeL4ZoC5CQ==";
-    };
-    "node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-telemetry" = {
-      version = "0.85.1";
-      resolved = "https://registry.npmjs.org/@earendil-works/pi-telemetry/-/pi-telemetry-0.85.1.tgz";
-      integrity = "sha512-Bg/YN6kA7Swja/NQxka8xFdecb4E/auIEGF2G5A25EaQXhRnPj300/7/KpgsDDMYUzHTDAv4RyUxaQPJKW81Rw==";
-    };
-    "node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui" = {
-      version = "0.85.1";
-      resolved = "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.85.1.tgz";
-      integrity = "sha512-OIzw9efInmO4WOBnD4TxcTdBjmzvYJpzslkgoUro946nEGoYWg5rwv1p4fDt3/JvMx9QybryUCUwlm7j8Dreig==";
-    };
-  };
+  piCodegraphPackageLockWithoutShrinkwrap =
+    if piCodingAgentHasShrinkwrap then
+      piCodegraphPackageLock
+      // {
+        packages = piCodegraphPackageLock.packages // {
+          ${piCodingAgentPath} = builtins.removeAttrs piCodingAgentLocked [
+            "hasShrinkwrap"
+            "integrity"
+          ];
+        };
+      }
+    else
+      piCodegraphPackageLock;
 
   plugins = {
     "pi-anthropic-web-fetch" = sourcePackage "pi-anthropic-web-fetch" sourceInputs.piAnthropicWebFetch;
@@ -252,10 +234,15 @@ let
     "@isac322/pi-codegraph" = npmPackage {
       name = "pi-codegraph";
       source = sourceInputs.piCodegraph;
-      missingIntegrityOverrides = piCodegraphMissingIntegrityOverrides;
+      # The snapshot's piCodegraph map is maintained by update-packages: it
+      # holds a verified tarball hash for every lock entry that has an
+      # HTTP(S) resolved URL but no integrity field.
+      missingIntegrityOverrides = npmSourceOverrides;
       integrityContractLock = piCodegraphPackageLock;
       packageLock = piCodegraphPackageLockWithoutShrinkwrap;
-      packageSourceOverrides.${piCodingAgentPath} = piCodingAgentWithoutShrinkwrap;
+      packageSourceOverrides = lib.optionalAttrs piCodingAgentHasShrinkwrap {
+        ${piCodingAgentPath} = piCodingAgentWithoutShrinkwrap;
+      };
     };
     "context-mode" = contextModePackage;
   };

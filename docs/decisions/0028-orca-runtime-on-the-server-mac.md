@@ -9,9 +9,10 @@
 `/Applications/Orca.app`에 있고, 번들 CLI가 `serve`의 부모 supervisor로 남아
 updater handoff를 받은 뒤 앱 교체와 새 런타임 readiness 확인을 맡는다. Nix
 store에서 앱을 직접 실행하면 store가 불변이라 같은 updater를 지원할 수 없다.
-Nix는 cask의 설치 여부만 선언하고, activation에서는
-`HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS=1`로 Homebrew의 중복 업그레이드를 막는다.
-`auto_updates`인 Orca의 실제 앱 교체는 자체 updater에 맡긴다.
+서버 모드는 업데이트 다운로드와 설치에 명시적인 요청이 필요하므로 자체 updater만으로
+최신 버전을 유지할 수 없다. Orca를 포함한 모든 cask에 `greedy = true`를 적용해
+`darwin-rebuild switch`에서도 앱을 업그레이드한다. Homebrew가 앱을 교체하는 것과
+실행 중인 서버가 새 버전으로 전환되는 것은 별개이므로, 실행 버전은 재시작 후 확인한다.
 
 이전에는 1.4.190~1.4.194의 `serve` 기동 시 `AppEnvironment not initialized`
 회귀(stablyai/orca#16761) 때문에 1.4.188에 고정했으나, 상류 PR #16762가

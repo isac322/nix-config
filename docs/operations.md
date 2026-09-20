@@ -8,10 +8,11 @@
 각 기기는 자기 설정을 스스로 빌드하고 전환한다. 서버는 맥에 전혀 의존하지 않는다.
 다만 두 가지를 기억할 것.
 
-**`flake.lock`은 공유 상태다.** `switch`는 lock을 건드리지 않지만
-`nix flake update`는 다시 쓴다. 기기마다 각자 update를 돌리면 lock이 갈라지고,
-[단일 레포로 묶은 의미](decisions/0001-single-repo-single-lock.md)가 사라진다.
-한 기기에서 update → commit → push 하고 나머지는 pull → switch 한다.
+**lock·스냅샷·하위 입력 override는 공유 상태다.** `switch`는 이 파일들을
+갱신하지 않고, `nix run .#update-packages`가 함께 갱신한다. 기기마다 각자
+update를 돌리면 상태가 갈라진다
+([단일 레포](decisions/0001-single-repo-single-lock.md)).
+한 기기에서 update-packages → 검증 → commit → push하고 나머지는 pull → switch한다.
 
 **평가는 크로스 플랫폼이지만 빌드는 아니다.** 맥에서 `nixosConfigurations.server`를
 평가해 drv 를 얻는 것은 되지만 realise 는 안 된다 (`extra-platforms` 가 비어 있고
@@ -31,19 +32,35 @@ determinateNixd.builder = {
 
 ## 패키지 릴리스 갱신
 
-공식 release binary와 npm package는 다음 명령으로 한 기기에서만 갱신한다.
+선언된 패키지를 전체 갱신할 때는 다음 명령을 한 기기에서만 실행한다.
 
 ```sh
 nix run .#update-packages
 ```
 
-명령은 release API·npm metadata·공식 checksum/manifest에서 package에 필요한
-안정 필드만 `pkgs/release-snapshots.json`에 기록하고, 이어서 Git source input을
-`flake.lock`에서 갱신한다. 같은 URL의 응답이 수시로 바뀌는 endpoint는 flake
-input으로 잠그지 않으므로, 새 release가 나온 뒤에도 평범한 `switch`가
-`narHash` 불일치로 깨지지 않는다. 어느 단계든 실패하면 snapshot과 lock을 둘 다
-실행 전 상태로 원복한다. 성공한 변경은 검증한 뒤 commit·push하고 다른 기기에서는
-pull·switch만 한다.
+명령은 release API·npm metadata·공식 checksum/manifest에서 필요한 필드를
+`pkgs/release-snapshots.json`에 기록하고 Git source input을 갱신한다.
+하위 GitHub 입력 override는 새 상위 flake의 lock에 맞춰 갱신하며, Git fetcher로
+바꾸어도 같은 `narHash`인지 확인한다. 의존성을 상위 lock과 무관한 최신 HEAD로
+옮기지 않는다. 누락된 npm integrity 보완 데이터도 선택한 source lock에 맞춘다.
+소스 갱신 단계가 실패하면 snapshot·`flake.nix`·`flake.lock`을 실행 전 상태로 복원한다.
+macOS에서는 그 단계가 끝난 뒤 `sudo determinate-nixd upgrade --version stable`로
+Nix 자체도 갱신한다. Nix 데몬을 재시작할 수 있어 switch 안에서는 실행하지 않는다.
+이 마지막 단계가 실패하면 명령은 실패하지만, 이미 완료한 소스 갱신과 시스템
+변경까지 되돌렸다고 보고하지 않는다. 관리자 권한이나 네트워크 문제를 해결한 뒤
+다시 실행한다.
+
+이후 각 Mac에서 `sudo darwin-rebuild switch --flake .#<hostname>`을 실행한다.
+Homebrew는 모든 선언된 cask를 `greedy = true`로 갱신하며, 자체 업데이트 앱과
+`version :latest` 앱도 제외하지 않는다. App Store 앱은 로그인한 GUI 세션에서
+선언된 ID만 설치·업데이트한다. 계정 승인이나 권한이 없어 완료하지 못하면
+switch가 실패한다. App Store 인증 조건은 [아래](#app-store-전용-앱)를 따른다.
+
+이 경로의 최신 버전은 각 패키지 공급원이 제공하는 안정 버전이다. nixpkgs나
+App Store에 아직 반영되지 않은 상류 릴리스를 임의로 설치하지 않는다.
+업스트림 의존성·patch 호환성 검증은 그대로 유지하므로, 새 릴리스가 기존 빌드를
+깨뜨리면 원인을 고친 뒤 다시 실행해야 한다. 실패를 이전 버전 유지 성공으로
+처리하지 않는다. 설치된 앱 교체와 실행 중인 프로세스의 재시작은 별개다.
 
 ## 선언형 Borg 서버 백업
 
@@ -697,13 +714,16 @@ nix run /etc/nix-darwin#cache-push -- <cache>
 
 ## App Store 전용 앱
 
-**랩탑만 해당한다.** KakaoTalk 과 WireGuard 는 기계당 한 번 손으로 깐다.
-선언적으로 설치할 방법이 없다는 것이 결론이고, 왜 없는지는
-[0016](decisions/0016-mas-only-apps-installed-by-hand.md).
+**랩탑만 해당한다.** KakaoTalk과 WireGuard는 `local.masApps`에 선언한다.
+switch가 로그인한 사용자의 GUI 세션에서 `mas`로 없는 앱을 설치하고,
+선언된 앱의 업데이트를 완료할 때까지 기다린다
+([0016](decisions/0016-mas-only-apps-installed-by-hand.md)).
 
-깔려 있지 않으면 switch 가 매번 알리고 App Store 페이지를 여는 명령을 같이
-낸다. 알림 자체는 손으로 할 일을 없애 주지는 않지만, 잊은 채로 지나가지는
-않게 한다.
+먼저 해당 사용자가 macOS와 App Store에 로그인해야 한다. 앱은 그 Apple 계정에서
+이미 받은 항목이어야 하며, 최초 계정 등록·구매·추가 인증은 사용자가 App Store에서
+처리한다. switch는 대신 구매하거나 계정 보안 설정을 바꾸지 않는다.
+로그인 세션 부재, 다운로드 실패, 시간 초과는 switch 실패로 표시한다.
+문제를 해결한 뒤 같은 switch 명령을 다시 실행한다.
 
 서버 맥에는 WireGuard 앱을 깔지 않는다. 그 앱은 콘솔 로그인 없이는 터널을 못
 올려서, 거기서는 `wireguard-tools` 가 데몬으로 돈다 —

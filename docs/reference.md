@@ -18,7 +18,7 @@ modules/           시스템 레벨
   camofox-linux.nix  NixOS headless Camofox systemd 서비스
   wireguard.nix      서버 맥의 터널. 앱이 아니라 wg-quick 을 도는 루트 데몬
   auto-login.nix     kcpassword 생성 + FileVault 끄기. Aqua 서비스 때문에 있다
-  mas-apps.nix       App Store 전용 앱이 없을 때 switch 가 알리게 한다
+  mas-apps.nix       App Store 전용 앱을 사용자 GUI 세션에서 설치·갱신한다
   roles/
     darwin-laptop.nix   랩탑 macOS
     darwin-server.nix   서버 macOS
@@ -195,15 +195,16 @@ MBP의 Direct IP host는 TCP 21118에서 화면과 입력을 제공한다.
 
 대부분 nixpkgs가 아니라 Homebrew에서 온다
 ([0015](decisions/0015-gui-apps-come-from-homebrew.md)). `onActivation.upgrade`가
-켜져 있어 최신 유지도 Homebrew가 한다. 설치 경로가 갈리는 앱은 다음과 같다.
+켜져 있고 모든 cask에 `greedy = true`를 적용하므로, 자체 업데이트 앱과
+`version :latest` 앱도 switch에서 갱신한다. 설치 경로가 갈리는 앱은 다음과 같다.
 
-- **Orca** (Stably) — 두 Mac 모두 `stablyai/orca` tap의 cask를 쓰지만,
-  `auto_updates`인 이 앱은 메모리로 Orca 자체 updater가 `/Applications/Orca.app`을
-  제자리에서 교체한다. Nix는 cask의 설치 여부만 선언하고 activation에
-  `HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS=1`을 주어 Homebrew와 자체 updater의
-  경쟁을 막는다. 1.4.190~1.4.194에 있던 macOS `serve` 회귀가 1.4.196에서
-  해결됨을 확인하여 서버도 별도 Nix 패키지 대신 cask 런타임과 자체 updater
-  handoff를 따른다 ([0028](decisions/0028-orca-runtime-on-the-server-mac.md)).
+- **Orca** (Stably) — 두 Mac 모두 `stablyai/orca` tap의 cask를 쓴다.
+  모든 cask와 마찬가지로 `greedy = true`를 적용해 `darwin-rebuild switch`에서도
+  `/Applications/Orca.app`을 업그레이드한다. 서버 모드의 자체 updater는 명시적인
+  다운로드·설치 요청이 필요하므로 그것만으로 최신 버전을 유지하지 않는다.
+  앱 교체 후 실행 중인 서버의 버전 전환에는 별도 재시작이 필요할 수 있다.
+  서버는 cask의 CLI supervisor와 updater handoff를 사용한다
+  ([0028](decisions/0028-orca-runtime-on-the-server-mac.md)).
   homebrew-cask의 맨 `orca`는 plotly의 무관한 chart renderer다.
 
 - **Camoufox · DeskPad** — Nix가 고정한 macOS 앱이다. Camoufox는 Camofox를 켠
@@ -216,12 +217,13 @@ MBP의 Direct IP host는 TCP 21118에서 화면과 입력을 제공한다.
   NixOS server는 `pkgs.rustdesk-flutter`를 쓴다. 세 기기 모두 client를 갖지만
   WireGuard 전용 Direct IP host는 MBP만 실행한다.
 
-- **KakaoTalk · WireGuard** — Mac App Store 전용이라 손으로 깐다
-  ([0016](decisions/0016-mas-only-apps-installed-by-hand.md)). 둘 다 랩탑 전용이
-  됐다: 서버 맥은 WireGuard 앱 대신 `wireguard-tools`를 루트 데몬으로 돌린다
-  ([0029](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md)). 선언한
-  기계에 앱이 없으면 switch가 매번 알린다 — `local.masApps`,
-  `modules/mas-apps.nix`.
+- **KakaoTalk · WireGuard** — 랩탑의 `local.masApps`에 선언하며,
+  `modules/mas-apps.nix`가 switch에서 설치·업데이트한다
+  ([0016](decisions/0016-mas-only-apps-installed-by-hand.md)).
+  App Store에 로그인한 GUI 세션과 해당 계정의 앱 사용 권한이 필요하다.
+  조건을 충족하지 못하면 switch가 실패한다. 서버 맥은 WireGuard 앱 대신
+  `wireguard-tools`를 루트 데몬으로 돌린다
+  ([0029](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md)).
 
 
 **1Password 는 나눠 담는다.** `op` CLI는 **모든 기기**에 (`home/common.nix`),
@@ -389,28 +391,27 @@ NixOS server에는 별도 Chrome/Chromium 패키지를 설치하지 않는다.
 위의 두 CLI 묶음은 **모든 기기**에 있지만, 컴파일러와 개발 도구는 맥에만 둔다
 (`home/darwin.nix`). 리눅스 서버는 서비스를 돌리는 기계라 컴파일할 것이 없다.
 
-**언어 툴체인** — `go`, `nodejs_24` + `pnpm`, `bun`, `uv`. Rust는 서버 맥에만
-공식 1.98.1 통합 toolchain으로 설치한다(`home/roles/darwin-server.nix`). 해당
+**언어 툴체인** — `go`, `nodejs_latest` + `pnpm`, `bun`, `uv`. Rust는 서버 맥에만
+공식 최신 stable 통합 toolchain으로 설치한다(`home/roles/darwin-server.nix`). 해당
 toolchain 하나가 `rustc`, `cargo`, `rustfmt`, Clippy, `rust-analyzer`, `rust-src`,
 `wasm32-unknown-unknown`, `wasm32v1-none`을 함께 제공한다.
 
-- **`go` 는 버전 없는 이름 그대로 쓴다.** nixpkgs 가 현재로 취급하는 것을 따라가는
-  게 맞다고 봤다. **`nodejs_24` 는 반대로 버전을 박았다** — 오늘은 `nodejs` 와 같은
-  파생이지만 nixpkgs 에 이미 25 와 26 이 있어서 기본값은 알아서 움직인다. 버전을
-  적어 두면 그 이동이 이 줄을 고칠 때 일어난다.
+- **`go`와 Python은 nixpkgs의 기본 패키지를 따른다.** Node는 LTS 계열에 묶지 않고
+  `nodejs_latest`로 nixpkgs가 제공하는 최신 Current 안정 버전을 선택한다.
+  실제 버전은 `flake.lock`이 고정하며, update-packages 후 switch에서 바뀐다.
 - **pnpm 은 Corepack 에 맡기지 않고 패키지로 넣는다.** `corepack enable` 은 Node
   설치 디렉터리 안에 shim 을 쓰는데 여기서는 그게 읽기 전용 스토어 경로다. 게다가
   그 뒤로 받아오는 버전은 프로젝트의 `packageManager` 필드가 런타임에 정한다 —
   rustup 을 쓰지 않는 것과 정확히 같은 이유다. nixpkgs 패키지는 자기 `nodejs-slim`
-  을 들고 오므로 위의 `nodejs_24` 를 가리지도, 의존하지도 않는다.
-- **bun도 nixpkgs 그대로가 아니다.** 필요한 버전은 1.4.0이고
-  잠긴 nixpkgs 는 아직 1.3.13이라 `pkgs/overlay.nix` 에서 덮어썼다. 노드를 대체하러
-  온 게 아니라 옆에 선다 — 둘은 같은 `package.json` 을 읽고 서로를 대신하지 않는다.
+  을 들고 오므로 위의 사용자용 Node 선택과는 독립적이다.
+- **bun도 nixpkgs 그대로가 아니다.** `pkgs/overlay.nix`가 release snapshot의
+  공식 바이너리를 선택하고 update-packages가 버전과 hash를 함께 갱신한다.
+  Node와 Bun은 같은 `package.json`을 읽지만 서로를 대체하지 않는다.
 - **Rust는 nixpkgs의 개별 패키지를 조합하지 않는다.** `rust-overlay-source`를
-  non-flake source로 고정하고 `rust-bin.stable."1.98.1"`을 선택한다. 컴파일러,
-  Cargo, 포매터, LSP와 표준 라이브러리 target이 같은 공식 release manifest에서
-  나오므로 서로 다른 Rust release로 어긋나지 않는다. `rustup`은 계속 설치하지
-  않는다.
+  non-flake source로 잠그고 `rust-bin.stable.latest`를 선택한다. update-packages가
+  source revision을 갱신하면 선택되는 stable toolchain도 갱신된다.
+  컴파일러, Cargo, 포매터, LSP와 표준 라이브러리 target은 같은 공식 release
+  manifest에서 나오며, `rustup`은 설치하지 않는다.
 - **uv 옆에 파이썬 인터프리터가 없는 건 빠뜨린 게 아니다.** uv 가
   `~/.local/share/uv` 밑에 자기 standalone CPython 을 받아 거기에 virtualenv 를
   만든다. 그건 의도적으로 nix 바깥이고 — 프로젝트마다 다르고 `pyproject.toml` 을
@@ -586,11 +587,12 @@ lock을 `flake.lock`에 고정한다. release API, npm `latest`, 공식 checksum
 내용이 같은 URL에서 바뀌는 응답은 flake input으로 삼지 않는다.
 `nix run .#update-packages`가 필요한 안정 필드만
 `pkgs/release-snapshots.json`에 원자적으로 기록한 뒤 Git source input도
-갱신한다. 어느 단계든 실패하면 snapshot과 `flake.lock`을 모두 원복한다. OMP
-plugin registry는 각 source의 `package.json` version에서 만들어져 별도 version
-pin이 없다. `context-mode`는 `bun.lock`의 registry package와 integrity를 직접
-읽어 같은 flake에 잠긴 `bun2nix` dependency cache로 넘기므로 로컬 npm lock도
-유지하지 않는다.
+갱신한다. 이 소스 갱신 단계가 실패하면 snapshot·`flake.nix`·`flake.lock`을 원복한다.
+하위 GitHub 입력 override는 선택된 상위 flake의 lock과 같은 revision·내용을
+유지하도록 생성한다. OMP plugin registry는 각 source의 `package.json` version에서
+만들어지며, pi-codegraph의 누락된 npm integrity는 선택된 source lock에 맞춘
+`npmSourceOverrides` snapshot으로 보완한다. `context-mode`는 `bun.lock`의 registry
+package와 integrity를 직접 읽어 같은 flake에 잠긴 `bun2nix` dependency cache로 넘긴다.
 CLI 패키징 결정과 각 패키지의 함정은
 [0019](decisions/0019-package-from-published-artifacts.md), Camofox 쪽 결정은
 [0031](decisions/0031-deskpad-virtual-display-on-clamshell-macos.md)에 있다.

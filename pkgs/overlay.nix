@@ -11,6 +11,7 @@ let
       beardriveChecksums ? null,
       bun2nix ? null,
       gajaeCodeManifest ? null,
+      npmSourceOverrides ? { },
       releaseManifests ? { },
       sourceInputs ? { },
     }:
@@ -89,6 +90,7 @@ let
       };
       omp-plugins = final.callPackage ./omp-plugins {
         inherit sourceInputs;
+        npmSourceOverrides = npmSourceOverrides.piCodegraph or { };
         bun2nix = bun2nix.packages.${final.stdenv.hostPlatform.system}.default;
       };
 

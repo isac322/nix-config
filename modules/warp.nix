@@ -42,12 +42,9 @@ let
   mdmPath = "/Library/Application Support/Cloudflare/mdm.xml";
 in
 {
-  homebrew.casks = [
-    {
-      name = "cloudflare-warp";
-      greedy = true;
-    }
-  ];
+  # greedyCasks in modules/darwin.nix already makes every cask greedy, so the
+  # name alone is the whole declaration.
+  homebrew.casks = [ "cloudflare-warp" ];
 
   # macOS reads mdm.xml before anyone logs in, so the organisation never has to
   # be typed on a machine. Values here overrule the dashboard's device settings,

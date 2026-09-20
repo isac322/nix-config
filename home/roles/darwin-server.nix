@@ -19,7 +19,7 @@ let
   cfg = osConfig.local.orca;
   autoLogin = osConfig.local.autoLogin;
 
-  rustToolchain = pkgs.rust-bin.stable."1.98.1".default.override {
+  rustToolchain = pkgs.rust-bin.stable.latest.default.override {
     extensions = [
       "rust-analyzer"
       "rust-src"
@@ -552,10 +552,12 @@ in
   # is not something this configuration has a stake in. sshd is declared here;
   # who is allowed through it is not.
 
-  # Rust uses one official 1.98.1 toolchain assembled by the rust-overlay
-  # source pinned in flake.lock. The source is imported as a plain overlay,
-  # not as another flake package graph, and its checked-in component hashes
-  # keep evaluation pure.
+  # Rust uses one official toolchain assembled by the rust-overlay source
+  # pinned in flake.lock: `stable.latest` follows the newest stable release
+  # the locked overlay knows, so `nix run .#update-packages` moves it with the
+  # input rather than a version literal here. The source is imported as a
+  # plain overlay, not as another flake package graph, and its checked-in
+  # component hashes keep evaluation pure.
   #
   # One combined derivation supplies rustc, cargo, rustfmt, Clippy,
   # rust-analyzer, rust-src, and the two wasm standard-library targets. This

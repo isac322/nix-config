@@ -12,7 +12,11 @@ let
 
   skillclaw = py.buildPythonApplication {
     pname = "skillclaw";
-    version = "0.4.0";
+    # Read from the pinned source so a flake input bump cannot leave the
+    # derivation claiming a version its contents no longer are.
+    version =
+      (builtins.fromTOML (builtins.readFile "${inputs.skillclaw}/pyproject.toml")).project.version
+        or (throw "skillclaw: pyproject.toml no longer declares project.version");
     src = inputs.skillclaw;
     pyproject = true;
 

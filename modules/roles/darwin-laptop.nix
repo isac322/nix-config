@@ -79,9 +79,8 @@ in
     "macfuse"
     "notion"
     "slack"
-    # `auto_updates true` in the cask, so Spotify replaces itself in place and
-    # onActivation.upgrade rarely has anything to do — which is fine, and the
-    # reason the version here is never what is running.
+    # `auto_updates true` in the cask, so Spotify also replaces itself between
+    # switches; greedyCasks keeps the switch upgrade authoritative anyway.
     "spotify"
     "telegram" # the native macOS client, not telegram-desktop
     "vorta"
@@ -275,8 +274,9 @@ in
     };
   };
 
-  # KakaoTalk and WireGuard are missing on purpose: both are Mac App Store
-  # exclusives and there is no route to either from here.
+  # KakaoTalk and WireGuard are declared in local.masApps above rather than
+  # here: both are Mac App Store exclusives and there is no route to either
+  # from a cask or nixpkgs.
   #
   # KakaoTalk has no cask anywhere in Homebrew, nothing in nixpkgs, and no
   # direct download — every Kakao CDN path answers 403, browser headers
@@ -286,12 +286,9 @@ in
   # nixpkgs has wireguard-tools and wireguard-go, but those are the CLI, not
   # the app that was asked for.
   #
-  # `homebrew.masApps` is not the answer either: brew bundle runs under sudo
-  # during activation, while the App Store's installd only answers inside the
-  # logged-in user's session, so mas never reaches it (mas-cli issue #1221).
-  # It does not fail quietly — the two entries took `brew bundle` down with
-  # them, and set -e took the rest of activation, leaving /run/current-system
-  # a generation behind.
-  #
-  # So both are installed by hand from the App Store, once per machine.
+  # `homebrew.masApps` is not the answer either: brew bundle drops to the
+  # primary user during activation, and mas 7 re-execs itself through sudo
+  # for installs and updates — a password prompt with no one to answer it.
+  # modules/mas-apps.nix runs mas as root inside the console user's session
+  # instead, which is the context the App Store actually answers.
 }

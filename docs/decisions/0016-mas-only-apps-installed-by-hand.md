@@ -1,30 +1,26 @@
-# 0016. App Store 전용 앱 둘은 손으로 깐다
+# 0016. App Store 전용 앱도 switch에서 갱신한다
 
-**결정** — KakaoTalk 과 WireGuard 는 선언에서 뺀다. `homebrew.masApps` 도 쓰지
-않는다.
+**결정** — KakaoTalk과 WireGuard를 `local.masApps`에 선언하고, switch가
+`mas`로 설치·업데이트한다. `homebrew.masApps`에 섞지 않고
+`modules/mas-apps.nix`에서 로그인 세션과 실패 처리를 관리한다.
 
-둘 다 Mac App Store 전용이라 **선언적으로 설치할 방법이 없다.**
+두 앱은 Homebrew cask나 직접 다운로드로 대체하지 않는다. App Store에 로그인한
+사용자 세션으로 요청을 보내되, 설치에 필요한 root 권한은 유지한다.
+대상은 선언된 App Store ID로 제한한다.
 
-KakaoTalk은 Homebrew 전체에 cask가 없고, nixpkgs에도 없으며, 직접 다운로드도
-없다 (카카오 CDN 경로는 브라우저 헤더를 붙여도 전부 403). WireGuard도 공식
-클라이언트는 App Store 전용이고, cask에서 WireGuard를 언급하는 것들
-(`defguard-client`, `firezone`, `passepartout`, `tailscale-app`)은 전부 다른
-회사의 다른 앱이다. nixpkgs의 `wireguard-tools`/`wireguard-go`는 CLI지 그 앱이
-아니다.
+사용자는 먼저 App Store에 로그인하고 해당 계정으로 앱을 받아야 한다.
+최초 계정 등록·구매·추가 인증은 자동화하지 않으며 보안 설정도 바꾸지 않는다.
+이미 계정에 등록된 앱이 기기에 없으면 설치하고, 설치된 앱은 업데이트한다.
 
-`homebrew.masApps`도 답이 아니다: activation 중 `brew bundle`이 sudo로 도는데
-App Store의 `installd`는 로그인한 사용자 세션 안에서만 응답해서 `mas`가 닿지
-못한다 (mas-cli 이슈 #1221). 조용히 실패하지도 않는다 — 이 두 항목이
-`brew bundle`을 실패시키고 `set -e`가 activation 나머지를 끊는다.
+GUI 세션이 없거나 계정·권한·네트워크 문제, 시간 초과가 발생하면 switch를
+실패시킨다. 경고만 출력하고 전체 업데이트가 끝난 것처럼 넘어가지 않는다.
+실패를 해결한 뒤 switch를 다시 실행한다. 다른 패키지에서 이미 완료된
+시스템 변경까지 원복하는 트랜잭션은 아니다.
 
-그래서 둘 다 App Store에서 손으로 설치한다. 기계당 한 번.
+이전 구현은 root activation에서 App Store에 접근하지 못하는 문제를 피해
+설치 여부만 확인하고 수동 설치를 안내했다. 이제 사용자 세션을 명시적으로
+선택하므로 설치와 갱신을 같은 switch 경로에 포함한다.
 
-## 그 뒤
-
-서버 역할의 맥은 WireGuard 앱을 아예 안 쓰게 됐다. 위의 두 문장은 그대로 참이고,
-달라진 것은 화면 없는 기계가 그 앱을 원하지 않는다는 쪽이다 —
-[0029](0029-wireguard-as-a-daemon-on-the-server-mac.md).
-
-설치돼 있어야 하는 기계에 없을 때는 switch 가 매번 알린다
-([0025](0025-activation-speaks-only-when-needed.md)). 선언은
-`local.masApps` 이고 구현은 `modules/mas-apps.nix` 에 있다.
+서버 역할의 맥에는 두 GUI 앱을 선언하지 않는다. WireGuard는 앱 대신
+`wireguard-tools` 데몬을 사용한다
+([0029](0029-wireguard-as-a-daemon-on-the-server-mac.md)).

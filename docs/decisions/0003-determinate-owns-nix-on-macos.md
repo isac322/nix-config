@@ -13,6 +13,12 @@ NixOS에는 이 문제가 없다. Nix가 시스템 클로저의 일부라서 `ni
 쓴다. 같은 캐시 설정이 플랫폼마다 다른 옵션 경로로 들어가는 이유이고,
 `lib/caches.nix`가 모듈이 아니라 순수 데이터인 이유다.
 
+Nix 실행 파일과 `determinate-nixd`도 이 소유권을 따른다. flake 입력을 갱신하고
+switch해도 두 바이너리가 교체되는 것은 아니므로, macOS의 `update-packages`는
+소스 갱신이 끝난 뒤 `sudo determinate-nixd upgrade --version stable`을 실행한다.
+이 명령은 Nix 데몬을 재시작할 수 있어 switch 도중에는 실행하지 않는다.
+실패하면 전체 갱신 명령도 실패하며, 이미 완료된 소스 갱신을 되돌렸다고 보고하지 않는다.
+
 ## 따라오는 것 — 첫 activation 의 `nix.custom.conf`
 
 이 구도는 부트스트랩에 걸림돌을 하나 남긴다. determinate 모듈이 설치 프로그램의
