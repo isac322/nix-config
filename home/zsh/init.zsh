@@ -10,6 +10,26 @@ typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
 # its load ordering and compdef replay behavior without owning mutable clones.
 source @zinit@/share/zinit/zinit.zsh
 
+# Zinit symlinks its internal completion into ~/.local/share/zinit. Because
+# Nix store paths change across generations and garbage collection wipes older
+# store paths, reconcile the symlinks against the active store package so compinit
+# never encounters a dangling symlink.
+() {
+  local zinit_data="${XDG_DATA_HOME:-$HOME/.local/share}/zinit"
+  local target="@zinit@/share/zinit/_zinit"
+  local local_zinit="$zinit_data/plugins/_local---zinit/_zinit"
+  local comp_zinit="$zinit_data/completions/_zinit"
+
+  if [[ ! -e "$local_zinit" || "$local_zinit:A" != "$target" ]]; then
+    mkdir -p "${local_zinit:h}"
+    ln -sf "$target" "$local_zinit"
+  fi
+  if [[ ! -e "$comp_zinit" || "$comp_zinit:A" != "$target" ]]; then
+    mkdir -p "${comp_zinit:h}"
+    ln -sf "$local_zinit" "$comp_zinit"
+  fi
+}
+
 # @zinit-plugins@
 
 # Oh My Zsh is sourced from nixpkgs' flake-pinned tree. Using OMZL::/OMZP::
