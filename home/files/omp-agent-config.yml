@@ -93,7 +93,7 @@ hindsight:
 extendedContext: false
 compaction:
   idleEnabled: true
-  idleThresholdTokens: 500000
+  idleThresholdTokens: 300000
   idleTimeoutSeconds: 300
 worktree:
   base: ""
