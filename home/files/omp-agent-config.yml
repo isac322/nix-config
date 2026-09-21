@@ -87,6 +87,8 @@ lsp:
   formatOnWrite: false
 edit:
   mode: hashline
+find:
+  enabled: true
 hindsight:
   apiUrl: https://hindsight-api.bhyoo.com
   scoping: per-project
