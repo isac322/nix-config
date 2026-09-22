@@ -155,24 +155,24 @@
     "omp": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.2.7/omp-darwin-arm64",
-          "digest": "sha256:2b2ff2084a34f61a018634c03929aaa9117009d107dbef553d8fc51eb5c28b14",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.2.8/omp-darwin-arm64",
+          "digest": "sha256:cf8d34a7fe6f60de1acbe74f29c82026e4c07888e9d89f7ebceeb922159e5787",
           "name": "omp-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.2.7/omp-linux-musl-arm64",
-          "digest": "sha256:aaaeb6821a1cebc4c2203e616cec949ff8b760a61f3ae8dfd98f32ef24eca983",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.2.8/omp-linux-musl-arm64",
+          "digest": "sha256:3304f3203e1e827df9d77b56360946357a9af5dfd6a1270ed1995afebda0edce",
           "name": "omp-linux-musl-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.2.7/omp-linux-musl-x64",
-          "digest": "sha256:0d6d55db070259f69521c1d353627f8ae825b9809ea259be90d7502ba5090ac4",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.2.8/omp-linux-musl-x64",
+          "digest": "sha256:3be45296e7da979c6f033a4713d30d12eb515498ef03996763f1e4c1cdc2e377",
           "name": "omp-linux-musl-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v18.2.7"
+      "tag_name": "v18.2.8"
     },
     "posthog": [
       {
@@ -249,24 +249,24 @@
     },
     "vercelDarwinArm64": {
       "dist": {
-        "integrity": "sha512-uVxnSOfNAbLEzPy6sdDNDDY+d0GRyRfxicKUjzkdOIq0EvXeJqtmPc6234U80gYqpgMhr3fmkIPsEmWXwmBT7A==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-59.23.2.tgz"
+        "integrity": "sha512-VQJN4Pcn0RBAUMKzp8Rz2DEmy/+z3TmWQJMnuq5pdwLFw54YUfJHSOCdSxb7tFY/QugpQSlXfRlkr7T7wMIveA==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-59.25.0.tgz"
       },
-      "version": "59.23.2"
+      "version": "59.25.0"
     },
     "vercelLinuxArm64": {
       "dist": {
-        "integrity": "sha512-w0s/f8V3Cdq2oYztB+vGkHu3jWHIH9IHbWdq/JKW0ZxvyFhci6jpMU9mzmAkwlQ1lEHk8Rxcv6TyDAyadMClYQ==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-59.23.2.tgz"
+        "integrity": "sha512-SVe5mQ/RlR1MAN9erkqqRU7Z3MkQRJS/Wd4zuEXplmJFCtMqQ2LDresXjqKeysdS3Csc8n8Yq5DoLv1dEwWhXg==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-59.25.0.tgz"
       },
-      "version": "59.23.2"
+      "version": "59.25.0"
     },
     "vercelLinuxX64": {
       "dist": {
-        "integrity": "sha512-vLjQH7xbzJP0zJGqEGVhsRyE9XS70eGSztWXCatmebzOsirE/neK/CYxs1x3QN+9jPirdvTSn9A0c9bxfK3nBg==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-59.23.2.tgz"
+        "integrity": "sha512-J6Harf9rI3uOyLfzbxVmdKpmduco9HTz6prkB+axA6U+lXfHGuFKxrwP0LPqxvY4PonLysF1k1x/ij2083t2mg==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-59.25.0.tgz"
       },
-      "version": "59.23.2"
+      "version": "59.25.0"
     }
   },
   "schema": 1
