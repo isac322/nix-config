@@ -329,7 +329,6 @@ in
   };
 
   system.defaults.CustomSystemPreferences = {
-    "/Library/Application Support/CrashReporter/DiagnosticReporting".AutoSubmit = false;
     "com.apple.airplay".DisableAirPlayReceiver = true;
   };
 
@@ -411,6 +410,7 @@ in
     done
 
     # Diagnostic telemetry and spindump
+    /usr/bin/defaults write "/Library/Application Support/CrashReporter/DiagnosticReporting" AutoSubmit -bool false >/dev/null 2>&1 || true
     /bin/launchctl disable system/com.apple.spindump >/dev/null 2>&1 || true
     /bin/launchctl disable system/com.apple.tailspind >/dev/null 2>&1 || true
   '';
