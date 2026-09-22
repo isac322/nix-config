@@ -82,11 +82,24 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 | Camofox API · MCP bridge | ✅ (실제 화면) | ✅ (DeskPad 화면) |
 | [DeskPad 1920×1080 Aqua 가상 디스플레이](decisions/0031-deskpad-virtual-display-on-clamshell-macos.md) | ✖ | ✅ |
 | RustDesk Homebrew client / Direct IP host | client | client + host |
+| Spotlight 파일 색인 (`mdutil`) | ✅ | ✖ (`-i off`, `-E`) |
+| 데스크톱 위젯 데몬 (`chronod`) | ✅ | ✖ (disable) |
+| 사진·미디어 ML 분석 (`photoanalysisd`, `mediaanalysisd`) | ✅ | ✖ (disable) |
+| Siri 및 CoreDuet 학습 (`siriknowledged`, `suggestd` 등) | ✅ | ✖ (disable) |
+| 진단 보고 및 스핀덤프 (`spindump`, `AutoSubmit`) | ✅ | ✖ (disable) |
+| 절전 이미지 (`/var/vm/sleepimage`) | 하이버네이션 (3) | ✖ (hibernatemode 0, 2GB 회수) |
+| AirPlay 화면 수신기 | ✅ | ✖ (DisableAirPlayReceiver) |
+| AirDrop 및 블루투스 | ✅ | ✅ (파일 전송용 유지) |
+| Dock 및 원격 제어 | 기본 | static-only (실행 중 앱 전환 전용) |
 
 두 맥 다 MacBook Pro 급 하드웨어이고 Touch ID 센서도 둘 다 달려 있다. 랩탑에만
-있는 이유는 하드웨어가 아니라 역할이다 — 서버 맥은 뚜껑을 닫은 채 SSH 로만
-들어가므로 `pam_tid` 가 프롬프트를 띄울 화면이 없다.
-
+있는 이유는 하드웨어가 아니라 역할이다 — 서버 맥은 뚜껑을 닫은 채 SSH 및 WireGuard로만
+들어가므로 `pam_tid` 가 프롬프트를 띄울 화면이 없다. 반면 원격 GUI 조작(RustDesk)을 통한
+앱 실행·확인과 Dock을 통한 앱 간 전환, 그리고 가끔 사용하는 AirDrop 파일 수발신은
+정상 동작해야 하므로 WindowServer, Dock(`static-only`로 실행 중 앱 전환만 가볍게 지원),
+AirDrop(`sharingd` + 블루투스)은 유지한다. 그 외에 위젯, 사진 머신러닝 분석, Siri·CoreDuet,
+AirPlay 수신기, 스핀덤프, sleepimage 등 불필요한 소비자용 데스크톱 데몬과 디스크 낭비는
+원천 차단하여 메모리와 SSD 수명을 보호한다.
 **기기 전용** (`hosts/<name>/`) — 정말 그 기계에만 해당하는 것. 지금은
 `hostPlatform`과 서버의 `hardware-configuration.nix`뿐이다.
 

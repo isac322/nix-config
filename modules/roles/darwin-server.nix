@@ -290,9 +290,47 @@ in
     askForPassword = false;
     askForPasswordDelay = 0;
   };
+  # Remote RustDesk and Aqua session tuning: keep the Dock active for app
+  # switching, but prune animations and static app caches.
+  system.defaults.dock = {
+    static-only = true;
+    show-recents = false;
+    launchanim = false;
+  };
+  system.defaults.WindowManager = {
+    GloballyEnabled = false;
+    EnableStandardClickToShowDesktop = false;
+  };
+  system.defaults.NSGlobalDomain = {
+    NSAutomaticWindowAnimationsEnabled = false;
+  };
+
   system.defaults.CustomUserPreferences = {
     "com.apple.screensaver".idleTime = 0;
     "com.apple.loginwindow".DisableScreenLockImmediate = true;
+
+    # An unattended server has no user interacting with widgets or Siri.
+    # Disabling widgets prevents chronod from keeping dozens of background
+    # widget extensions loaded in memory.
+    "com.apple.WindowManager".StandardHideWidgets = true;
+    "com.apple.WindowManager".StageManagerHideWidgets = true;
+
+    # Siri and user habit profiling are unneeded.
+    "com.apple.assistant.support"."Assistant Enabled" = false;
+    "com.apple.assistant.backedup"."Use konser" = false;
+    "com.apple.Siri".StatusMenuVisible = false;
+    "com.apple.Siri".UserHasDeclinedEnable = true;
+
+    # Disable incoming AirPlay screen/audio casting. AirDrop remains active.
+    "com.apple.airplay".AirPlayReceiverEnabled = false;
+
+    # Crash and diagnostic reporting telemetry
+    "com.apple.SubmitDiagInfo".AutoSubmit = false;
+  };
+
+  system.defaults.CustomSystemPreferences = {
+    "/Library/Application Support/CrashReporter/DiagnosticReporting".AutoSubmit = false;
+    "com.apple.airplay".DisableAirPlayReceiver = true;
   };
 
   # RustDesk Direct IP Access listens on its upstream port. PF admits it only
@@ -332,6 +370,49 @@ in
     rustdeskVendor="gui/$rustdeskUid/com.carriez.RustDesk_server"
     /bin/launchctl disable "$rustdeskVendor"
     /bin/launchctl bootout "$rustdeskVendor" >/dev/null 2>&1 || true
+
+    # An unattended server Mac has no user sitting in front of Spotlight
+    # search, and indexing developer workspaces, node_modules, and build
+    # artifacts causes severe CPU and I/O load (mdworker_shared storms).
+    # Keep Spotlight indexing disabled across all volumes.
+    if /usr/bin/mdutil -s -a 2>/dev/null | /usr/bin/grep -q "Indexing enabled"; then
+      /usr/bin/mdutil -a -i off >/dev/null 2>&1
+      /usr/bin/mdutil -a -E >/dev/null 2>&1 || true
+    fi
+    # An unattended server on AC power does not need to dump RAM to SSD.
+    # Reclaim 2.0GB of SSD storage and eliminate SSD write wear.
+    /usr/bin/pmset -a hibernatemode 0
+    if [ -f /var/vm/sleepimage ]; then
+      /bin/rm -f /var/vm/sleepimage >/dev/null 2>&1 || true
+    fi
+
+    # Disable unused consumer desktop LaunchAgents to reclaim RAM and avoid
+    # background CPU/IO wakeups on an unattended server.
+    # Note: sharingd and bluetooth remain active so AirDrop continues to work.
+    for agent in \
+      com.apple.chronod \
+      com.apple.photoanalysisd \
+      com.apple.mediaanalysisd \
+      com.apple.cloudphotod \
+      com.apple.siriknowledged \
+      com.apple.suggestd \
+      com.apple.assistantd \
+      com.apple.corespeechd \
+      com.apple.homed \
+      com.apple.tipsd \
+      com.apple.SafariBookmarksSyncAgent \
+      com.apple.searchpartyuseragent \
+      com.apple.findmylocateagent \
+      com.apple.AirPlayUIAgent \
+      com.apple.WallpaperAerialsExtension
+    do
+      /bin/launchctl disable "gui/$rustdeskUid/$agent"
+      /bin/launchctl bootout "gui/$rustdeskUid/$agent" >/dev/null 2>&1 || true
+    done
+
+    # Diagnostic telemetry and spindump
+    /bin/launchctl disable system/com.apple.spindump >/dev/null 2>&1 || true
+    /bin/launchctl disable system/com.apple.tailspind >/dev/null 2>&1 || true
   '';
 
   # Clamshell — keep running with the lid shut, but only while on power.
