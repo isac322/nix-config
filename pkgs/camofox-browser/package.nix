@@ -99,11 +99,18 @@ buildNpmPackage {
     ./humanize-toggle.patch
   ];
   postPatch = ''
+    # Upstream 1.17.0 omitted mcp/package.json from package.json "files",
+    # causing ENOENT when mcp/server.mjs reads its version via join(__dirname, "package.json").
+    substituteInPlace package.json \
+      --replace-fail \
+        '"mcp/server.mjs",' \
+        '"mcp/package.json",
+    "mcp/server.mjs",'
+
     substituteInPlace lib/config.js \
       --replace-fail \
         "function camoufoxCacheDir(env = process.env) {" \
         "function camoufoxCacheDir(env = process.env) { const installDir = (env.CAMOUFOX_INSTALL_DIR || \"\").trim(); if (installDir) return installDir;" \
-
 
 
     # A temporary executable symlink outside Camoufox.app breaks macOS
