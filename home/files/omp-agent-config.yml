@@ -1,44 +1,27 @@
 providers:
   webSearchGeminiModel: gemini-3.5-flash-lite
-  anthropic:
-    serverSideFallback: false
-  kimiApiFormat: auto
 retry:
   fallbackChains:
-    {}
+    devin/swe-2:
+      - anthropic/claude-opus-5-5:medium
 setupVersion: 2
 statusLine:
   preset: nerd
-  separator: powerline-thin
-  transparent: false
   compactThinkingLevel: false
-  showHookStatus: true
-  sessionAccent: true
 terminal:
   showProgress: true
 tui:
-  textSizing: false
-  renderMermaid: true
   tight: true
   scrollbackRebuild: true
   codexResetFireworks: true
   imeSafeCursor: true
-  hyperlinks: auto
 display:
   showTokenUsage: true
-  shimmer: classic
   cacheMissMarker: true
-  collapseCompacted: true
-  smoothStreaming: true
-  hideToolActivity: false
 memory:
   backend: hindsight
 autolearn:
-  enabled: false
   autoContinue: true
-bash:
-  autoBackground:
-    enabled: true
 bashInterceptor:
   enabled: true
 eval:
@@ -54,70 +37,46 @@ task:
   eager: preferred
   isolation:
     mode: auto
-    merge: patch
     commits: ai
   showResolvedModelBadge: true
   agentAdvisor:
     task: "off"
   agentModelOverrides:
-    reviewer: anthropic/claude-opus-5:high
-    sonic: openai-codex/gpt-5.6-luna:low
+    reviewer: openai-codex/gpt-6-astra:high
+    sonic: openai-codex/gpt-6-luna:low
     security-reviewer: openai-codex/gpt-6-astra:high
 modelRoles:
   default: openai-codex/gpt-6-astra:medium
-  plan: anthropic/claude-opus-5:high
-  slow: anthropic/claude-fable-5-1:high
+  plan: anthropic/claude-opus-5-5:high
+  slow: anthropic/claude-opus-5-5:xhigh
   task: devin/swe-2:high
   advisor: anthropic/claude-sonnet-5:medium
   browser: google/gemini-3.8-flash:medium
   smol: google/gemini-3.8-flash:medium
   vision: google/gemini-3.8-flash:high
   tiny: google/gemini-3.5-flash-lite:minimal
-  commit: openai-codex/gpt-5.6-luna:low
+  commit: openai-codex/gpt-6-luna:low
   TRIVIAL: google/gemini-3.8-flash:high
 defaultThinkingLevel: auto
-enabledModels:
-  []
-hideThinkingBlock: false
-read:
-  summarize:
-    enabled: true
-    prose: false
-lsp:
-  formatOnWrite: false
-edit:
-  mode: hashline
 find:
   enabled: true
 hindsight:
   apiUrl: https://hindsight-api.bhyoo.com
   scoping: per-project
-extendedContext: false
 compaction:
   idleEnabled: true
   idleThresholdTokens: 300000
-  idleTimeoutSeconds: 300
 worktree:
   base: ""
 stt:
-  enabled: false
   modelName: parakeet
-  submitTrigger: never
-advisor:
-  enabled: false
 tier:
   advisor: inherit
-  anthropic: none
   google: priority
-  subagent: inherit
-textVerbosity: medium
-prewalk:
-  enabled: false
 cycleOrder:
   - default
   - TRIVIAL
 browser:
-  headless: true
   enabled: false
 snapcompact:
   toolResults: true
@@ -128,11 +87,5 @@ tts:
 symbolPreset: nerd
 dev:
   autoqaConsent: granted
-error:
-  notify: "off"
 features:
   unexpectedStopDetection: true
-exa:
-  enabled: true
-secrets:
-  enabled: false
