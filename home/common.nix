@@ -211,9 +211,12 @@ let
       url = "https://mcp.linear.app/mcp";
     };
 
+    # Vanta exports dozens of tools whose schemas take up substantial context.
+    # Keep it disabled by default and activate on-demand via `/mcp enable vanta`.
     vanta = {
       type = "http";
       url = "https://mcp.vanta.com/mcp";
+      enabled = false;
     };
   };
 
