@@ -49,7 +49,7 @@ modelRoles:
   default: openai-codex/gpt-6-astra:medium
   plan: anthropic/claude-opus-5-5:high
   slow: anthropic/claude-opus-5-5:xhigh
-  task: devin/swe-2:high
+  task: devin/swe-2:max
   advisor: anthropic/claude-sonnet-5:medium
   browser: google/gemini-3.8-flash:medium
   smol: google/gemini-3.8-flash:medium
