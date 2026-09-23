@@ -384,6 +384,76 @@ let
     exit "$status"
   '';
 
+  # Put the running server on the bundle Homebrew installed, without touching
+  # the terminal daemon.
+  #
+  # A switch replaces /Applications/Orca.app and nothing more: the plist of the
+  # agent below does not change, so home-manager leaves the job alone, and the
+  # runtime keeps serving the version it was started from. The in-app updater
+  # cannot close that gap either — a headless runtime reports it as
+  # `updater-unavailable`.
+  #
+  # Restarting the agent is safe for the agents people are running. The PTYs
+  # belong to a separate daemon process in its own process group, which
+  # `kickstart -k` does not reach; the new runtime adopts it and reattaches the
+  # sessions. A daemon that still owns sessions is never replaced, so it keeps
+  # the code it was started with until it is empty (daemon-server-lifecycle.ts,
+  # daemon-request-router.ts `shutdownIfIdle`).
+  #
+  # Asked of the runtime rather than inferred from files: the bundle on disk is
+  # already the new one, so only `orca status` knows what is actually serving.
+  # An unreachable runtime is left alone — it is starting or failing, and a
+  # restart would decide neither.
+  orcaServeRefresh = pkgs.writeShellScript "orca-serve-refresh" ''
+    set -u
+    label=gui/$(/usr/bin/id -u)/${config.launchd.agents.orca-serve.config.Label}
+    jq=${lib.getExe pkgs.jq}
+
+    running_version() {
+      ${timeout} 15 ${orca} status --json 2>/dev/null \
+        | "$jq" -r 'select(.result.runtime.state == "ready") | .result.runtime.appVersion // empty' 2>/dev/null
+    }
+
+    installed=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
+      /Applications/Orca.app/Contents/Info.plist 2>/dev/null) || installed=""
+    if [ -z "$installed" ] || [ ! -x ${orca} ]; then
+      echo "orca-serve-refresh: Orca.app is not installed; nothing to swap." >&2
+      exit 0
+    fi
+
+    if ! /bin/launchctl print "$label" >/dev/null 2>&1; then
+      # Not loaded: it will start from the installed bundle when it is.
+      exit 0
+    fi
+
+    running=$(running_version)
+    if [ -z "$running" ]; then
+      echo "orca-serve-refresh: runtime is not ready; leaving it alone." >&2
+      echo "orca-serve-refresh: see ~/Library/Logs/orca-serve.log." >&2
+      exit 1
+    fi
+    [ "$running" = "$installed" ] && exit 0
+
+    echo "orca-serve-refresh: serving $running, installed $installed — restarting the server (terminal daemon kept)." >&2
+    /bin/launchctl kickstart -k "$label" || exit 1
+
+    # The wrapper retries while the old Electron process lets go of the profile
+    # lock, so allow for a few of its 10-second rounds.
+    waited=0
+    while [ "$waited" -lt 120 ]; do
+      /bin/sleep 3
+      waited=$((waited + 3))
+      running=$(running_version)
+      if [ "$running" = "$installed" ]; then
+        echo "orca-serve-refresh: now serving $installed." >&2
+        exit 0
+      fi
+    done
+
+    echo "orca-serve-refresh: not serving $installed after ''${waited}s (last seen: ''${running:-unreachable})." >&2
+    exit 1
+  '';
+
 in
 {
   # The server Mac runs the single evolve worker. Storage is the user's
@@ -488,6 +558,17 @@ in
       StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/orca-serve.log";
     };
   };
+
+  # Every switch, after the agent itself is in place. nix-darwin runs its
+  # Homebrew step before home-manager's activation, so the bundle is final by
+  # the time this looks at it, and a switch that installed nothing new finds
+  # the versions equal and does nothing. A failed swap is reported, not fatal:
+  # the configuration was applied, and what is wrong is a running process.
+  home.activation.orcaServeRefresh = lib.mkIf cfg.enable (
+    lib.hm.dag.entryAfter [ "setupLaunchAgents" ] ''
+      run ${orcaServeRefresh} || warnEcho "Orca server was not moved to the installed version; see above."
+    ''
+  );
 
   # A pinentry that can both remember and ask.
   #

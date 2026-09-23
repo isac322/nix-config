@@ -213,11 +213,12 @@ MBP의 Direct IP host는 TCP 21118에서 화면과 입력을 제공한다.
 
 - **Orca** (Stably) — 두 Mac 모두 `stablyai/orca` tap의 cask를 쓴다.
   모든 cask와 마찬가지로 `greedy = true`를 적용해 `darwin-rebuild switch`에서도
-  `/Applications/Orca.app`을 업그레이드한다. 서버 모드의 자체 updater는 명시적인
-  다운로드·설치 요청이 필요하므로 그것만으로 최신 버전을 유지하지 않는다.
-  앱 교체 후 실행 중인 서버의 버전 전환에는 별도 재시작이 필요할 수 있다.
-  서버는 cask의 CLI supervisor와 updater handoff를 사용한다
-  ([0028](decisions/0028-orca-runtime-on-the-server-mac.md)).
+  `/Applications/Orca.app`을 업그레이드한다. 서버 모드의 자체 updater는
+  `updater-unavailable`이라 그것만으로 최신 버전을 유지하지 않는다. 앱 교체만으로는
+  실행 중인 서버가 바뀌지 않으므로, 서버 역할의 Home Manager activation이 실행 버전과
+  설치 버전을 비교해 다르면 `orca-serve` LaunchAgent만 재시작한다. PTY를 가진 터미널
+  daemon은 그대로 남아 에이전트 세션이 끊기지 않고, 세션이 모두 끝날 때까지 이전
+  버전 코드로 돈다 ([0028](decisions/0028-orca-runtime-on-the-server-mac.md)).
   homebrew-cask의 맨 `orca`는 plotly의 무관한 chart renderer다.
 
 - **Camoufox · DeskPad** — Nix가 고정한 macOS 앱이다. Camoufox는 Camofox를 켠

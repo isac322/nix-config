@@ -6,13 +6,24 @@
 쓰고, 서버 LaunchAgent는 cask가 설치한 `/opt/homebrew/bin/orca`를 실행한다.
 
 이 경로를 쓰는 이유는 업데이트다. cask의 앱은 쓰기 가능한
-`/Applications/Orca.app`에 있고, 번들 CLI가 `serve`의 부모 supervisor로 남아
-updater handoff를 받은 뒤 앱 교체와 새 런타임 readiness 확인을 맡는다. Nix
-store에서 앱을 직접 실행하면 store가 불변이라 같은 updater를 지원할 수 없다.
-서버 모드는 업데이트 다운로드와 설치에 명시적인 요청이 필요하므로 자체 updater만으로
-최신 버전을 유지할 수 없다. Orca를 포함한 모든 cask에 `greedy = true`를 적용해
-`darwin-rebuild switch`에서도 앱을 업그레이드한다. Homebrew가 앱을 교체하는 것과
-실행 중인 서버가 새 버전으로 전환되는 것은 별개이므로, 실행 버전은 재시작 후 확인한다.
+`/Applications/Orca.app`에 있어 Homebrew가 교체할 수 있다. Nix store에서 앱을 직접
+실행하면 store가 불변이라 이 경로가 없다. 헤드리스 런타임의 자체 updater는
+`updater-unavailable`을 보고하므로 스스로 최신 버전을 유지하지 않는다. 번들 CLI의
+supervisor는 그 updater가 넘기는 handoff에만 반응하므로 Homebrew 교체에는 관여하지
+않는다. Orca를 포함한 모든 cask에 `greedy = true`를 적용해 `darwin-rebuild
+switch`에서도 앱을 업그레이드한다.
+
+앱 교체와 실행 중인 서버의 전환은 별개다. plist가 바뀌지 않으니 Home Manager는
+에이전트를 건드리지 않고, 서버는 시작할 때의 버전을 계속 서빙한다. 그래서 서버
+역할의 activation(`home.activation.orcaServeRefresh`)이 `orca status`의 실행 버전과
+설치된 번들 버전을 비교해, 다르면 `launchctl kickstart -k`로 이 에이전트만
+재시작하고 새 버전이 `ready`가 될 때까지 확인한다. 실패는 경고로 남기고 switch를
+실패시키지 않는다 — 설정은 적용됐고 어긋난 것은 실행 중인 프로세스다.
+
+이 재시작은 에이전트 세션을 끊지 않는다. PTY는 별도 process group의 터미널
+daemon이 갖고 있어 `kickstart -k`가 닿지 않고, 새 서버가 그 daemon을 넘겨받아
+세션을 다시 붙인다. 대신 세션이 남아 있는 daemon은 교체되지 않으므로 daemon 쪽
+변경은 세션이 모두 끝난 뒤 서버가 다시 뜰 때 적용된다.
 
 이전에는 1.4.190~1.4.194의 `serve` 기동 시 `AppEnvironment not initialized`
 회귀(stablyai/orca#16761) 때문에 1.4.188에 고정했으나, 상류 PR #16762가
