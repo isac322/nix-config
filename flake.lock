@@ -73,10 +73,10 @@
     "camofox-browser-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1789427057,
-        "narHash": "sha256-c/MGBqRhF2WsF6T+fXBHBQfdFsHy4Q+Wq4GFTzyjJfU=",
+        "lastModified": 1790120353,
+        "narHash": "sha256-Rwg2rw2lXSif6uYixmQfjrJu+DztbgKJKBG4DAmWGis=",
         "ref": "master",
-        "rev": "79d425be26743883a06613eaa3be5e38e7ab5409",
+        "rev": "389c996ae3c7d42e539295a336ee6f975847f066",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/jo-inc/camofox-browser.git"
@@ -91,10 +91,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1790078793,
-        "narHash": "sha256-bIHgeQrnuny+OQnwra+9yUfaUVZaMBBJes9liapWWM4=",
+        "lastModified": 1790100349,
+        "narHash": "sha256-uowmtroSa7ZRmJKmWNnxZq3vutD1nyh3sydLTb5Qo4c=",
         "ref": "main",
-        "rev": "7066f274cde46e2fa8d9b0004532cf3b560ba569",
+        "rev": "ca414a26be59bb59a7ec2a9a67f214780fde8e8a",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1790081529,
-        "narHash": "sha256-HEgUwJipIVTfKNGRdVuBL7V78tD+CvrPXG20k71YpKk=",
+        "lastModified": 1790115272,
+        "narHash": "sha256-VYudi7wiKr2N6pYkUbupPHVVPJeKHqZSxTiP5h6xXlk=",
         "ref": "refs/heads/main",
-        "rev": "7a1af77f0fd3dc2b12258d10523cd03b0c3c6a2e",
+        "rev": "623624edb0a82612bc8394b604b833059343b823",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -271,10 +271,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1790080548,
-        "narHash": "sha256-u4sa7RCbwvk8cZmAGs35F7o0h4IqDc3wsrrnjQvMumk=",
+        "lastModified": 1790128814,
+        "narHash": "sha256-6Gm9q+wW3E4Ey4F6wEbJAwaMsEK6hvCYfTW7yY64ZfA=",
         "ref": "master",
-        "rev": "cbcbfa2778e0c5653ef349df3ebae8288efac3c0",
+        "rev": "0b2f1129177f70c5f0f5d88bb53c49ca47d0bfc0",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -312,16 +312,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1790069497,
-        "narHash": "sha256-fbNEOF6ylN6TIHa7RfFICTeQsYnZRGmVVJWkggjdgbg=",
+        "lastModified": 1790122280,
+        "narHash": "sha256-uWgg4A+hrlViz1L0y9D8zMkIjQU8UzJqoyxaZ3xY24Q=",
         "ref": "refs/heads/main",
-        "rev": "181f1f9efe7ac92a3d98c6b79ba870161e7f209a",
+        "rev": "fcf80443a6e5363f30dc9b191bcb65cfcd788df2",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "181f1f9efe7ac92a3d98c6b79ba870161e7f209a",
+        "rev": "fcf80443a6e5363f30dc9b191bcb65cfcd788df2",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -428,10 +428,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1790045080,
-        "narHash": "sha256-n4rFlJU3X5PkzyFDvDdbv6YfBNU/vCdMUSpi5gVfpLg=",
+        "lastModified": 1790131501,
+        "narHash": "sha256-88O7j5u/+W+IE90nz/VQ3xQCCcplXdONdneGmdbUC48=",
         "ref": "refs/heads/main",
-        "rev": "68227f2197e8fdfba92055c10af451f3f3429d81",
+        "rev": "4874736f610a4448bf43e02455db48bc5e6ed930",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
@@ -475,16 +475,16 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1789960332,
-        "narHash": "sha256-MQ5my6vvo0z2iVQcKqrysutFWvsNw3/ynNxzjJon4yc=",
+        "lastModified": 1790055231,
+        "narHash": "sha256-QpXotokGh5eeMG1Njiuh27oP0rK6t5+cMp7ymXSs7mc=",
         "ref": "refs/heads/master",
-        "rev": "35e212742ceab4ae1dcfbfd9039a39215c816e8e",
+        "rev": "b6c98e9e6633ee64753b594ff4a5febf0367fc00",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
       },
       "original": {
-        "rev": "35e212742ceab4ae1dcfbfd9039a39215c816e8e",
+        "rev": "b6c98e9e6633ee64753b594ff4a5febf0367fc00",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
