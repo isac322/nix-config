@@ -178,29 +178,29 @@
       {
         "assets": [
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.5/posthog-cli-aarch64-apple-darwin.tar.gz",
-            "digest": "sha256:d5d0c354e8fde1b613a44c45e5171614404b8261766a8c776ecae2b9d94169d8",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.6/posthog-cli-aarch64-apple-darwin.tar.gz",
+            "digest": "sha256:0ba81ddfe1f0fd7df308f5e3667d1fbae7f0661842176875124edc2ff13a3392",
             "name": "posthog-cli-aarch64-apple-darwin.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.5/posthog-cli-x86_64-apple-darwin.tar.gz",
-            "digest": "sha256:3377d482b0e4d6d6bcf1e39cc0dfd7c7ec00eb88e371c45ac527cbe7ef5b68aa",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.6/posthog-cli-x86_64-apple-darwin.tar.gz",
+            "digest": "sha256:501e83c07778ddc85b6ae2db5bf082cb25341382bc79c6ace635510b660d10ef",
             "name": "posthog-cli-x86_64-apple-darwin.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.5/posthog-cli-aarch64-unknown-linux-gnu.tar.gz",
-            "digest": "sha256:5b3f0147f6ff1a386d95fb90595144355d47dfce8b27cbcbc6b73a36c0815c33",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.6/posthog-cli-aarch64-unknown-linux-gnu.tar.gz",
+            "digest": "sha256:e66dcd85a9e44cebb661b17cb061aa2b3e188dd7da1b8e254eedbf6d46002f1c",
             "name": "posthog-cli-aarch64-unknown-linux-gnu.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.5/posthog-cli-x86_64-unknown-linux-gnu.tar.gz",
-            "digest": "sha256:b641d40d9fe990d6f6e2481311952386c6693b93b847d42bf04f3d371b7d8a0c",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.6/posthog-cli-x86_64-unknown-linux-gnu.tar.gz",
+            "digest": "sha256:bfe223abd7d53c0393935a8c5282d6ebf4100c1ff4796859c25d215a4858e909",
             "name": "posthog-cli-x86_64-unknown-linux-gnu.tar.gz"
           }
         ],
         "draft": false,
         "prerelease": false,
-        "tag_name": "posthog-cli/v0.18.5"
+        "tag_name": "posthog-cli/v0.18.6"
       }
     ],
     "sentry": {
