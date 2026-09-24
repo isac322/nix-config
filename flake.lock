@@ -271,10 +271,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1790128814,
-        "narHash": "sha256-6Gm9q+wW3E4Ey4F6wEbJAwaMsEK6hvCYfTW7yY64ZfA=",
+        "lastModified": 1790225410,
+        "narHash": "sha256-BOyZoliWfm/beS4m3FxFKlu5at6npZen1PsWtvzzihk=",
         "ref": "master",
-        "rev": "0b2f1129177f70c5f0f5d88bb53c49ca47d0bfc0",
+        "rev": "4900baf1e219645e4a2acba35723852b2091bc20",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -312,16 +312,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1790156955,
-        "narHash": "sha256-fX01id/iJpSbHzVDYgrQHy1vr7OsqCZrNAwfYsestLQ=",
+        "lastModified": 1790222773,
+        "narHash": "sha256-OiTy5CmylptT+VrSemH3ZpQyfXi144Byj1qKXKsvujk=",
         "ref": "refs/heads/main",
-        "rev": "06830d044f23ec9bc55cec62771122d2941c634d",
+        "rev": "2dcb8105ad34c1072e24addb0a40ae5dd1124178",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "06830d044f23ec9bc55cec62771122d2941c634d",
+        "rev": "2dcb8105ad34c1072e24addb0a40ae5dd1124178",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -428,10 +428,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1790131501,
-        "narHash": "sha256-88O7j5u/+W+IE90nz/VQ3xQCCcplXdONdneGmdbUC48=",
+        "lastModified": 1790217280,
+        "narHash": "sha256-vAP3gQ7ozuoK7o23rBaCN0aojEhsEBpOycdMeHQ2IWY=",
         "ref": "refs/heads/main",
-        "rev": "4874736f610a4448bf43e02455db48bc5e6ed930",
+        "rev": "f507039de1ca93472cc04039db3d127607e4b8da",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
@@ -475,16 +475,16 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1790055231,
-        "narHash": "sha256-QpXotokGh5eeMG1Njiuh27oP0rK6t5+cMp7ymXSs7mc=",
+        "lastModified": 1790178388,
+        "narHash": "sha256-kK3t7gwoz4Nx8RF46cs1Xz/skKNcK7y3KYP+gGqX6W8=",
         "ref": "refs/heads/master",
-        "rev": "b6c98e9e6633ee64753b594ff4a5febf0367fc00",
+        "rev": "00455b0a3690d3f5dc61e9aef4277dc86235b73f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
       },
       "original": {
-        "rev": "b6c98e9e6633ee64753b594ff4a5febf0367fc00",
+        "rev": "00455b0a3690d3f5dc61e9aef4277dc86235b73f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
@@ -492,10 +492,10 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1790149054,
-        "narHash": "sha256-FfjXg6mAzKQBCY+7V9keGWOXG4DV2Eym/qA987lFl8A=",
+        "lastModified": 1790178388,
+        "narHash": "sha256-kK3t7gwoz4Nx8RF46cs1Xz/skKNcK7y3KYP+gGqX6W8=",
         "ref": "nixpkgs-unstable",
-        "rev": "8825bebf6324e0579d012936eff73379af284b6d",
+        "rev": "00455b0a3690d3f5dc61e9aef4277dc86235b73f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
@@ -528,10 +528,10 @@
     "pi-anthropic-web-search-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1784996821,
-        "narHash": "sha256-Qa6sAPRTYuYfasOdAsVeMHAYacecRXaAvgNu0Df155U=",
+        "lastModified": 1790231895,
+        "narHash": "sha256-Cop3t5VwAjfPFWdRx03RgZrmi4EzYVqsieTCZoeyltA=",
         "ref": "main",
-        "rev": "f85d35421cef09423565415e687bc6d866324e97",
+        "rev": "ae0c7ac51fef2168b5bec775e958d47742a23ed7",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/code-yeongyu/pi-anthropic-web-search.git"
@@ -600,10 +600,10 @@
     "pi-openai-web-search-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1784998273,
-        "narHash": "sha256-mxurTHanCTkS94wneMYmSY/aNH2m20YSaE/4v4cGXiU=",
+        "lastModified": 1790231677,
+        "narHash": "sha256-thIR3bIjwg92iaCRCqSw7YfdnCyJ4iCGwNzezI7xOxo=",
         "ref": "main",
-        "rev": "39643380682f02f306b0de2673ff136c45ccc2a2",
+        "rev": "7e11a74785e2f2d8e145318724468049e15cc098",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/code-yeongyu/pi-openai-web-search.git"
