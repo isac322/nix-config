@@ -46,7 +46,7 @@ task:
     sonic: openai-codex/gpt-6-luna:low
     security-reviewer: openai-codex/gpt-6-astra:high
 modelRoles:
-  default: openai-codex/gpt-6-astra:medium
+  default: anthropic/claude-opus-5-5:medium
   plan: anthropic/claude-opus-5-5:high
   slow: anthropic/claude-opus-5-5:xhigh
   task: devin/swe-2:max
