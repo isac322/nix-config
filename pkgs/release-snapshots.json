@@ -4,30 +4,30 @@
     "binaries": [
       {
         "name": "gjc-darwin-arm64",
-        "sha256": "0ef6bb9365c0da3cda769184a715fc5bd872207477c873ef9ce0c1df482bd8fd",
-        "size": 150715760
+        "sha256": "196e5d58ce63d470aeaca49cef2600179d551fd186adf3e977cf306693bf3f08",
+        "size": 150880880
       },
       {
         "name": "gjc-darwin-x64",
-        "sha256": "da32d4e8cd6a851bd36172a087e3addf42c9867fe57d79ba12b08ec79a397512",
-        "size": 158728864
+        "sha256": "5ff3a9cd6ccbee12d71056520bc2358772e78417b50debd06b6cb6c92a193b90",
+        "size": 158910496
       },
       {
         "name": "gjc-linux-arm64",
-        "sha256": "f7561a7beeb89ada6e95b8d2ad16eab636e24f45201c49af3ff810ca80d917ac",
-        "size": 171034616
+        "sha256": "b7f0247bc1c9b32f7a1af2f95149edd45db513930c0e5827338da089d6131ca5",
+        "size": 171165688
       },
       {
         "name": "gjc-linux-x64",
-        "sha256": "7623112345d4f315f66bdf4f4c0fcbab777fae992b9e4a81cc6bde11d653bf11",
-        "size": 172164296
+        "sha256": "7780024de04fec45a7d0afe5ef822ca59ed1b4c2ad919b31e98d335526385335",
+        "size": 172336328
       }
     ],
     "release_channel": "stable",
-    "release_version": "0.17.5",
+    "release_version": "0.17.6",
     "schema": "gajae-release-binaries-v1",
     "schema_version": 1,
-    "tag": "v0.17.5"
+    "tag": "v0.17.6"
   },
   "npmSourceOverrides": {
     "piCodegraph": {
@@ -178,29 +178,29 @@
       {
         "assets": [
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.6/posthog-cli-aarch64-apple-darwin.tar.gz",
-            "digest": "sha256:0ba81ddfe1f0fd7df308f5e3667d1fbae7f0661842176875124edc2ff13a3392",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.7/posthog-cli-aarch64-apple-darwin.tar.gz",
+            "digest": "sha256:2bbf2436d8db98831e930b632716d0112234a112dcdd10f3f7ada0fdda2adf38",
             "name": "posthog-cli-aarch64-apple-darwin.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.6/posthog-cli-x86_64-apple-darwin.tar.gz",
-            "digest": "sha256:501e83c07778ddc85b6ae2db5bf082cb25341382bc79c6ace635510b660d10ef",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.7/posthog-cli-x86_64-apple-darwin.tar.gz",
+            "digest": "sha256:c08def74f0276700ef330d703cca57f7dac4b801c957325e1ae40da091e2aa0b",
             "name": "posthog-cli-x86_64-apple-darwin.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.6/posthog-cli-aarch64-unknown-linux-gnu.tar.gz",
-            "digest": "sha256:e66dcd85a9e44cebb661b17cb061aa2b3e188dd7da1b8e254eedbf6d46002f1c",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.7/posthog-cli-aarch64-unknown-linux-gnu.tar.gz",
+            "digest": "sha256:b79422f3baba535e29f8e8d70dd4f566f084384dcc5c628da62938dffaadc431",
             "name": "posthog-cli-aarch64-unknown-linux-gnu.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.6/posthog-cli-x86_64-unknown-linux-gnu.tar.gz",
-            "digest": "sha256:bfe223abd7d53c0393935a8c5282d6ebf4100c1ff4796859c25d215a4858e909",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.7/posthog-cli-x86_64-unknown-linux-gnu.tar.gz",
+            "digest": "sha256:e6b9f002346f1a29cb01f82a57cf39fcdb9569b8d33e5a29552e8274b800f501",
             "name": "posthog-cli-x86_64-unknown-linux-gnu.tar.gz"
           }
         ],
         "draft": false,
         "prerelease": false,
-        "tag_name": "posthog-cli/v0.18.6"
+        "tag_name": "posthog-cli/v0.18.7"
       }
     ],
     "sentry": {
