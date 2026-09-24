@@ -229,9 +229,9 @@
       "flake": false,
       "locked": {
         "lastModified": 1790176180,
-        "narHash": "sha256-cwVOJwTISVWiiG2vkxPq0JXsVoAXXhlW9wfq41kxzqY=",
+        "narHash": "sha256-UMaiffpgTt1oGyt5KP2kyRSZw9qfwYKHkp8cvfVQPqo=",
         "ref": "refs/heads/main",
-        "rev": "c5da5fd0f5f0a0b34cfc9bca0a8b5dd5a46213a8",
+        "rev": "f182ea2018a6399f5d1b6557cf36d71a3df0f723",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -312,16 +312,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1790222773,
-        "narHash": "sha256-OiTy5CmylptT+VrSemH3ZpQyfXi144Byj1qKXKsvujk=",
+        "lastModified": 1790241846,
+        "narHash": "sha256-rmHQtarWvZxm3/dVuIkUWe0HjWfVGX8+OyaJoHIR8Jo=",
         "ref": "refs/heads/main",
-        "rev": "2dcb8105ad34c1072e24addb0a40ae5dd1124178",
+        "rev": "8bec0ce1cbb0a39f8f08dc97a7635af847779f99",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "2dcb8105ad34c1072e24addb0a40ae5dd1124178",
+        "rev": "8bec0ce1cbb0a39f8f08dc97a7635af847779f99",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -510,10 +510,10 @@
     "pi-anthropic-web-fetch-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1784998886,
-        "narHash": "sha256-bK2KwLQyt5zXlg1v9dTLCeBrPd9NGj6ZSiOi0/MKGms=",
+        "lastModified": 1790234577,
+        "narHash": "sha256-bpuIriS/OeWhpK2Se9aMHXcxtNgCG1IzZNym3b0S/Ro=",
         "ref": "main",
-        "rev": "3e882310f4dde02995661c6d1114c3392bfeef85",
+        "rev": "b0625f7c90743359d5adfab278a30ca30d92e560",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/code-yeongyu/pi-anthropic-web-fetch.git"
@@ -564,10 +564,10 @@
     "pi-google-google-search-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1784998732,
-        "narHash": "sha256-YF1fnx+BjlWgeqePOXBiNhvqzwm6CnkqgcJ2x7ucsSs=",
+        "lastModified": 1790235254,
+        "narHash": "sha256-j02eFBen17IOtrZlCRAMssA7iQTC0DjFmZw00n/jseE=",
         "ref": "main",
-        "rev": "476db958f413fdb70787622cec9381368ebbbb83",
+        "rev": "eb0d69af7d5df581faaa8f52776a8a583ad6c778",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/code-yeongyu/pi-google-google-search.git"
@@ -582,10 +582,10 @@
     "pi-google-url-context-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1784999398,
-        "narHash": "sha256-IEzCHJFCCwwy/BmjHhotqF/0uP7FzD1hBmF7G9WrKDw=",
+        "lastModified": 1790235271,
+        "narHash": "sha256-TXIzxas5T0kP1ztzw20+Me7n9oo5ksf0h2XjJMppuOk=",
         "ref": "main",
-        "rev": "4deb3b5a09953dc8c8a2f924097c2243092c37f8",
+        "rev": "07592e0de9f98b3b6e6c256f87605e95462ad7dd",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/code-yeongyu/pi-google-url-context.git"
@@ -643,10 +643,10 @@
     "rust-overlay-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1790149037,
-        "narHash": "sha256-01WcSplVEmQt13QUZLfWez27JO+2lyYWX+yTitvkF3g=",
+        "lastModified": 1790234952,
+        "narHash": "sha256-tjQa1vDoHJir4lasZTakz/xgmsfB6SRjeQqaIbefFOk=",
         "ref": "master",
-        "rev": "fb058ecf6d14837ea152a3d5225ce7f88ee5cde1",
+        "rev": "ed34466c59b766481248959a21a6e46cf0c60468",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
