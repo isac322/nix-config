@@ -259,19 +259,26 @@ rule과 Claude skill tree는 기존 registry를 cleanup seed로 사용할 수 �
 - `Gentleman-Programming/gentle-ai`: `comment-writer`
 - `blader/humanizer`: `humanizer`
 - `softaworks/agent-toolkit`: `writing-clearly-and-concisely`
+- `pbakaus/impeccable`: `impeccable` (`~/.agents/skills`에는 upstream `.agents`
+  build, `~/.claude/skills`에는 `.claude` build)
 - 저장소 소유 `home/skills/instruction-architect`: `instruction-architect`
 - 저장소 소유 `home/skills/receiving-code-review`: `receiving-code-review`
 - 저장소 소유 `home/skills/issue-validation`: `issue-validation`
 - 저장소 소유 `home/skills/five-whys-root-cause-analysis`: `five-whys-root-cause-analysis`
 
 `humanizer`는 repository root의 `SKILL.md`가 canonical entrypoint라서 repository
-전체가 설치된다. 다른 공개 upstream은 선택한 skill directory만 설치된다.
+전체가 설치된다. `impeccable`은 upstream이 harness별로 생성해 commit한 skill
+directory를 target tree마다 골라 설치한다. 스킬만 설치하며 `npx impeccable install`의
+design hook은 사용하지 않는다. skill launcher(`scripts/impeccable`)는 처음 실행할 때
+해당 버전의 engine binary를 GitHub release에서 받아 sha256 sidecar로 검증한 뒤
+`~/.impeccable/bin/<version>`에 cache한다. 다른 공개 upstream은 선택한 skill
+directory만 설치된다.
 저장소 소유 skill은 `home/skills/<name>/SKILL.md`가 canonical source다.
 
-세 upstream만 갱신하고 배포하는 절차:
+네 upstream만 갱신하고 배포하는 절차:
 
 ```sh
-nix flake update gentle-ai humanizer agent-toolkit
+nix flake update gentle-ai humanizer agent-toolkit impeccable
 nix flake check
 darwin-rebuild build --flake .#<hostname>
 sudo darwin-rebuild switch --flake .#<hostname>

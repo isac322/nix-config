@@ -28,6 +28,18 @@ let
   };
   regularSkillSources = externalSkillSources // localSkillSources;
 
+  # Impeccable generates harness-specific builds of one skill. The .agents
+  # build is upstream's target for ~/.agents/skills; the .claude build uses
+  # Claude Code's slash-command and question-tool wording.
+  sharedHarnessSkillSources = {
+    impeccable = "${inputs.impeccable}/.agents/skills/impeccable";
+  };
+  claudeHarnessSkillSources = {
+    impeccable = "${inputs.impeccable}/.claude/skills/impeccable";
+  };
+  sharedRegularSkillSources = regularSkillSources // sharedHarnessSkillSources;
+  claudeRegularSkillSources = regularSkillSources // claudeHarnessSkillSources;
+
   policySkillSource =
     segment:
     pkgs.writeTextDir "SKILL.md" ''
@@ -52,16 +64,19 @@ let
     );
   sharedPolicySkillSources = policySkillSourcesFor "codex";
   claudePolicySkillSources = policySkillSourcesFor "claude";
-  sharedSkillSources = regularSkillSources // sharedPolicySkillSources;
-  claudeSkillSources = regularSkillSources // claudePolicySkillSources;
+  sharedSkillSources = sharedRegularSkillSources // sharedPolicySkillSources;
+  claudeSkillSources = claudeRegularSkillSources // claudePolicySkillSources;
 
   regularSkillNameCollisions = lib.intersectLists (builtins.attrNames externalSkillSources) (
     builtins.attrNames localSkillSources
   );
-  sharedPolicyNameCollisions = lib.intersectLists (builtins.attrNames regularSkillSources) (
+  harnessSkillNameCollisions = lib.intersectLists (
+    builtins.attrNames sharedHarnessSkillSources ++ builtins.attrNames claudeHarnessSkillSources
+  ) (builtins.attrNames regularSkillSources);
+  sharedPolicyNameCollisions = lib.intersectLists (builtins.attrNames sharedRegularSkillSources) (
     builtins.attrNames sharedPolicySkillSources
   );
-  claudePolicyNameCollisions = lib.intersectLists (builtins.attrNames regularSkillSources) (
+  claudePolicyNameCollisions = lib.intersectLists (builtins.attrNames claudeRegularSkillSources) (
     builtins.attrNames claudePolicySkillSources
   );
 
@@ -119,6 +134,10 @@ in
       message = "Repository-owned agent skills collide with pinned external skills: ${lib.concatStringsSep ", " regularSkillNameCollisions}";
     }
     {
+      assertion = harnessSkillNameCollisions == [ ];
+      message = "Harness-specific agent skills collide with regular global skills: ${lib.concatStringsSep ", " harnessSkillNameCollisions}";
+    }
+    {
       assertion = sharedPolicyNameCollisions == [ ];
       message = "Generated Codex policy skills collide with regular global skills: ${lib.concatStringsSep ", " sharedPolicyNameCollisions}";
     }
@@ -130,7 +149,17 @@ in
   ++ lib.mapAttrsToList (name: source: {
     assertion = builtins.pathExists "${source}/SKILL.md";
     message = "Agent skill '${name}' does not contain SKILL.md";
-  }) regularSkillSources;
+  }) regularSkillSources
+  ++
+    lib.mapAttrsToList
+      (name: source: {
+        assertion = builtins.pathExists "${source}/SKILL.md";
+        message = "Harness-specific agent skill '${name}' at ${source} does not contain SKILL.md";
+      })
+      (
+        lib.mapAttrs' (name: lib.nameValuePair "shared/${name}") sharedHarnessSkillSources
+        // lib.mapAttrs' (name: lib.nameValuePair "claude/${name}") claudeHarnessSkillSources
+      );
 
   # SkillClaw synchronizes only the shared ~/.agents/skills tree. Every
   # Nix-managed name there is protected from pull replacement but remains

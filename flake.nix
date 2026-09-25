@@ -63,6 +63,10 @@
       url = "git+https://github.com/softaworks/agent-toolkit.git?shallow=1";
       flake = false;
     };
+    impeccable = {
+      url = "git+https://github.com/pbakaus/impeccable.git?shallow=1";
+      flake = false;
+    };
 
     # Rust's official release components, pinned as a source tree so the
     # configuration can select one exact toolchain without rustup or a second

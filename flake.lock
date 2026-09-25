@@ -303,6 +303,23 @@
         "url": "https://github.com/blader/humanizer.git"
       }
     },
+    "impeccable": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1790297429,
+        "narHash": "sha256-VIBhqwBtC9726O8Kr7KuhmnBEJcIBTc+q4rqb7HHyzI=",
+        "ref": "refs/heads/main",
+        "rev": "9d715cc4f5564a990ca8345abfdd5df6dc9b41c8",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/pbakaus/impeccable.git"
+      },
+      "original": {
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/pbakaus/impeccable.git"
+      }
+    },
     "llm-agents": {
       "inputs": {
         "bun2nix": "bun2nix",
@@ -624,6 +641,7 @@
         "gentle-ai": "gentle-ai",
         "home-manager": "home-manager",
         "humanizer": "humanizer",
+        "impeccable": "impeccable",
         "llm-agents": "llm-agents",
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",
