@@ -1,33 +1,33 @@
 {
-  "beardriveChecksums": "8278abed98e139c6224f8b9c9d3acd393d8168775286bb5d25556bc24d4f9303  beardrive_0.16.0_darwin_amd64.tar.gz\n318dcf40946063e66ff7f54105cabde24ef7eb36b291e12fa4a6db4191c0ea44  beardrive_0.16.0_darwin_arm64.tar.gz\nfebd8c261691c84ace21b5765a03a4c89e6b7fab83f8b4627a1b74cb97d61e85  beardrive_0.16.0_linux_amd64.tar.gz\nd6005b938dd27962f395a0d5095af0b326d3e09ecb81d9e94f1de63a7395fca8  beardrive_0.16.0_linux_arm64.tar.gz\n",
+  "beardriveChecksums": "db358519eac38b9cb04827cd4da00069d07e882ae16da2a57228b008f158324d  beardrive_0.16.1_darwin_amd64.tar.gz\n25666f7f279c85a0b73187dbba4b05b2741003e7b0fe29cdd3c01b589bccff8c  beardrive_0.16.1_darwin_arm64.tar.gz\n56bc18b015d17ede8dd5fc8cfb8852314b71e409b7a3a7a752495d5b7d854edc  beardrive_0.16.1_linux_amd64.tar.gz\n1ddcaec4efd91c75c76c72561b627f138638c082d5fdd2fc97de562ac3172551  beardrive_0.16.1_linux_arm64.tar.gz\n",
   "gajaeCodeManifest": {
     "binaries": [
       {
         "name": "gjc-darwin-arm64",
-        "sha256": "196e5d58ce63d470aeaca49cef2600179d551fd186adf3e977cf306693bf3f08",
-        "size": 150880880
+        "sha256": "df4ccecb4e39ec5cc252c2dfc12b41cb8e757e7a7ffe597260aa8fb33b10bba2",
+        "size": 151458800
       },
       {
         "name": "gjc-darwin-x64",
-        "sha256": "5ff3a9cd6ccbee12d71056520bc2358772e78417b50debd06b6cb6c92a193b90",
-        "size": 158910496
+        "sha256": "b8315ad9cf4cb9efdf373492db1f2b412724ee002244146e9e9d395c24314af3",
+        "size": 159389344
       },
       {
         "name": "gjc-linux-arm64",
-        "sha256": "b7f0247bc1c9b32f7a1af2f95149edd45db513930c0e5827338da089d6131ca5",
-        "size": 171165688
+        "sha256": "d9a3c40a4e6c9d98f2b835ce0325c609eb22320afb8cef5079f6daa7d96b29f2",
+        "size": 170838008
       },
       {
         "name": "gjc-linux-x64",
-        "sha256": "7780024de04fec45a7d0afe5ef822ca59ed1b4c2ad919b31e98d335526385335",
-        "size": 172336328
+        "sha256": "f4cf90be98c7c3d264934646258b341ece203186334d905a02e243332f793104",
+        "size": 171906248
       }
     ],
     "release_channel": "stable",
-    "release_version": "0.17.6",
+    "release_version": "0.17.7",
     "schema": "gajae-release-binaries-v1",
     "schema_version": 1,
-    "tag": "v0.17.6"
+    "tag": "v0.17.7"
   },
   "npmSourceOverrides": {
     "piCodegraph": {
