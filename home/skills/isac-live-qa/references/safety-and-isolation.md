@@ -15,7 +15,7 @@ LQA-05~LQA-18, LQA-20~LQA-22의 세부. 태그 없는 항목은 바꿀 수 있�
 
 ## 2. 허용 범위 제안(LQA-05)
 
-변경이 필요한 검증 전에 사용자에게 제시하는 틀이다. `isac-brief` 형식 안에 넣는다.
+변경이 필요한 검증 전에 사용자에게 제시하는 틀이다. `isac-decision-brief` 형식 안에 넣는다.
 
 ```text
 목적: <이 변경이 없으면 확인할 수 없는 것>
@@ -46,7 +46,7 @@ LQA-05~LQA-18, LQA-20~LQA-22의 세부. 태그 없는 항목은 바꿀 수 있�
 
 ## 4. 자격증명과 비밀
 
-- 요청·전달·막힘 처리는 `isac-brief`를 따른다(LQA-08). 격리 방식(전용 계정·zone vs 기존 영역 + prefix)은 `isac-brief`대로 트레이드오프를 보여 주고 묻는다. 전용 계정을 쓰면 별도 쓰기 토큰을 쓴다.
+- 요청·전달·막힘 처리는 `isac-decision-brief`를 따른다(LQA-08). 격리 방식(전용 계정·zone vs 기존 영역 + prefix)은 `isac-decision-brief`대로 트레이드오프를 보여 주고 묻는다. 전용 계정을 쓰면 별도 쓰기 토큰을 쓴다.
 - Secret data는 읽거나 출력하지 않는다. 자격증명은 위치와 이름으로만 식별한다. Secret에 대한 단언은 존재, key 이름, 개수, 길이, ownerRef로만 한다. 값이 없으면 누락된 key 이름을 보고하고 probe하지 않는다.
 - 증거 파이프라인은 끝까지 secret-safe여야 한다: 자격증명 파일은 echo 없이 소비하고, token과 그 base64 형태를 sanitizer에 등록한다. argv에 토큰을 넣지 않는다. scratch는 mode 600이다. 위임된 자동화는 전용 토큰을 쓰고 계정을 바꾸지 않는다.
 - 증거에서 금지하는 필드: API token, tunnel/service token, 인증 audience 값, bearer header, 쿠키.
@@ -67,7 +67,7 @@ LQA-05~LQA-18, LQA-20~LQA-22의 세부. 태그 없는 항목은 바꿀 수 있�
 ## 6. 실행 게이트(대규모·공유 계정 run, LQA-22)
 
 - runbook, 원장, 증거 정책을 먼저 쓴다. 스크립트는 작성과 문법 검사(`bash -n` 등)까지만 하고 게이트 전에는 실행하지 않는다.
-- 독립 실행 검토와 보안 검토를 `isac-consensus`로 돌려 둘 다 차단 발견 0이어야 실행한다. 수정하면 재검토한다.
+- 독립 실행 검토와 보안 검토를 `isac-multi-agent-consensus`로 돌려 둘 다 차단 발견 0이어야 실행한다. 수정하면 재검토한다.
 - 보안 검토 체크리스트: 공유 계정 blast radius, 금지된 전역 쓰기, 증거의 비밀값 누출, run 생성물 소유권, orphan 정리, conditional 케이스 처리, 비상 정리 경로, fail-closed 정리, run 밖 객체 삭제 불가능성.
 - 문서 사이의 대기·재시도 예산, ID, 합계, 순서가 서로 맞는지 교차 검증한다. 모든 대기는 bounded poll이며 sleep이나 "N번 돌림"을 증거로 쓰지 않는다.
 - 증거 아티팩트는 출처를 확인할 수 있게 이름과 label을 붙인다(`<suite>-<head_sha>` 등). 형식은 subcase마다 bounded JSONL `{case, subcase, expected, observed, pass}`와 blocked 분류(닫힌 집합)다.

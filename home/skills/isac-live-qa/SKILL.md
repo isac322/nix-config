@@ -1,6 +1,6 @@
 ---
 name: isac-live-qa
-description: Use when exploring a deployed environment (cluster, URL, service, device) to check that the product behaves as intended — functionality, performance, UX, logs — and to file GitHub issues for what is found, after an upfront interview on scope, risk, allowed mutations, isolation, and recovery; including "라이브 QA", "배포된 거 샅샅이 조사해서 이슈로 만들어", "배포된 게 의도대로 동작하는지 확인해", "실사용 점검". Not for fixing code, reproducing a single reported claim (issue-validation), triaging an existing issue (isac-triage), implementing or QA-ing a fix in progress (isac-fix), or reviewing a PR (isac-review).
+description: Use when exploring a deployed environment (cluster, URL, service, device) to check that the product behaves as intended — functionality, performance, UX, logs — and to file GitHub issues for what is found, after an upfront interview on scope, risk, allowed mutations, isolation, and recovery; including "라이브 QA", "배포된 거 샅샅이 조사해서 이슈로 만들어", "배포된 게 의도대로 동작하는지 확인해", "실사용 점검". Not for fixing code, reproducing a single reported claim (issue-validation), triaging an existing issue (isac-issue-triage), implementing or QA-ing a fix in progress (isac-issue-to-pr), or reviewing a PR (isac-pr-review).
 ---
 
 # Live QA
@@ -10,10 +10,10 @@ description: Use when exploring a deployed environment (cluster, URL, service, d
 ## 경계
 
 - 공개 게시 여부와 분석 전용 요청의 쓰기 금지는 전역 `task-intent-boundary`, 되돌릴 수 없는 삭제·변경 준비는 `destructive-operations`, 완료 주장은 `verification`, 비밀값 비노출은 `guardrails`를 따른다. 이 스킬은 재서술하지 않는다.
-- 사용자에게 묻는 형식(현상 → 원인 → 선택지별 변화 → 권장, 자격증명 값별 설명)은 `isac-brief` 스킬이 소유한다.
-- 여러 에이전트의 토론·합의 절차는 `isac-consensus` 스킬이 소유한다. 사용자의 중지 지시는 전역 `task-intent-boundary` 가드를 따른다.
-- 이슈 판정 dossier(bug/intended/duplicate)는 `issue-validation`, 깊은 근본 원인은 `five-whys-root-cause-analysis` 또는 등록 후 `isac-triage`가 맡는다.
-- 게시/초안 모드, 게시 주체, 영어·공개 저장소 위생·중복 검색·기존 이슈 보강·라벨 생성 메커닉은 `isac-publish` 스킬이 소유한다. 초안 모드면 이 스킬의 "이슈 등록"은 이슈 초안 작성으로 읽고, 최종 보고에 게시 가능함을 알린다.
+- 사용자에게 묻는 형식(현상 → 원인 → 선택지별 변화 → 권장, 자격증명 값별 설명)은 `isac-decision-brief` 스킬이 소유한다.
+- 여러 에이전트의 토론·합의 절차는 `isac-multi-agent-consensus` 스킬이 소유한다. 사용자의 중지 지시는 전역 `task-intent-boundary` 가드를 따른다.
+- 이슈 판정 dossier(bug/intended/duplicate)는 `issue-validation`, 깊은 근본 원인은 `five-whys-root-cause-analysis` 또는 등록 후 `isac-issue-triage`가 맡는다.
+- 게시/초안 모드, 게시 주체, 영어·공개 저장소 위생·중복 검색·기존 이슈 보강·라벨 생성 메커닉은 `isac-github-publishing` 스킬이 소유한다. 초안 모드면 이 스킬의 "이슈 등록"은 이슈 초안 작성으로 읽고, 최종 보고에 게시 가능함을 알린다.
 - 격리 단위: 기존 환경과 분리해 만들고 통째로 지울 수 있는 범위다(예: namespace, 테스트 계정·테넌트, 임시 프로젝트, 일회용 VM·컨테이너·가상 디스플레이). 아래 규칙의 namespace·finalizer 같은 용어는 Kubernetes 배포의 예이며, 다른 대상에서는 해당하는 격리 단위와 정리 신호로 읽는다.
 
 ## 0단계: 프로젝트 훅
@@ -25,14 +25,14 @@ brief나 cwd로 이슈 대상 저장소가 정해져 있으면 지금, 아니면
 - **LQA-01** [U] 목표는 "지정된 배포 환경의 대상 버전이 의도대로 동작하는지, 버그가 있는지"를 샅샅이 조사해 **GitHub 이슈 등록까지**(초안 모드면 이슈 초안까지) 하는 것이다. 발견한 문제를 고치지 않는다. 저장소는 건드리지 않는다(커밋·브랜치·PR·코드 수정 없음, 작업트리는 시작 상태 그대로). 런타임 준비물(컨테이너·디스플레이·설치·인증)은 저장소 밖 scratch에서 구성한다.
 - **LQA-02** [U] 시작 전에 `references/interview.md` 체크리스트를 확정한다. 배포 위치와 QA 범위는 프로젝트마다 다르므로 추정하지 않는다. 불확실한 항목이 하나라도 있으면 실행 전에 묻는다.
 - **LQA-03** [U] 사용자 brief가 이미 정한 경계(예: "기존 리소스는 R만, 임시 namespace에서 임시 리소스로 검사, 끝나면 제거")는 그대로 운영 규칙으로 옮긴다. 빠진 항목만 한 번의 구조화된 질문으로 묻는다. 이미 답한 항목은 다시 묻지 않는다.
-- **LQA-04** [U] 설치·실행을 검증하면 사용자에게 안내된 설치 경로로 한다(규칙·보고 항목은 `isac-fix` 소유).
+- **LQA-04** [U] 설치·실행을 검증하면 사용자에게 안내된 설치 경로로 한다(규칙·보고 항목은 `isac-issue-to-pr` 소유).
 
 ## 2. 위험 고지와 허용 범위 승인
 
-- **LQA-05** [U] brief나 인터뷰가 이미 허용한 범위(LQA-03)가 아니면, 변경이 필요한 검증(임시 리소스 생성, 공유·운영 클러스터 배포, 외부 계정 리소스 생성)은 실행 전에 허용 범위를 제안하고 명시 승인을 받는다. 제안에는 격리 방식, 생성·삭제할 리소스 종류, 기존 서비스에 영향이 없다는 근거, 정리·복구 방법, 남는 위험을 담는다. 승인되지 않은 항목은 금지로 둔다. 형식은 `references/safety-and-isolation.md`의 제안 틀과 `isac-brief`.
+- **LQA-05** [U] brief나 인터뷰가 이미 허용한 범위(LQA-03)가 아니면, 변경이 필요한 검증(임시 리소스 생성, 공유·운영 클러스터 배포, 외부 계정 리소스 생성)은 실행 전에 허용 범위를 제안하고 명시 승인을 받는다. 제안에는 격리 방식, 생성·삭제할 리소스 종류, 기존 서비스에 영향이 없다는 근거, 정리·복구 방법, 남는 위험을 담는다. 승인되지 않은 항목은 금지로 둔다. 형식은 `references/safety-and-isolation.md`의 제안 틀과 `isac-decision-brief`.
 - **LQA-06** 자기 임시 객체에 대한 복구 조작(finalizer 제거 등)과 읽기 목적 토큰 발급도 변경으로 본다. 인터뷰에서 허용 여부를 묻고, 승인되지 않았으면 하지 않는다.
 - **LQA-07** [U] 격리를 주장하려면 경계를 끝까지 따져 고지한다. 예: "전용 계정"이면 전용 도메인/zone 필요 여부까지 포함한다. run prefix는 충돌 방지일 뿐 보안 경계가 아니다. 공유 계정에서 전용 계정 수준의 안전을 주장하지 않는다.
-- **LQA-08** [U] 자격증명 요청·전달·막힘 처리는 `isac-brief` 스킬(DBR-15, DBR-16, DBR-18)을 따른다. 필요한 값은 인터뷰(항목 e·k)에서 한 번에 모아 요청한다.
+- **LQA-08** [U] 자격증명 요청·전달·막힘 처리는 `isac-decision-brief` 스킬(DBR-15, DBR-16, DBR-18)을 따른다. 필요한 값은 인터뷰(항목 e·k)에서 한 번에 모아 요청한다.
 - **LQA-09** [U] 브라우저가 인증벽(CAPTCHA·2FA)에 막히면 우회하지 않는다. 로그인 페이지를 연 채 사용자에게 필요한 조치를 정확히 알리고, 사용자가 같은 세션에서 로그인하면 이어서 검증한다.
 
 ## 3. 기본 경계와 준비
@@ -49,13 +49,13 @@ brief나 cwd로 이슈 대상 저장소가 정해져 있으면 지금, 아니면
 
 ## 4. QA 계획과 실행
 
-- **LQA-19** [U] 임시 리소스를 만들어 능동 테스트(파라미터·조합·상호 참조 탐색)할 때는 실행 전에 여러 에이전트가 QA list를 다양하게 뽑는다(`isac-consensus`). 케이스마다 "의도된 바"와 "실제 관측된 바"를 나눠 기록한다. 의도된 바와 문제 기준은 6절과 `references/problem-criteria.md`로 정한다. 실행 중 케이스 추가는 허용한다. 실사용 배포의 읽기 전용 스캔은 LQA-28 경로(스캔 분할 + 후보별 토론)를 따른다.
+- **LQA-19** [U] 임시 리소스를 만들어 능동 테스트(파라미터·조합·상호 참조 탐색)할 때는 실행 전에 여러 에이전트가 QA list를 다양하게 뽑는다(`isac-multi-agent-consensus`). 케이스마다 "의도된 바"와 "실제 관측된 바"를 나눠 기록한다. 의도된 바와 문제 기준은 6절과 `references/problem-criteria.md`로 정한다. 실행 중 케이스 추가는 허용한다. 실사용 배포의 읽기 전용 스캔은 LQA-28 경로(스캔 분할 + 후보별 토론)를 따른다.
 - **LQA-20** QA 원장의 분모는 고정하고, sub-variant는 추적하되 다시 더하지 않는다. 안전한 위험 등급부터 실행한다(등급·열 구성은 `references/safety-and-isolation.md`).
 - **LQA-21** 실제 계정 대상 탐색은 무제한 무작위 생성이 아니라 미리 정한 경계 있는 campaign으로 한다. 평균 성공률보다 최악의 누출(보호 경로의 2xx 한 번)을 본다. coverage는 리소스·전이·fault·timing·격리 축의 조합으로 재고, 실행하지 못한 조합을 보고한다.
-- **LQA-22** 대규모·공유 계정 run에는 실행 게이트를 둔다: runbook·매트릭스·증거 정책 작성 → 독립 실행 검토와 보안 검토가 모두 `GREEN`(`isac-consensus`) → 실행. 수정하면 재검토한다. 소규모·격리 run은 생략한다.
-- **LQA-23** 격리 가능한 QA 케이스는 병렬로 돌린다(병렬 원칙은 `isac-consensus` MAC-03). 계획·리뷰 루프가 케이스 실행을 지연시키지 않게 한다.
-- **LQA-45** 직렬 구간(같은 원격 리소스를 바꾸는 케이스)과 예상 소요는 미리 알린다. 병렬·직렬·토론 규모 기준은 `isac-consensus`를 따른다.
-- **LQA-24** [U] 조사 범위에는 상태 점검뿐 아니라 기능·성능·개선점이 들어간다. 가용한 로그(debug 수준 포함)를 주요 증거원으로 쓴다. 로그·자격증명 공백은 추측하지 않고 `isac-brief` DBR-18을 따른다.
+- **LQA-22** 대규모·공유 계정 run에는 실행 게이트를 둔다: runbook·매트릭스·증거 정책 작성 → 독립 실행 검토와 보안 검토가 모두 `GREEN`(`isac-multi-agent-consensus`) → 실행. 수정하면 재검토한다. 소규모·격리 run은 생략한다.
+- **LQA-23** 격리 가능한 QA 케이스는 병렬로 돌린다(병렬 원칙은 `isac-multi-agent-consensus` MAC-03). 계획·리뷰 루프가 케이스 실행을 지연시키지 않게 한다.
+- **LQA-45** 직렬 구간(같은 원격 리소스를 바꾸는 케이스)과 예상 소요는 미리 알린다. 병렬·직렬·토론 규모 기준은 `isac-multi-agent-consensus`를 따른다.
+- **LQA-24** [U] 조사 범위에는 상태 점검뿐 아니라 기능·성능·개선점이 들어간다. 가용한 로그(debug 수준 포함)를 주요 증거원으로 쓴다. 로그·자격증명 공백은 추측하지 않고 `isac-decision-brief` DBR-18을 따른다.
 - **LQA-25** [U] 제품이 트래픽 경로(노출·라우팅·인증)를 만들면 실제 end-to-end 경로로 요청을 보내 응답 본문까지 확인한다.
 - **LQA-48** 인증 계약은 무인증 / 잘못된 자격증명 / 정상 자격증명 세 경우를 실측한다.
 - **LQA-26** [U] 외부 계정의 준비 상태나 설정을 알아야 하면 사용자에게 묻거나 기다리기 전에 읽기 전용으로 직접 확인한다(대시보드 로그인 포함, LQA-09).
@@ -64,22 +64,22 @@ brief나 cwd로 이슈 대상 저장소가 정해져 있으면 지금, 아니면
 ## 5. 탐색자와 finding 담당자
 
 - **LQA-27** [U] 메인(orchestrator)은 문제 탐색만 계속한다. 문제를 찾으면 그 finding을 전담하는 subagent를 새로 띄워 구체 조사부터 이슈 등록, 자기 임시 리소스 정리까지 맡긴다. 메인은 finding별 구체 조사를 직접 하지 않는다. brief 필드는 `references/issue-template.md`.
-- **LQA-46** 순서: 메인은 후보를 기존 담당자 목록·열린 이슈와 대조해 같은 문제면 기존 담당자에게 넘기고, 아니면 담당자를 띄운다 → 담당자가 LQA-28로 판정 → 게시. 이 스킬은 `isac-publish`의 게시 주체 지정으로 담당자를 그 finding의 게시 주체로 둔다. 사용자가 "메인만 게시"를 지정하면 담당자는 초안까지만 만든다.
-- **LQA-28** [U] 후보가 실제 문제인지 혼자 판단하지 않는다. 스캔은 나눠서 빠르게 하고, 후보마다 여러 에이전트가 토론해 판정한다(`isac-consensus`). 판정 근거는 `issue-validation` dossier로 남긴다.
+- **LQA-46** 순서: 메인은 후보를 기존 담당자 목록·열린 이슈와 대조해 같은 문제면 기존 담당자에게 넘기고, 아니면 담당자를 띄운다 → 담당자가 LQA-28로 판정 → 게시. 이 스킬은 `isac-github-publishing`의 게시 주체 지정으로 담당자를 그 finding의 게시 주체로 둔다. 사용자가 "메인만 게시"를 지정하면 담당자는 초안까지만 만든다.
+- **LQA-28** [U] 후보가 실제 문제인지 혼자 판단하지 않는다. 스캔은 나눠서 빠르게 하고, 후보마다 여러 에이전트가 토론해 판정한다(`isac-multi-agent-consensus`). 판정 근거는 `issue-validation` dossier로 남긴다.
 
 ## 6. 무엇을 문제로 볼 것인가
 
-- **LQA-29** [U] 의도된 동작이 이 배포에서 관측 가능한 비용(에러·노이즈·지표 오염·불필요한 외부 호출)을 만들면 "의도된/문서화된 동작"이라는 이유로 조사를 닫지 않는다. not-a-bug면 bug 이슈는 만들지 않되, 비례하지 않는 설계상 낭비는 `isac-triage` TRI-13 기준으로 enhancement 후보로 올린다.
+- **LQA-29** [U] 의도된 동작이 이 배포에서 관측 가능한 비용(에러·노이즈·지표 오염·불필요한 외부 호출)을 만들면 "의도된/문서화된 동작"이라는 이유로 조사를 닫지 않는다. not-a-bug면 bug 이슈는 만들지 않되, 비례하지 않는 설계상 낭비는 `isac-issue-triage` TRI-13 기준으로 enhancement 후보로 올린다.
 - **LQA-30** 결함과 개선 요청은 구분해 등록·보고한다. 문제 주장에는 관측된 live 증거나 결정적 재현이 필요하다. 심각도는 이론이 아니라 현재 live 영향으로 매긴다. 성능은 측정한 뒤 판단한다. 표면 상태(Ready 등)만으로 정상이라 판정하지 않는다. 세부 기준과 측정 규칙은 `references/problem-criteria.md`.
 
 ## 7. 이슈 등록
 
 - **LQA-32** [U] 외부 보고자가 없는 내부 QA finding도 이슈로 만든다.
-- **LQA-33** [U] 이슈에는 관측 현상(구체 증거·수치)과 단계별 최소 재현을 반드시 적는다. 원인·해결은 추가 노력 없이 알 수 있을 때만 적고, 증명되지 않은 원인은 hypothesis로 표시한다. brief가 근본 원인·근본 해결 방향까지 요구하면 `five-whys-root-cause-analysis`로 원인을 확정하고 해결 방향(구조 변경이 필요해도, 그 필요 여부 포함)을 이슈에 적는다. 구조 변경 결정은 `isac-triage`와 `isac-brief` 몫이다. 요구가 없으면 깊은 분석은 `isac-triage`로 넘긴다. 배포 버전을 명시한다. 템플릿은 `references/issue-template.md`.
-- **LQA-34** [U] 개선 이슈는 "개선하라"로 끝내지 않는다. 제안 내용(현재 동작, 제안 변경, 효과, 테스트, 사례별 현재 vs 제안, 남는 공백·완화책)은 `isac-triage` TRI-13·TRI-26을 따른다.
-- **LQA-35** finding 하나에 이슈 하나를 만든다. 게시 전 절차(영어, 위생, 중복 검색과 기존 이슈 처리)는 `isac-publish`를 따른다. 각 담당자의 이슈 초안은 게시 전에 LQA-28 토론 참여자나 별도 read-only 에이전트 하나가 `isac-publish`의 독립 검토자로 확인한다(담당자 단독 검토 금지). 게시 전 모든 file:line을 배포 tag 기준으로 재확인하고 틀린 주장은 정정한다. 라벨은 `bug`/`enhancement`만 붙이고 `repro:*`·`triage:*`는 붙이지 않는다. upstream 결함은 문서화와 보고 초안까지만 한다.
-- **LQA-36** [U] QA에서 확인한 계약은 나중에 주기적으로 돌릴 수 있게 재현 가능한 형태(명령, 기대값)로 보고·이슈에 남긴다. 대상이 사용자가 유지하는 제품이면 적합한 테스트 tier도 제안한다. 테스트 코드화는 `isac-fix`가 한다.
-- **LQA-37** [U] 사용자가 이미 만든 수정의 live 검증을 이 스킬로 요청한 경우, 검증은 릴리스 전에 한다. "릴리스해서 검증"하지 않는다. 현재 main으로 만든 검증용 아티팩트를 격리 환경(전용 클러스터 + 외부 서비스의 전용 리소스)에 배포하고 기존 운영 배포는 건드리지 않는다. 수정 PR 흐름 안의 검증은 `isac-fix`가 소유한다.
+- **LQA-33** [U] 이슈에는 관측 현상(구체 증거·수치)과 단계별 최소 재현을 반드시 적는다. 원인·해결은 추가 노력 없이 알 수 있을 때만 적고, 증명되지 않은 원인은 hypothesis로 표시한다. brief가 근본 원인·근본 해결 방향까지 요구하면 `five-whys-root-cause-analysis`로 원인을 확정하고 해결 방향(구조 변경이 필요해도, 그 필요 여부 포함)을 이슈에 적는다. 구조 변경 결정은 `isac-issue-triage`와 `isac-decision-brief` 몫이다. 요구가 없으면 깊은 분석은 `isac-issue-triage`로 넘긴다. 배포 버전을 명시한다. 템플릿은 `references/issue-template.md`.
+- **LQA-34** [U] 개선 이슈는 "개선하라"로 끝내지 않는다. 제안 내용(현재 동작, 제안 변경, 효과, 테스트, 사례별 현재 vs 제안, 남는 공백·완화책)은 `isac-issue-triage` TRI-13·TRI-26을 따른다.
+- **LQA-35** finding 하나에 이슈 하나를 만든다. 게시 전 절차(영어, 위생, 중복 검색과 기존 이슈 처리)는 `isac-github-publishing`을 따른다. 각 담당자의 이슈 초안은 게시 전에 LQA-28 토론 참여자나 별도 read-only 에이전트 하나가 `isac-github-publishing`의 독립 검토자로 확인한다(담당자 단독 검토 금지). 게시 전 모든 file:line을 배포 tag 기준으로 재확인하고 틀린 주장은 정정한다. 라벨은 `bug`/`enhancement`만 붙이고 `repro:*`·`triage:*`는 붙이지 않는다. upstream 결함은 문서화와 보고 초안까지만 한다.
+- **LQA-36** [U] QA에서 확인한 계약은 나중에 주기적으로 돌릴 수 있게 재현 가능한 형태(명령, 기대값)로 보고·이슈에 남긴다. 대상이 사용자가 유지하는 제품이면 적합한 테스트 tier도 제안한다. 테스트 코드화는 `isac-issue-to-pr`가 한다.
+- **LQA-37** [U] 사용자가 이미 만든 수정의 live 검증을 이 스킬로 요청한 경우, 검증은 릴리스 전에 한다. "릴리스해서 검증"하지 않는다. 현재 main으로 만든 검증용 아티팩트를 격리 환경(전용 클러스터 + 외부 서비스의 전용 리소스)에 배포하고 기존 운영 배포는 건드리지 않는다. 수정 PR 흐름 안의 검증은 `isac-issue-to-pr`가 소유한다.
 
 ## 8. 정리
 
@@ -98,4 +98,4 @@ brief나 cwd로 이슈 대상 저장소가 정해져 있으면 지금, 아니면
 
 ## 교정 루프
 
-결과가 사용자 기대와 다르면 사용자는 `isac-correct` 스킬로 이 스킬을 교정할 수 있다. 실행 중 사용자가 교정했다면 최종 보고 끝에 "스킬에 반영하려면 `스킬 고쳐`"를 한 줄 적는다(실행 도중 따로 묻지 않는다).
+결과가 사용자 기대와 다르면 사용자는 `isac-skill-correction` 스킬로 이 스킬을 교정할 수 있다. 실행 중 사용자가 교정했다면 최종 보고 끝에 "스킬에 반영하려면 `스킬 고쳐`"를 한 줄 적는다(실행 도중 따로 묻지 않는다).

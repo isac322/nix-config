@@ -1,6 +1,6 @@
 # 이슈·담당자 brief·최종 보고 틀
 
-LQA-27, LQA-33~LQA-36, LQA-42, LQA-43의 세부. 템플릿은 바꿀 수 있는 기본값이다. GitHub에 올리는 글의 언어·문체·위생·중복 확인·기존 이슈 보강은 `isac-publish` 스킬을 따른다.
+LQA-27, LQA-33~LQA-36, LQA-42, LQA-43의 세부. 템플릿은 바꿀 수 있는 기본값이다. GitHub에 올리는 글의 언어·문체·위생·중복 확인·기존 이슈 보강은 `isac-github-publishing` 스킬을 따른다.
 
 ## 1. finding 담당자 brief(LQA-27)
 
@@ -10,7 +10,7 @@ LQA-27, LQA-33~LQA-36, LQA-42, LQA-43의 세부. 템플릿은 바꿀 수 있는 
 - **Evidence found by orchestrator**: 객체 이름, 조건, 메트릭, 설정 dump 사실, 관측 시각.
 - **Investigate**: 번호 붙인 질문. 반드시 포함: 버그인가 의도인가(근거 spec), 배포 tag 기준 코드 위치, 보안·불변식 영향, 가능하면 자기 임시 namespace에서 재현.
 - **Write boundary**: 인터뷰에서 확정된 경계 블록 그대로(기존 리소스 R만, 허용된 임시 리소스 범위, 저장소 무변경).
-- **Content/hygiene rules**: `isac-publish` 준수, 실명·식별자는 placeholder.
+- **Content/hygiene rules**: `isac-github-publishing` 준수, 실명·식별자는 placeholder.
 - **Acceptance**: 이슈 생성, 또는 중복·not-a-bug 정당화(개선 후보면 enhancement 초안). 자기 임시 리소스 제거.
 - **Final report schema**: 아래 3절.
 
@@ -59,7 +59,7 @@ Observed: <result>. Reproduced <N>/<M> times on <environment class>.
 
 - Symptom과 Reproduction은 필수다(LQA-33). 재현하지 못했으면 시도한 방법과 조건을 적고 그 사실을 첫 줄에 쓴다.
 - source 링크는 버전·SHA로 고정한다.
-- 라벨은 `bug` 또는 `enhancement`만 붙인다. `repro:*`, `triage:*`는 `isac-triage`의 몫이다.
+- 라벨은 `bug` 또는 `enhancement`만 붙인다. `repro:*`, `triage:*`는 `isac-issue-triage`의 몫이다.
 - QA에서 확인한 계약은 재현 명령과 기대값, 추천 테스트 tier(unit / envtest·통합 / proxy / e2e 중 가장 싼 것)를 적어 코드화할 수 있게 한다(LQA-36).
 
 ## 3. 담당자 최종 반환
