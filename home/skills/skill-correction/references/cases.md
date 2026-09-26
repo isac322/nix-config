@@ -16,7 +16,7 @@
 - 변경: 신규 → 반영 위치 분류에 "사용자·저장소 한정 선호 → memory만" 추가
 - 일반화: global
 - 재발 확인 기준: 작업 방식 선호를 교정할 때 제안의 반영 위치가 memory이고, 스킬 본문·프로젝트 reference·지침 파일 diff가 없다.
-- 비고: 선호 자체의 반영 위치는 memory다. 이후 사용자가 이 선호를 저장소 하나가 아니라 `isac322` 소유 저장소 전체의 전역 머지 기본값으로 넓히라고 결정했다(01a0dda6 84a012fa). 그래서 관리자 머지 기본값은 전역 `pull-request-merge-authorization` segment에 있고, 이 케이스의 규칙(한 저장소 한정 선호는 memory)은 그대로 유효하다.
+- 비고: 선호 자체의 반영 위치는 memory다. 이후 사용자가 이 선호를 저장소 하나가 아니라 `isac322` 소유 저장소에서 `isac322`가 작성한 PR 전체의 전역 머지 기본값으로 넓히라고 결정했다(01a0dda6 84a012fa 이후 후속 답). 그래서 관리자 머지 기본값은 전역 `pull-request-merge-authorization` segment에 있고, 이 케이스의 규칙(한 저장소 한정 선호는 memory)은 그대로 유효하다.
 
 ### CASE-20260925-revert-wrong-location
 - 상태: applied
