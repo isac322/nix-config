@@ -1,6 +1,6 @@
 ---
 name: issue-validation
-description: Use as the reproduction/verdict step of github-issue-triage, or directly when only claim verdicts, reproduction, mechanism-based deduplication, evidence grading, or fix provenance are needed without posting to GitHub, especially when comparing deployed artifacts, release tags, and current main. Produces a validated atomic-issue dossier; hand causal analysis to five-whys-root-cause-analysis.
+description: Use as the reproduction/verdict step of isac-triage, or directly when only claim verdicts, reproduction, mechanism-based deduplication, evidence grading, or fix provenance are needed without posting to GitHub, especially when comparing deployed artifacts, release tags, and current main. Produces a validated atomic-issue dossier; hand causal analysis to five-whys-root-cause-analysis.
 ---
 
 # Issue Validation

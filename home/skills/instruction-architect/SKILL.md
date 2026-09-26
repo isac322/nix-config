@@ -1,6 +1,6 @@
 ---
 name: instruction-architect
-description: Use when the user asks to remember, persist, add, change, or organize a durable instruction, preference, rule, workflow, personality, or skill; including "기억해", "앞으로 항상", "지침에 추가", "규칙으로 만들어", or "스킬로 만들어". Not for correcting a skill registered in the skill-correction family (for example "github-pr-review 스킬 고쳐" or "이 지침 때문에 틀렸어"); use skill-correction, which applies this skill's repository rules inside its PR step.
+description: Use when the user asks to remember, persist, add, change, or organize a durable instruction, preference, rule, workflow, personality, or skill; including "기억해", "앞으로 항상", "지침에 추가", "규칙으로 만들어", or "스킬로 만들어". Not for correcting a skill registered in the isac-correct family (for example "isac-review 스킬 고쳐" or "이 지침 때문에 틀렸어"); use isac-correct, which applies this skill's repository rules inside its PR step.
 ---
 
 # Instruction Architect
