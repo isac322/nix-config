@@ -1,5 +1,3 @@
-providers:
-  webSearchGeminiModel: gemini-3.5-flash-lite
 retry:
   fallbackChains:
     devin/swe-2:
@@ -12,7 +10,6 @@ terminal:
   showProgress: true
 tui:
   tight: true
-  scrollbackRebuild: true
   codexResetFireworks: true
   imeSafeCursor: true
 display:
@@ -36,7 +33,6 @@ github:
 task:
   eager: preferred
   isolation:
-    mode: auto
     commits: ai
   showResolvedModelBadge: true
   agentAdvisor:
@@ -68,8 +64,6 @@ compaction:
   idleThresholdTokens: 300000
 worktree:
   base: ""
-stt:
-  modelName: parakeet
 tier:
   advisor: inherit
   google: priority
@@ -82,8 +76,6 @@ snapcompact:
   toolResults: true
 web_search:
   enabled: false
-tts:
-  localModel: kokoro
 symbolPreset: nerd
 dev:
   autoqaConsent: granted
