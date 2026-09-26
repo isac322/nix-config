@@ -17,7 +17,7 @@ description: Use when the user says a skill in this family (github-issue-triage,
 |---|---|---|---|
 | `github-issue-triage` | TRI | 패밀리 | 버그 이슈 판독 → 이슈 라벨 의미 + 분석 코멘트, 구조 변경 방향 조사 |
 | `github-issue-to-pr` | I2P | 패밀리 | 방향 확정 이슈 → QA 리스트 합의 → 구현 → QA 코드화 → 회귀·동등환경 검증 → PR → CI green → mergeable |
-| `github-pr-review` | PRR | 패밀리 | PR 반경·심각도·실제 해결·보안·성능·구조 리뷰, COMMENT 리뷰, 리뷰 라벨 의미, 외부·오래된 PR 감사 |
+| `github-pr-review` | PRR | 패밀리 | PR 반경·심각도·실제 해결·보안·성능·구조 리뷰, 판정별 리뷰 이벤트(APPROVE/REQUEST_CHANGES/COMMENT), 외부·오래된 PR 감사 |
 | `live-qa` | LQA | 패밀리 | 배포 환경 탐색 QA → 이슈, 인터뷰·위험 고지·허용범위·격리·복구, 문제 판단 기준 |
 | `skill-correction` | SKC | 패밀리 | 교정 워크플로, 레지스트리, 학습 규약, 세션 탐색, backlog |
 | `multi-agent-consensus` | MAC | 공유 | 독립 조사 → 상호 반박 → 합의·중재, GREEN 리뷰 루프, 판정 어휘, 규모 게이트 |

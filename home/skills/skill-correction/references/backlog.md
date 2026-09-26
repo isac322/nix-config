@@ -36,9 +36,3 @@
 
 - "그 설명이 저장소에 남아 있어?"라는 질문에는 실제 docs, README, Makefile, workflow, 주석을 확인하고, 문서화된 것과 도구 동작에서 추론한 것을 구분해 답한다. 누락분은 운영 문서(언제·왜)와 메커니즘 설명 문서로 나눠 남긴다. 근거 01a095f6 b88d9d23, 4c1e7e2a.
 - 대화에서 합의한 컨벤션과 세션 암묵지를 저장소 하네스에 남기는 방향은 `skill-correction` SKC-11(저장소 자체 지침)로 라우팅만 정해져 있고, 추출 절차 자체는 스킬이 없다. 근거 01a095f6 5c6cdfcf.
-
-## 6. 미해결 교정: 저장소 한정 머지 선호의 위치
-
-- 사용자는 특정 저장소의 "작성자 본인 PR은 관리자 머지 기본" 선호를 memory에만 두라고 교정했다(되돌리기 포함). 근거 01a0d288 7449e495, 103d1411. 케이스는 `references/cases.md`의 CASE-20260925-repo-pref-memory-only.
-- 그런데 같은 의미의 예외가 현재 전역 `pull-request-merge-authorization` segment에 들어 있다. 이번 작업은 전역 정책을 바꾸지 않으므로(01a0dda6 418e760e) 손대지 않았다.
-- 처리 방법: 사용자에게 전역 유지와 memory 이전 중 무엇을 원하는지 묻고, 전역 segment 변경은 instruction-architect 경로로 한다.

@@ -11,7 +11,7 @@ PR마다 하나를 고른다. PRR-24 판정 줄은 오른쪽 열처럼 함께 �
 | `needed` | 문제가 main에 남아 있고 PR 접근이 맞다 | 일반 리뷰로 진행 | 리뷰 결과대로 `GREEN` 또는 `BLOCKING` |
 | `needs changes` | 문제는 실재하지만 PR을 고쳐야 한다 | blocking finding 게시. push는 승인 시에만 | `BLOCKING` |
 | `partially superseded` | 일부는 main에 이미 있고 일부는 남았다 | 남은 부분과 좁히는 방법을 `BLOCKING` 리뷰 코멘트로 | `BLOCKING` |
-| `superseded` | main이 이미 고쳤다(증명 완료) | 닫기 코멘트, 게시 모드면 `review:superseded`(PRR-27) | Verdict 줄 대신 닫기 코멘트 템플릿 |
+| `superseded` | main이 이미 고쳤다(증명 완료) | 닫기 코멘트(`COMMENT` 이벤트, PRR-25) | Verdict 줄 대신 닫기 코멘트 템플릿 |
 | `close-without-merge` | 문제가 없거나, 머지하면 해가 된다 | 근거와 함께 닫기 코멘트 | `BLOCKING`(머지하면 안 되는 이유가 finding) |
 
 코드 수정 없이 코멘트만 남기는 것이 올바른 결론이면 결과에 `action: comment_only`로 기록하고 브랜치는 건드리지 않는다.

@@ -62,7 +62,7 @@ description: Use when turning a GitHub issue whose defect, root cause, and fix d
 
 ## 승인 게이트
 
-- **I2P-14** [U] 근본 원인 해결이 프로젝트의 핵심을 바꿔야 하면 구현 전에 멈추고 자초지종을 설명해 승인받는다. "핵심(구조 변경)"의 정의와 선택지 조사는 `github-issue-triage` 스킬(TRI-25)을, 질문 형식은 `decision-brief`를 따른다. 핵심이 아니면 묻지 않고 곧바로 QA list 단계로 간다. 구현 중에 핵심 변경이 필요해져도 같은 게이트로 돌아간다.
+- **I2P-14** [U] 근본 원인 해결이 프로젝트의 핵심을 바꿔야 하면 구현 전에 멈추고 자초지종을 설명해 승인받는다. "핵심(구조 변경)"의 정의와 선택지 조사는 `github-issue-triage` 스킬(TRI-25)을, 질문 형식은 `decision-brief`를 따른다. 핵심이 아니면 묻지 않고 곧바로 QA list 단계로 간다. 계획 단계에서 이미 결정된 변경(사용자가 승인한 구조 변경 방향, `triage:fix-direction-decided`로 확정된 수정 방향, 사용자의 직접 수정 지시)은 전역 `application-code-change-approval`이 말하는 식별된 범위의 승인이므로 구현 단계에서 다시 묻지 않고 진행한다. 구현 중 그 결정 밖의 새 구조 변경이 필요해질 때만 같은 게이트로 돌아가 다시 승인받는다.
 - **I2P-15** [U] 승인된 goal이나 brief 안에서 goal 달성을 막는 버그(e2e·QA가 드러낸 코드 버그 포함)는 하나하나 묻지 않고 고친다. brief가 이미 허가한 수정을 다시 묻지 않는다.
 - **I2P-17** 기능 유지(플랫폼 한계 문서화)와 fail-closed(기능 제거)가 부딪치면 추측하지 않고 사용자에게 올린다. 기능 유지를 고르면 한계를 명시하고 실제 앱 E2E로 검증한다.
 

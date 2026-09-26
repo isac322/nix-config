@@ -3,7 +3,7 @@
 `github-publishing`의 GHP-14 세부 절차. **메커닉만** 소유한다.
 
 - 이슈 라벨의 이름·description·색·배타성·부착 기준, 붙이지 않는 기본 라벨, 라벨과 코멘트의 정합: `github-issue-triage` 스킬 소유.
-- PR 리뷰 라벨과 리뷰 이벤트: `github-pr-review` 스킬 소유.
+- PR 리뷰 판정은 라벨이 아니라 리뷰 이벤트로 남긴다: `github-pr-review` 스킬 소유.
 
 ## 절차
 
@@ -11,7 +11,7 @@
 1. **조회** — 라벨 작업 전에 저장소 라벨을 확인한다. 읽기 전용이므로 초안 모드에서도 해서 매핑을 보고할 수 있다:
    `gh label list -R <owner>/<repo> --limit 200 --json name,description,color`
 2. **의미 매핑** — 붙이려는 의미와 같은 기존 라벨이 있으면 그 라벨을 우선 쓴다(예: 저장소 고유의 needs-info 계열 라벨이 같은 의미를 이미 커버하면 그것을 사용). 매핑 결과는 최종 보고에 적는다. 매핑을 지속 기록하려면 사용자가 `skill-correction`으로 교정한다.
-3. **생성** — 게시 모드에서만, 그리고 같은 의미의 기존 라벨이 없을 때만, 소유 스킬이 정한 이름·영어 description·색으로 패밀리 네임스페이스(`repro:`, `triage:`, `review:`) 라벨을 만든다:
+3. **생성** — 게시 모드에서만, 그리고 같은 의미의 기존 라벨이 없을 때만, 소유 스킬이 정한 이름·영어 description·색으로 패밀리 네임스페이스(`repro:`, `triage:`) 라벨을 만든다:
    `gh label create <name> -R <owner>/<repo> --description "<English description>" --color <hex>`
    만든 라벨은 최종 보고에 나열한다.
 4. **교체** — 상호배타 그룹(소유 스킬이 정의)은 하나를 붙일 때 같은 그룹의 다른 라벨을 한 번의 편집으로 함께 제거한다:

@@ -2,7 +2,9 @@
 
 GitHub에 올리는 본문은 영어다. 문체, 길이, 공개 위생, 기존 코멘트 수정 여부, 승인 초안 대조는 `github-publishing`을 따른다. 아래는 PR 리뷰가 담아야 할 요소와 순서다. 해당 없는 섹션은 지운다.
 
-## 리뷰 코멘트 (`gh pr review <N> --comment --body-file <file>`)
+## 리뷰 (`gh pr review <N> --approve|--request-changes|--comment --body-file <file>`)
+
+이벤트는 판정으로 정한다(PRR-25): `GREEN` → `--approve`, `BLOCKING` → `--request-changes`, 판정이 아닌 안내 → `--comment`. 리뷰 계정이 PR 작성자면 GitHub가 approve·request-changes를 거부하므로 같은 본문을 `--comment`로 남긴다.
 
 ```markdown
 **Verdict: BLOCKING** (PR-ready: false) reviewed at <head-sha>
@@ -78,16 +80,14 @@ Please use <version> or later. Closing this PR for that reason. If you still see
 
 main에는 있지만 릴리스되지 않았으면 버전 문장을 "The fix is merged but not yet in a published release."로 바꾼다(PRR-35).
 
-## 라벨
+## 판정별 리뷰 이벤트
 
-게시 모드에서 리뷰 코멘트와 함께 하나를 붙인다(PRR-27). "확인만"이거나 쓰기 범위를 코멘트로 한정한 실행, 라벨 권한이 없을 때는 붙이지 않고 최종 보고에 제안한다. 상호배타다. 한 PR에 하나만 둔다. 라벨 권한 확인은 `github-publishing`의 라벨 메커닉을 따른다. 저장소에 같은 의미의 라벨이 있으면 그것을 쓴다. 생성·매핑 메커닉과 생성 가능 조건은 `github-publishing` 소관이다.
-
-| 이름 | 설명(라벨 description, 영어) | 붙이는 조건 |
+| 판정 | 이벤트 | 비고 |
 |---|---|---|
-| `review:no-blocking-findings` | Agent review found no blocking findings as of the head SHA in the latest review comment. | 판정 `GREEN` |
-| `review:changes-needed` | Blocking findings are listed as of the head SHA in the latest review comment. | 판정 `BLOCKING` |
-| `review:superseded` | The change is already on the default branch or replaced by another PR, as of the head SHA in the latest review comment. | superseded 증명 완료(`references/stale-pr-audit.md`) |
+| `GREEN` | `APPROVE` | `PR-ready: false`여도 diff에 blocking finding이 없으면 APPROVE, 이유는 첫 줄 |
+| `BLOCKING` (`partially superseded`, `close-without-merge` 포함) | `REQUEST_CHANGES` | |
+| superseded 닫기·권고, 판정 없는 정보 | `COMMENT` | |
+| 리뷰 계정 = PR 작성자 | `COMMENT` | 원래 이벤트와 대체 사유를 최종 보고에 적는다 |
 
-- 판정을 바꾸면 이전 라벨을 제거하고 새 라벨을 붙인다(`gh pr edit <N> --remove-label A --add-label B`).
-- head가 바뀌었는데 재리뷰하지 않을 거면 판정 라벨을 제거한다.
-- P0–P3는 라벨로 만들지 않는다. 코멘트 본문에만 적는다.
+- 판정을 라벨로 만들지 않는다. P0–P3도 라벨로 만들지 않고 본문에만 적는다.
+- 재리뷰는 새 판정의 이벤트로 새 리뷰를 남긴다. 같은 리뷰어의 최신 리뷰가 이전 상태를 대체한다(PRR-37).

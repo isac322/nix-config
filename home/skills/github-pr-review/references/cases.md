@@ -43,9 +43,22 @@
 - 일반화: global
 - 재발 확인 기준: 사용자 보고의 판정 그룹마다 무엇이 바뀌었고 왜 그 판정이며 무엇이 남았는지가 적혀 있다.
 
+### CASE-20260927-verdict-as-review-event
+- 상태: applied
+- 출처: omp session 01a0dda6 msg 84a012fa
+- 상황: 스킬 패밀리 초안이 PR 리뷰를 COMMENT로만 남기고 판정은 `review:*` 라벨로 붙이게 했다. 사용자 근거가 없는 에이전트 기본값이었고, 사용자는 라벨 대신 GitHub 리뷰 유형(APPROVE / REQUEST_CHANGES / COMMENT)을 쓰라고 교정했다.
+- 대상: PR 리뷰 게시 방식 / 모든 저장소 / GitHub PR 리뷰 이벤트와 라벨 / 중간(APPROVE는 required review 충족에 쓰인다)
+- 적용 조건: 이 스킬로 PR 리뷰를 게시하는 모든 경우. 리뷰 계정이 PR 작성자라 GitHub가 이벤트를 거부할 때만 COMMENT로 대체한다.
+- 사용자 기대: 판정을 리뷰 이벤트로 표현하고, 판정 라벨을 붙이지 않는다.
+- 실제 행동: 초안 PRR-25가 APPROVE·REQUEST_CHANGES를 금지했고, PRR-27이 판정 라벨을 붙이게 했다.
+- 원인 분류: wrong / 규칙: PRR-25, PRR-27
+- 변경: PRR-25를 판정별 이벤트 매핑 [U]로 바꾸고, PRR-27을 폐기하고, 재리뷰 이벤트 갱신을 PRR-37로 추가
+- 일반화: global
+- 재발 확인 기준: 게시된 리뷰의 이벤트가 판정과 맞고(GREEN=APPROVE, BLOCKING=REQUEST_CHANGES), `review:*` 라벨이 붙지 않는다.
+
 ## 출처 색인
 
-`패밀리 설계 요청` = 이 스킬 패밀리 증류를 요청한 사용자 메시지의 PR 리뷰 프레이밍(PR 이해, blast radius, 프로젝트 영향 심각도, 실제 해결 여부, 보안, 성능, 구조, 리뷰 코멘트를 달아야 하고 라벨도 추가하면 좋다).
+`패밀리 설계 요청` = 이 스킬 패밀리 증류를 요청한 사용자 메시지의 PR 리뷰 프레이밍(PR 이해, blast radius, 프로젝트 영향 심각도, 실제 해결 여부, 보안, 성능, 구조, 리뷰 코멘트를 달아야 하고 라벨도 추가하면 좋다). 판정을 라벨 대신 리뷰 이벤트로 표현하라는 이후 교정(CASE-20260927-verdict-as-review-event)이 라벨 부분을 대체한다.
 
 | 규칙 ID | 근거 |
 |---|---|
@@ -63,7 +76,7 @@
 | PRR-16 | 패밀리 설계 요청 |
 | PRR-17 | omp 01a0d288 59de466d; omp 01a0ae59 70385fee (CASE-20260918-is-it-really-fixed) |
 | PRR-22 | 패밀리 설계 요청 |
-| PRR-27 | 패밀리 설계 요청 |
+| PRR-25 | omp 01a0dda6 84a012fa (CASE-20260927-verdict-as-review-event) |
 | PRR-31 | omp 01a0d288 59de466d (CASE-20260926-explain-merge-verdicts) |
 | PRR-32 | omp 01a0d288 59de466d |
 | PRR-33 | omp 01a0d288 59de466d (CASE-20260926-reverify-before-close) |
@@ -74,3 +87,6 @@
 | 날짜 | 규칙 | 변경 | 케이스 |
 |---|---|---|---|
 | 2026-09-27 | PRR-36 | 폐기: 에이전트가 만든 PR 하나를 닫으라는 일회성 지시였고, 내용은 PRR-17·PRR-33·PRR-02가 다룬다 | — |
+| 2026-09-27 | PRR-25 | "COMMENT만" 기본값을 판정별 리뷰 이벤트 매핑 [U]로 교체 | CASE-20260927-verdict-as-review-event |
+| 2026-09-27 | PRR-27 | 폐기: 판정 라벨을 리뷰 이벤트로 대체 | CASE-20260927-verdict-as-review-event |
+| 2026-09-27 | PRR-37 | 신규: 재리뷰 시 새 판정 이벤트로 다시 남김 | CASE-20260927-verdict-as-review-event |
