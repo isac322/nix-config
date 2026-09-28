@@ -560,8 +560,11 @@ in
     agents.codex
 
     # Official OMP standalone binaries. `nix run .#update-packages` refreshes
-    # the version, platform assets, and sha256 digests in one snapshot.
-    pkgs.omp-bin
+    # the version, platform assets, and sha256 digests in one snapshot. The
+    # Macs put a fixed-path copy on PATH instead (home/darwin.nix).
+  ]
+  ++ lib.optional (!pkgs.stdenv.hostPlatform.isDarwin) pkgs.omp-bin
+  ++ [
 
     # Gajae Code is also an agent harness, tracking verified upstream release
     # binaries via flake input rather than the llm-agents input.

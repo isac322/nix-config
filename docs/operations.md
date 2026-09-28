@@ -642,6 +642,39 @@ Claude Code는 stdio MCP 자식에게 `CLAUDE_CODE_SESSION_ID`를 전달하며 r
 wrapper는 `CODEX_THREAD_ID` 또는 `CODEX_SESSION_ID`가 제공되면 이를 우선 사용하므로,
 Codex가 해당 값을 전달하는 시점부터 별도 구성 변경 없이 resume 안정성도 얻는다.
 
+## macOS 개인정보 권한 (모든 Mac)
+
+TCC 권한은 요청한 process가 아니라 책임 process에 붙는다. launchd agent의 책임
+process는 launchd가 띄운 process다. Nix bash는 ad-hoc 서명이라 신원이 build
+hash이고, bash가 갱신될 때마다 store 경로도 바뀐다. 그래서 권한이 한 build에만
+묶였고, Orca 안의 omp·`rg`·`find`와 RustDesk 화면 캡처가 계속 승인을 요청했다.
+
+그래서 `orca-serve`, `rustdesk-direct-host`, `camofox-browser` agent는
+`home/tcc-responsible.nix`를 거쳐 Apple 서명 `/bin/bash`가 Nix script를 자식으로
+실행한다. `exec`하지 않고 TERM·INT·HUP만 전달하므로 책임 process는 계속
+`/bin/bash`다. omp는 Developer ID 서명이라 신원은 고정이지만 경로가 release마다
+바뀐다. 그래서 activation이 `~/.local/libexec/omp/omp`로 복사하고, PATH의 `omp`는
+그 파일을 가리키는 symlink다. symlink만으로는 부족하다. TCC는 실제 파일의
+경로와 서명을 본다.
+
+SIP 때문에 권한 부여는 자동화할 수 없다. 시스템 설정 > 개인정보 보호 및 보안에서
+`+`를 누르고 Cmd+Shift+G로 경로를 입력해 한 번만 추가한다.
+
+| 항목 | 대상 |
+|---|---|
+| 전체 디스크 접근 권한 | `/bin/bash`, `~/.local/libexec/omp/omp` |
+| 화면 및 시스템 오디오 녹음 | `/bin/bash` (RustDesk, DeskPad 화면) |
+| 손쉬운 사용 | `/bin/bash` (RustDesk 입력, 창 숨김) |
+
+서버 맥에서는 이 전환 뒤 RustDesk 화면 권한이 `/bin/bash` 기준으로 바뀐다. 원격
+화면이 끊기지 않도록 **switch 전에** 위 권한을 먼저 추가한다. 이후 bash, omp,
+RustDesk, Orca가 갱신되어도 다시 묻지 않는다. 남은 요청은 다음 명령으로 찾는다.
+
+```sh
+log show --last 1d --style compact \
+  --predicate 'subsystem == "com.apple.TCC" AND eventMessage CONTAINS "AUTHREQ_PROMPTING"'
+```
+
 ## RSA 호스트 키가 3072 비트일 때
 
 sshd 를 켠 기계만 해당하고, 프로파일보다 먼저 만들어진 키가 있을 때만 해당한다.

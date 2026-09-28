@@ -18,6 +18,7 @@ let
   # module passes it in under that name.
   cfg = osConfig.local.orca;
   autoLogin = osConfig.local.autoLogin;
+  tcc = import ../tcc-responsible.nix;
 
   rustToolchain = pkgs.rust-bin.stable.latest.default.override {
     extensions = [
@@ -481,7 +482,7 @@ in
   launchd.agents.rustdesk-direct-host = {
     enable = true;
     config = {
-      ProgramArguments = [ "${rustdeskDirectHost}" ];
+      ProgramArguments = tcc.launchdProgramArguments rustdeskDirectHost;
       RunAtLoad = true;
       KeepAlive.SuccessfulExit = false;
       ThrottleInterval = 10;
@@ -543,7 +544,7 @@ in
       # again nests one inside the other — visible in the gpg-agent-ssh plist
       # this repository generates today, which is double-wrapped for that
       # reason.
-      ProgramArguments = [ "${orcaServe}" ];
+      ProgramArguments = tcc.launchdProgramArguments orcaServe;
       RunAtLoad = true;
 
       # Restart on failure, not on a clean stop. The wrapper turns the one

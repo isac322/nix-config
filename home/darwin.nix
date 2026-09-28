@@ -14,6 +14,20 @@ let
     pkgs.google-cloud-sdk.components.gke-gcloud-auth-plugin
   ];
 
+  # OMP's upstream binary carries a Developer ID signature, so its code
+  # identity is already stable across releases. Its path is not: TCC records a
+  # command-line tool by the real path it resolves to, and every release lands
+  # in a new /nix/store directory. Where omp is itself the responsible process
+  # (the server logged such prompts for 18.4.0 and again for 18.4.1), each
+  # update therefore asked again.
+  # Activation copies the binary to this fixed file and the `omp` on PATH is
+  # a symlink to it, so one grant keeps matching the next release too.
+  ompStablePath = "${config.home.homeDirectory}/.local/libexec/omp/omp";
+  ompStable = pkgs.runCommand "omp-stable" { meta.mainProgram = "omp"; } ''
+    mkdir -p "$out/bin"
+    ln -s ${lib.escapeShellArg ompStablePath} "$out/bin/omp"
+  '';
+
   # One key does everything: SSH authentication, git commit signing, and the
   # PGP signing that Arch packaging needs. The GPG key's authentication subkey
   # is served to SSH by gpg-agent, so there is no separate SSH keypair to
@@ -308,6 +322,19 @@ in
     fi
   '';
 
+  # Replace the file whole, and only when the release changed: running omp
+  # processes keep the old inode, and an unchanged file keeps its grant.
+  home.activation.ompStableBinary = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    src=${pkgs.omp-bin}/bin/omp
+    dst=${lib.escapeShellArg ompStablePath}
+    if ! /usr/bin/cmp -s "$src" "$dst"; then
+      run /bin/mkdir -p "$(/usr/bin/dirname "$dst")"
+      run /bin/cp "$src" "$dst.new"
+      run /bin/chmod 0755 "$dst.new"
+      run /bin/mv -f "$dst.new" "$dst"
+    fi
+  '';
+
   # Commits are signed with the same GPG key. `user.signingkey` is left unset
   # on purpose: with no key configured and the default openpgp format, git
   # passes the committer identity itself to gpg (`-u "Name <email>"`), which
@@ -351,6 +378,7 @@ in
     pkgs.golangci-lint
     gpgSshAuthorize
     pkgs.hadolint
+    ompStable
     pkgs.sops
     pkgs.stern
     pkgs.uv
