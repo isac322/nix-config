@@ -227,6 +227,31 @@ def gajae_manifest() -> dict[str, Any]:
     }
 
 
+def ntn_release() -> dict[str, Any]:
+    # The Notion CLI's source repository is private, so its GitHub releases are
+    # not readable. ntn.dev is what upstream's own installer downloads from: a
+    # `latest.txt` version pointer plus per-target archives with `.sha256` files.
+    # The result is shaped like a GitHub release so release-manifest.nix can
+    # select an asset the same way as for every other binary here.
+    base = "https://ntn.dev"
+    tag = fetch_bytes(f"{base}/latest.txt").decode("utf-8").strip()
+    if re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag) is None:
+        raise RuntimeError(f"unexpected ntn latest version: {tag!r}")
+    assets = []
+    for target in (
+        "aarch64-apple-darwin",
+        "aarch64-unknown-linux-musl",
+        "x86_64-unknown-linux-musl",
+    ):
+        name = f"ntn-{target}.tar.gz"
+        url = f"{base}/releases/{tag}/{name}"
+        checksum = fetch_bytes(f"{url}.sha256").decode("utf-8").split()
+        if len(checksum) != 2 or checksum[1] != name or re.fullmatch(r"[0-9a-f]{64}", checksum[0]) is None:
+            raise RuntimeError(f"unexpected checksum file for {name}")
+        assets.append({"browser_download_url": url, "digest": f"sha256:{checksum[0]}", "name": name})
+    return {"assets": assets, "draft": False, "prerelease": False, "tag_name": tag}
+
+
 def build_snapshot(previous_snapshot: dict[str, Any] | None) -> dict[str, Any]:
     previous_releases = (previous_snapshot or {}).get("releaseManifests", {})
 
@@ -286,6 +311,7 @@ def build_snapshot(previous_snapshot: dict[str, Any] | None) -> dict[str, Any]:
             lambda version: [f"displayplacer-apple-v{version.replace('.', '')}"],
         ),
         "langfuse": npm_latest("langfuse-cli", include_dependencies=True),
+        "ntn": ntn_release(),
         "omp": latest(
             "omp",
             "can1357/oh-my-pi",

@@ -468,12 +468,12 @@ staticcheck · errcheck 를 포함한 수십 개를 한 바이너리로 돌리�
 `terraform` 은 unfree 라 `modules/common.nix` 의 predicate 를 탄다.
 `home-manager.useGlobalPkgs` 가 켜져 있어 시스템 패키지와 같은 규칙이 적용된다.
 
-**플랫폼 CLI** — `gh`와 `slack-cli`는 `home/common.nix`에서 **모든 기기**에,
+**플랫폼 CLI** — `gh`, `slack-cli`, `ntn`은 `home/common.nix`에서 **모든 기기**에,
 `vercel-cli`는 `home/darwin.nix`에서 맥에만 둔다. `gh`는 키체인이나 `GH_TOKEN`,
-`vercel-cli`는 자체 로그인을 사용한다. Runbear Slack 자동화는 전역 critical
+`vercel-cli`와 `ntn`은 자체 로그인(`ntn login`)을 사용한다. Runbear Slack 자동화는 전역 critical
 지침에 따라 `slack` CLI와 Keychain의 `slack:isacbear` /
 `isac@runbear.io` 자격증명만 사용한다. `gh`는 HTTPS 위의 REST API를 쓰므로
-`git`이 push하는 SSH 자격증명과 별개다. `slack-cli`와 `vercel-cli`는
+`git`이 push하는 SSH 자격증명과 별개다. `slack-cli`, `vercel-cli`, `ntn`은
 nixpkgs에서 그대로 오지 않는다 — 아래 [`pkgs/`](#pkgs) 를 보라.
 
 ## 키보드와 트랙패드
@@ -587,6 +587,7 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `omp-bin` | GitHub release binary | 공식 standalone `omp`; 상류 Rust·Bun 빌드 생략 |
 | `sentry` | GitHub release binary | getsentry/cli의 현재 platform binary |
 | `slack-cli` | GitHub release binary | nixpkgs의 동명 attribute를 갈아끼운다 |
+| `ntn` | ntn.dev release archive | Notion CLI; 상류 설치 스크립트와 같은 target별 archive·`.sha256` |
 | `bun` | GitHub release binary override | 잠긴 nixpkgs보다 최신인 동안만 override |
 | `tempo-cli` | nixpkgs override | `subPackages`를 하나로 줄인다 |
 | `camoufox` | GitHub release archive | aarch64-darwin·aarch64-linux browser core |

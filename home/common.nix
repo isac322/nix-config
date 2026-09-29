@@ -615,8 +615,10 @@ in
     # The services those same agents have to act on rather than just read.
     # `gws` is Google's Workspace CLI — @googleworkspace/cli upstream — and
     # `stripe-cli` installs `stripe`. The overlay makes `pkgs.slack-cli` the
-    # Slack app CLI rather than nixpkgs's unrelated webhook script.
+    # Slack app CLI rather than nixpkgs's unrelated webhook script, and adds
+    # Notion's `ntn`, which nixpkgs does not have.
     pkgs.slack-cli
+    pkgs.ntn
     pkgs.wrangler
     pkgs.stripe-cli
     pkgs.gws

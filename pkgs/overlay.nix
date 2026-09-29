@@ -59,6 +59,9 @@ let
       sentry = final.callPackage ./sentry/package.nix {
         manifestFile = releaseManifests.sentry;
       };
+      ntn = final.callPackage ./ntn/package.nix {
+        manifestFile = releaseManifests.ntn;
+      };
 
       # Native Apple Silicon browser and virtual-display utilities. Camofox uses
       # the immutable Camoufox browser; DeskPad supplies the virtual display,

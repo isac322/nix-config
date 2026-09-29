@@ -307,6 +307,7 @@
             beardrive
             gajae-code
             sentry
+            ntn
             slack-cli
             omp-bin
             tempo-cli
