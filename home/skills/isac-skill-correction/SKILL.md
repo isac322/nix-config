@@ -1,6 +1,6 @@
 ---
 name: isac-skill-correction
-description: Use when the user says a skill in this family (isac-issue-triage, isac-issue-to-pr, isac-pr-review, isac-live-qa, isac-skill-correction, isac-multi-agent-consensus, isac-github-publishing, isac-decision-brief, isac-e2e-issue-resolution, isac-e2e-pr-backlog, isac-e2e-qa-to-fix) or one of its dependencies (issue-validation, five-whys-root-cause-analysis, receiving-code-review) behaved against expectations and wants the skill itself fixed, or wants a new skill added to or distilled for this family from past sessions. A read-only subagent reads the original session, the user approves a short proposal, and a subagent opens a pull request against isac322/nix-config. Takes precedence over instruction-architect for these skills. Triggers include "<skill name> 스킬 고쳐", "스킬 고쳐", "스킬에 반영해", "이 지침 때문에", "이런 건 묻지 말라고 했잖아, 스킬 고쳐", "그 세션에서 스킬이 잘못했어", "이 패밀리에 새 스킬로 만들어", "isac-skill-correction". Not for one-off corrections that need no durable change, or for skills outside this family and global policy segments (instruction-architect).
+description: Use when the user says a skill in this family (isac-issue-triage, isac-issue-to-pr, isac-pr-review, isac-live-qa, isac-skill-correction, isac-multi-agent-consensus, isac-github-publishing, isac-decision-brief, isac-e2e-issue-resolution, isac-e2e-pr-backlog, isac-e2e-qa-to-fix, isac-e2e-promo-readiness, isac-positioning, isac-brand-identity, isac-project-site, isac-discovery-surfaces, isac-demo-media) or one of its dependencies (issue-validation, five-whys-root-cause-analysis, receiving-code-review) behaved against expectations and wants the skill itself fixed, or wants a new skill added to or distilled for this family from past sessions. A read-only subagent reads the original session, the user approves a short proposal, and a subagent opens a pull request against isac322/nix-config. Takes precedence over instruction-architect for these skills. Triggers include "<skill name> 스킬 고쳐", "스킬 고쳐", "스킬에 반영해", "이 지침 때문에", "이런 건 묻지 말라고 했잖아, 스킬 고쳐", "그 세션에서 스킬이 잘못했어", "이 패밀리에 새 스킬로 만들어", "isac-skill-correction". Not for one-off corrections that need no durable change, or for skills outside this family and global policy segments (instruction-architect).
 ---
 
 # Skill Correction
@@ -22,6 +22,12 @@ description: Use when the user says a skill in this family (isac-issue-triage, i
 | `isac-e2e-issue-resolution` | E2I | e2e | 이슈 1~N개 intake → 중복 정리 → 이슈별 단계 전이·종착 상태(트리아지 → 수정 PR → 리뷰 → 머지 → 종료 알림, 또는 정보 요청 등에서 멈춤) → ledger·최종 보고 |
 | `isac-e2e-pr-backlog` | E2P | e2e | 열린 PR 묶음 감사 → 판정 → 수정 push·최신화 → 순차 머지 또는 근거 댓글과 close → 남은 main 문제 인계 |
 | `isac-e2e-qa-to-fix` | E2Q | e2e | 라이브 QA → 이슈 등록 → 이슈 해결(E2I) → 반영 지점 이후 같은 QA 재검증 루프 |
+| `isac-e2e-promo-readiness` | E2R | e2e | 홍보 준비 오케스트레이션: 착수 계약 → 병렬 조사·토론 → 스티어링 리포트 페이지 → 영역별 위임 → 오너 프리뷰·승인 게이트 → 배포·외부 사본 교체 → 전 표면 라이브 감사 |
+| `isac-positioning` | POS | 패밀리 | 저장소 감사·경쟁/선례·검색 의도 조사 → 단일 포지셔닝 소스(셀링 포인트·반(反)주장·성숙도 표기) |
+| `isac-brand-identity` | BRD | 패밀리 | 이름·상표 확인, impeccable 기반 로고·색, SVG 우선 브랜드 키트·생성기, 아이콘·소셜 이미지, 리브랜드 전 표면 재검증 |
+| `isac-project-site` | SITE | 패밀리 | 랜딩·문서 사이트(Astro/Starlight/Bun): IA·자체 표면 카피·impeccable 디자인·기술 SEO·도메인 IaC·분석 연결·시각 QA |
+| `isac-discovery-surfaces` | DSC | 패밀리 | README·GitHub 저장소 표면·커뮤니티/신뢰 신호·레지스트리 메타데이터, code==docs==site==listings 일관성 게이트 |
+| `isac-demo-media` | MED | 패밀리 | 스크린샷·녹화: 재현 가능한 스크립트 캡처, 타이밍 검증, 형식 규칙, 표면별 규격 |
 | `isac-skill-correction` | SKC | 패밀리 | 교정 워크플로, 레지스트리, 학습 규약, 세션 탐색, backlog |
 | `isac-multi-agent-consensus` | MAC | 공유 | 독립 조사 → 상호 반박 → 합의·중재, GREEN 리뷰 루프, 판정 어휘, 규모 게이트 |
 | `isac-github-publishing` | GHP | 공유 | GitHub 쓰기 공통: 영어·위생·중복 확인·댓글 수정 vs 신규·라벨 메커닉·부모만 게시 |
