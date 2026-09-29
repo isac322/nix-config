@@ -635,6 +635,14 @@ OMP, Claude Code, Codex의 `camofox` MCP 등록은 모두 Home Manager switch가
 table은 그대로 둔다. `local.camofox.enable = false`이면 각 registry에서 `camofox`가
 제거된다. 수동 `claude mcp add`나 `codex mcp add`는 필요 없다.
 
+Codex 0.158부터 대화형 `codex`는 공유 app-server daemon을 자동으로 띄우려고 CLI
+package(`codex-package.json`, `bin/`, `codex-resources/`)를 `~/.codex/packages`로
+설치한다. Nix로 빌드한 Codex는 이 package 구조가 없어 "this CLI has no complete
+local package" 오류로 종료한다. Home Manager switch가 `codex features disable
+daemon_auto_start`로 `~/.codex/config.toml`의 `[features]`만 고쳐 daemon 없이
+in-process로 실행하게 한다. Codex 버전은 Nix가 관리하므로 daemon의 자체 설치·업데이트는
+쓰지 않는다.
+
 Claude Code는 stdio MCP 자식에게 `CLAUDE_CODE_SESSION_ID`를 전달하며 resume 때도 같은
 값을 유지하므로 정확히 대화별 namespace가 된다. Codex가 thread ID를 MCP 자식 환경에
 전달하지 않는 실행에서는 adapter 프로세스마다 자동 UUID를 써서 동시에 실행한

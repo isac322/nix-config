@@ -466,6 +466,25 @@ in
     }
   '';
 
+  # Codex 0.158 starts a shared app-server daemon for interactive launches by
+  # installing the running CLI's package (codex-package.json, bin/, and
+  # codex-resources/) under ~/.codex/packages and updating it from there.
+  # The Nix-built CLI is a bare binary without that layout, so the TUI exits
+  # with "this CLI has no complete local package". Nix owns the Codex version,
+  # so keep the daemon off and run the app server in-process instead.
+  home.activation.codexDaemonAutoStart = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    codex=${lib.escapeShellArg (lib.getExe agents.codex)}
+
+    if ! "$codex" features list 2>/dev/null \
+      | ${pkgs.gawk}/bin/awk '$1 == "daemon_auto_start" && $3 == "false" { found = 1 } END { exit !found }'; then
+      if [ -n "$DRY_RUN_CMD" ]; then
+        echo "codex-daemon-auto-start: would disable daemon_auto_start." >&2
+      else
+        "$codex" features disable daemon_auto_start
+      fi
+    fi
+  '';
+
   home.stateVersion = "26.05";
 
   # In module-aware Go, GOPATH is the root for module and checksum caches.
