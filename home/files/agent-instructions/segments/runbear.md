@@ -39,7 +39,7 @@ If a proxy is not accepting connections, restart only the affected environment:
 | Errors & stack traces | `sentry` | `sentry issues list ...` | Authenticate with `skill://sentry-cli-login` when required |
 | Billing & customers | `stripe` | `stripe ...` / `stripe --live ...` | Default is Test. Use `--live` only when investigating Prod |
 | Secrets & credentials | `op` | `op item get ...` / `op read ...` | Source session cache or sign in via Keychain (see below) |
-| Notion pages, data sources & files | `ntn` | `ntn pages ...` / `ntn datasources ...` / `ntn files ...` / `ntn api v1/...` | Use for all Notion work instead of browser automation or web fetching. Check `ntn whoami`; authenticate with `ntn login` when required |
+| Notion pages, data sources & files | `ntn` | `ntn pages ...` / `ntn datasources ...` / `ntn files ...` / `ntn api v1/...` | Use for all Notion work instead of browser automation or web fetching. Check `ntn whoami`; authenticate with `ntn login` when required. Discover endpoints with `ntn api ls` and read request shapes with `ntn api <path> -X <METHOD> --spec` or `--docs` instead of guessing or fetching web docs |
 
 ### Langfuse credentials
 Keys differ between Dev and Prod. Retrieve them from macOS Keychain without committing secrets:
