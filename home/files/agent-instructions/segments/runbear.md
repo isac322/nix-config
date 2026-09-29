@@ -1,6 +1,6 @@
 # Runbear infrastructure and telemetry
 
-When inspecting runtime metrics, agent traces, errors, billing, cloud resources, or Kubernetes clusters for Runbear services:
+When inspecting runtime metrics, agent traces, errors, billing, cloud resources, or Kubernetes clusters for Runbear services, or reading or writing Notion content:
 
 ## Network pre-requisite: Cloudflare WARP
 - Internal endpoints such as Thanos (`https://thanos-query.runbear.io`) and Tempo (`tempo.runbear.io`) require Cloudflare WARP.
@@ -39,6 +39,7 @@ If a proxy is not accepting connections, restart only the affected environment:
 | Errors & stack traces | `sentry` | `sentry issues list ...` | Authenticate with `skill://sentry-cli-login` when required |
 | Billing & customers | `stripe` | `stripe ...` / `stripe --live ...` | Default is Test. Use `--live` only when investigating Prod |
 | Secrets & credentials | `op` | `op item get ...` / `op read ...` | Source session cache or sign in via Keychain (see below) |
+| Notion pages, data sources & files | `ntn` | `ntn pages ...` / `ntn datasources ...` / `ntn files ...` / `ntn api v1/...` | Use for all Notion work instead of browser automation or web fetching. Check `ntn whoami`; authenticate with `ntn login` when required |
 
 ### Langfuse credentials
 Keys differ between Dev and Prod. Retrieve them from macOS Keychain without committing secrets:
