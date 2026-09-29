@@ -331,6 +331,7 @@ in
     ./agent-instructions.nix
     ./agent-skills.nix
     ./cloud-sql-proxy.nix
+    ./github-nix-access-token.nix
     ./skillclaw.nix
   ];
 
