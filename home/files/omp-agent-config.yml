@@ -38,9 +38,9 @@ task:
   agentAdvisor:
     task: "off"
   agentModelOverrides:
-    reviewer: openai-codex/gpt-6-astra:high
+    reviewer: openai-codex/gpt-6.1-sol:xhigh
     sonic: openai-codex/gpt-6-luna:low
-    security-reviewer: openai-codex/gpt-6-astra:high
+    security-reviewer: openai-codex/gpt-6.1-sol:xhigh
 modelRoles:
   default: anthropic/claude-opus-5-5:medium
   plan: anthropic/claude-opus-5-5:high
