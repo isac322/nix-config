@@ -91,10 +91,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1790727221,
-        "narHash": "sha256-cziR4BnEmmtSCTMJoHPuLZiljmQRMRnAfFOOsXnkWMo=",
+        "lastModified": 1790770052,
+        "narHash": "sha256-/bx+6KPhpdkITO8Zq9uj4lx2v1d0Xi2M1vPBcF+R14c=",
         "ref": "main",
-        "rev": "ab347abd23cdf08b8dbfa74d86e202b41b10654a",
+        "rev": "2d98ac01ddae447bccba6d821fad3362c85bab2e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1790723547,
-        "narHash": "sha256-JczU7cZgI2TLZrRhJXTO80FjVwLOASwAWvG8YQEAySA=",
+        "lastModified": 1790755741,
+        "narHash": "sha256-7Ss+l0ykfDGXB1JoGE+ZdYn2IZiEkD5V7Xp6e/qcKoc=",
         "ref": "refs/heads/main",
-        "rev": "c4de51f2aa8c1003bbe06e5d39a0ed75b7fe7858",
+        "rev": "5bf23ad922b833278c2b99fb0ea3a8065655074c",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -271,10 +271,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1790742230,
-        "narHash": "sha256-5399J1/O3DyLSsYGVa950JtOUDB9Reqvy7FhfDuTVzk=",
+        "lastModified": 1790775610,
+        "narHash": "sha256-vIexOe2vzi+l0TStoe2EiSTN3C/3gI3+P6Y5vcabui8=",
         "ref": "master",
-        "rev": "0aefa652eb6fd8b7396af25e8c81cb0790f12cc2",
+        "rev": "bf3f7a120d14e1bc51f4e1c3739fa6f3a98e9233",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -329,16 +329,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1790743082,
-        "narHash": "sha256-x9w2AnWIf2bkXCHpLJhWYiKEjp7LzypL/MCrUrqM7qM=",
+        "lastModified": 1790746077,
+        "narHash": "sha256-I4O5GSbZgmvzV7dj8fZN8furV2UdEpahh4rvsZOfs/Q=",
         "ref": "refs/heads/main",
-        "rev": "7799495ee1cbcc7ef459415283417382c795e2d3",
+        "rev": "af40d966859ec4075ecc172dbb39e53f474dc5d9",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "7799495ee1cbcc7ef459415283417382c795e2d3",
+        "rev": "af40d966859ec4075ecc172dbb39e53f474dc5d9",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -509,10 +509,10 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1790600678,
-        "narHash": "sha256-6k3n7X2UsZ6tAlWTz99RimiZab+17tMUrw9sRUcELiA=",
+        "lastModified": 1790652569,
+        "narHash": "sha256-641r7xrlSOHYoktL9/aArPIYNgZJ9eM5URzSEOtPJDY=",
         "ref": "nixpkgs-unstable",
-        "rev": "f45c6f04c2f013f004bf94e284e95d72898d9393",
+        "rev": "b6c8664de9b6cc07fe5666a29f91884ba81197c4",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
@@ -661,10 +661,10 @@
     "rust-overlay-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1790669703,
-        "narHash": "sha256-PA75DaxgfJSDNr1eDF/l9TDfNxSUAjPRt08fICQWOqc=",
+        "lastModified": 1790756160,
+        "narHash": "sha256-NPs4nNLxCpho3Ctj8O7t/bzmX0zR8r0zndKghAFEz5U=",
         "ref": "master",
-        "rev": "49b6548d31019e8bfe9d4415193ac1df3c48f53a",
+        "rev": "ed3a19fd0439ed618ec5fe1e12f0ba69a8be38b5",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
