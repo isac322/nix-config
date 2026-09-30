@@ -73,10 +73,10 @@
     "camofox-browser-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1790778497,
-        "narHash": "sha256-TBol4ahbB8+NwVag15MUfriU4oM6XSz7pfaja6jlgUw=",
+        "lastModified": 1790787171,
+        "narHash": "sha256-O2Lze6e6AZn/vX0QCaoS9nABpduf02pco+JDsFDP5eA=",
         "ref": "master",
-        "rev": "42171f684d171c6cd6b203f61686b04c1b8f410c",
+        "rev": "f94c81babf4bfd44cdd4bd46e1f2e1fb1d91c753",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/jo-inc/camofox-browser.git"
@@ -271,10 +271,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1790779675,
-        "narHash": "sha256-wswYlVaovcex/IMSqGrN/GLlvHN29bgoIXMBoMyLmTI=",
+        "lastModified": 1790792194,
+        "narHash": "sha256-404+/PoCo34O0iruXzN2nY3sh2ZP7dxmdQ+duis2arI=",
         "ref": "master",
-        "rev": "b75a0703c9ef757386ec3807a55106c2ca64f770",
+        "rev": "fab715cc65199017cc4d86312eb07c01230b01a4",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -306,10 +306,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1790727443,
-        "narHash": "sha256-zZa/J/6aNNebOo7EQUXXJ7mHO8mHo0CGNOlcdKA6H1M=",
+        "lastModified": 1790791407,
+        "narHash": "sha256-jqgyHbeAUwNxwQ+Qa0nnOcpuwR12UZW8Sy9iMY4eeOg=",
         "ref": "refs/heads/main",
-        "rev": "0d6b47ea19b63afe15e3f93a44d5d9fbbc6fd275",
+        "rev": "f652bd42341c4269cf281d0f569bfc9808e1fdab",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
