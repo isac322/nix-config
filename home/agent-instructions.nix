@@ -241,6 +241,11 @@ in
     force = true;
   };
 
+  home.file.".omp/agent/extensions/background-mode.ts" = {
+    source = ./files/omp-background-mode.ts;
+    force = true;
+  };
+
   home.activation.installNixManagedAgentInstructions = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
     ${lib.concatMapStringsSep "\n" installFile deployedFiles}
     managedStateDir=${lib.escapeShellArg managedStateDir}
