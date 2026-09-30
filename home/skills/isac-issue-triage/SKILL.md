@@ -1,11 +1,11 @@
 ---
 name: isac-issue-triage
-description: Use when judging GitHub bug issues end to end — deduplicate, reproduce by execution, classify the fault domain, find the root cause by multi-agent Five Whys, decide a fix direction or a structural-change brief — then apply repro/triage labels and one English analysis comment; including "이슈 트리아지", "이슈 재현해서 라벨 달아", "근본 원인 찾아서 이슈에 댓글 달아", "남은 이슈 분석해서 보고해". Not for implementing the fix or opening a PR (isac-issue-to-pr), filing new issues from live exploration (isac-live-qa), or verdict-only validation without GitHub output (issue-validation).
+description: Use when judging GitHub issues end to end — for defects: deduplicate, reproduce by execution, classify the fault domain, find the root cause by multi-agent Five Whys, decide a fix direction or a structural-change brief; for a named feature request: check the contract, research feasibility, and brief the direction for approval — then apply repro/triage labels and one English analysis or proposal-evaluation comment; including "이슈 트리아지", "이슈 재현해서 라벨 달아", "근본 원인 찾아서 이슈에 댓글 달아", "남은 이슈 분석해서 보고해", "기능 요청 이슈 검토해". Not for implementing the fix or opening a PR (isac-issue-to-pr), filing new issues from live exploration (isac-live-qa), or verdict-only validation without GitHub output (issue-validation).
 ---
 
 # GitHub Issue Triage
 
-버그 이슈를 판독해 이슈별 **판정 라벨 + 사람이 읽는 영어 분석 댓글 + 한국어 사용자 보고**를 만든다.
+버그·지목된 기능 요청 이슈를 판독해 이슈별 **판정 라벨 + 사람이 읽는 영어 분석 댓글 + 한국어 사용자 보고**를 만든다(결함은 결함 트랙, 지목된 기능 요청은 제안 트랙 TRI-54).
 
 ## 경계
 
@@ -14,7 +14,7 @@ description: Use when judging GitHub bug issues end to end — deduplicate, repr
 - 독립 조사·상호 반박·합의·판정 어휘: `isac-multi-agent-consensus` 스킬.
 - 사용자에게 묻는 형식: `isac-decision-brief` 스킬.
 - 모든 GitHub 쓰기(게시/초안 모드 판별, 영어·문체, 위생 처리, 실행 확인과 추론 구분, 댓글 제자리 수정 vs 새 댓글, 게시 전 중복 확인, 라벨 조회·생성 메커닉, 게시 주체): `isac-github-publishing` 스킬.
-- 인계: `isac-live-qa`가 등록한 이슈를 받는다. `isac-issue-to-pr`로 넘기는 조건은 우리 코드 결함(TRI-22) ∧ 열린 PR 처리(TRI-42) ∧ `triage:fix-direction-decided`(또는 사용자 직접 지시)다. 머지로 인한 이슈 종결과 머지 후 상태 댓글은 `isac-issue-to-pr` 소관이다.
+- 인계: `isac-live-qa`가 등록한 이슈를 받는다. `isac-issue-to-pr`로 넘기는 조건은 우리 코드 결함(TRI-22) ∧ 열린 PR 처리(TRI-42) ∧ `triage:fix-direction-decided`(또는 사용자 직접 지시)이거나, 사용자가 승인한 제안(TRI-54)이다. 머지로 인한 이슈 종결과 머지 후 상태 댓글은 `isac-issue-to-pr` 소관이다.
 - 전역 가드 `task-intent-boundary`, `application-code-change-approval`, `destructive-operations`, `verification`, `guardrails`가 우선한다.
 
 ## 0. 프로젝트 훅과 모드
@@ -24,11 +24,12 @@ description: Use when judging GitHub bug issues end to end — deduplicate, repr
 게시 모드와 초안 모드는 `isac-github-publishing`으로 판별한다. 초안 모드에서는 라벨·댓글 초안을 scratch에 두고 최종 보고에 게시 가능함을 한 줄로 알린다.
 
 - **TRI-01** [U] 산출물은 라벨, 분석 댓글, 사용자 보고뿐이다. 코드 수정, PR 생성, 머지, 이슈 닫기는 하지 않는다. 트리아지 요청의 게시 승인은 라벨·댓글에만 해당한다. 판정상 중복이거나 이미 수정됐으면 닫기를 최종 보고에서 제안만 한다. 사용자가 닫기를 직접 지시하면 판정 근거 댓글을 남기고 닫는다(게시 절차는 `isac-github-publishing`).
+- **TRI-53** [U] 취약점(원격 코드 실행, 인증·권한 우회, 비밀 노출 등)이 확인되거나 의심되면 그 이슈에는 공개 댓글·라벨을 쓰지 않고, 재현 페이로드를 공개 위치(이슈, 공개 CI 로그)에 남기지 않는다. 재현은 TRI-40의 격리 자원에서만 하고, 최종 보고에서 GitHub Security Advisory(비공개 취약점 보고)로 옮기기를 제안한다.
 
 ## 1. 인벤토리와 중복
 
 - **TRI-02** 대상 저장소의 이슈를 open/closed 모두, 열린 PR과 함께 목록화한다. 작업 중 새로 등록된 이슈도 같은 파이프라인에 넣고, 완료 전에 목록을 다시 조회한다.
-- **TRI-03** [U] 저장소 전체·여러 이슈를 일괄 트리아지할 때 사용자가 따로 지목하지 않은 재현 무관 이슈(기능 요청, 제안, 워크플로 제안, 철회된 보고, enabler)는 재현하지 않고 분류만 한다(지목된 기능 이슈 질문은 TRI-35). 이런 이슈에는 라벨·댓글을 쓰지 않고 최종 보고 표에 "제외(사유)"로만 둔다. 약속이 깨지지 않았는데 새 능력을 요구하는 이슈를 결함으로 부풀리지 않는다.
+- **TRI-03** [U] 저장소 전체·여러 이슈를 일괄 트리아지할 때 사용자가 따로 지목하지 않은 재현 무관 이슈(기능 요청, 제안, 워크플로 제안, 철회된 보고, enabler)는 재현하지 않고 분류만 한다(지목된 기능 요청은 제안 트랙 TRI-54). 이런 이슈에는 라벨·댓글을 쓰지 않고 최종 보고 표에 "제외(사유)"로만 둔다. 약속이 깨지지 않았는데 새 능력을 요구하는 이슈를 결함으로 부풀리지 않는다.
 - **TRI-04** [U] 여러 이슈를 다룰 때는 개별 작업 전에 전체를 훑어 중복부터 가리고 정본 하나만 작업한다. 이슈 하나만 맡았으면 그 이슈의 중복 후보만 확인한다.
 - **TRI-41** 중복 판정은 제목·증상이 아니라 메커니즘 기준이며, `duplicate`는 그 이슈 자신의 경로를 실행해 같은 메커니즘을 확인했을 때만 붙인다.
 - **TRI-05** [U] 이슈에 연결된 PR의 커밋이 다른 PR을 통해 이미 간접 머지됐는지 추적한다.
@@ -50,10 +51,10 @@ description: Use when judging GitHub bug issues end to end — deduplicate, repr
 ## 3. 판정
 
 - **TRI-12** [U] 검증을 끝내 판정을 단정하고, 무엇을 고쳐야 하는지(없으면 없다고) 평이하게 말한다. 판정 어휘는 `issue-validation`의 것을 쓴다.
-- **TRI-51** 판정은 bug/not-bug가 아니라 결함 영역 분류다: 제품 결함, 테스트·오라클 결함, 환경 결함, 의도된·문서화된 동작, 기능 요청, 재현 불가. 먼저 프레임워크·플랫폼 표준 계약상 의도된 동작인지 판별한다. 결함 영역은 `result.json`의 별도 필드(`references/defaults.md`)로 적고, 영역별 라벨은 `references/labels.md`.
+- **TRI-51** 판정은 bug/not-bug가 아니라 결함 영역 분류다: 제품 결함, 테스트·오라클 결함, 환경 결함, 문서 결함, 의도된·문서화된 동작, 기능 요청, 재현 불가. 먼저 프레임워크·플랫폼 표준 계약상 의도된 동작인지 판별한다. 문서 결함은 문서가 실제 동작(TRI-07대로 실행해 확인)과 다르고 그 동작이 의도된 계약인 경우이며, 수정 대상은 문서이고 제품 코드는 그대로 둔다. 결함 영역은 `result.json`의 별도 필드(`references/defaults.md`)로 적고, 영역별 라벨은 `references/labels.md`.
 - **TRI-13** [U] 판정 근거가 특정 배포(사용자 운영 환경)의 관측일 때, 의도된 동작이라도 그 배포에서 불필요한 작업·소음(예: 쓰지 않는 대상을 계속 스캔)이 비례에 맞지 않으면 개선 후보로 사용자에게 알린다. 개선 제안에는 현재 동작, 제안 변경, 효과, 필요한 테스트, 제안이 기존 불변식을 깨는지 여부를 적는다.
 - **TRI-14** 판정이 테스트·오라클 결함이면 수정 대상은 오라클이나 모델이고 제품 코드는 그대로 둔다. 수정 확인은 실패했던 구성(같은 seed, 설정, 단계)으로 한다. 새 입력에서 나온 새 실패는 별개 원인으로 보고하고 이전 판정과 합치지 않는다.
-- **TRI-15** 복합 이슈는 원자적 주장으로 나눠 주장별로 판정하고 댓글은 하나로 묶는다. 일부만 해결됐으면 전체 해결로 쓰지 않고 남은 증상을 라벨·댓글에 적는다. 버그와 함께 발견한 하네스·테스트 전용 불일치는 제품 결함에 섞지 않는다.
+- **TRI-15** 복합 이슈는 원자적 주장으로 나눠 주장별로 판정하고 댓글은 하나로 묶는다. 일부만 해결됐으면 전체 해결로 쓰지 않고 남은 증상을 라벨·댓글에 적는다. 버그와 함께 발견한 하네스·테스트 전용 불일치는 제품 결함에 섞지 않는다. 결함 주장과 기능 요청 주장이 섞이면 기능 요청 주장은 댓글에 남은 주장으로 따로 적고(지목됐으면 TRI-54), 결함만 고치는 인계에는 부분 해결이라 이슈를 닫지 않는다고 적는다.
 - **TRI-16** 심각도는 입증된 영향에 비례하게 쓰고, 이슈마다 검증 수준(운영 환경 재현 / 격리 재현 / mock 재현 / 정적 확인만)을 명시한다. 표현 기본값은 `references/defaults.md`.
 
 ## 4. 근본 원인 (`five-whys-root-cause-analysis` + `isac-multi-agent-consensus`)
@@ -77,6 +78,11 @@ description: Use when judging GitHub bug issues end to end — deduplicate, repr
 - **TRI-26** [U] 수정·개선 제안이 기존 보장(예: 고아 자원 탐지, fail-closed 인가)의 범위를 바꾸면 영향받는 사례별 현재 vs 제안 동작, 남는 공백, 완화책을 적고, 불변식을 약화시키는 선택지는 그 사실을 먼저 적는다.
 - **TRI-27** [U] 원래 지시가 이미 허락한 것은 다시 묻지 않는다. 사용자 가시 계약이나 구조를 바꾸는 선택만 TRI-25 게이트를 거치고, 내부 구현 선택은 에이전트가 정한다.
 
+### 제안 트랙(지목된 기능 요청)
+
+- **TRI-54** [U] 사용자가 지목한 기능 요청·제안·enabler 이슈(판정 FEATURE_REQUEST 포함)는 재현·근본 원인 대신 이 순서로 다룬다: (1) 현재 계약이 그 능력을 약속하지 않는지 확인한다(약속했는데 동작하지 않으면 결함 트랙으로 돌린다) (2) TRI-35 항목을 정리한다 (3) 실현 가능성을 `references/design-research.md` 절차로 조사한다(TRI-47) (4) 방향과 기각한 대안을 `isac-decision-brief` brief로 최종 보고(TRI-52)에 넣어 승인을 받는다. 라벨은 `enhancement`이고 ①·② 축은 쓰지 않는다. 구조 변경을 요구하면 TRI-25대로 ⑤를 붙이고, 사용자가 방향을 승인하면 ④를 붙인다(권한 규칙은 TRI-25와 같다). 댓글은 `references/comment-template.md`의 제안 평가 댓글이다. 승인된 제안은 `isac-issue-to-pr`로 넘긴다.
+- **TRI-35** 기능·enabler 이슈에 대해 물으면 이 순서로 답한다: 도입하는 기능, 장점, 해소되는 블로커, 그 자체가 enabler인지, 핵심 난점·불확실성, 현재 수정 범위에 드는지. 실현 가능성이 입증되지 않았으면 바로 고치자고 하지 않고 feasibility 조사를 먼저 권한다.
+
 ## 6. 라벨
 
 - **TRI-28** [U] 재현 여부와 사용자의 5축을 라벨로 단다: ① `repro:reproduced` / `repro:not-reproduced` / `repro:blocked`(상호배타) ② `triage:root-cause-identified` ③ `triage:needs-info` ④ `triage:fix-direction-decided` ⑤ `triage:needs-structural-change`(④와 배타). 각 라벨은 `references/labels.md`의 기준을 증거가 충족할 때만 붙인다. 기존 `bug`/`enhancement`/`duplicate`를 재사용하고 `invalid`/`wontfix`/`question`은 붙이지 않는다.
@@ -94,7 +100,6 @@ description: Use when judging GitHub bug issues end to end — deduplicate, repr
 - **TRI-34** [U] 남은·열린 이슈 요약을 요청받으면 이슈마다 무엇이 문제인지, 해결할 수 있는지, 추가 정보가 필요한지를 담는다.
 - **TRI-52** 최종 보고 형식 기본값: ① 이슈 표(이슈 / 판정 / 라벨 / 다음 단계 / 게시 여부) ② 이슈로 등록되지 않은 발견(확인된 사실 + 권장 처리) ③ 권장 우선순위 ④ main에 머지됐지만 미릴리스인 수정.
 - **TRI-45** 보고에는 검증 수준과 한계, 해결되지 않은 블로커(없으면 "0"), 새로 만든 라벨과 기존 라벨 매핑을 적는다. 범위 밖 인접 결함은 흡수하지 않고 담당을 적어 넘긴다.
-- **TRI-35** 기능·enabler 이슈에 대해 물으면 이 순서로 답한다: 도입하는 기능, 장점, 해소되는 블로커, 그 자체가 enabler인지, 핵심 난점·불확실성, 현재 수정 범위에 드는지. 실현 가능성이 입증되지 않았으면 바로 고치자고 하지 않고 feasibility 조사를 먼저 권한다.
 - **TRI-36** [U] 트리아지 보고는 판정을 먼저, 간결하게 쓴다. 구체 사실(예: "어느 대상에서 오류가 나?")을 물으면 검증 방법과 함께 구체 목록으로 답하고, "확인해봐"에는 대상을 직접 열어 관찰한 사실로 답한다.
 - **TRI-37** 트리아지 결과나 재현 실패에 대해 사용자가 실패 출력을 붙이며 "니 잘못이야?", "왜 이렇게 동작해?"라고 물으면 실제 코드 경로와 히스토리로 메커니즘을 설명하고, 에이전트 변경 탓인 것과 아닌 것을 표로 나눈다. 자기 잘못이면 인정한다.
 - **TRI-50** 사용자의 불확실한 기술 기억("~라고 알고 있는데 맞아?")은 단정하지 않고 실측·코드 검색·공식 문서로 확인해, 확인된 부분과 아닌 부분을 구분한 결론을 준다.
@@ -107,7 +112,7 @@ description: Use when judging GitHub bug issues end to end — deduplicate, repr
 
 ## 완료 조건
 
-모든 대상 이슈가 분류(제외/중복/판정)됐고, 게시 모드면 이슈마다 기준을 충족한 라벨(권한이 없어 `isac-github-publishing` 절차로 "not applied (no permission)" 보고된 라벨 포함)과 검토 승인된 분석 댓글 하나가 있으며, 최종 보고가 TRI-52 형식을 갖췄다.
+모든 대상 이슈가 분류(제외/중복/판정)됐고, 게시 모드면 이슈마다 기준을 충족한 라벨(권한이 없어 `isac-github-publishing` 절차로 "not applied (no permission)" 보고된 라벨 포함)과 검토 승인된 분석 또는 제안 평가 댓글 하나가 있으며, 최종 보고가 TRI-52 형식을 갖췄다.
 
 ## 교정
 

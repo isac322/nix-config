@@ -29,12 +29,13 @@
 | DUPLICATE | `duplicate` (+ 정본과 같은 `repro:*`) | 중복 판정 댓글 | 최종 보고에 닫기 제안 |
 | ENVIRONMENTAL | `repro:reproduced` 또는 `repro:not-reproduced` | 분석 댓글(원인이 환경임, 우리 쪽 대응) | 업스트림·환경 기록(TRI-22). 우리 쪽 대응이 있으면 그 범위만 인계 |
 | NOT_A_BUG | `repro:*` 결과대로, `bug` 붙이지 않음 | 계약 설명 댓글 | 비례성 판단(TRI-13): 개선 후보면 `enhancement`, 아니면 최종 보고에 닫기 제안 |
-| FEATURE_REQUEST | 없음(TRI-03) | 없음 | 최종 보고 "제외(사유)" |
+| FEATURE_REQUEST (일괄, 미지목) | 없음(TRI-03) | 없음 | 최종 보고 "제외(사유)" |
+| FEATURE_REQUEST (지목, TRI-54) | `enhancement`, 구조 변경이면 ⑤, 승인 후 ④ | 제안 평가 댓글 | 승인되면 `isac-issue-to-pr` |
 | NOT_REPRODUCED | `repro:not-reproduced`, `triage:needs-info` | 재현 안 됨 댓글 | 중단(TRI-09) |
 | INCONCLUSIVE (조건 부족) | `repro:blocked`, 필요하면 `triage:needs-info` | 재현 안 됨 댓글(blocked 변형) | 중단, 필요한 조건을 보고 |
 | INCONCLUSIVE (재현됨, 원인 미확정) | `repro:reproduced`, ② 없음 | 분석 댓글(사실/가설/판별 증거, TRI-21) | 판별 실험 후 재판정 |
 
-결함 영역(TRI-51)은 verdict와 별개 필드다. 영역이 테스트·오라클 결함이면 verdict 행의 `repro:*`·②·④는 그대로 붙이되 `bug`는 붙이지 않고(제품은 계약대로 동작), 수정 대상은 오라클·하니스로 적는다(TRI-14). 우리 저장소의 테스트·하니스면 `isac-issue-to-pr` 인계 대상이다.
+결함 영역(TRI-51)은 verdict와 별개 필드다. 영역이 테스트·오라클 결함이면 verdict 행의 `repro:*`·②·④는 그대로 붙이되 `bug`는 붙이지 않고(제품은 계약대로 동작), 수정 대상은 오라클·하니스로 적는다(TRI-14). 우리 저장소의 테스트·하니스면 `isac-issue-to-pr` 인계 대상이다. 문서 결함이면 `bug`를 붙이지 않고 저장소에 `documentation` 같은 기존 라벨이 있으면 재사용하며, 수정 대상은 문서다.
 
 ## 부착 기준
 
@@ -45,13 +46,14 @@
 | `repro:blocked` | 필요한 조건(하드웨어, 자격증명, 외부 서비스)이 없어 결론이 나지 않음. 무엇이 없는지 댓글에 적음 | 조건은 있는데 관찰이 안 된 경우, 제보자 환경 정보만 모르는 경우(→ not-reproduced) |
 | `triage:root-cause-identified` | `repro:reproduced`가 있고, 합의된 인과 사슬의 모든 edge에 증거가 있음 | 가설이 둘 이상 남음, 원인이 제보자 설명뿐 |
 | `triage:needs-info` | 재현 불가이거나, 제보자 환경의 판별 정보(버전, OS·모드, 설정)가 필요함. 필요한 정보 목록이 최신 댓글에 있음 | 요청할 정보를 댓글에 적지 않은 경우 |
-| `triage:fix-direction-decided` | 수정 방향이 댓글에 있고 구조 변경 게이트 대상이 아님, 또는 구조 변경 방향을 사용자가 승인함 | 방향이 대안 나열 수준 |
+| `triage:fix-direction-decided` | 수정 방향이 댓글에 있고 구조 변경 게이트 대상이 아님, 또는 구조 변경 방향을 사용자가 승인함, 또는 제안 방향을 사용자가 승인함(TRI-54) | 방향이 대안 나열 수준 |
 | `triage:needs-structural-change` | 근본 수정이 구조 변경(공개 API·스키마·영속 상태·보안 불변식·아키텍처 경계·사용자가 소비하는 계약)을 요구함 | 내부 구현 선택만 다른 경우 |
 | `bug` | 확인된 제품 결함 | 의도된 동작, 기능 요청, 테스트·오라클 결함 |
-| `enhancement` | 계약은 지켜지지만 개선 가치가 있는 의도된 동작(TRI-13) | 기능 요청(TRI-03: 라벨 없이 제외) |
+| `enhancement` | 계약은 지켜지지만 개선 가치가 있는 의도된 동작(TRI-13), 지목된 기능 요청(TRI-54) | 지목되지 않은 기능 요청(TRI-03: 라벨 없이 제외) |
 | `duplicate` | 비정본 이슈에서 자기 경로를 실행해 정본과 같은 메커니즘을 확인함 | 제목·증상만 같음 |
 
 전제 관계: `repro:reproduced` → ② → ④ 또는 ⑤. 주장별로 증거가 다르면 라벨은 증거가 뒷받침하는 범위만 반영하고, 나머지는 댓글에 적는다.
+제안 트랙(TRI-54)은 `enhancement` → (구조 변경이면 ⑤) → 사용자 승인 → ④이며 ①·②를 쓰지 않는다.
 
 ## 전이
 
