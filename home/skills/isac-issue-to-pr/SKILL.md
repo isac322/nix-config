@@ -43,7 +43,7 @@ description: Use when turning a GitHub issue whose defect, root cause, and fix d
 
 ## 진입과 범위
 
-- **I2P-01** [U] 진입 조건: 이슈가 "실제 문제이고 근본 원인이 우리 코드의 결함"으로 확정되고 수정 방향이 정해졌거나(`triage:fix-direction-decided`), 사용자가 직접 수정을 지시한 경우다. 사용자가 테스트 harness·oracle 결함 수정을 지시하면 그것도 대상이고 분류만 달리 적는다. `triage:needs-structural-change`이면 `isac-issue-triage`의 구조 변경 승인부터 거친다. 조건이 없으면 `isac-issue-triage`를 먼저 돌린다(초안 모드 가능). triage 결과는 코드 변경 권한이 아니다. 구현·커밋·PR 권한은 현재 요청과 전역 task-intent·application-code 가드가 정한다.
+- **I2P-01** [U] 진입 조건: 이슈가 "실제 문제이고 근본 원인이 우리 코드의 결함"으로 확정되고 수정 방향이 정해졌거나(`triage:fix-direction-decided`), 사용자가 직접 수정을 지시한 경우다. 사용자가 테스트 harness·oracle 결함 수정을 지시하면 그것도 대상이고 분류만 달리 적는다. `isac-issue-triage`에서 사용자가 승인한 제안(`enhancement` + `triage:fix-direction-decided`)도 대상이다. `triage:needs-structural-change`이면 `isac-issue-triage`의 구조 변경 승인부터 거친다. 조건이 없으면 `isac-issue-triage`를 먼저 돌린다(초안 모드 가능). triage 결과는 코드 변경 권한이 아니다. 구현·커밋·PR 권한은 현재 요청과 전역 task-intent·application-code 가드가 정한다.
 - **I2P-02** [U] 이슈 일괄 처리에서 대상 이슈에 이미 열린 PR이 있으면 기본으로 그 이슈는 건너뛰고 중복 PR을 만들지 않는다. 기존 PR이 못 푸는 잔여 결함은 분석해 `isac-issue-triage` 경로로 이슈 댓글에 남긴다. 사용자가 잔여 결함 수정이나 기존 PR 처리를 지시하면 그 지시(새 PR, 기존 PR 댓글·push)를 따른다.
 - **I2P-03** [U] 버그 수정은 관측된 사례 하나로 끝내지 않고 같은 근본 원인의 다른 발현 위치(형제 모듈·리소스)까지 찾아 함께 고친다. 범위는 합의된 공통 원인까지다. 기능을 "전부/다" 지원하라고 했거나 공식 API·스키마를 옮기는 작업이면 공식 스키마와 구현을 한 줄씩 대조한 누락 인벤토리를 만든다(방법: `isac-issue-triage` 스킬의 구조 변경 조사 절차, TRI-25).
 - **I2P-04** 범위 선택지를 줄 때는 완전한 옵션(제품 생명주기의 정식 구현, 나머지 기능까지 검증)을 (권장)으로 둔다. 테스트 환경의 수동 임시 우회를 권장하지 않는다.
