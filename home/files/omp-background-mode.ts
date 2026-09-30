@@ -6,7 +6,7 @@ import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 
 const MAIN_MODEL = "openai-codex/gpt-6.1-sol";
-const MAIN_THINKING = "xhigh";
+const MAIN_THINKING = "high";
 
 const ROLE_OVERRIDES: Record<string, string> = {
 	default: `${MAIN_MODEL}:${MAIN_THINKING}`,
