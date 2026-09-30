@@ -67,6 +67,7 @@ worktree:
 tier:
   advisor: inherit
   google: priority
+  openai: priority
 cycleOrder:
   - default
   - TRIVIAL
