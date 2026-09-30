@@ -73,10 +73,10 @@
     "camofox-browser-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1790120353,
-        "narHash": "sha256-Rwg2rw2lXSif6uYixmQfjrJu+DztbgKJKBG4DAmWGis=",
+        "lastModified": 1790778497,
+        "narHash": "sha256-TBol4ahbB8+NwVag15MUfriU4oM6XSz7pfaja6jlgUw=",
         "ref": "master",
-        "rev": "389c996ae3c7d42e539295a336ee6f975847f066",
+        "rev": "42171f684d171c6cd6b203f61686b04c1b8f410c",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/jo-inc/camofox-browser.git"
