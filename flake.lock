@@ -91,10 +91,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1790705160,
-        "narHash": "sha256-v5YhyAnIQ+UIBpfR/HKZ58mhUo96TlClytHNKPsLAos=",
+        "lastModified": 1790727221,
+        "narHash": "sha256-cziR4BnEmmtSCTMJoHPuLZiljmQRMRnAfFOOsXnkWMo=",
         "ref": "main",
-        "rev": "f2eae041303395abe8cf2ef0e21a7fd72fe9bbfb",
+        "rev": "ab347abd23cdf08b8dbfa74d86e202b41b10654a",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -271,10 +271,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1790726651,
-        "narHash": "sha256-zvULbL+SmLPPB1PwORjYU61W5SulQLjzUxFp4Vjl6B0=",
+        "lastModified": 1790742230,
+        "narHash": "sha256-5399J1/O3DyLSsYGVa950JtOUDB9Reqvy7FhfDuTVzk=",
         "ref": "master",
-        "rev": "b0d0106ef6a7c7c36ebff9a74f803d23d9b383d3",
+        "rev": "0aefa652eb6fd8b7396af25e8c81cb0790f12cc2",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -306,10 +306,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1790716343,
-        "narHash": "sha256-Rg9SjDU5ZKyI0S5F0pVSjGIqtf65cfamdk1IbxuCCFA=",
+        "lastModified": 1790727443,
+        "narHash": "sha256-zZa/J/6aNNebOo7EQUXXJ7mHO8mHo0CGNOlcdKA6H1M=",
         "ref": "refs/heads/main",
-        "rev": "36034d4b846f040e09050d5e70e45f858fc37427",
+        "rev": "0d6b47ea19b63afe15e3f93a44d5d9fbbc6fd275",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -329,16 +329,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1790724431,
-        "narHash": "sha256-TiRnh+o2PoCAiQo8s/RoaJ6aEKseAbTLBDBZ4LWZxc8=",
+        "lastModified": 1790743082,
+        "narHash": "sha256-x9w2AnWIf2bkXCHpLJhWYiKEjp7LzypL/MCrUrqM7qM=",
         "ref": "refs/heads/main",
-        "rev": "ca2e9d5f14679c3fce79fa812c1cbd3a6d2ba745",
+        "rev": "7799495ee1cbcc7ef459415283417382c795e2d3",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "ca2e9d5f14679c3fce79fa812c1cbd3a6d2ba745",
+        "rev": "7799495ee1cbcc7ef459415283417382c795e2d3",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -445,10 +445,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1790653030,
-        "narHash": "sha256-Rjs19pyC1S6u+1LqBMqD6VAkpPnOvZu7YDSbOqTk9Y0=",
+        "lastModified": 1790738606,
+        "narHash": "sha256-mTMJepu6hxBFXQbAWrBWc5tmUA6Plz6h/j/lkJTvsjQ=",
         "ref": "refs/heads/main",
-        "rev": "a0408a06259046137763b1184fd862fbf41a45fd",
+        "rev": "de4bcccd7036159288f56acc6bcd15e831fde808",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
