@@ -652,31 +652,52 @@ Codex가 해당 값을 전달하는 시점부터 별도 구성 변경 없이 res
 
 ## macOS 개인정보 권한 (모든 Mac)
 
-TCC 권한은 요청한 process가 아니라 책임 process에 붙는다. launchd agent의 책임
-process는 launchd가 띄운 process다. Nix bash는 ad-hoc 서명이라 신원이 build
-hash이고, bash가 갱신될 때마다 store 경로도 바뀐다. 그래서 권한이 한 build에만
-묶였고, Orca 안의 omp·`rg`·`find`와 RustDesk 화면 캡처가 계속 승인을 요청했다.
+TCC 권한은 요청한 process가 아니라 책임 process에 붙는다. launchd agent에서 책임
+process는 launchd가 띄운 사슬에서 처음 나오는 non-platform 실행 파일이다.
+`/bin/sh`·`/bin/bash` 같은 Apple platform binary는 책임을 넘길 뿐 갖지 않는다.
+Nix bash는 ad-hoc 서명이라 신원이 build hash이고, bash가 갱신될 때마다 store
+경로도 바뀐다. Nix bash가 사슬에 끼면 권한이 그 build 하나에만 묶인다.
 
-그래서 `orca-serve`, `rustdesk-direct-host`, `camofox-browser` agent는
-`home/tcc-responsible.nix`를 거쳐 Apple 서명 `/bin/bash`가 Nix script를 자식으로
-실행한다. `exec`하지 않고 TERM·INT·HUP만 전달하므로 책임 process는 계속
-`/bin/bash`다. omp는 Developer ID 서명이라 신원은 고정이지만 경로가 release마다
-바뀐다. 그래서 activation이 `~/.local/libexec/omp/omp`로 복사하고, PATH의 `omp`는
-그 파일을 가리키는 symlink다. symlink만으로는 부족하다. TCC는 실제 파일의
-경로와 서명을 본다.
+처음에는 `/bin/bash`가 Nix script를 자식으로 띄우면 책임이 `/bin/bash`에 남는다고
+보았다. 서버 로그는 달랐다. RustDesk와 Orca의 모든 요청에서 책임 process는 Nix
+bash였고, flake update로 bash가 바뀌자 RustDesk 화면 녹화 권한이 사라져 원격
+화면이 `화면을 기다리는 중...`에서 멈췄다.
+
+그래서 `orca-serve`와 `rustdesk-direct-host` agent는 `home/tcc-responsible.nix`의
+`writeLaunchdScript`로 만든 `#!/bin/bash` script다. script는 Nix 실행 파일을 거치지
+않고 Developer ID 서명 앱을 직접 띄운다. Orca의 Homebrew shim은
+`#!/usr/bin/env bash`라 PATH의 Nix bash를 고르므로 `/bin/bash`로 실행한다. 이제
+책임 process는 RustDesk.app과 Orca.app이고, 둘 다 서명 신원이 고정이라 bash나 앱이
+갱신되어도 권한이 유지된다. script는 bash 3.2 문법만 쓴다. `camofox-browser`는 TCC
+권한이 필요 없어 Nix script를 그대로 실행한다.
+
+omp는 Developer ID 서명이라 신원은 고정이지만 경로가 release마다 바뀐다. 그래서
+activation이 `~/.local/libexec/omp/omp`로 복사하고, PATH의 `omp`는 그 파일을
+가리키는 symlink다. symlink만으로는 부족하다. TCC는 실제 파일의 경로와 서명을 본다.
 
 SIP 때문에 권한 부여는 자동화할 수 없다. 시스템 설정 > 개인정보 보호 및 보안에서
 `+`를 누르고 Cmd+Shift+G로 경로를 입력해 한 번만 추가한다.
 
 | 항목 | 대상 |
 |---|---|
-| 전체 디스크 접근 권한 | `/bin/bash`, `~/.local/libexec/omp/omp` |
-| 화면 및 시스템 오디오 녹음 | `/bin/bash` (RustDesk, DeskPad 화면) |
-| 손쉬운 사용 | `/bin/bash` (RustDesk 입력, 창 숨김) |
+| 전체 디스크 접근 권한 | `/Applications/Orca.app`, `~/.local/libexec/omp/omp` |
+| 화면 및 시스템 오디오 녹음 | `/Applications/RustDesk.app` |
+| 손쉬운 사용 | `/Applications/RustDesk.app` (원격 입력) |
 
-서버 맥에서는 이 전환 뒤 RustDesk 화면 권한이 `/bin/bash` 기준으로 바뀐다. 원격
-화면이 끊기지 않도록 **switch 전에** 위 권한을 먼저 추가한다. 이후 bash, omp,
-RustDesk, Orca가 갱신되어도 다시 묻지 않는다. 남은 요청은 다음 명령으로 찾는다.
+서버 맥에서는 이 전환 뒤 권한 주체가 Nix bash에서 앱으로 바뀐다. 원격 화면이
+끊기지 않도록 **switch 전에** 위 권한을 먼저 추가한다. 실제 책임 process와
+남은 요청은 다음 명령으로 확인한다.
+
+```sh
+log show --last 1h --style compact \
+  --predicate 'subsystem == "com.apple.TCC" AND eventMessage CONTAINS "AUTHREQ_ATTRIBUTION"' |
+  grep -oE 'responsible_path=[^,]*' | sort | uniq -c
+```
+
+RustDesk와 Orca 요청의 `responsible_path`에 `/nix/store/…-bash`가 보이면 사슬에 Nix
+실행 파일이 다시 끼어든 것이다.
+
+남은 승인 요청은 다음 명령으로 찾는다.
 
 ```sh
 log show --last 1d --style compact \

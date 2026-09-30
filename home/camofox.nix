@@ -9,7 +9,6 @@
 
 let
   camofoxCfg = osConfig.local.camofox;
-  tcc = import ./tcc-responsible.nix;
   camofoxUrlHandler = pkgs.camofox-url-handler.override {
     apiPort = camofoxCfg.apiPort;
   };
@@ -536,7 +535,7 @@ in
       enable = true;
       config = {
         # home-manager supplies the /nix/store readiness wrapper itself.
-        ProgramArguments = tcc.launchdProgramArguments camofox;
+        ProgramArguments = [ "${camofox}" ];
         RunAtLoad = true;
 
         # A core failure stays stopped rather than relaunching the browser or

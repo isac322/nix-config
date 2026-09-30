@@ -18,7 +18,7 @@ let
   # module passes it in under that name.
   cfg = osConfig.local.orca;
   autoLogin = osConfig.local.autoLogin;
-  tcc = import ../tcc-responsible.nix;
+  tcc = import ../tcc-responsible.nix { inherit (pkgs) writeTextFile; };
 
   rustToolchain = pkgs.rust-bin.stable.latest.default.override {
     extensions = [
@@ -264,7 +264,7 @@ let
     fi
   '';
 
-  rustdeskDirectHost = pkgs.writeShellScript "rustdesk-direct-host" ''
+  rustdeskDirectHost = tcc.writeLaunchdScript "rustdesk-direct-host" ''
     set -u
 
     app=/Applications/RustDesk.app/Contents/MacOS/RustDesk
@@ -299,7 +299,7 @@ let
     exit "$status"
   '';
 
-  orcaServe = pkgs.writeShellScript "orca-serve" ''
+  orcaServe = tcc.writeLaunchdScript "orca-serve" ''
     set -u
 
     # A launchd agent inherits almost no PATH, and `orca serve` shells out to
@@ -366,9 +366,13 @@ let
     # So retry a few times before believing it. A restart clears in seconds; a
     # desktop app that genuinely owns the profile is still there a minute later,
     # and then we stop and say so.
+    #
+    # The Homebrew shim is `#!/usr/bin/env bash`, which would resolve Nix bash
+    # from PATH and make it the responsible process for every privacy check.
+    # Run it with /bin/bash so it hands straight to Orca.app (tcc-responsible.nix).
     attempt=0
     while :; do
-      ${orca} serve --port ${toString cfg.port} --pairing-address "$addr" --json
+      /bin/bash ${orca} serve --port ${toString cfg.port} --pairing-address "$addr" --json
       status=$?
 
       [ "$status" -ne 3 ] && break
@@ -482,7 +486,7 @@ in
   launchd.agents.rustdesk-direct-host = {
     enable = true;
     config = {
-      ProgramArguments = tcc.launchdProgramArguments rustdeskDirectHost;
+      ProgramArguments = [ "${rustdeskDirectHost}" ];
       RunAtLoad = true;
       KeepAlive.SuccessfulExit = false;
       ThrottleInterval = 10;
@@ -544,7 +548,7 @@ in
       # again nests one inside the other — visible in the gpg-agent-ssh plist
       # this repository generates today, which is double-wrapped for that
       # reason.
-      ProgramArguments = tcc.launchdProgramArguments orcaServe;
+      ProgramArguments = [ "${orcaServe}" ];
       RunAtLoad = true;
 
       # Restart on failure, not on a clean stop. The wrapper turns the one
