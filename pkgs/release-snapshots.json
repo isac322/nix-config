@@ -155,24 +155,24 @@
     "ntn": {
       "assets": [
         {
-          "browser_download_url": "https://ntn.dev/releases/v0.23.13/ntn-aarch64-apple-darwin.tar.gz",
-          "digest": "sha256:de5649154a8589cad4ea932e8bbb8b173ecbe50e726155e3a7aefffa0665c572",
+          "browser_download_url": "https://ntn.dev/releases/v0.23.14/ntn-aarch64-apple-darwin.tar.gz",
+          "digest": "sha256:e17fed08437bac6b07ca853bbe9307615c0924e1d14666359e1a90a6b1e77864",
           "name": "ntn-aarch64-apple-darwin.tar.gz"
         },
         {
-          "browser_download_url": "https://ntn.dev/releases/v0.23.13/ntn-aarch64-unknown-linux-musl.tar.gz",
-          "digest": "sha256:6e592b47816a12321eda8f7ab7d539bb5a44f9827074e0f2732982783fe97f8b",
+          "browser_download_url": "https://ntn.dev/releases/v0.23.14/ntn-aarch64-unknown-linux-musl.tar.gz",
+          "digest": "sha256:61c3de13e8fdaa4d3e988927354d7d59fda56402e3c1561750438e5f50660de0",
           "name": "ntn-aarch64-unknown-linux-musl.tar.gz"
         },
         {
-          "browser_download_url": "https://ntn.dev/releases/v0.23.13/ntn-x86_64-unknown-linux-musl.tar.gz",
-          "digest": "sha256:af9f8ee86001547343838eddfd0ed24c6b09eae4ca4d32d5441f5d99aa7730c6",
+          "browser_download_url": "https://ntn.dev/releases/v0.23.14/ntn-x86_64-unknown-linux-musl.tar.gz",
+          "digest": "sha256:fc49de1876cd86faee06fe14cc242ad215e0f5210188980203e4b009821c42c0",
           "name": "ntn-x86_64-unknown-linux-musl.tar.gz"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v0.23.13"
+      "tag_name": "v0.23.14"
     },
     "omp": {
       "assets": [
