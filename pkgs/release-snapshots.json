@@ -177,24 +177,24 @@
     "omp": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.4.4/omp-darwin-arm64",
-          "digest": "sha256:e76e02821242fb36844676a9dfb79fbe5fb069d93ef3bf62625ec339fe9d092b",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.4.5/omp-darwin-arm64",
+          "digest": "sha256:64f5d0a99a2c5b5d9b453a7666257306244ac4c6fd8fdbe0e760bf3449fc8ea6",
           "name": "omp-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.4.4/omp-linux-musl-arm64",
-          "digest": "sha256:c0c7df00cb0d278a009ccd6003d4063c7ac8921f5c1f1a952b0c2e85f1a4ad8e",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.4.5/omp-linux-musl-arm64",
+          "digest": "sha256:1f4eb56f9e671d59b402224718c380cda77f52671d54a24de5c9d7fd148ca26c",
           "name": "omp-linux-musl-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.4.4/omp-linux-musl-x64",
-          "digest": "sha256:b6fff5a5162ae111bd6c9cc7c563fe23f361c1798b33c111b00aa62e763ba7b2",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.4.5/omp-linux-musl-x64",
+          "digest": "sha256:1e4a1c4d7ad624181f269d357f4961d3f619107ccac9ed1f894310fa4a7c3f93",
           "name": "omp-linux-musl-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v18.4.4"
+      "tag_name": "v18.4.5"
     },
     "posthog": [
       {
