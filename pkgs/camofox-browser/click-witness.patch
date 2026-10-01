@@ -1,14 +1,13 @@
 --- a/server.js
 +++ b/server.js
-@@ -3870,6 +3870,48 @@
-         await withTimeout(tabState.page.mouse.up(), Math.max(1, remainingBudget()), 'native mouse up');
+@@ -3934,6 +3934,48 @@ app.post('/tabs/:tabId/click', async (req, res) => {
          
          log('info', 'mouse sequence dispatched', { x: x.toFixed(0), y: y.toFixed(0) });
-+      };
+       };
 +      // Playwright can deliver a click to the page and still fail its own wait:
 +      // on this stack the event has arrived seconds after locator.click gave
-+      // up. Upstream then runs the raw mouse sequence and the page receives a
-+      // second click, so a save button submits twice. Witness page-level
++      // up. Upstream then runs its force/DOM/mouse fallbacks and the page
++      // receives a second click, so a save button submits twice. Witness page-level
 +      // clicks, and after a failed attempt wait briefly for a late arrival
 +      // before falling back.
 +      const CLICK_WITNESS_GRACE_MS = 4000;
@@ -46,10 +45,11 @@
 +          if (Date.now() >= deadline) return false;
 +          await tabState.page.waitForTimeout(100);
 +        }
-       };
++      };
        
-       // On Google SERPs, skip the normal click attempt (always intercepted by overlays)
-@@ -3890,12 +3932,22 @@
+       const recoverForceClickFailure = async (locator) => {
+         try {
+@@ -3962,12 +4004,22 @@ app.post('/tabs/:tabId/click', async (req, res) => {
              log('info', 'click constrained selector to visible match', { selector: locatorOrSelector });
            }
          }
@@ -68,13 +68,13 @@
 +            await click({ force: true });
            } catch (forceErr) {
 +            if (witnessed && (await clickLandedWithinGrace())) {
-+              log('info', 'google force click landed late; skipping mouse sequence');
++              log('info', 'google force click landed late; skipping DOM click fallback');
 +              return;
 +            }
-             log('warn', 'google force click failed, trying mouse sequence');
-             await dispatchMouseSequence(locator);
+             log('warn', 'google force click failed, trying DOM click fallback');
+             await recoverForceClickFailure(locator);
            }
-@@ -3904,14 +3956,22 @@
+@@ -3976,22 +4028,34 @@ app.post('/tabs/:tabId/click', async (req, res) => {
          
          try {
            // First try normal click (respects visibility, enabled, not-obscured)
@@ -93,13 +93,26 @@
 +              await click({ force: true });
              } catch (forceErr) {
 +              if (witnessed && (await clickLandedWithinGrace())) {
-+                log('info', 'force click landed late; skipping mouse sequence');
++                log('info', 'force click landed late; skipping DOM click fallback');
 +                return;
 +              }
-               // Fallback 2: Full mouse event sequence for stubborn JS handlers
-               log('warn', 'force click failed, trying mouse sequence');
-               await dispatchMouseSequence(locator);
-@@ -7187,4 +7247,4 @@
+               log('warn', 'force click failed, trying DOM click fallback');
+               await recoverForceClickFailure(locator);
+             }
+           } else if (err.message.includes('not visible') || err.message.toLowerCase().includes('timeout')) {
+             log('warn', 'click timeout, retrying with force');
+             try {
+-              await click({ timeout: Math.max(1, Math.min(3000, remainingBudget())), force: true });
++              await click({ force: true });
+             } catch (forceErr) {
++              if (witnessed && (await clickLandedWithinGrace())) {
++                log('info', 'force click landed late; skipping DOM click fallback');
++                return;
++              }
+               log('warn', 'force click failed, trying DOM click fallback');
+               await recoverForceClickFailure(locator);
+             }
+@@ -7277,4 +7341,4 @@ server.on('error', (err) => {
    }
    log('error', 'server error', { error: err.message });
    process.exit(1);
