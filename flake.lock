@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1790805075,
-        "narHash": "sha256-dBX5b9mXpSFF21ykrd9SXm3kU7Ba4MZvfqnV2hV8LRA=",
+        "lastModified": 1790842184,
+        "narHash": "sha256-Mj8s1y7LhJbaBNTfZoygb4BYH0DG7KvkMydRl3+kl3A=",
         "ref": "refs/heads/main",
-        "rev": "b388eb31e9d39f81bea8ab0e439a6c70848d84bc",
+        "rev": "47409837b692e71852627bbd0d4afb93bab6e6ab",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -661,10 +661,10 @@
     "rust-overlay-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1790756160,
-        "narHash": "sha256-NPs4nNLxCpho3Ctj8O7t/bzmX0zR8r0zndKghAFEz5U=",
+        "lastModified": 1790843958,
+        "narHash": "sha256-jtYAaAXT1gxEtzmeYmOGu0IvKPle5J39BOFbgl6os+A=",
         "ref": "master",
-        "rev": "ed3a19fd0439ed618ec5fe1e12f0ba69a8be38b5",
+        "rev": "b2ccad3b67335d368eef49ec48b9c8166858e73d",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
