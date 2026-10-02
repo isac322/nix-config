@@ -289,10 +289,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1790883051,
-        "narHash": "sha256-g84X5VU81CZAgY7Q0m1RrdvwNIoFd4UzKG9YaORuRFE=",
+        "lastModified": 1790911008,
+        "narHash": "sha256-r7KBcjLlw7LzuvCYUU1V50L81uf+0YgHTCnhymTwwpw=",
         "ref": "master",
-        "rev": "d85475546a5f6696233bba981933e2227a584047",
+        "rev": "a439f71e75b94c88300022045713c790c79ba007",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -324,10 +324,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1790906490,
-        "narHash": "sha256-mR4A+xhNVjj7/fbURMlZFQ4vWUEbmvEyP4syMBtP/Hw=",
+        "lastModified": 1790908449,
+        "narHash": "sha256-bWmBWThANkAyJ5xd6rrO3UXL/QMm7sut4nf0tgqVk74=",
         "ref": "refs/heads/main",
-        "rev": "5e7914c46890a73460d099a1fae100a169e08c09",
+        "rev": "508d7e8955de3b3caf2d8676e85206723d41a887",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -464,10 +464,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1790825374,
-        "narHash": "sha256-0AxuyM7zZqb9yBJizOljlgDGy8k+hdyg3xYQFZkXiT8=",
+        "lastModified": 1790911776,
+        "narHash": "sha256-Gpxuc4IzzCCy/Fv+PqI0dZGWRsVLCvuC3I9piCzdrwY=",
         "ref": "refs/heads/main",
-        "rev": "45f143d8aa9efc4b0873d5f9c81328d057129d2f",
+        "rev": "32ee28acf0d169c19cd7862abee69d46adf60df6",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
