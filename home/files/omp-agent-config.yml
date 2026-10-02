@@ -3,6 +3,7 @@ retry:
     devin/swe-2:
       - anthropic/claude-opus-5-5:medium
 setupVersion: 2
+extendedContext: true
 statusLine:
   preset: nerd
   compactThinkingLevel: false
