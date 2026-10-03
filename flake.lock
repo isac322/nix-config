@@ -109,10 +109,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1790986350,
-        "narHash": "sha256-FPgsF55IFI9+qqIW+vwXhKkDUtCVkI0NJQiCCTq5Wkw=",
+        "lastModified": 1791034557,
+        "narHash": "sha256-ktUTYfdKbOXAvqgvQ9ihhWcQ7+acUhQUa2dYCN8JeWM=",
         "ref": "main",
-        "rev": "9f3ecc8b0aafd25d3592ffc31e4b02b1767f6089",
+        "rev": "dbfa57d50ccaacb37ade53dd226c5b0cf7bea335",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -246,10 +246,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1791012713,
-        "narHash": "sha256-s+SrGgWN/RIm1d0DOlKC4gqUDraB9aOmtmXflAZpcho=",
+        "lastModified": 1791021917,
+        "narHash": "sha256-rLJUpb1jnXM8l87RmXBcgq6IS1OlaxK5IskdKqKxknY=",
         "ref": "refs/heads/main",
-        "rev": "f5e5da4ef7353db2b64e8353437aeba7d8e894d4",
+        "rev": "f4d3f3e817e864f853fe1ac5f4fa54ce07b37e87",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
