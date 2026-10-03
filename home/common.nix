@@ -590,6 +590,10 @@ in
     # binaries via flake input rather than the llm-agents input.
     pkgs.gajae-code
 
+    # OmO Native (`omo`), the standalone OmO agent harness, from its official
+    # release binaries rather than the `bun add -g omo-ai` install path.
+    pkgs.omo
+
     # BearDrive's CLI is useful on every node, but joining a project is mutable
     # per-user state: `bdrive init` selects a folder and hub, authenticates, and
     # installs the upstream login item. Nix supplies the pinned executable only

@@ -91,6 +91,9 @@ let
       omp-bin = final.callPackage ./omp-bin/package.nix {
         manifestFile = releaseManifests.omp;
       };
+      omo = final.callPackage ./omo/package.nix {
+        manifestFile = releaseManifests.omo;
+      };
       omp-plugins = final.callPackage ./omp-plugins {
         inherit sourceInputs;
         npmSourceOverrides = npmSourceOverrides.piCodegraph or { };

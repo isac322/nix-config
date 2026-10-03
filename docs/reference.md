@@ -585,6 +585,7 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `beardrive` | GitHub release binaries | snapshot이 보존하는 platform별 공식 checksum |
 | `gajae-code` | GitHub release binaries | snapshot이 보존하는 platform별 공식 manifest |
 | `omp-bin` | GitHub release binary | 공식 standalone `omp`; 상류 Rust·Bun 빌드 생략 |
+| `omo` | GitHub release binary | OmO Native 공식 standalone `omo`; Sustainable Use License라 unfree 허용 목록에 둔다 |
 | `sentry` | GitHub release binary | getsentry/cli의 현재 platform binary |
 | `slack-cli` | GitHub release binary | nixpkgs의 동명 attribute를 갈아끼운다 |
 | `ntn` | ntn.dev release archive | Notion CLI; 상류 설치 스크립트와 같은 target별 archive·`.sha256` |

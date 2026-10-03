@@ -297,7 +297,12 @@
           pkgs = import nixpkgs {
             inherit system;
             overlays = [ packageOverlay ];
-            config.allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getName pkg) [ "sentry" ];
+            config.allowUnfreePredicate =
+              pkg:
+              builtins.elem (nixpkgs.lib.getName pkg) [
+                "omo"
+                "sentry"
+              ];
           };
         in
         {
@@ -312,6 +317,7 @@
             ntn
             slack-cli
             omp-bin
+            omo
             tempo-cli
             ;
         }

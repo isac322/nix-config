@@ -25,6 +25,9 @@
     builtins.elem (lib.getName pkg) [
       "1password-cli"
       "claude-code"
+      # OmO Native is published under the Sustainable Use License, which
+      # permits internal use but is not an OSI licence.
+      "omo"
       # getsentry/cli uses FSL-1.1-Apache-2.0. It permits internal use and
       # converts to Apache-2.0 after two years, but nixpkgs correctly classifies
       # the current release as unfree until that conversion.

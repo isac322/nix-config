@@ -312,6 +312,16 @@ def build_snapshot(previous_snapshot: dict[str, Any] | None) -> dict[str, Any]:
         ),
         "langfuse": npm_latest("langfuse-cli", include_dependencies=True),
         "ntn": ntn_release(),
+        "omo": latest(
+            "omo",
+            "code-yeongyu/oh-my-openagent",
+            "v",
+            lambda _version: [
+                "omo-darwin-arm64",
+                "omo-linux-arm64",
+                "omo-linux-x64",
+            ],
+        ),
         "omp": latest(
             "omp",
             "can1357/oh-my-pi",
