@@ -167,6 +167,10 @@ in
   home.packages = [
     pkgs.nerd-fonts.jetbrains-mono
     pkgs.nerd-fonts.d2coding
+    # Links against macfuse-stubs and loads the real libfuse that the macFUSE
+    # cask (modules/roles/darwin-laptop.nix) installs, so it belongs to the
+    # only role that has macFUSE.
+    pkgs.sshfs
   ];
 
   programs.ghostty = {
