@@ -109,10 +109,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1791100755,
-        "narHash": "sha256-HODcSc7Gh8kmiol4hfgadnYPZAXKJMgwm3b2lYwv2Bo=",
+        "lastModified": 1791121691,
+        "narHash": "sha256-1TA94tXMEXVhFwqcA764As2FwF5id68YV+/Tx3cPIzg=",
         "ref": "main",
-        "rev": "c844c96bcac0a690ac4f4dc3828ffd59f023fb35",
+        "rev": "a83c20165125850473e9344421cf7f374201f0fe",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -246,10 +246,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1791077187,
-        "narHash": "sha256-mr2Y/Ct6X0+IoEl3QNCPC/qfuutfvmtwE1pOXxe75vI=",
+        "lastModified": 1791123586,
+        "narHash": "sha256-8ICQ+kI8zsYv9QuDv34kPCtVuIn9hy9b/K71XiXr+Zo=",
         "ref": "refs/heads/main",
-        "rev": "7af7eef8983db628e87868960e24e6b8c6d6f427",
+        "rev": "ccec7b352566816e0988e066cfe13b714537456b",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -289,10 +289,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1790989254,
-        "narHash": "sha256-ZN+riaeFuE+DZ5zfqJiXlM12jLwZzeIXiNkU1YeHMXI=",
+        "lastModified": 1791123389,
+        "narHash": "sha256-4ln1QbTLlSC6Wo0Jus/YZuueOBBNhTSa9KMSnco+j8M=",
         "ref": "master",
-        "rev": "acd21c5a3420a9d5fd0ed06299b10828267ef9ba",
+        "rev": "8cfa9c9514e86f3b88856958b4692e7312b96598",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -528,10 +528,10 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1790769526,
-        "narHash": "sha256-5AIVFLRcx8YAwbFTVPTs7YhwJH7JyHfAQsvXmpovcXI=",
+        "lastModified": 1790981744,
+        "narHash": "sha256-sm6DclXJudZfP/pcDBQQsRqyMxBcQsuw+7yQr4rBBLE=",
         "ref": "nixpkgs-unstable",
-        "rev": "c9fe7d12cd78d1adcd12dd15e24432dde5b155a0",
+        "rev": "55ba7f49ef2962b42cbd126522b7df5f95037679",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
