@@ -5,6 +5,7 @@
   autoPatchelfHook,
   fetchurl,
   lib,
+  makeWrapper,
   stdenvNoCC,
   writableTmpDirAsHomeHook,
   manifestFile,
@@ -39,12 +40,20 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   # The glibc Linux releases use conventional /lib ELF interpreters, which
   # NixOS does not provide. Darwin stays byte-identical so its embedded ad-hoc
   # signature and Bun payload remain intact.
-  nativeBuildInputs = lib.optionals stdenvNoCC.hostPlatform.isLinux [ autoPatchelfHook ];
+  nativeBuildInputs = [
+    makeWrapper
+  ]
+  ++ lib.optionals stdenvNoCC.hostPlatform.isLinux [ autoPatchelfHook ];
   dontFixup = stdenvNoCC.hostPlatform.isDarwin;
 
+  # Nix owns upgrades through `nix run .#update-packages`, and `omo update`
+  # cannot replace a store path, so its startup "Update Available" notice
+  # would only point at a command that fails. Callers can still unset it.
   installPhase = ''
     runHook preInstall
-    install -Dm755 "$src" "$out/bin/omo"
+    install -Dm755 "$src" "$out/libexec/omo/omo"
+    makeWrapper "$out/libexec/omo/omo" "$out/bin/omo" \
+      --set-default PI_SKIP_VERSION_CHECK 1
     runHook postInstall
   '';
 
