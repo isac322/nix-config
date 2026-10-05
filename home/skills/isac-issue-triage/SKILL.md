@@ -1,6 +1,6 @@
 ---
 name: isac-issue-triage
-description: Use when judging GitHub issues end to end — for defects: deduplicate, reproduce by execution, classify the fault domain, find the root cause by multi-agent Five Whys, decide a fix direction or a structural-change brief; for a named feature request: check the contract, research feasibility, and brief the direction for approval — then apply repro/triage labels and one English analysis or proposal-evaluation comment; including "이슈 트리아지", "이슈 재현해서 라벨 달아", "근본 원인 찾아서 이슈에 댓글 달아", "남은 이슈 분석해서 보고해", "기능 요청 이슈 검토해". Not for implementing the fix or opening a PR (isac-issue-to-pr), filing new issues from live exploration (isac-live-qa), or verdict-only validation without GitHub output (issue-validation).
+description: Use when judging GitHub issues end to end — for defects, deduplicate, reproduce by execution, classify the fault domain, find the root cause by multi-agent Five Whys, decide a fix direction or a structural-change brief; for a named feature request, check the contract, research feasibility, and brief the direction for approval — then apply repro/triage labels and one English analysis or proposal-evaluation comment; including "이슈 트리아지", "이슈 재현해서 라벨 달아", "근본 원인 찾아서 이슈에 댓글 달아", "남은 이슈 분석해서 보고해", "기능 요청 이슈 검토해". Not for implementing the fix or opening a PR (isac-issue-to-pr), filing new issues from live exploration (isac-live-qa), or verdict-only validation without GitHub output (issue-validation).
 ---
 
 # GitHub Issue Triage
