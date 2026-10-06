@@ -32,16 +32,25 @@ let
   rawNpmDeps = importNpmLock { npmRoot = source; };
   npmDeps = rawNpmDeps.overrideAttrs (previous: {
     nativeBuildInputs = (previous.nativeBuildInputs or [ ]) ++ [ jq ];
+    # importNpmLock rewrites the lock to store paths, but npm still checks
+    # package.json `overrides` against them. Replace every override version
+    # that matches the locked top-level package with that store path, so new
+    # or bumped upstream overrides follow the lock without editing this file.
     buildCommand = (previous.buildCommand or "") + ''
-      glob=$(jq -r '.packages["node_modules/glob"].resolved' "$out/package-lock.json")
-      testExclude=$(jq -r '.packages["node_modules/test-exclude"].resolved' "$out/package-lock.json")
-      jq --arg glob "$glob" --arg testExclude "$testExclude" '
-        .overrides |= walk(
-          if . == "13.0.6" then $glob
-          elif . == "8.0.0" then $testExclude
-          else .
-          end
-        )
+      jq --slurpfile lock "$out/package-lock.json" '
+        $lock[0].packages as $locked
+        | def resolve:
+            with_entries(
+              if (.value | type) == "object" then
+                .value |= resolve
+              elif (.value | type) == "string"
+                and $locked["node_modules/\(.key)"].version == .value then
+                .value = $locked["node_modules/\(.key)"].resolved
+              else
+                .
+              end
+            );
+          .overrides |= resolve
       ' "$out/package.json" > package.json
       mv package.json "$out/package.json"
     '';
