@@ -106,19 +106,19 @@
     "camoufox": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/daijro/camoufox/releases/download/v156.0.1-beta.34/camoufox-156.0.1-beta.34-mac.arm64.zip",
-          "digest": "sha256:11cb4db64b874a15afe75abe27d545a4731140054de226cfc793e1b528d7e146",
-          "name": "camoufox-156.0.1-beta.34-mac.arm64.zip"
+          "browser_download_url": "https://github.com/daijro/camoufox/releases/download/v152.0.4-beta.30/camoufox-152.0.4-beta.30-mac.arm64.zip",
+          "digest": "sha256:3b43e766574f286a6a63296cf58b660b7a3120952086c869b4df4c9a71604bc3",
+          "name": "camoufox-152.0.4-beta.30-mac.arm64.zip"
         },
         {
-          "browser_download_url": "https://github.com/daijro/camoufox/releases/download/v156.0.1-beta.34/camoufox-156.0.1-beta.34-lin.arm64.zip",
-          "digest": "sha256:c30d865d1ef14e33231a92d256cdb78b31933acb38f1b090a374a2db6c68e0b1",
-          "name": "camoufox-156.0.1-beta.34-lin.arm64.zip"
+          "browser_download_url": "https://github.com/daijro/camoufox/releases/download/v152.0.4-beta.30/camoufox-152.0.4-beta.30-lin.arm64.zip",
+          "digest": "sha256:60447260af8bebdb0ec3f2aa72f687b879e5598367303de2e3fdbc7a5be8c124",
+          "name": "camoufox-152.0.4-beta.30-lin.arm64.zip"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v156.0.1-beta.34"
+      "tag_name": "v152.0.4-beta.30"
     },
     "deskpad": {
       "assets": [

@@ -289,15 +289,8 @@ def build_snapshot(previous_snapshot: dict[str, Any] | None) -> dict[str, Any]:
                 "bun-linux-x64.zip",
             ],
         ),
-        "camoufox": latest(
-            "camoufox",
-            "daijro/camoufox",
-            "v",
-            lambda version: [
-                f"camoufox-{version}-mac.arm64.zip",
-                f"camoufox-{version}-lin.arm64.zip",
-            ],
-        ),
+        # camoufox follows the locked camofox-browser source; see
+        # camoufox_release, which runs after the flake lock is updated.
         "deskpad": latest(
             "deskpad",
             "Stengo/DeskPad",
@@ -596,17 +589,44 @@ def verify_lock_graph(lock: dict[str, Any], parents: dict[str, Any]) -> None:
         compare(parent_root, our_root)
 
 
-def npm_source_overrides(lock: dict[str, Any], previous: dict[str, Any]) -> dict[str, Any]:
+def locked_github_source(lock: dict[str, Any], input_name: str) -> tuple[str, str, str]:
     nodes = lock["nodes"]
-    edge = nodes[lock["root"]]["inputs"].get("pi-codegraph-source")
+    edge = nodes[lock["root"]]["inputs"].get(input_name)
     if edge is None:
-        raise RuntimeError("flake.lock has no pi-codegraph-source input")
+        raise RuntimeError(f"flake.lock has no {input_name} input")
     locked = nodes[resolve_edge(nodes, edge, lock["root"])]["locked"]
     match = re.fullmatch(r"https://github\.com/([^/]+)/([^/]+?)(?:\.git)?", locked.get("url", ""))
     if locked.get("type") != "git" or not match:
-        raise RuntimeError("pi-codegraph-source must be a locked GitHub Git source")
+        raise RuntimeError(f"{input_name} must be a locked GitHub Git source")
+    return match[1], match[2], locked["rev"]
+
+
+def camoufox_release(lock: dict[str, Any], previous_release: dict[str, Any] | None) -> dict[str, Any]:
+    """Select the Camoufox browser release the locked camofox-browser declares.
+
+    camofox-browser's camoufox-js validates its fingerprint config against the
+    browser's properties.json, so only the release upstream tests against
+    launches. Tracking daijro/camoufox's latest release independently breaks
+    the server whenever the two drift apart."""
+    owner, repository, rev = locked_github_source(lock, "camofox-browser-source")
+    url = f"https://raw.githubusercontent.com/{owner}/{repository}/{rev}/lib/camoufox-download.js"
+    source = fetch_bytes(url).decode()
+    match = re.search(r"""\bBUNDLED_CAMOUFOX_RELEASE\s*=\s*['"]([^'"]+)['"]""", source)
+    if not match:
+        raise RuntimeError(f"camofox-browser {rev} declares no BUNDLED_CAMOUFOX_RELEASE")
+    version = match[1]
+    release = fetch_json(f"{GITHUB_API}/daijro/camoufox/releases/tags/v{version}")
+    return select_assets(
+        release,
+        [f"camoufox-{version}-mac.arm64.zip", f"camoufox-{version}-lin.arm64.zip"],
+        previous_release,
+    )
+
+
+def npm_source_overrides(lock: dict[str, Any], previous: dict[str, Any]) -> dict[str, Any]:
+    owner, repository, rev = locked_github_source(lock, "pi-codegraph-source")
     package_lock = fetch_json(
-        f"https://raw.githubusercontent.com/{match[1]}/{match[2]}/{locked['rev']}/package-lock.json"
+        f"https://raw.githubusercontent.com/{owner}/{repository}/{rev}/package-lock.json"
     )
     if not isinstance(package_lock.get("packages"), dict):
         raise RuntimeError("pi-codegraph package-lock.json has no packages map")
@@ -713,6 +733,9 @@ def main() -> int:
             subprocess.run(["nix", "flake", "update"], cwd=repository, check=True)
         lock = json.loads(lock_path.read_bytes())
         verify_lock_graph(lock, parents)
+        snapshot["releaseManifests"]["camoufox"] = camoufox_release(
+            lock, previous_data.get("releaseManifests", {}).get("camoufox")
+        )
         snapshot["npmSourceOverrides"] = npm_source_overrides(
             lock, previous_data.get("npmSourceOverrides", {})
         )
