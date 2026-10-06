@@ -246,10 +246,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1791264646,
-        "narHash": "sha256-o6ODMkwxKy2U75tKWHIhxpBK/tmXB2X5M/wj/xDvL64=",
+        "lastModified": 1791274538,
+        "narHash": "sha256-zRCFtuuOAzhWJnguE1dKJcyov7DFMPSq666qF1Gj9z4=",
         "ref": "refs/heads/main",
-        "rev": "fdc3fabce9f3f72e014ec1fe5a019bde9d389051",
+        "rev": "45199ad187dec3fd5d8042d747db6d75af5d005d",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -324,10 +324,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1791265922,
-        "narHash": "sha256-MZ5yeVZYWJvr2eCXVn4KnqPIaoqjHGOR29ruiDG/nns=",
+        "lastModified": 1791275770,
+        "narHash": "sha256-S0Qn9UQtybSs7IR3OdRuAJU1oH/FiM3216y2XpvO67E=",
         "ref": "refs/heads/main",
-        "rev": "f676fb4ff08eeed1e422d9869d08618819e29549",
+        "rev": "cff5e6d25e3120c737bb619fea8b54e5351483a8",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -680,10 +680,10 @@
     "rust-overlay-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1791189933,
-        "narHash": "sha256-Y8eN7ki0Urx4Ojf4w1xSpWg8uk/3lJqK+E0Oth77rH0=",
+        "lastModified": 1791276535,
+        "narHash": "sha256-iwqAmHTX1IgzTumJR3JayNAQAo5xEmmOuGzB6b2pT/Q=",
         "ref": "master",
-        "rev": "e60029353d0c48d216bc4b065168ccd4079c166f",
+        "rev": "b962e5d0c8cd97196c6a882d659fe451b52ad989",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
