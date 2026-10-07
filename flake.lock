@@ -109,10 +109,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1791332017,
-        "narHash": "sha256-MFnKQyjI1QPaSnYYh2Jv6DEwuX5OurvZh7pHA98ZuAM=",
+        "lastModified": 1791374870,
+        "narHash": "sha256-9GCyFpZSW0oQdu1LjAZYqjUXLMwC4zTcJGKSoJ538w0=",
         "ref": "main",
-        "rev": "c396a2377a291903cc84f2628682b64848556a2e",
+        "rev": "2a7a92ab00496a4848decdd7b651daf9ccd90d96",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
