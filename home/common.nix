@@ -253,6 +253,14 @@ let
         command = lib.getExe pkgs.bun;
         args = [ "${pkgs.omp-plugins}/node_modules/context-mode/server.bundle.mjs" ];
       };
+
+      # Granola is OMP-only and stays disabled by default; activate it
+      # on demand via `/mcp enable granola`.
+      granola = {
+        type = "http";
+        url = "https://mcp.granola.ai/mcp";
+        enabled = false;
+      };
     }
     // remoteMcpServers
     // lib.optionalAttrs camofoxCfg.enable { camofox = camofoxMcpServer "omp"; }
