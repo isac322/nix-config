@@ -54,9 +54,8 @@ Retrieve the OAuth authorization URL from process stdout/logs (`hub(op="logs", n
      *(If Keychain is locked or lookup fails with error code 36, prompt the user to unlock the keychain or enter password).*
    - Type into `input[type="password"]` and submit.
 4. **2-Step Verification (2FA)** (if prompted):
-   - **DO NOT** attempt to bypass or simulate hardware 2FA / push notifications.
-   - Prompt the user using `ask` tool with clear instructions (e.g. tap 'Yes' on Galaxy Tab S7+ or mobile device).
-   - Wait for user confirmation.
+   - If `totp list` has `Google:isac@runbear.io`, switch the challenge to the authenticator app ("Try another way" → Google Authenticator) and enter `totp code "Google:isac@runbear.io"`, following the two-factor codes instructions in your context.
+   - Otherwise, **DO NOT** attempt to bypass or simulate hardware 2FA / push notifications. Prompt the user using `ask` tool with clear instructions (e.g. tap 'Yes' on Galaxy Tab S7+ or mobile device), and wait for user confirmation.
 5. **Consent Approval**:
    - On Google Cloud SDK consent screen ("Google Cloud SDK wants access to your Google Account"), locate the "Allow" button.
    - Click "Allow" using `camofox_evaluate` (prefer over `camofox_click` to avoid native mouse move timeouts):

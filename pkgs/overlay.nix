@@ -85,6 +85,7 @@ let
       # rather than in a role file because it is a program, and this is where this
       # repository's programs live.
       pinentry-keychain = final.callPackage ./pinentry-keychain/package.nix { };
+      keychain-totp = final.callPackage ./keychain-totp/package.nix { };
 
       # omp's plugins as one node_modules tree, pinned here rather than fetched at
       # run time by `omp plugin install`.

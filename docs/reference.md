@@ -36,6 +36,7 @@ home/              사용자 레벨 (home-manager)
     darwin-server.nix   Rust · 언어 서버
 pkgs/              nixpkgs 에 없거나 쓸 수 없는 형태인 패키지 + overlay.nix
   pinentry-keychain/  키체인을 읽는 pinentry. 콘솔 없는 맥용
+  keychain-totp/     login 키체인의 otpauth URI로 TOTP 코드를 만드는 `totp`. MBP 전용
   camoufox/          고정한 macOS/Linux arm64 브라우저 코어
   camofox-browser/   @askjo/camofox-browser API 서버와 플랫폼별 실행 wrapper
   camofox-url-handler/ macOS HTTP/HTTPS 링크를 Camofox API로 전달하는 app

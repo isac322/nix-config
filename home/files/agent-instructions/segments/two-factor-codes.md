@@ -1,0 +1,5 @@
+# Two-factor codes
+
+- Some machines keep TOTP secrets in the login Keychain behind the `totp` CLI; when `command -v totp` finds nothing, this machine has none. `totp list` prints the stored entry names as `Issuer:account`, such as `GitHub:isac322` or `Google:isac@runbear.io`, and `totp code "<entry>"` prints the current code, waiting first when the current window is about to expire.
+- When a login asks for a second factor and `totp list` has an entry for that site and account, complete it with the authenticator-app (TOTP) method. Do not choose or wait on a push notification, mobile-app approval, SMS, email, passkey, or security key instead. If the page offers one of those by default, switch methods first. GitHub defaults to GitHub Mobile: open the alternative methods and choose the authenticator app option, then enter `totp code "GitHub:isac322"`.
+- Generate the code immediately before typing it, and generate a fresh one after a rejection or any pause. Never print, log, or report a code or the secret behind it. Only when no entry matches, fall back to the other credential sources or ask the user.
