@@ -116,6 +116,11 @@ in
     // {
       description = "Preserve standing merge authorization and block unauthorized pull request merging.";
     };
+  release-gate =
+    (segment ./files/agent-instructions/segments/release-gate.md "critical" allHarnesses 700)
+    // {
+      description = "Block tagging or publishing a release until every change since the latest release tag is reviewed and no regression or new bug remains.";
+    };
 
   response-style = segment ./files/agent-instructions/segments/response-style.md "personality" [
     "omp"

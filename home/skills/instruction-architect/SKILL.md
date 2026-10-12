@@ -127,6 +127,7 @@ Current canonical meanings include:
 - destructive operation preparation: `destructive-operations` (`onDemand`);
 - completion evidence: `verification` (`onDemand`);
 - pull request creation, review, and merge: paired non-overlapping `onDemand` mechanics and `critical` guards, with mandatory metadata, current-head review lifecycle, authorization, and completion blockers owned by the guards;
+- release readiness gate before tagging or publishing: `release-gate` (`critical`);
 - reusable review evaluation technique: `home/skills/receiving-code-review/SKILL.md`.
 
 ## Verification

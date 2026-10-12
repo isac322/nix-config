@@ -2,10 +2,11 @@
 
 - Fix root causes instead of suppressing symptoms or adding workarounds. Trace non-trivial defects with the `five-whys-root-cause-analysis` skill, and propose the structural fix even when it changes architecture or design; look for step-change improvements rather than marginal patches. When that fix exceeds the authorized scope, present it with its trade-offs and wait for approval instead of shipping a stopgap.
 - When implementing a feature, bug fix, refactor, performance change, or dependency upgrade:
-  1. For a bug, reproduce the reported failure, using the reporter's or customer's scenario, before changing code. If it does not reproduce, stop and report instead of guessing a fix.
+  1. For a bug, reproduce the reported failure, using the reporter's or customer's scenario, before changing code. If it does not reproduce, stop and report instead of guessing a fix. For a CI failure, reproduce it locally with the same invocation and iterate there until it passes; do not use repeated CI pushes as the debug loop.
   2. Before writing code, write a QA list covering the requested behavior and the adjacent existing behavior the change could break; settle it through `isac-multi-agent-consensus` when it is consequential. Issue-driven work follows the `isac-issue-to-pr` skill instead.
   3. Add the essential QA items to the repository as automated tests; for items that cannot be automated, write manual test steps.
-  4. After implementing, run every QA item and the original reproduction before opening the pull request or merging, and report the results under the verification rule. For UI changes, check behavior and appearance in a real browser.
-  5. For a refactor, performance change, or upgrade, show that existing behavior and appearance are unchanged.
+  4. After implementing, run every QA item and the original reproduction before opening the pull request or merging, and report the results under the verification rule. For UI changes, check behavior and appearance in the real running environment (a real browser, desktop session, or device); passing tests or reading the code does not replace that check.
+  5. For a refactor, performance change, or upgrade, show that existing behavior and appearance are unchanged. For a performance change, profile before changing code, measure the same scenario on the same setup before and after, and report the numbers; keep the change only when they show an improvement, then measure the result again to find the next bottleneck.
   6. After applying a change to a running environment, monitor it and roll back when it misbehaves.
 - Preserve unrelated user changes: stage, commit, and push only the files and hunks you changed, never a blanket `git add -A` over other work.
+- Commit planning and design documents only as ADRs, RFCs, or PRDs in the repository's established format; keep ideation notes and implementation plans out of the repository.
