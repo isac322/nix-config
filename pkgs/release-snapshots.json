@@ -4,30 +4,30 @@
     "binaries": [
       {
         "name": "gjc-darwin-arm64",
-        "sha256": "2a8636f06cbab5d14350f4ac84ff4342e929f29ae2b47fd5ebdfbd3f4b271d50",
+        "sha256": "bc0ac3c79b4844e7e9174b92d05f3c54a150195c15bae14f95d659f32f4697fe",
         "size": 138562928
       },
       {
         "name": "gjc-darwin-x64",
-        "sha256": "7305b39871cff5aaacc3faf76132e183bd61b4f5ee1e35159ac3df63ff5737d6",
+        "sha256": "261f9b665bed2a50d2736860745d9d3e353402081bbf586faf33529a442803e6",
         "size": 147550240
       },
       {
         "name": "gjc-linux-arm64",
-        "sha256": "a9c85a297ad6ebd5327669b47b3bd6529f04f5ba76f5db6c146b38101197b4c8",
+        "sha256": "2dbc24dc26c3825e284494c61fdfc8c5f2820a96ede48c8e59535bdf20fba4ef",
         "size": 159696888
       },
       {
         "name": "gjc-linux-x64",
-        "sha256": "69ff890997125c150694f121292497482351df8eacca9d2623f87eacc13dc35d",
+        "sha256": "54556cada0c685922c83ccd930e52314677ef43de254bcf53393e79c9c822ae4",
         "size": 162063560
       }
     ],
     "release_channel": "stable",
-    "release_version": "0.18.9",
+    "release_version": "0.18.10",
     "schema": "gajae-release-binaries-v1",
     "schema_version": 1,
-    "tag": "v0.18.9"
+    "tag": "v0.18.10"
   },
   "npmSourceOverrides": {
     "piCodegraph": {
