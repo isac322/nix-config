@@ -347,16 +347,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1791756485,
-        "narHash": "sha256-52Zi0EPiYgzXHN3dBHROoYRqT6K9SZ4jES4H9jAQKZs=",
+        "lastModified": 1791781982,
+        "narHash": "sha256-lvEyxEmXv/8gwiWE2+rxTuL59EFq5wwXxX+rtbxjwLo=",
         "ref": "refs/heads/main",
-        "rev": "0080f911989ebe6385bffbd2d4f2b1259a16f4cf",
+        "rev": "493c34b1bed086861b0e968a40d00bd06522f003",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "0080f911989ebe6385bffbd2d4f2b1259a16f4cf",
+        "rev": "493c34b1bed086861b0e968a40d00bd06522f003",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -464,10 +464,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1791688642,
-        "narHash": "sha256-w4Vv8AdwnJTpOy+iB9szFAb7dxGYkrl1H9gcuVps8n8=",
+        "lastModified": 1791776414,
+        "narHash": "sha256-072oxw6/h7Vnu9jhDFrvvLjh3DWg2JeksgugkO/mjSk=",
         "ref": "refs/heads/main",
-        "rev": "49eacb1f83e44a289b48a655724c8a30e096d07c",
+        "rev": "4f1e6e2a0adc7503701a30f742892cbfbcad3e03",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
