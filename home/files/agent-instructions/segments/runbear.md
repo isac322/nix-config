@@ -66,6 +66,7 @@ When accessing secrets or credentials via `op` CLI:
   TMPDIR="$(/usr/bin/getconf DARWIN_USER_TEMP_DIR 2>/dev/null || echo /tmp)" op <command>
   ```
 - Never print or commit the master password, session tokens, or plaintext secrets retrieved from 1Password.
+- Shared Runbear service logins live in 1Password rather than in personal accounts; for example, Pylon uses `bear@runbear.io`. Look the item up with `op item list` / `op item get` before asking the user.
 
 ### Stripe environment
 - Default CLI invocations run against the testing environment.

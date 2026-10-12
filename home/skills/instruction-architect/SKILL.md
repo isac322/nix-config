@@ -118,6 +118,8 @@ Never edit these deployment targets directly:
 
 Current canonical meanings include:
 - universal truthfulness and secret-handling invariants: `guardrails` (`persistent`);
+- implementation discipline that must reach every agent, including subagents (root causes, pre-implementation QA, scoped commits): `implementation-discipline` (`persistent`);
+- temporary resource ledger and cleanup boundary: `temporary-resource-cleanup` (`critical`);
 - Runbear infrastructure, telemetry, and environment routing: `runbear` (`context`);
 - Runbear Slack automation identity and permission boundary: `runbear-slack-automation` (`critical`);
 - OMP response style: `response-style` (`personality`, OMP only);

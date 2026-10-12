@@ -28,6 +28,9 @@ in
   guardrails =
     segment ./files/agent-instructions/segments/guardrails.md "persistent" allHarnesses
       100;
+  implementation-discipline =
+    segment ./files/agent-instructions/segments/implementation-discipline.md "persistent" allHarnesses
+      200;
 
   destructive-operations =
     (segment ./files/agent-instructions/segments/destructive-operations.md "onDemand" allHarnesses 100)
@@ -81,6 +84,13 @@ in
     )
     // {
       description = "Require the isacbear Slack user token and user approval for Slack mutations outside approved test conversations.";
+    };
+  temporary-resource-cleanup =
+    (segment ./files/agent-instructions/segments/temporary-resource-cleanup.md "critical" allHarnesses
+      300
+    )
+    // {
+      description = "Record every temporary resource you create in a cleanup ledger and delete only ledger entries after the user declares the task finished or requests cleanup.";
     };
 
   pull-request-creation-approval =

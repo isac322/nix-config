@@ -6,3 +6,4 @@ When creating a GitHub pull request:
 2. Prepare every branch, title, body, reviewer, assignee, and repository-specific metadata needed for the final creation call.
 3. Apply the active pull request creation approval guard to the finalized arguments.
 4. Create the pull request only with those finalized arguments after the approval and metadata requirements are satisfied.
+5. After creation, watch CI and fix failures until every required check passes and review feedback is resolved. A created pull request is done only in this merge-ready state; merging stays governed by the merge authorization guard.
