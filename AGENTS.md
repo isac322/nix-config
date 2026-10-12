@@ -16,3 +16,14 @@
 
 - Upstream input names and revisions are part of the override contract. When a parent flake updates, inspect its new lock file and update the nested override revisions in the same change. Handle added or renamed inputs before accepting the new root lock graph.
 - This policy governs flake inputs. Fixed-output package sources such as `fetchFromGitHub` and GitHub release assets are outside the flake lock graph and do not require transport conversion unless the task explicitly includes them.
+
+## Configuration ownership
+
+- Declare every persistent setting, package, service, launchd job, and agent configuration in this repository and apply it with a switch on every host its layer covers. NEVER fix a deployed or generated file by hand; change the Nix source that produces it.
+- Before writing custom code, use an existing nix-darwin, Home Manager, or nixpkgs option, package, or plugin, or the tool's own native configuration. Write new packaging or scripts only when none exists, and state why.
+
+## Versions and updates
+
+- NEVER pin a package, app, plugin, or service to a fixed version outside the shared update state (`flake.lock`, `pkgs/release-snapshots.json`). Exact revisions required by the GitHub-backed flake input rules above are lock state, not pins.
+- `nix run .#update-packages` MUST advance every versioned artifact, and each host MUST install the build for its own platform. When one artifact's version follows another (for example a browser core bundled by its API server), derive it from the upstream declaration during the update instead of hard-coding it.
+- If a new release breaks the build, fix the cause; NEVER pin back to the previous version.
