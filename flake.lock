@@ -109,10 +109,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1791741948,
-        "narHash": "sha256-puPxVL0dkQTG13LztnHwBOyQzWjnKRvYn/4ECkywn5M=",
+        "lastModified": 1791807032,
+        "narHash": "sha256-lHEXDKBIJvvf8+0BIUMreZ17xtEOQs8riD1kkZPvbyo=",
         "ref": "main",
-        "rev": "abb104847cbb66c2182816a72bb69455bc778b5e",
+        "rev": "98cd9ab0ed417b769dab873f427c5684f6d46d35",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -324,10 +324,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1791708874,
-        "narHash": "sha256-c1nOhIBIIMUdwK6P03lgGiH/Mi/ylKTO1I91HpKp4aM=",
+        "lastModified": 1791802951,
+        "narHash": "sha256-p8ep6UWryqm09awBVBO0lnd6By5KSGLxLf+0APWehEo=",
         "ref": "refs/heads/main",
-        "rev": "c63b8dd7dd5a5f3c32eaabe1af76d0694f863ed2",
+        "rev": "919dbeba520df760a157fe635be62faae88d58da",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
