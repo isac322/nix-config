@@ -347,16 +347,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1791878072,
-        "narHash": "sha256-Wq0HMMpFULfQ6CqnH9au2DPz2hbrAemsU6k4NEoaR3s=",
+        "lastModified": 1791883080,
+        "narHash": "sha256-mac4COq3+ooQHB8qeaJ15DpLMdrAdS85YNjmqdl21Qs=",
         "ref": "refs/heads/main",
-        "rev": "4b133f7f66b588c7f6986378bcc3d28d730b4fdc",
+        "rev": "35d6c8743b6406d7e8db0226dd694313912b528e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "4b133f7f66b588c7f6986378bcc3d28d730b4fdc",
+        "rev": "35d6c8743b6406d7e8db0226dd694313912b528e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -680,10 +680,10 @@
     "rust-overlay-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1791795448,
-        "narHash": "sha256-12C5ef8a3endLXBvLOVR/jynM9EHGgP1t+y5uBorwx4=",
+        "lastModified": 1791882738,
+        "narHash": "sha256-7KXUW3FKbZAstFiK09LJ1sUnPN2dO5RX9ROCZgGbeZw=",
         "ref": "master",
-        "rev": "404b7a5537f0adc6e5c558a1b94612e683dec504",
+        "rev": "3100cf6ff140fb298f09192de610f4037d3bab0f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
