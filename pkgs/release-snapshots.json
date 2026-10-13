@@ -177,24 +177,24 @@
     "omo": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.32/omo-darwin-arm64",
-          "digest": "sha256:449582c26e7aa7d254789eda039c2a761ee3570cca72caab56d7be5b1e57887b",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.33/omo-darwin-arm64",
+          "digest": "sha256:23904ce571cdb195e84081bacc44b777034301c579503972ce567afb21f03011",
           "name": "omo-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.32/omo-linux-arm64",
-          "digest": "sha256:9e1a308de05ed5f64368d95ab80099b6869b0bc53bdf0460d9fd9ae6c5483928",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.33/omo-linux-arm64",
+          "digest": "sha256:6d5adde8068d9c819d2eb4ffb6cf6fb91c2062abba52ca4a2418f19f11b7d3c0",
           "name": "omo-linux-arm64"
         },
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.32/omo-linux-x64",
-          "digest": "sha256:6f4642db14cc200962dfff98b4ed57f72a4d7c9174bad7080cccc81ef6eee67a",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.33/omo-linux-x64",
+          "digest": "sha256:8937fc919d4cba5973d71b590c4db399f261ddeed8dabe9f3eb622dc62ce2220",
           "name": "omo-linux-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v5.1.32"
+      "tag_name": "v5.1.33"
     },
     "omp": {
       "assets": [
@@ -272,24 +272,24 @@
     "slack": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.9.0/slack_cli_4.9.0_macOS_arm64.tar.gz",
-          "digest": "sha256:09a5fb8ef64a794a6ff2234eded18f9fa4fcdf20a0e9199eac4d3886fbdf7f7d",
-          "name": "slack_cli_4.9.0_macOS_arm64.tar.gz"
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.10.0/slack_cli_4.10.0_macOS_arm64.tar.gz",
+          "digest": "sha256:0f897eee17ce549ba1f34c389c2591c32c191ce94eea15cd4b92053d8f35c80a",
+          "name": "slack_cli_4.10.0_macOS_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.9.0/slack_cli_4.9.0_linux_arm64.tar.gz",
-          "digest": "sha256:e63e11a60b563d0eb1e1505be1a97c1e4bf0e684fdf549d69c0619b770553344",
-          "name": "slack_cli_4.9.0_linux_arm64.tar.gz"
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.10.0/slack_cli_4.10.0_linux_arm64.tar.gz",
+          "digest": "sha256:a930e089977e1138320efbe3bc49dc18f40d187bbbf4a9c7ff419c443bc52d30",
+          "name": "slack_cli_4.10.0_linux_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.9.0/slack_cli_4.9.0_linux_amd64.tar.gz",
-          "digest": "sha256:6fb005b3d49f02eacd281adcfccb446648dc784171d0e2b8e80bb648673d696a",
-          "name": "slack_cli_4.9.0_linux_amd64.tar.gz"
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.10.0/slack_cli_4.10.0_linux_amd64.tar.gz",
+          "digest": "sha256:9772b17f70c4ec522ea6ae25545220dfe17d6afb5babe28fa1cd55a24b2abffa",
+          "name": "slack_cli_4.10.0_linux_amd64.tar.gz"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v4.9.0"
+      "tag_name": "v4.10.0"
     },
     "vercelDarwinArm64": {
       "dist": {
