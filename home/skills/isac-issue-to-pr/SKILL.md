@@ -1,6 +1,6 @@
 ---
 name: isac-issue-to-pr
-description: Use when turning a GitHub issue whose defect, root cause, and fix direction are confirmed into a mergeable pull request — debate and agree on a QA list before implementing, implement with TDD, run and codify every QA item as tests, prove old-fails/new-passes, open an English PR that closes the issue, and drive CI to green; including "이슈 고쳐서 PR 만들어", "이 이슈 PR 만들어", "이슈 고치고 ci 다 통과시켜", "이슈들 병렬로 해결해", "근본 원인이 맞으면 pr 만들어". Not for triaging or labeling issues (isac-issue-triage), reviewing a PR as the reviewer (isac-pr-review), answering review feedback on your own PR (receiving-code-review), or PRs that do not resolve a GitHub issue.
+description: Use when turning a GitHub issue whose defect, root cause, and fix direction are confirmed into a mergeable pull request — debate and agree on a QA list before implementing, implement with TDD, run and codify every QA item as tests, prove old-fails/new-passes, open an English PR that closes the issue, and drive CI to green; including "이슈 고쳐서 PR 만들어", "이 이슈 PR 만들어", "이슈 고치고 ci 다 통과시켜", "이슈들 병렬로 해결해", "근본 원인이 맞으면 pr 만들어", or a user-instructed fix recorded in a decision file (for example, an `isac-e2e-release` fix branch) even without a linked issue. Not for triaging or labeling issues (isac-issue-triage), reviewing a PR as the reviewer (isac-pr-review), or answering review feedback on your own PR (receiving-code-review).
 ---
 
 # GitHub Issue to PR
@@ -86,7 +86,7 @@ description: Use when turning a GitHub issue whose defect, root cause, and fix d
 - **I2P-27** [U] 우회 경로로 통과시키고 "완료"라고 하지 않는다. 검증 대상 기능 자체가 실제 경로로 동작해야 완료다. 외부 자원을 관리하는 제품이면 "제품이 실제로 했는가"는 제품이 기록한 원격 식별자와 외부 시스템의 실제 객체를 1:1로 대조해 증명한다.
 - **I2P-28** [U] 설치·실사용 검증(데모, 릴리스 후 확인, 설치 경로 이슈, 제보자 동등 환경 검증)에서는 README의 공개 설치 방법으로 설치한 산출물로 검증하고 소스 트리 직접 실행이나 개발용 지름길을 쓰지 않는다. 수정이 아직 릴리스 전이면 브랜치에서 릴리스와 같은 방식(wheel, 이미지, 패키지)으로 산출물을 빌드해 같은 설치 방법으로 설치한다. 막히면 문서에 없는 패키지나 숨은 우회를 쓰지 않고 실제 실패를 보고하며 문서나 코드 수정을 제안한다. 보고에는 설치 방법, README 경로 일치 여부, 설치·실행 중 문제를 적는다. 어느 검증이든 API 성공 문자열이 아니라 실제 결과를 본다.
 - **I2P-30** pass / fail / blocked를 분리해 보고하고 blocked를 pass로 세지 않는다. 권한 부족으로 못 하는 쓰기는 빼지 않고 permission-denial 테스트나 blocked 항목으로 남긴다. 실환경·공유 환경에서 돌릴 항목은 `isac-live-qa`의 안전 절차를 거친다.
-- **I2P-32** PR 전에 `isac-multi-agent-consensus`의 독립 리뷰어 규칙대로 구현과 분리된 리뷰어가 현재 worktree를 교차 리뷰하고, 그 루프의 종료 조건을 만족해야 PR을 연다.
+- **I2P-32** PR 전에 `isac-multi-agent-consensus`의 독립 리뷰어 규칙대로 구현과 분리된 리뷰어가 commit된 head SHA(worktree는 그 SHA를 checkout한 상태)를 교차 리뷰하고, 그 루프의 종료 조건을 만족해야 PR을 연다. head SHA가 바뀌면 MAC-20대로 다시 리뷰한다.
 
 ## 테스트 코드화
 
@@ -102,7 +102,7 @@ description: Use when turning a GitHub issue whose defect, root cause, and fix d
 ## PR
 
 - **I2P-41** [U] PR 본문 등 GitHub 게시물의 언어·길이·문체는 `isac-github-publishing`을 따른다. PR 본문은 길어져도 되며, 구조·방향이 바뀌는 PR이면 전반적 구조·방향·설계를 담는다. 사용자에게 하는 채팅 보고는 한국어로 최대한 짧고 간결하게, 글쓰기 스킬(`writing-clearly-and-concisely`, `humanizer`)을 적용해 쓴다. 본문 구성은 `references/pr-body-template.md`를 따른다.
-- **I2P-42** [U] 본문에 `Fixes #N`을 쓴다. PR을 열 때 QA나 coverage audit이 부분 해결을 보이면, 또는 일부러 닫지 않을 때는 `Related to #N`을 쓰고 완료 보고에 그 사실과 이유를 명시한다.
+- **I2P-42** [U] 연결할 이슈가 있는 본문에는 `Fixes #N`을 쓴다. PR을 열 때 QA나 coverage audit이 부분 해결을 보이면, 또는 일부러 닫지 않을 때는 `Related to #N`을 쓰고 완료 보고에 그 사실과 이유를 명시한다. 사용자 지시 수정 PR에 연결할 이슈가 없으면 `Fixes`/`Related to`를 쓰지 않고 결정 파일과 사용자 지시를 출처로 본문에 적으며, 새 이슈를 만들지 않고 완료 보고에도 그 사실을 밝힌다.
 - **I2P-43** PR을 재작업할 때 결함 귀속(main / 이전 PR head / 이 브랜치)을 정확히 적고, 사용자가 준 공개 문구는 그대로 쓴다.
 - **I2P-44** [U] "PR 만들어"처럼 PR까지 요청받았으면 브랜치, 커밋, 푸시, PR을 한 흐름으로 한다. PR 생성 자체는 전역 PR 생성 가드의 메타데이터·승인 요건을 따르고, 푸시 권한이 없으면 fork 브랜치에서 base 저장소로 PR을 연다. 로컬에만 두고 "다 했다"고 하지 않는다. PR 요청이 없을 때 커밋·푸시 범위는 전역 task-intent 가드를 따르고, 한 일과 하지 않은 일(커밋, 푸시)을 보고한다.
 - **I2P-45** PR의 순 diff(`git diff origin/main...HEAD`)는 의도한 변경으로 제한한다. 최신화는 `git merge origin/main`으로 하고, 리뷰어가 생긴 브랜치의 이력은 다시 쓰지 않는다. 커밋 메시지는 저장소 컨벤션을 따르고, 없으면 Conventional Commits를 쓴다.
@@ -125,10 +125,10 @@ description: Use when turning a GitHub issue whose defect, root cause, and fix d
 
 ## 머지 후와 보고
 
-- **I2P-57** [U] 머지로 `Fixes #N`이 이슈를 닫으면 종료 댓글을 남긴다: 수정 상태(merged / released 여부), 쓸 버전, 검증 범위, 제보자 환경과 다르면 그 한계. 제보자가 반박하면 재오픈한다. 템플릿은 `references/pr-body-template.md`.
+- **I2P-57** [U] 닫히는 이슈가 있고 머지로 `Fixes #N`이 그 이슈를 닫으면 종료 댓글을 남긴다: 수정 상태(merged / released 여부), 쓸 버전, 검증 범위, 제보자 환경과 다르면 그 한계. 제보자가 반박하면 재오픈한다. 템플릿은 `references/pr-body-template.md`.
 - **I2P-58** [U] 확인된 결함이 모두 고쳐지고 회귀 테스트가 통과했으면 원래 환경·라이브 재검증을 못 했다는 이유로 이슈를 열어 두지 않고, 그 한계를 종료 댓글에 적는다. 확인된 잔여 결함이 있을 때만 부분 해결로 두고 남은 증상을 적는다. 동등 환경 검증 게이트(I2P-52)는 그대로다.
 - **I2P-59** 머지 뒤 "실제로 해결됐냐"는 질문에는 `isac-issue-triage`의 수정 재검증 규칙으로 답한다.
-- **I2P-60** [U] 수정이 main에는 있지만 릴리스에 없으면 사용자와 제보자에게 릴리스가 필요하다는 것과 어떤 버전을 쓰면 되는지 알린다.
+- **I2P-60** [U] 수정이 main에는 있지만 릴리스에 없으면 사용자와 제보자에게 릴리스가 필요하다는 것과 어떤 버전을 쓰면 되는지 알린다. 릴리스 실행은 `isac-e2e-release`.
 - **I2P-61** [U] 완료 보고는 fixed-in-PR / merged / released / deployed를 구분한다(상태 어휘는 `issue-validation`의 fix provenance). 검증한 것과 하지 않은 것(재현 안 된 조건, 에뮬레이션만 한 값, 안 돌린 테스트, 미출시 수정)을 명시한다. 형식은 이슈·원인·수정·PR 표, 검증 결과, 남은 한계다.
 
 ## 교정 루프

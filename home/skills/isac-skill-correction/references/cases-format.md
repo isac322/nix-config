@@ -94,6 +94,10 @@
 - 저장소가 공개이므로 `cases.md`와 프로젝트 문서에 다음을 쓰지 않는다: 비밀값·토큰, 로컬 절대경로, hostname, IP, kube context, 테넌트·계정 ID, zone, 고객·조직 내부명, 내부 URL, 비공개 저장소명, 일회성 run ID, 임시 실패 로그, 폐기된 가설, 사용자 발화 원문. 스킬 본문에도 같은 값을 쓰지 않는다(nix-config 정본 경로처럼 저장소가 문서화한 경로는 예외). 출처는 세션 8자와 msg id로만 적는다. 공개 프로젝트 이름(예: flareway, kwin-mcp)은 예시로 허용한다. 일반 예시는 `example.com`, `<owner>/<repo>`를 쓴다. PR 텍스트 위생은 `isac-github-publishing`이 소유한다.
 - 기존 `issue-validation`과 `five-whys-root-cause-analysis`의 `references/flareway-cases.md`는 이 형식으로 옮기지 않고 그대로 둔다.
 
+## 증거 체크리스트 행
+
+- 증거 체크리스트 행은 owner 규칙 문장이 그 의무를 그대로 담을 때만 더한다.
+
 ## 승격, 재발, 폐기, 충돌
 
 - 승격: 같은 원인 패턴이 서로 다른 저장소 2곳 이상에서 나오면 프로젝트 reference의 내용을 범용 규칙으로 올리는 안을 낸다. 1곳이면 프로젝트 reference에 둔다.

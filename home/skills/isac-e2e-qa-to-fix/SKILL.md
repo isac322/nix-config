@@ -12,7 +12,7 @@ description: Use when the user wants one end-to-end loop over a deployed environ
 - 단계 안의 규칙은 step 스킬이 소유하고 여기서는 이름과 규칙 ID로만 부른다: QA 인터뷰·위험 고지·승인·격리·이슈 등록·정리는 `isac-live-qa`(LQA), 등록 이슈의 트리아지·수정·PR·리뷰·머지·종결은 `isac-e2e-issue-resolution`(E2I), 토론·병렬은 `isac-multi-agent-consensus`(MAC), 게시는 `isac-github-publishing`(GHP), 질문 형식은 `isac-decision-brief`(DBR).
 - E2I의 상태 기계와 종착 상태를 다시 정하지 않는다. 이 스킬은 라운드 전이와, E2I 종착을 루프 상태로 옮기는 대응만 정한다.
 - 전역 가드(task-intent, application-code 승인, PR 생성·머지 승인, 리뷰 가드, destructive, verification)는 이름으로만 따른다. 머지는 이 루프를 시작한 지시에 머지가 있을 때만 한다(I2P-53, E2I-01).
-- 릴리스는 범위 밖이다. 재검증의 전제로 릴리스를 요구하지 않는다(E2Q-07). 사용자가 루프 끝에 릴리스를 지시하면 새 작업으로 따르고, 절차를 이 스킬에 두지 않는다(E2I-17).
+- 릴리스는 범위 밖이다. 재검증의 전제로 릴리스를 요구하지 않는다(E2Q-07). 사용자가 루프 끝에 릴리스를 지시하면 새 작업으로 따르고, 절차를 이 스킬에 두지 않는다(E2I-17). 릴리스 실행은 `isac-e2e-release`.
 
 ## 0단계: 프로젝트 훅
 

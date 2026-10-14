@@ -23,6 +23,7 @@ description: Use when the user says a skill in this family (isac-* skills) or on
 | `isac-e2e-pr-backlog` | E2P | e2e | 열린 PR 묶음 감사 → 판정 → 수정 push·최신화 → 순차 머지 또는 근거 댓글과 close → 남은 main 문제 인계 |
 | `isac-e2e-qa-to-fix` | E2Q | e2e | 라이브 QA → 이슈 등록 → 이슈 해결(E2I) → 반영 지점 이후 같은 QA 재검증 루프 |
 | `isac-e2e-promo-readiness` | E2R | e2e | 홍보 준비 오케스트레이션: 착수 계약 → 병렬 조사·토론 → 스티어링 리포트 페이지 → 영역별 위임 → 오너 프리뷰·승인 게이트 → 배포·외부 사본 교체 → 전 표면 라이브 감사 |
+| `isac-e2e-release` | E2V | e2e | 릴리스 요청 → 변경 목록·버전 근거 → 직전 릴리스 대비 차등 검증 → GO/NO-GO → (수정 분기) → 컷 → 게시 → 게시 후 검증·보고 |
 | `isac-positioning` | POS | 패밀리 | 저장소 감사·경쟁/선례·검색 의도 조사 → 단일 포지셔닝 소스(셀링 포인트·반(反)주장·성숙도 표기) |
 | `isac-brand-identity` | BRD | 패밀리 | 이름·상표 확인, impeccable 기반 로고·색, SVG 우선 브랜드 키트·생성기, 아이콘·소셜 이미지, 리브랜드 전 표면 재검증 |
 | `isac-project-site` | SITE | 패밀리 | 랜딩·문서 사이트(Astro/Starlight/Bun): IA·자체 표면 카피·impeccable 디자인·기술 SEO·도메인 IaC·분석 연결·시각 QA |
