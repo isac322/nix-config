@@ -12,23 +12,19 @@ const MAIN_THINKING = "xhigh";
 
 const ROLE_OVERRIDES: Record<string, string> = {
 	default: `${MAIN_MODEL}:${MAIN_THINKING}`,
-	// A different model drafts plans and handles escalations for the Sol implementer.
-	plan: "openai-codex/gpt-6-astra:high",
+	// Planning inherits the base Argon plan role, so a different model family still drafts
+	// plans for the Sol implementer; escalations go to Astra.
 	slow: "openai-codex/gpt-6-astra:xhigh",
 	task: `${MAIN_MODEL}:high`,
 	advisor: `${MAIN_MODEL}:medium`,
 	// smol receives prewalk and plan-yolo implementation handoffs.
 	smol: `${MAIN_MODEL}:high`,
-	commit: "anthropic/claude-haiku-5-5:low",
 };
 
+// The base reviewer (Argon) already comes from another model family than Sol, and scout,
+// sonic and commit stay on the base Flash models.
 const AGENT_OVERRIDES: Record<string, string> = {
-	// Sol-authored work gets a review from another model family.
-	reviewer: "anthropic/claude-opus-5-5:medium",
 	"security-reviewer": `${MAIN_MODEL}:max`,
-	sonic: "anthropic/claude-haiku-5-5:low",
-	// Pinned so scout stays on Flash instead of following the Sol-based roles above.
-	scout: "google-vertex/gemini-3.8-flash:medium",
 };
 
 export default function (pi: ExtensionAPI) {

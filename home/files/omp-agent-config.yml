@@ -39,21 +39,22 @@ task:
   agentAdvisor:
     task: "off"
   agentModelOverrides:
-    reviewer: openai-codex/gpt-6.1-sol:high
+    reviewer: google/gemini-4-argon:high
+    scout: google-vertex/gemini-3.8-flash:medium
     sonic: google-vertex/gemini-3.5-flash-lite:minimal
     security-reviewer: openai-codex/gpt-6.1-sol:max
 modelRoles:
   default: anthropic/claude-opus-5-5:medium
-  plan: anthropic/claude-opus-5-5:high
+  plan: google/gemini-4-argon:high
   slow: anthropic/claude-opus-5-5:xhigh
   task: devin/swe-2:max
   advisor: anthropic/claude-sonnet-5:medium
   browser: google-vertex/gemini-3.8-flash:medium
   smol: google-vertex/gemini-3.8-flash:medium
-  vision: google-vertex/gemini-3.8-flash:high
+  vision: google/gemini-4-argon:medium
   tiny: google-vertex/gemini-3.5-flash-lite:minimal
   commit: google-vertex/gemini-3.5-flash-lite:minimal
-  TRIVIAL: google-vertex/gemini-3.8-flash:high
+  TRIVIAL: google-vertex/gemini-3.8-flash:medium
 defaultThinkingLevel: auto
 find:
   enabled: true
