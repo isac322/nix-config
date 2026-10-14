@@ -1,7 +1,8 @@
 // `/bg` switches the current session to a background profile for work that can run
-// slowly as long as quality holds. The main agent runs on GPT-6.1 Sol and every other
-// role and agent is re-curated around it, spending ChatGPT Codex quota instead of
-// Anthropic quota wherever a measured equal exists. Overrides live in the runtime
+// slowly as long as quality holds. The main agent runs on GPT-6.1 Sol, and only the
+// roles and agents whose model differs from the base config are re-curated around it,
+// spending ChatGPT Codex quota instead of Anthropic quota wherever a measured equal
+// exists. Everything else inherits the base config. Overrides live in the runtime
 // settings layer only; they never persist and end with the session or `/bg off`.
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
@@ -18,11 +19,7 @@ const ROLE_OVERRIDES: Record<string, string> = {
 	advisor: `${MAIN_MODEL}:medium`,
 	// smol receives prewalk and plan-yolo implementation handoffs.
 	smol: `${MAIN_MODEL}:high`,
-	browser: "google/gemini-3.8-flash:medium",
-	vision: "google/gemini-3.8-flash:high",
-	tiny: "google/gemini-3.5-flash-lite:minimal",
 	commit: "anthropic/claude-haiku-5-5:low",
-	TRIVIAL: "google/gemini-3.8-flash:medium",
 };
 
 const AGENT_OVERRIDES: Record<string, string> = {
@@ -30,7 +27,8 @@ const AGENT_OVERRIDES: Record<string, string> = {
 	reviewer: "anthropic/claude-opus-5-5:medium",
 	"security-reviewer": `${MAIN_MODEL}:max`,
 	sonic: "anthropic/claude-haiku-5-5:low",
-	scout: "google/gemini-3.8-flash:medium",
+	// Pinned so scout stays on Flash instead of following the Sol-based roles above.
+	scout: "google-vertex/gemini-3.8-flash:medium",
 };
 
 export default function (pi: ExtensionAPI) {
