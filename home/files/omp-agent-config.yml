@@ -55,6 +55,7 @@ modelRoles:
   tiny: google-vertex/gemini-3.5-flash-lite:minimal
   commit: google-vertex/gemini-3.5-flash-lite:minimal
   TRIVIAL: google-vertex/gemini-3.8-flash:medium
+  judge: cloudflare-workers-ai/@cf/cloudflare/clef
 defaultThinkingLevel: auto
 find:
   enabled: true
