@@ -6,8 +6,8 @@
 //
 // - `on` (default): GPT-6.1 Sol main agent, spending ChatGPT Codex quota instead of
 //   Anthropic quota wherever a measured equal exists.
-// - `argon`: trial that differs from `on` only where Gemini 4 Argon is under test, the
-//   main agent and the task implementer, to compare it against Sol on real work.
+// - `argon`: trial that differs from `on` only in the main agent, Gemini 4 Argon, which
+//   understands the problem and writes the specs; Sol still implements them.
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 
@@ -49,25 +49,20 @@ const PROFILES: Record<string, Profile> = {
 	argon: {
 		label: "Argon",
 		mainModel: ARGON,
-		// high is Argon's top thinking level; task uses medium, which scored at least as
-		// well as high on effort-matched coding (FrontierCode) at lower cost.
+		// high is Argon's top thinking level.
 		mainThinking: "high",
 		roles: {
 			...SOL_PROFILE.roles,
 			default: `${ARGON}:high`,
-			task: `${ARGON}:medium`,
 		},
-		// The base reviewer is Argon, which would then review its own code.
-		agents: {
-			...SOL_PROFILE.agents,
-			reviewer: `${SOL}:high`,
-		},
+		// Sol still implements, so the base Argon reviewer stays in a different model family.
+		agents: SOL_PROFILE.agents,
 	},
 };
 
 const SUBCOMMANDS = [
 	{ name: "on", description: "Sol main agent, roles re-curated around it" },
-	{ name: "argon", description: "Trial: Gemini 4 Argon as main agent and task implementer" },
+	{ name: "argon", description: "Trial: Gemini 4 Argon main agent, Sol implementer" },
 	{ name: "off", description: "Restore the base config and the previous model" },
 	{ name: "status", description: "Show the active profile and key roles" },
 ];
