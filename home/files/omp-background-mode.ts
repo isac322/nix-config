@@ -1,46 +1,103 @@
 // `/bg` switches the current session to a background profile for work that can run
-// slowly as long as quality holds. The main agent runs on GPT-6.1 Sol, and only the
-// roles and agents whose model differs from the base config are re-curated around it,
-// spending ChatGPT Codex quota instead of Anthropic quota wherever a measured equal
-// exists. Everything else inherits the base config. Overrides live in the runtime
-// settings layer only; they never persist and end with the session or `/bg off`.
+// slowly as long as quality holds. Each profile names a main model and re-curates only
+// the roles and agents whose model differs from the base config; everything else
+// inherits it. Overrides live in the runtime settings layer only; they never persist
+// and end with the session or `/bg off`.
+//
+// - `on` (default): GPT-6.1 Sol main agent, spending ChatGPT Codex quota instead of
+//   Anthropic quota wherever a measured equal exists.
+// - `argon`: trial that differs from `on` only where Gemini 4 Argon is under test, the
+//   main agent and the task implementer, to compare it against Sol on real work.
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 
-const MAIN_MODEL = "openai-codex/gpt-6.1-sol";
-const MAIN_THINKING = "xhigh";
-
-const ROLE_OVERRIDES: Record<string, string> = {
-	default: `${MAIN_MODEL}:${MAIN_THINKING}`,
-	// Planning inherits the base Argon plan role, so a different model family still drafts
-	// plans for the Sol implementer; escalations go to Astra.
-	slow: "openai-codex/gpt-6-astra:xhigh",
-	task: `${MAIN_MODEL}:high`,
-	advisor: `${MAIN_MODEL}:medium`,
-	// smol receives prewalk and plan-yolo implementation handoffs.
-	smol: `${MAIN_MODEL}:high`,
+type Profile = {
+	label: string;
+	mainModel: string;
+	mainThinking: string;
+	roles: Record<string, string>;
+	agents: Record<string, string>;
 };
 
-// The base reviewer (Argon) already comes from another model family than Sol, and scout,
-// sonic and commit stay on the base Flash models.
-const AGENT_OVERRIDES: Record<string, string> = {
-	"security-reviewer": `${MAIN_MODEL}:max`,
+const SOL = "openai-codex/gpt-6.1-sol";
+const ARGON = "google/gemini-4-argon";
+const ASTRA = "openai-codex/gpt-6-astra";
+
+const SOL_PROFILE: Profile = {
+	label: "Sol",
+	mainModel: SOL,
+	mainThinking: "xhigh",
+	roles: {
+		default: `${SOL}:xhigh`,
+		// Planning inherits the base Argon plan role, so a different model family still
+		// drafts plans for the Sol implementer; escalations go to Astra.
+		slow: `${ASTRA}:xhigh`,
+		task: `${SOL}:high`,
+		advisor: `${SOL}:medium`,
+		// smol receives prewalk and plan-yolo implementation handoffs.
+		smol: `${SOL}:high`,
+	},
+	// The base reviewer (Argon) already comes from another model family than Sol, and
+	// scout, sonic and commit stay on the base Flash models.
+	agents: {
+		"security-reviewer": `${SOL}:max`,
+	},
 };
+
+const PROFILES: Record<string, Profile> = {
+	on: SOL_PROFILE,
+	argon: {
+		label: "Argon",
+		mainModel: ARGON,
+		// high is Argon's top thinking level; task uses medium, which scored at least as
+		// well as high on effort-matched coding (FrontierCode) at lower cost.
+		mainThinking: "high",
+		roles: {
+			...SOL_PROFILE.roles,
+			default: `${ARGON}:high`,
+			task: `${ARGON}:medium`,
+		},
+		// The base reviewer is Argon, which would then review its own code.
+		agents: {
+			...SOL_PROFILE.agents,
+			reviewer: `${SOL}:high`,
+		},
+	},
+};
+
+const SUBCOMMANDS = [
+	{ name: "on", description: "Sol main agent, roles re-curated around it" },
+	{ name: "argon", description: "Trial: Gemini 4 Argon as main agent and task implementer" },
+	{ name: "off", description: "Restore the base config and the previous model" },
+	{ name: "status", description: "Show the active profile and key roles" },
+];
 
 export default function (pi: ExtensionAPI) {
 	const scope = pi.pi.settings;
-	// Restores the model and thinking level that were active before `/bg on`.
+	// Restores the model and thinking level that were active before the first profile switch.
 	let restore: (() => Promise<void>) | undefined;
+	let active: string | undefined;
 
 	pi.registerCommand("bg", {
-		description: "Background profile: /bg [on|off|status] — GPT-6.1 Sol main agent, roles re-curated around it",
+		description: "Background profile: /bg [on|argon|off|status]",
+		getArgumentCompletions: (prefix: string) => {
+			if (prefix.includes(" ")) return null;
+			const typed = prefix.toLowerCase();
+			const items = SUBCOMMANDS.filter((sub) => sub.name.startsWith(typed)).map((sub) => ({
+				value: `${sub.name} `,
+				label: sub.name,
+				description: sub.description,
+			}));
+			return items.length > 0 ? items : null;
+		},
 		handler: async (args, ctx) => {
 			const roles = lookup("modelRoles");
 			const agents = lookup("task.agentModelOverrides");
 			if (!roles || !agents) throw new Error("background mode: required settings are unavailable");
 			const action = args.trim() || "on";
+			const profile = PROFILES[action];
 
-			if (action === "on") {
+			if (profile) {
 				if (!restore) {
 					const previousModel = ctx.models.current();
 					const previousThinking = pi.getThinkingLevel();
@@ -51,26 +108,31 @@ export default function (pi: ExtensionAPI) {
 				}
 				roles.clearOverride(scope);
 				agents.clearOverride(scope);
-				roles.override(scope, { ...roles.get(scope), ...ROLE_OVERRIDES });
-				agents.override(scope, { ...agents.get(scope), ...AGENT_OVERRIDES });
-				const model = ctx.models.resolve(MAIN_MODEL);
-				if (!model || !(await pi.setModel(model))) throw new Error(`background mode: cannot switch to ${MAIN_MODEL}`);
-				pi.setThinkingLevel(MAIN_THINKING);
+				roles.override(scope, { ...roles.get(scope), ...profile.roles });
+				agents.override(scope, { ...agents.get(scope), ...profile.agents });
+				const model = ctx.models.resolve(profile.mainModel);
+				if (!model || !(await pi.setModel(model))) {
+					throw new Error(`background mode: cannot switch to ${profile.mainModel}`);
+				}
+				pi.setThinkingLevel(profile.mainThinking);
+				active = action;
 			} else if (action === "off") {
 				roles.clearOverride(scope);
 				agents.clearOverride(scope);
 				await restore?.();
 				restore = undefined;
+				active = undefined;
 			} else if (action !== "status") {
-				ctx.ui.notify("usage: /bg [on|off|status]", "warning");
+				ctx.ui.notify("usage: /bg [on|argon|off|status]", "warning");
 				return;
 			}
 
 			const current = ctx.models.current();
 			const roleMap = roles.get(scope);
 			const agentMap = agents.get(scope);
+			const state = active ? `ON (${PROFILES[active].label})` : "OFF";
 			ctx.ui.notify(
-				`background mode ${restore ? "ON" : "OFF"}: ${current ? `${current.provider}/${current.id}` : "?"}:${pi.getThinkingLevel()}, task=${roleMap.task}, plan=${roleMap.plan}, reviewer=${agentMap.reviewer}`,
+				`background mode ${state}: ${current ? `${current.provider}/${current.id}` : "?"}:${pi.getThinkingLevel()}, task=${roleMap.task}, plan=${roleMap.plan}, reviewer=${agentMap.reviewer}`,
 				"info",
 			);
 		},
