@@ -1,6 +1,6 @@
 # PR 본문과 종료 댓글 템플릿
 
-I2P-41, I2P-42, I2P-57의 기본 템플릿이다. 문체, 공개 위생(로컬 경로·run ID·실 식별자·내부 에이전트 이름 금지, synthetic 픽스처 값), 게시 전 중복 확인은 `isac-github-publishing`이 소유한다. 섹션 구성은 바꿀 수 있는 기본값이지만 `Fixes #N`, QA 매핑, 실행한 검증, NOT run / NOT changed는 빼지 않는다.
+I2P-41, I2P-42, I2P-57의 기본 템플릿이다. 문체, 공개 위생(로컬 경로·run ID·실 식별자·내부 에이전트 이름 금지, synthetic 픽스처 값), 게시 전 중복 확인은 `isac-github-publishing`이 소유한다. 섹션 구성은 바꿀 수 있는 기본값이지만 연결할 이슈가 있으면 `Fixes #N`, 부분 해결·비종결이면 `Related to #N`, QA 매핑, 실행한 검증, NOT run / NOT changed는 빼지 않는다. 연결할 이슈가 없는 사용자 지시 수정 PR은 두 이슈 링크를 쓰지 않고 결정 파일과 사용자 지시를 출처로 적으며 새 이슈를 만들지 않는다.
 
 ## PR 본문
 
@@ -49,7 +49,7 @@ Old vs new (same test code):
 - <job>: `continue-on-error` because <reason>; failing tests: <names>. (Omit if none.)
 ```
 
-- 부분 해결이거나 이슈를 일부러 열어 둘 때는 `Fixes` 대신 `Related to #<N>`을 쓰고, 이유를 본문과 완료 보고에 적는다(I2P-42).
+- 연결할 이슈가 있고 부분 해결이거나 이슈를 일부러 열어 둘 때는 `Fixes` 대신 `Related to #<N>`을 쓰고, 이유를 본문과 완료 보고에 적는다(I2P-42). 연결할 이슈가 없는 사용자 지시 수정 PR은 `Fixes`/`Related to`를 쓰지 않고 결정 파일과 사용자 지시를 출처로 본문에 적으며 새 이슈를 만들지 않고 완료 보고에도 그 사실을 밝힌다.
 - 동등 환경 검증은 머지 전 단계(흐름 13)라 PR을 열 때는 체크리스트 항목으로만 둔다. 결과가 나오면 본문을 갱신한다.
 - 사용자가 공개 문구를 지정했으면 그대로 쓴다(I2P-43).
 - 재작업 PR이면 `## Defect attribution`을 더해 결함마다 main / previous PR head / this branch 중 어디서 왔는지 적는다.

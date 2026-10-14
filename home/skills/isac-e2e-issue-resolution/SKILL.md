@@ -65,7 +65,7 @@ description: Use when driving one or many GitHub issues (including a whole open 
 ## 6. 종결과 머지 후
 
 - **E2I-14** [U] 머지된 이슈는 `종결알림`을 마쳐야 종착이다. 머지만 하고 이슈를 열어 두지 않는다. 종료 댓글·닫기·재오픈 조건은 I2P-57, I2P-58. 사용자가 종결을 지시한 비수정 이슈도 판정 근거 댓글을 남기고 닫는다(TRI-01).
-- **E2I-15** 머지됐지만 릴리스에 없는 수정은 ledger와 보고에 "merged but unreleased"로 남기고 사용자에게 릴리스가 필요함을 알린다(I2P-60, PRR-35).
+- **E2I-15** 머지됐지만 릴리스에 없는 수정은 ledger와 보고에 "merged but unreleased"로 남기고 사용자에게 릴리스가 필요함을 알린다(I2P-60, PRR-35). 릴리스 실행은 `isac-e2e-release`.
 - **E2I-16** 열린 PR이 이미 있는 이슈는 I2P-02, TRI-42대로 처리하고 종착 `기존 PR 있음`으로 둔다. 그 PR을 처리하라는 지시가 있으면 PR 하나는 `isac-pr-review`, 여러 개는 `isac-e2e-pr-backlog`로 넘긴다.
 - **E2I-17** 릴리스·배포 실행은 이 스킬 범위 밖이다. 사용자가 run 끝에 릴리스를 지시하면 그 지시를 새 작업으로 따르고 절차를 이 스킬에 두지 않는다. 이 스킬은 E2I-15의 목록만 넘긴다.
 
