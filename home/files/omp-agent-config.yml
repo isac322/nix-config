@@ -39,7 +39,7 @@ task:
   agentAdvisor:
     task: "off"
   agentModelOverrides:
-    reviewer: google/gemini-4-argon:high
+    reviewer: openai-codex/gpt-6.1-sol:high
     scout: google-vertex/gemini-3.8-flash:medium
     sonic: google-vertex/gemini-3.5-flash-lite:minimal
     security-reviewer: openai-codex/gpt-6.1-sol:max

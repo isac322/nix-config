@@ -37,9 +37,10 @@ const SOL_PROFILE: Profile = {
 		// smol receives prewalk and plan-yolo implementation handoffs.
 		smol: `${SOL}:high`,
 	},
-	// The base reviewer (Argon) already comes from another model family than Sol, and
-	// scout, sonic and commit stay on the base Flash models.
+	// Sol-authored work gets a review from another model family, and scout, sonic and
+	// commit stay on the base Flash models.
 	agents: {
+		reviewer: "anthropic/claude-opus-5-5:medium",
 		"security-reviewer": `${SOL}:max`,
 	},
 };
@@ -55,7 +56,7 @@ const PROFILES: Record<string, Profile> = {
 			...SOL_PROFILE.roles,
 			default: `${ARGON}:high`,
 		},
-		// Sol still implements, so the base Argon reviewer stays in a different model family.
+		// Sol still implements, so the Opus reviewer stays in a different model family.
 		agents: SOL_PROFILE.agents,
 	},
 };
