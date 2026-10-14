@@ -109,10 +109,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1791936692,
-        "narHash": "sha256-aYH/MnFJH2A5YuID0E1xnKWkVYpvrK8OmqpsBnq03Bs=",
+        "lastModified": 1791979617,
+        "narHash": "sha256-SCAx+ytomf7GYlhM/9atkIxEzWRebhFV0E7rDWrVn44=",
         "ref": "main",
-        "rev": "dbec9809d83172a2fa3edd69cc9b95000c3b9859",
+        "rev": "655c67f9e1bb2d1c2a6db850447f1cfdcbbb1220",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -347,16 +347,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1791971730,
-        "narHash": "sha256-IhHf2pwCS4IWj7+NhwHMEuV2FN914bi8KsQpTSVO+SI=",
+        "lastModified": 1791976318,
+        "narHash": "sha256-w7gcrqJmQ7jBezXvudA5GpZGh7ELzz0j/oolYUuSzT8=",
         "ref": "refs/heads/main",
-        "rev": "25ca721e1a2bd1cf8d5f1e844d56182f79dce11b",
+        "rev": "42e40703df50a5357841310209d9023e8c321458",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "25ca721e1a2bd1cf8d5f1e844d56182f79dce11b",
+        "rev": "42e40703df50a5357841310209d9023e8c321458",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
