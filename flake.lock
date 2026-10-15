@@ -109,10 +109,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1791979617,
-        "narHash": "sha256-SCAx+ytomf7GYlhM/9atkIxEzWRebhFV0E7rDWrVn44=",
+        "lastModified": 1792066008,
+        "narHash": "sha256-qMKNSHaW3F4qn5OHX9FlNoc39TFEw3iuUZA9AwxG6/E=",
         "ref": "main",
-        "rev": "655c67f9e1bb2d1c2a6db850447f1cfdcbbb1220",
+        "rev": "40813fe886798bad07c69a43d2ae00a52b4b934d",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -246,10 +246,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1792035844,
-        "narHash": "sha256-0F8lsW4hizcf2b4kt7j1a94NAGtNqbRhON8FsJAXRVc=",
+        "lastModified": 1792065280,
+        "narHash": "sha256-uTZIuZ+DDQdN+J8W5hXC4oMODffS9EgJChvbiSR39FE=",
         "ref": "refs/heads/main",
-        "rev": "4b65ee6779fd26c4fa9c22a53feb673f202a4a3b",
+        "rev": "7550c26f6ae0964111ccd22df1cda444602fdfa2",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -528,10 +528,10 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1791637130,
-        "narHash": "sha256-TuvwvSjJrpqyIYdjhQ7Wu+ADVfeOpO2Um21/V7TOubw=",
+        "lastModified": 1791966044,
+        "narHash": "sha256-t1hT8UW97rFCWCJO7/pClvu0AhLN5V3uir2M0ic4w/Q=",
         "ref": "nixpkgs-unstable",
-        "rev": "ca1659429c950a11a565b5764e37a1b704e17ec8",
+        "rev": "319e4cebef10cbb636c6ea392137b52ad105336a",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
