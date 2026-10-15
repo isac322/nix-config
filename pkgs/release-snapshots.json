@@ -1,5 +1,5 @@
 {
-  "beardriveChecksums": "c25801ca5ada9b893e7b378ee8f7bde0878db3ce7b49ad9c061cbbf86b2a1a7c  beardrive_0.17.0_darwin_amd64.tar.gz\na86d3f9168a0eb96fa1d6500544ad84422d966c2728a1343a07477576be8eff7  beardrive_0.17.0_darwin_arm64.tar.gz\n3e0feb581513b98e475c484e2b7ac022df26039f5df9cf179f6d6ccdbdd95f73  beardrive_0.17.0_linux_amd64.tar.gz\n13f5b3049087de2843d708cd84b175d91dc28d1ad7d4d9c86348ef23ed78f56d  beardrive_0.17.0_linux_arm64.tar.gz\n",
+  "beardriveChecksums": "3b771945bb813554d3c2260624cba3f6447d7c44ada0782673dccd6906a23de1  beardrive_0.17.1_darwin_amd64.tar.gz\nb32bea8a1b89c1b52c2a411205c4914689a06d196d1ecdb70ce1ab328ffefb33  beardrive_0.17.1_darwin_arm64.tar.gz\n1eac4bcb98ecb2f08a2dd20fbd406e9bd852755d28530d87cb25a435cd98b5f0  beardrive_0.17.1_linux_amd64.tar.gz\nbf56628b4fc2aea51195f84d498282e2454f4eb46f2db566e5a4f9d0ffde6fcd  beardrive_0.17.1_linux_arm64.tar.gz\n",
   "gajaeCodeManifest": {
     "binaries": [
       {
@@ -199,24 +199,24 @@
     "omp": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.10.4/omp-darwin-arm64",
-          "digest": "sha256:7459333760ef0e265d5d40445ea459da3d18a10ef3ec4958302e1977b52c8a2b",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.11.0/omp-darwin-arm64",
+          "digest": "sha256:85fe6ab9aec55a794d96086021136495f7613d6b1c8f2b08c05840d68233716a",
           "name": "omp-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.10.4/omp-linux-musl-arm64",
-          "digest": "sha256:1ac115ea466876fcaa647b65cb152725ba64c3c6b198a304633b20bb1e44ef72",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.11.0/omp-linux-musl-arm64",
+          "digest": "sha256:42b16ea9209774f666bc84283a7d733c7ac63fc241800dcab991ccdf64657ad7",
           "name": "omp-linux-musl-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.10.4/omp-linux-musl-x64",
-          "digest": "sha256:785d9b3bd853a8f6c22d268440310785ace9fd74a2b8bce60cd40a2a05e6cbb5",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.11.0/omp-linux-musl-x64",
+          "digest": "sha256:a524103ca0cf4020fa7770c9316b11c5fee447968e4f6f2f740d6beb5df8d030",
           "name": "omp-linux-musl-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v18.10.4"
+      "tag_name": "v18.11.0"
     },
     "posthog": [
       {
@@ -293,24 +293,24 @@
     },
     "vercelDarwinArm64": {
       "dist": {
-        "integrity": "sha512-UCzTYkLq/lbVZiFDnQ4t9aqQ/LXzVUtktuofhVAopbFg7jOIwQtXRglO6Bcwym+heww39C/kMloydYf233WLmg==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-64.0.2.tgz"
+        "integrity": "sha512-/TIsKgwlNsJr/VEV8BslxeifjH6MwsWQVev67Pv6J/HqV1kc1iUfs/SUdwpoY+qRao8DvY1BaFzULvJDoBpd7g==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-64.1.0.tgz"
       },
-      "version": "64.0.2"
+      "version": "64.1.0"
     },
     "vercelLinuxArm64": {
       "dist": {
-        "integrity": "sha512-qsS6l0RYvH078T94miWEOSjgmS7zTIgddmZ9xyA6eJs7YUaF19zXHipqGrHnI8PTsAR3HAlw3UkRYZLZBP2djQ==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-64.0.2.tgz"
+        "integrity": "sha512-SRPBu7lhDSf9c0qQdNV1qquZehJp9EVRGKOjRYRxuBB3O/MABTVUrWnCknq2xhZiwvOYqjWMDtG0hHwCFm5RpQ==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-64.1.0.tgz"
       },
-      "version": "64.0.2"
+      "version": "64.1.0"
     },
     "vercelLinuxX64": {
       "dist": {
-        "integrity": "sha512-6sfCN7p6E+wbjF332T0J2+NW2biK/IQPMvwNW9E9/C00MOAeACzkAOxRESMONmiOJqVUDnA5tc6yTRSdef7x7w==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-64.0.2.tgz"
+        "integrity": "sha512-HLXv8VSVTcD5lbI7Cwq3wLl9rIcp5OLJpaEPvGOONRZYLzcw8yoFPwRaLAbLHSxDXHV21wfOwverOQyK4qOg7A==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-64.1.0.tgz"
       },
-      "version": "64.0.2"
+      "version": "64.1.0"
     }
   },
   "schema": 1

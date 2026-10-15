@@ -246,10 +246,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1791965623,
-        "narHash": "sha256-ekhTALMgzY2JA7hOpWMRiJWZ5zLXlcYmW7ImfFXXCXA=",
+        "lastModified": 1792005729,
+        "narHash": "sha256-7ysBBBTf0ZM/RSE0clhP+AEzYphz8DmMZ0/s6XHjIic=",
         "ref": "refs/heads/main",
-        "rev": "09e4e4aef14e87199784fcf4edb667017d70b9b3",
+        "rev": "e37030bbf62d19e533cda83429ab19bcae16a64f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -324,10 +324,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1791907265,
-        "narHash": "sha256-5/MtMKfDqxS3skhIaHI96g8kE5qmJ4tfDybUKQvLhxE=",
+        "lastModified": 1792023411,
+        "narHash": "sha256-B9U51v9zOChY4fOUgxIoVaQRf9ZIh7b90UN2OLRHizA=",
         "ref": "refs/heads/main",
-        "rev": "2f98774f86bc05563876643db37e6c37c322850f",
+        "rev": "e9be87dd9bc4ede6adc7e40cd23e416a7e1d5313",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -347,16 +347,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1791976318,
-        "narHash": "sha256-w7gcrqJmQ7jBezXvudA5GpZGh7ELzz0j/oolYUuSzT8=",
+        "lastModified": 1792016304,
+        "narHash": "sha256-AhqWIAUmfGlUFTvqXImJFAAdpV1xAZ7auvRdKq92MlU=",
         "ref": "refs/heads/main",
-        "rev": "42e40703df50a5357841310209d9023e8c321458",
+        "rev": "03c78d9ddce7c3e45775511de8a24c6af7aea462",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "42e40703df50a5357841310209d9023e8c321458",
+        "rev": "03c78d9ddce7c3e45775511de8a24c6af7aea462",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -511,16 +511,16 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1791487292,
-        "narHash": "sha256-tqM7xDEsaeK1p6VvRygeZ9LkQRpUUkbRT02BHv6hnTM=",
+        "lastModified": 1791637130,
+        "narHash": "sha256-TuvwvSjJrpqyIYdjhQ7Wu+ADVfeOpO2Um21/V7TOubw=",
         "ref": "refs/heads/master",
-        "rev": "8edc0c72e3a38faf5434e40d1f19431125fe4b30",
+        "rev": "ca1659429c950a11a565b5764e37a1b704e17ec8",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
       },
       "original": {
-        "rev": "8edc0c72e3a38faf5434e40d1f19431125fe4b30",
+        "rev": "ca1659429c950a11a565b5764e37a1b704e17ec8",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
