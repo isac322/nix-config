@@ -246,10 +246,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1792005729,
-        "narHash": "sha256-7ysBBBTf0ZM/RSE0clhP+AEzYphz8DmMZ0/s6XHjIic=",
+        "lastModified": 1792035844,
+        "narHash": "sha256-0F8lsW4hizcf2b4kt7j1a94NAGtNqbRhON8FsJAXRVc=",
         "ref": "refs/heads/main",
-        "rev": "e37030bbf62d19e533cda83429ab19bcae16a64f",
+        "rev": "4b65ee6779fd26c4fa9c22a53feb673f202a4a3b",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -324,10 +324,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1792023411,
-        "narHash": "sha256-B9U51v9zOChY4fOUgxIoVaQRf9ZIh7b90UN2OLRHizA=",
+        "lastModified": 1792037122,
+        "narHash": "sha256-0YpQdCPELaP7JlxQ68rLtZwACRFEqwkilywz6pmlBN0=",
         "ref": "refs/heads/main",
-        "rev": "e9be87dd9bc4ede6adc7e40cd23e416a7e1d5313",
+        "rev": "a231cc5b30ac7747f8088d076ece12518f2d839d",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -347,16 +347,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1792016304,
-        "narHash": "sha256-AhqWIAUmfGlUFTvqXImJFAAdpV1xAZ7auvRdKq92MlU=",
+        "lastModified": 1792037450,
+        "narHash": "sha256-sBg6zsf8xYJFj5IU10aScSrhDPIAHKfjRsARzFqAfcY=",
         "ref": "refs/heads/main",
-        "rev": "03c78d9ddce7c3e45775511de8a24c6af7aea462",
+        "rev": "fcface29a73372007c8c5b7e490d5b142366ba24",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "03c78d9ddce7c3e45775511de8a24c6af7aea462",
+        "rev": "fcface29a73372007c8c5b7e490d5b142366ba24",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -464,10 +464,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1791946827,
-        "narHash": "sha256-bx+TP9hxS9YemoK5Tm4l5ZC5K08OsemdXdPmQLplCUY=",
+        "lastModified": 1792032008,
+        "narHash": "sha256-FmoX6zl3hjq1pjOMke7nYw9HsohG3DnnY0vNrQUdrjk=",
         "ref": "refs/heads/main",
-        "rev": "b25b4c40f36cff6f64f9c207d427b4f5e0fe0005",
+        "rev": "9f2746dc391a807ee0948d628489aebef2c70902",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
