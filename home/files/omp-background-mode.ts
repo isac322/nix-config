@@ -20,7 +20,7 @@ type Profile = {
 };
 
 const SOL = "openai-codex/gpt-6.1-sol";
-const ARGON = "google/gemini-4-argon";
+const ARGON = "google-antigravity/gemini-4-argon";
 const ASTRA = "openai-codex/gpt-6-astra";
 
 const SOL_PROFILE: Profile = {
