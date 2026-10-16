@@ -93,7 +93,7 @@ Retrieve the OAuth authorization URL from process stdout/logs (`hub(op="logs", n
    ```
 
 ## Execution with OMP
-When running or triggering this skill via OMP CLI, use **Gemini 3.8 Flash**:
+When running or triggering this skill via OMP CLI, use **Claude Haiku 5.5**:
 ```bash
-omp --model gemini-3.8-flash "skill://gcloud-camofox-adc-auth 스킬을 실행해줘"
+omp --model anthropic/claude-haiku-5-5:medium "skill://gcloud-camofox-adc-auth 스킬을 실행해줘"
 ```

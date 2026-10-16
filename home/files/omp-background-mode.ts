@@ -55,11 +55,9 @@ const SOL_PROFILE: Profile = {
 		slow: `${ASTRA}:xhigh`,
 		task: `${SOL}:high`,
 		advisor: `${GROK}:low`,
-		// smol receives prewalk and plan-yolo implementation handoffs.
-		smol: `${SOL}:high`,
 	},
-	// Sol-authored work gets a review from Grok 4.7 in another model family, and scout,
-	// sonic and commit stay on the base Flash models.
+	// Sol-authored work gets a review from Grok 4.7 in another model family; lightweight
+	// roles and agents (browser, smol, scout, sonic, tiny, commit) inherit the base config.
 	agents: {
 		reviewer: `${GROK}:low`,
 		"security-reviewer": `${SOL}:max`,

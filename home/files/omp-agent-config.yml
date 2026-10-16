@@ -40,8 +40,8 @@ task:
     task: "off"
   agentModelOverrides:
     reviewer: openai-codex/gpt-6.1-sol:high
-    scout: google-vertex/gemini-3.8-flash:medium
-    sonic: google-vertex/gemini-3.5-flash-lite:minimal
+    scout: xai-oauth/grok-4.7-build-fast:low
+    sonic: anthropic/claude-haiku-5-5:medium
     security-reviewer: openai-codex/gpt-6.1-sol:max
 modelRoles:
   default: anthropic/claude-opus-5-5:medium
@@ -49,12 +49,11 @@ modelRoles:
   slow: anthropic/claude-opus-5-5:xhigh
   task: anthropic/claude-opus-5-5:medium
   advisor: anthropic/claude-sonnet-5:medium
-  browser: google-vertex/gemini-3.8-flash:medium
-  smol: google-vertex/gemini-3.8-flash:medium
+  browser: anthropic/claude-haiku-5-5:medium
+  smol: anthropic/claude-haiku-5-5:medium
   vision: google-antigravity/gemini-4-argon:medium
-  tiny: google-vertex/gemini-3.5-flash-lite:minimal
-  commit: google-vertex/gemini-3.5-flash-lite:minimal
-  TRIVIAL: google-vertex/gemini-3.8-flash:medium
+  tiny: anthropic/claude-haiku-5-5:low
+  commit: google-vertex/gemini-3.5-flash-lite:low
   judge: cloudflare-workers-ai/@cf/cloudflare/clef
 defaultThinkingLevel: auto
 find:
@@ -73,7 +72,6 @@ tier:
   openai: priority
 cycleOrder:
   - default
-  - TRIVIAL
 browser:
   enabled: false
 snapcompact:
