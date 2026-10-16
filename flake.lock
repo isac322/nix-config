@@ -324,10 +324,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1792115107,
-        "narHash": "sha256-Hcroujxp0rjciZwAHJAYhGMVWCghmZDh5+zPpzxjZpk=",
+        "lastModified": 1792135187,
+        "narHash": "sha256-xnBTDKfoz+Uhr4Rrr5p7krdwnmC8TtMcw+VBT/1bT7k=",
         "ref": "refs/heads/main",
-        "rev": "5bf0a069dc857e1b5f4b090e004d9d5b231416ca",
+        "rev": "6af45ac9a5eb8792f033d3242f52e99812fd91fa",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -680,10 +680,10 @@
     "rust-overlay-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1792087235,
-        "narHash": "sha256-vQHkG9lwSHJI3MVnyilP50hWW3TNnBWFTbLIurWgPhI=",
+        "lastModified": 1792133817,
+        "narHash": "sha256-LivT78KkZ18adR5daoXj2nlIOxuLw6B96nvW4FOl4d0=",
         "ref": "master",
-        "rev": "87ffb7f777aef2e2647fd8fd718a5b3cbc825588",
+        "rev": "ec07af44be2e0ce4e1a17e00a97d44232607c1ec",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
