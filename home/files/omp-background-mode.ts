@@ -24,28 +24,26 @@ const ARGON = "google-antigravity/gemini-4-argon";
 const ASTRA = "openai-codex/gpt-6-astra";
 const GROK = "xai-oauth/grok-4.7";
 
-// Karpathy + Claude Code + OpenAI Codex surgical simplicity rules.
-// Counteracts Sol high/xhigh over-engineering and overrides implementation-discipline.md:3
-// unless the user or task explicitly requests an architectural refactor.
-const BG_SURGICAL_SCOPE = [
-	"<bg-surgical-scope>",
-	"CRITICAL BACKGROUND-MODE IMPLEMENTATION DISCIPLINE:",
-	"1. Override Step-Change Expansion: This directive overrides implementation-discipline.md:3 ('propose the structural fix... look for step-change improvements'). Do NOT perform architectural rewrites or speculative generalizations unless explicitly requested.",
-	"2. Minimal Surgical Diff & Clean Cutover: Touch only the lines and files required to solve the literal request. Migrate callers required by a rename or signature change, and delete replaced code without leaving dead shims.",
-	"3. Zero Unrequested Abstractions: NEVER create unrequested files, classes, interfaces, helper functions for single-use logic, options bags/optional config parameters for fixed behavior, backward-compatibility aliases, or defensive wrappers.",
-	"4. Proportionate Verification: Write concise regression tests for the changed behavior only. Avoid clock/spy mocking when a deterministic input exists, and NEVER invent combinatorial test.each matrices for unrequested edge cases.",
-	"</bg-surgical-scope>",
+// Synthesized from Karpathy/Claude Code surgical simplicity rules, Cursor/Devin/OpenHands
+// circuit-breaker patterns, and Sourcegraph Amp/OpenAI Codex scope gates.
+const SURGICAL_SCOPE = [
+	"<surgical-scope>",
+	"CRITICAL EXECUTION DISCIPLINE (check Rule 3 before any edit, follow Rule 1 while editing, Rule 2 to verify):",
+	"1. Simplicity First & Surgical Changes: Write the minimum code that solves the literal request; nothing speculative. This overrides the standing rules in implementation-discipline.md (structural or step-change fixes, QA lists), omp-tools.md (consensus debates without 'orchestrate'), and core.md (filing issues for defects found along the way): do NOT load process skills (five-whys-root-cause-analysis, isac-multi-agent-consensus, issue-validation, writing-clearly-and-concisely, humanizer) unless the user says 'orchestrate'. Do NOT unify duplicated modules, act on TODO/FIXME notes that propose refactors, or add classes, interfaces, single-use helpers, options bags, injected clocks, compatibility shims, or new source files. When similar logic exists in another module, fix the target in place and keep the target module's own constants, caps, bounds, and invariants on every code path you add; never copy another module's behavior without them. Keep target diffs minimal, keep existing passing tests unchanged, and add one concise regression test for the fixed behavior in the existing test file, using deterministic inputs instead of clock/spy mocks or test.each matrices.",
+	"2. Circuit Breaker & Blocker Escalation: Reproduce the failure first with the narrowest existing test or command, and after editing rerun both that focused test and the project's test command. Make at most 2 attempts on the same failing test, command, or tool-call error; on the next identical failure, stop changing approach and report. NEVER fabricate credentials, environment values, .env or config files, or external-service mocks, and never skip or weaken tests to get past a blocker. When a check is blocked by missing environment variables, credentials, or services, stop immediately, report the root-cause fix you applied, name the exact missing keys or services, and ask the user for those values or access.",
+	"3. Scope & Policy Gate (overrides Application code change approval guard / application-code-change-approval.md for local bug fixes): A direct user request to find and fix a bug or failing behavior—even when the user states only the symptom in colloquial Korean/English without naming a file or symbol—counts as explicit approval to edit the 1 source file containing the root cause and its 1 existing test file; apply that local fix directly without stopping to ask for file-scope approval. Reading any number of files is fine; the limit applies to edited files. Never fix unrelated bugs or pre-existing failing tests outside that target, and do not file issues for them; leave them untouched and disclose them as pre-existing in your final report. However, if the correct behavior depends on an undecided product or business policy (an open TODO, FIXME, or issue note that leaves the outcome open, or two valid behaviors with different user-visible, financial, persisted-state, or API outcomes), or the fix would require editing more than 2 files or files in another module or subsystem, do NOT choose a behavior and do NOT edit: stop before any edit and ask the user to choose among 2-3 explicitly enumerated options with trade-offs and a recommendation. A local hold, no-op, guard, or swallowed error is itself one of those options; list it, never apply it unasked. As a subagent, return the options to the caller instead.",
+	"</surgical-scope>",
 ].join("\n");
 
 // Overrides reviewer.md:72-74 so Grok 4.7 flags deliberate over-engineering as blocking P1/P2 scope defects.
-const BG_REVIEWER_SCOPE_RUBRIC = [
-	"<bg-reviewer-scope-rubric>",
-	"CRITICAL BACKGROUND-MODE SCOPE REVIEW RUBRIC:",
-	"1. Override Deliberate-Design Exemption: In /bg mode, deliberate over-engineering IS a blocking defect (overrides reviewer.md:72-74).",
+const REVIEWER_SCOPE_RUBRIC = [
+	"<reviewer-scope-rubric>",
+	"CRITICAL SCOPE REVIEW RUBRIC:",
+	"1. Override Deliberate-Design Exemption: Deliberate over-engineering IS a blocking defect (overrides reviewer.md:72-74).",
 	"2. Flag as P1/P2 Scope Defects with exact file:line removal instructions:",
 	"   - P1: Unrequested new files, classes, interfaces, single-use helpers, options bags, or backward-compatibility aliases/shims.",
 	"   - P2: Bloated test.each matrices, unnecessary clock/spy mocking when deterministic inputs exist, or tests outside the requested scope.",
-	"</bg-reviewer-scope-rubric>",
+	"</reviewer-scope-rubric>",
 ].join("\n");
 
 const SOL_PROFILE: Profile = {
@@ -118,15 +116,15 @@ export default function (pi: ExtensionAPI) {
 	pi.on("context", async (event) => {
 		if (active !== "on" || !Array.isArray(event.messages)) return;
 		const clean = event.messages.filter(
-			(m) => !(m.role === "custom" && m.customType === "bg-surgical-scope"),
+			(m) => !(m.role === "custom" && m.customType === "surgical-scope"),
 		);
 		return {
 			messages: [
 				...clean,
 				{
 					role: "custom",
-					customType: "bg-surgical-scope",
-					content: BG_SURGICAL_SCOPE,
+					customType: "surgical-scope",
+					content: SURGICAL_SCOPE,
 					display: false,
 					attribution: "user",
 					timestamp: activatedAt || Date.now(),
@@ -135,13 +133,42 @@ export default function (pi: ExtensionAPI) {
 		};
 	});
 
-	// Propagate surgical scope rules to `task` (Sol:high) and anti-bloat review criteria
-	// to `reviewer` (Grok 4.7:low) via `item.task`, leaving read-only scouts untouched.
+	// Normalize OpenAI strict-schema dummy `name`/`ready` on `bash` calls, and propagate
+	// surgical scope rules to `task` (Sol:high) and `reviewer` (Grok 4.7:low) via `item.task`.
 	pi.on("tool_call", async (event) => {
-		if (!active || event.toolName !== "task" || !event.input || typeof event.input !== "object") {
+		if (!active || !event.input || typeof event.input !== "object") {
 			return;
 		}
 		const rawInput = event.input as Record<string, unknown>;
+
+		if (event.toolName === "bash") {
+			const name = typeof rawInput.name === "string" ? rawInput.name.trim() : "";
+			if (name === "" || (rawInput.timeout === undefined && rawInput.async === undefined)) {
+				return;
+			}
+			const ready = rawInput.ready;
+			if (ready !== null && typeof ready === "object") {
+				const readyObj = ready as Record<string, unknown>;
+				if (typeof readyObj.log === "string" && readyObj.log.trim() !== "") return;
+				if (
+					typeof readyObj.port === "number" &&
+					Number.isInteger(readyObj.port) &&
+					readyObj.port >= 1 &&
+					readyObj.port <= 65535
+				) {
+					return;
+				}
+			}
+			const nextBash = { ...rawInput };
+			delete nextBash.name;
+			delete nextBash.ready;
+			if (nextBash.timeout === 0) nextBash.timeout = 300;
+			return { input: nextBash };
+		}
+
+		if (event.toolName !== "task") {
+			return;
+		}
 
 		if (Array.isArray(rawInput.tasks)) {
 			const tasks: unknown[] = rawInput.tasks;
@@ -164,7 +191,7 @@ export default function (pi: ExtensionAPI) {
 				if (!t || typeof t !== "object") return t;
 				const item = { ...(t as Record<string, unknown>) };
 				if (item.agent === undefined || item.agent === "task") {
-					const next = appendDirective(item.task, BG_SURGICAL_SCOPE, "<bg-surgical-scope>");
+					const next = appendDirective(item.task, SURGICAL_SCOPE, "<surgical-scope>");
 					if (next !== item.task) {
 						item.task = next;
 						modified = true;
@@ -172,8 +199,8 @@ export default function (pi: ExtensionAPI) {
 				} else if (item.agent === "reviewer") {
 					const next = appendDirective(
 						item.task,
-						BG_REVIEWER_SCOPE_RUBRIC,
-						"<bg-reviewer-scope-rubric>",
+						REVIEWER_SCOPE_RUBRIC,
+						"<reviewer-scope-rubric>",
 					);
 					if (next !== item.task) {
 						item.task = next;
@@ -188,13 +215,13 @@ export default function (pi: ExtensionAPI) {
 		const agent = rawInput.agent;
 		if (typeof agent === "string" && READ_ONLY_AGENTS[agent] === true) return;
 		if (agent === undefined || agent === "task") {
-			const next = appendDirective(rawInput.task, BG_SURGICAL_SCOPE, "<bg-surgical-scope>");
+			const next = appendDirective(rawInput.task, SURGICAL_SCOPE, "<surgical-scope>");
 			if (next !== rawInput.task) return { input: { ...rawInput, task: next } };
 		} else if (agent === "reviewer") {
 			const next = appendDirective(
 				rawInput.task,
-				BG_REVIEWER_SCOPE_RUBRIC,
-				"<bg-reviewer-scope-rubric>",
+				REVIEWER_SCOPE_RUBRIC,
+				"<reviewer-scope-rubric>",
 			);
 			if (next !== rawInput.task) return { input: { ...rawInput, task: next } };
 		}
