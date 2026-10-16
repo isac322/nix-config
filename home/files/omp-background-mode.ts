@@ -28,7 +28,6 @@ const GROK = "xai-oauth/grok-4.7-build-fast";
 // - openai/codex `codex-rs/core/gpt_5_1_prompt.md` (`Autonomy and Persistence`, `Sharing progress updates`, `Validating your work`)
 // - forrestchang/andrej-karpathy-skills `CLAUDE.md` (`2. Simplicity First`, `3. Surgical Changes`)
 const SURGICAL_SCOPE = [
-	"<surgical-scope>",
 	"## Autonomy and Persistence",
 	"Persist until the task is fully handled end-to-end within the current turn whenever feasible: do not stop at analysis or partial fixes; carry changes through implementation, verification, and a clear explanation of outcomes unless the user explicitly pauses or redirects you.",
 	"",
@@ -79,18 +78,6 @@ const SURGICAL_SCOPE = [
 	"Similarly, once you're confident in correctness, you can suggest or use formatting commands to ensure that your code is well formatted. If there are issues you can iterate up to 3 times to get formatting right, but if you still can't manage it's better to save the user time and present them a correct solution where you call out the formatting in your final message. If the codebase does not have a formatter configured, do not add one.",
 	"",
 	"For all of testing, running, building, and formatting, do not attempt to fix unrelated bugs. It is not your responsibility to fix them. (You may mention them to the user in your final message though.)",
-	"</surgical-scope>",
-].join("\n");
-
-// Overrides reviewer.md:72-74 so Grok 4.7 flags deliberate over-engineering as blocking P1/P2 scope defects.
-const REVIEWER_SCOPE_RUBRIC = [
-	"<reviewer-scope-rubric>",
-	"CRITICAL SCOPE REVIEW RUBRIC:",
-	"1. Override Deliberate-Design Exemption: Deliberate over-engineering IS a blocking defect (overrides reviewer.md:72-74).",
-	"2. Flag as P1/P2 Scope Defects with exact file:line removal instructions:",
-	"   - P1: Unrequested new files, classes, interfaces, single-use helpers, options bags, or backward-compatibility aliases/shims.",
-	"   - P2: Bloated test.each matrices, unnecessary clock/spy mocking when deterministic inputs exist, or tests outside the requested scope.",
-	"</reviewer-scope-rubric>",
 ].join("\n");
 
 const SOL_PROFILE: Profile = {
@@ -153,33 +140,38 @@ export default function (pi: ExtensionAPI) {
 	// Restores the model and thinking level that were active before the first profile switch.
 	let restore: (() => Promise<void>) | undefined;
 	let active: string | undefined;
-
-	let activatedAt = 0;
-
-	// Ephemerally steer the Sol main agent in `/bg on` without polluting persisted history
-	// or breaking baseSystemPrompt caching; vanishes immediately on `/bg argon` or `/bg off`.
-	pi.on("context", async (event) => {
-		if (active !== "on" || !Array.isArray(event.messages)) return;
-		const clean = event.messages.filter(
-			(m) => !(m.role === "custom" && m.customType === "surgical-scope"),
-		);
-		return {
-			messages: [
-				...clean,
-				{
-					role: "custom",
-					customType: "surgical-scope",
-					content: SURGICAL_SCOPE,
-					display: false,
-					attribution: "user",
-					timestamp: activatedAt || Date.now(),
-				},
-			],
-		};
+	// Append `SURGICAL_SCOPE` to the turn's systemPrompt in `/bg on` via `before_agent_start`
+	// instead of injecting a custom message into `event.messages`. This keeps conversation
+	// messages untouched, prevents terminal-message hijacking, preserves prompt caching
+	// across tool calls, and clears automatically on `/bg argon` or `/bg off`.
+	pi.on("before_agent_start", async (event) => {
+		if (active !== "on") return;
+		const sys = (event as Record<string, unknown>).systemPrompt;
+		if (Array.isArray(sys)) {
+			if (
+				sys.some(
+					(block) =>
+						typeof block === "string" &&
+						block.includes("## Autonomy and Persistence"),
+				)
+			) {
+				return { systemPrompt: sys };
+			}
+			return { systemPrompt: [...sys, SURGICAL_SCOPE] };
+		}
+		if (typeof sys === "string") {
+			return {
+				systemPrompt: appendDirective(
+					sys,
+					SURGICAL_SCOPE,
+					"## Autonomy and Persistence",
+				),
+			};
+		}
 	});
 
 	// Normalize OpenAI strict-schema dummy `name`/`ready` on `bash` calls, and propagate
-	// surgical scope rules to `task` (Sol:high) and `reviewer` (Grok 4.7:low) via `item.task`.
+	// surgical scope rules to `task` (Sol:high) subagents via `item.task`.
 	pi.on("tool_call", async (event) => {
 		if (!active || !event.input || typeof event.input !== "object") {
 			return;
@@ -236,16 +228,10 @@ export default function (pi: ExtensionAPI) {
 				if (!t || typeof t !== "object") return t;
 				const item = { ...(t as Record<string, unknown>) };
 				if (item.agent === undefined || item.agent === "task") {
-					const next = appendDirective(item.task, SURGICAL_SCOPE, "<surgical-scope>");
-					if (next !== item.task) {
-						item.task = next;
-						modified = true;
-					}
-				} else if (item.agent === "reviewer") {
 					const next = appendDirective(
 						item.task,
-						REVIEWER_SCOPE_RUBRIC,
-						"<reviewer-scope-rubric>",
+						SURGICAL_SCOPE,
+						"## Autonomy and Persistence",
 					);
 					if (next !== item.task) {
 						item.task = next;
@@ -260,13 +246,10 @@ export default function (pi: ExtensionAPI) {
 		const agent = rawInput.agent;
 		if (typeof agent === "string" && READ_ONLY_AGENTS[agent] === true) return;
 		if (agent === undefined || agent === "task") {
-			const next = appendDirective(rawInput.task, SURGICAL_SCOPE, "<surgical-scope>");
-			if (next !== rawInput.task) return { input: { ...rawInput, task: next } };
-		} else if (agent === "reviewer") {
 			const next = appendDirective(
 				rawInput.task,
-				REVIEWER_SCOPE_RUBRIC,
-				"<reviewer-scope-rubric>",
+				SURGICAL_SCOPE,
+				"## Autonomy and Persistence",
 			);
 			if (next !== rawInput.task) return { input: { ...rawInput, task: next } };
 		}
@@ -309,14 +292,12 @@ export default function (pi: ExtensionAPI) {
 				}
 				pi.setThinkingLevel(profile.mainThinking);
 				active = action;
-				activatedAt = Date.now();
 			} else if (action === "off") {
 				roles.clearOverride(scope);
 				agents.clearOverride(scope);
 				await restore?.();
 				restore = undefined;
 				active = undefined;
-				activatedAt = 0;
 			} else if (action !== "status") {
 				ctx.ui.notify("usage: /bg [on|argon|off|status]", "warning");
 				return;
