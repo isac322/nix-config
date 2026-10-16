@@ -22,6 +22,31 @@ type Profile = {
 const SOL = "openai-codex/gpt-6.1-sol";
 const ARGON = "google-antigravity/gemini-4-argon";
 const ASTRA = "openai-codex/gpt-6-astra";
+const GROK = "xai-oauth/grok-4.7";
+
+// Karpathy + Claude Code + OpenAI Codex surgical simplicity rules.
+// Counteracts Sol high/xhigh over-engineering and overrides implementation-discipline.md:3
+// unless the user or task explicitly requests an architectural refactor.
+const BG_SURGICAL_SCOPE = [
+	"<bg-surgical-scope>",
+	"CRITICAL BACKGROUND-MODE IMPLEMENTATION DISCIPLINE:",
+	"1. Override Step-Change Expansion: This directive overrides implementation-discipline.md:3 ('propose the structural fix... look for step-change improvements'). Do NOT perform architectural rewrites or speculative generalizations unless explicitly requested.",
+	"2. Minimal Surgical Diff & Clean Cutover: Touch only the lines and files required to solve the literal request. Migrate callers required by a rename or signature change, and delete replaced code without leaving dead shims.",
+	"3. Zero Unrequested Abstractions: NEVER create unrequested files, classes, interfaces, helper functions for single-use logic, options bags/optional config parameters for fixed behavior, backward-compatibility aliases, or defensive wrappers.",
+	"4. Proportionate Verification: Write concise regression tests for the changed behavior only. Avoid clock/spy mocking when a deterministic input exists, and NEVER invent combinatorial test.each matrices for unrequested edge cases.",
+	"</bg-surgical-scope>",
+].join("\n");
+
+// Overrides reviewer.md:72-74 so Grok 4.7 flags deliberate over-engineering as blocking P1/P2 scope defects.
+const BG_REVIEWER_SCOPE_RUBRIC = [
+	"<bg-reviewer-scope-rubric>",
+	"CRITICAL BACKGROUND-MODE SCOPE REVIEW RUBRIC:",
+	"1. Override Deliberate-Design Exemption: In /bg mode, deliberate over-engineering IS a blocking defect (overrides reviewer.md:72-74).",
+	"2. Flag as P1/P2 Scope Defects with exact file:line removal instructions:",
+	"   - P1: Unrequested new files, classes, interfaces, single-use helpers, options bags, or backward-compatibility aliases/shims.",
+	"   - P2: Bloated test.each matrices, unnecessary clock/spy mocking when deterministic inputs exist, or tests outside the requested scope.",
+	"</bg-reviewer-scope-rubric>",
+].join("\n");
 
 const SOL_PROFILE: Profile = {
 	label: "Sol",
@@ -33,14 +58,14 @@ const SOL_PROFILE: Profile = {
 		// drafts plans for the Sol implementer; escalations go to Astra.
 		slow: `${ASTRA}:xhigh`,
 		task: `${SOL}:high`,
-		advisor: `${SOL}:medium`,
+		advisor: `${GROK}:low`,
 		// smol receives prewalk and plan-yolo implementation handoffs.
 		smol: `${SOL}:high`,
 	},
-	// Sol-authored work gets a review from another model family, and scout, sonic and
-	// commit stay on the base Flash models.
+	// Sol-authored work gets a review from Grok 4.7 in another model family, and scout,
+	// sonic and commit stay on the base Flash models.
 	agents: {
-		reviewer: "anthropic/claude-opus-5-5:medium",
+		reviewer: `${GROK}:low`,
 		"security-reviewer": `${SOL}:max`,
 	},
 };
@@ -56,7 +81,7 @@ const PROFILES: Record<string, Profile> = {
 			...SOL_PROFILE.roles,
 			default: `${ARGON}:high`,
 		},
-		// Sol still implements, so the Opus reviewer stays in a different model family.
+		// Sol still implements, so the Grok reviewer stays in a different model family.
 		agents: SOL_PROFILE.agents,
 	},
 };
@@ -68,12 +93,112 @@ const SUBCOMMANDS = [
 	{ name: "status", description: "Show the active profile and key roles" },
 ];
 
+const READ_ONLY_AGENTS: Record<string, true> = {
+	scout: true,
+	browser: true,
+	"security-reviewer": true,
+};
+
+function appendDirective(baseText: unknown, directive: string, marker: string): string {
+	const text = typeof baseText === "string" ? baseText.trim() : "";
+	if (text.includes(marker)) return text;
+	return text ? `${text}\n\n${directive}` : directive;
+}
+
 export default function (pi: ExtensionAPI) {
 	const scope = pi.pi.settings;
 	// Restores the model and thinking level that were active before the first profile switch.
 	let restore: (() => Promise<void>) | undefined;
 	let active: string | undefined;
 
+	let activatedAt = 0;
+
+	// Ephemerally steer the Sol main agent in `/bg on` without polluting persisted history
+	// or breaking baseSystemPrompt caching; vanishes immediately on `/bg argon` or `/bg off`.
+	pi.on("context", async (event) => {
+		if (active !== "on" || !Array.isArray(event.messages)) return;
+		const clean = event.messages.filter(
+			(m) => !(m.role === "custom" && m.customType === "bg-surgical-scope"),
+		);
+		return {
+			messages: [
+				...clean,
+				{
+					role: "custom",
+					customType: "bg-surgical-scope",
+					content: BG_SURGICAL_SCOPE,
+					display: false,
+					attribution: "user",
+					timestamp: activatedAt || Date.now(),
+				},
+			],
+		};
+	});
+
+	// Propagate surgical scope rules to `task` (Sol:high) and anti-bloat review criteria
+	// to `reviewer` (Grok 4.7:low) via `item.task`, leaving read-only scouts untouched.
+	pi.on("tool_call", async (event) => {
+		if (!active || event.toolName !== "task" || !event.input || typeof event.input !== "object") {
+			return;
+		}
+		const rawInput = event.input as Record<string, unknown>;
+
+		if (Array.isArray(rawInput.tasks)) {
+			const tasks: unknown[] = rawInput.tasks;
+			if (
+				tasks.length > 0 &&
+				tasks.every(
+					(t) =>
+						t !== null &&
+						typeof t === "object" &&
+						"agent" in t &&
+						typeof t.agent === "string" &&
+						READ_ONLY_AGENTS[t.agent] === true,
+				)
+			) {
+				return;
+			}
+
+			let modified = false;
+			const updatedTasks = tasks.map((t) => {
+				if (!t || typeof t !== "object") return t;
+				const item = { ...(t as Record<string, unknown>) };
+				if (item.agent === undefined || item.agent === "task") {
+					const next = appendDirective(item.task, BG_SURGICAL_SCOPE, "<bg-surgical-scope>");
+					if (next !== item.task) {
+						item.task = next;
+						modified = true;
+					}
+				} else if (item.agent === "reviewer") {
+					const next = appendDirective(
+						item.task,
+						BG_REVIEWER_SCOPE_RUBRIC,
+						"<bg-reviewer-scope-rubric>",
+					);
+					if (next !== item.task) {
+						item.task = next;
+						modified = true;
+					}
+				}
+				return item;
+			});
+			return modified ? { input: { ...rawInput, tasks: updatedTasks } } : undefined;
+		}
+
+		const agent = rawInput.agent;
+		if (typeof agent === "string" && READ_ONLY_AGENTS[agent] === true) return;
+		if (agent === undefined || agent === "task") {
+			const next = appendDirective(rawInput.task, BG_SURGICAL_SCOPE, "<bg-surgical-scope>");
+			if (next !== rawInput.task) return { input: { ...rawInput, task: next } };
+		} else if (agent === "reviewer") {
+			const next = appendDirective(
+				rawInput.task,
+				BG_REVIEWER_SCOPE_RUBRIC,
+				"<bg-reviewer-scope-rubric>",
+			);
+			if (next !== rawInput.task) return { input: { ...rawInput, task: next } };
+		}
+	});
 	pi.registerCommand("bg", {
 		description: "Background profile: /bg [on|argon|off|status]",
 		getArgumentCompletions: (prefix: string) => {
@@ -112,12 +237,14 @@ export default function (pi: ExtensionAPI) {
 				}
 				pi.setThinkingLevel(profile.mainThinking);
 				active = action;
+				activatedAt = Date.now();
 			} else if (action === "off") {
 				roles.clearOverride(scope);
 				agents.clearOverride(scope);
 				await restore?.();
 				restore = undefined;
 				active = undefined;
+				activatedAt = 0;
 			} else if (action !== "status") {
 				ctx.ui.notify("usage: /bg [on|argon|off|status]", "warning");
 				return;
