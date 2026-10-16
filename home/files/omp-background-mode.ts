@@ -22,7 +22,7 @@ type Profile = {
 const SOL = "openai-codex/gpt-6.1-sol";
 const ARGON = "google-antigravity/gemini-4-argon";
 const ASTRA = "openai-codex/gpt-6-astra";
-const GROK = "xai-oauth/grok-4.7";
+const GROK = "xai-oauth/grok-4.7-build-fast";
 
 // Surgical simplicity + autonomous execution rules for GPT-6.1 Sol.
 const SURGICAL_SCOPE = [
