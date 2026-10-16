@@ -34,6 +34,7 @@ const BG_SURGICAL_SCOPE = [
 	"2. Minimal Surgical Diff & Clean Cutover: Touch only the lines and files required to solve the literal request. Migrate callers required by a rename or signature change, and delete replaced code without leaving dead shims.",
 	"3. Zero Unrequested Abstractions: NEVER create unrequested files, classes, interfaces, helper functions for single-use logic, options bags/optional config parameters for fixed behavior, backward-compatibility aliases, or defensive wrappers.",
 	"4. Proportionate Verification: Write concise regression tests for the changed behavior only. Avoid clock/spy mocking when a deterministic input exists, and NEVER invent combinatorial test.each matrices for unrequested edge cases.",
+	"5. Pragmatic Intent & Anti-Runaway: Interpret short or colloquial user instructions by their practical intent rather than literal pedantry. Do not silently chain 30+ tool calls on an ambiguous request; state your concise conclusion first, or ask one direct question when scope is genuinely ambiguous.",
 	"</bg-surgical-scope>",
 ].join("\n");
 
@@ -51,9 +52,9 @@ const BG_REVIEWER_SCOPE_RUBRIC = [
 const SOL_PROFILE: Profile = {
 	label: "Sol",
 	mainModel: SOL,
-	mainThinking: "xhigh",
+	mainThinking: "high",
 	roles: {
-		default: `${SOL}:xhigh`,
+		default: `${SOL}:high`,
 		// Planning inherits the base Argon plan role, so a different model family still
 		// drafts plans for the Sol implementer; escalations go to Astra.
 		slow: `${ASTRA}:xhigh`,
