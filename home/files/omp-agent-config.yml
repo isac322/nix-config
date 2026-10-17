@@ -41,14 +41,14 @@ task:
   agentModelOverrides:
     reviewer: openai-codex/gpt-6.1-sol:high
     scout: xai-oauth/grok-4.7-build-fast:low
-    sonic: anthropic/claude-haiku-5-5:medium
+    sonic: anthropic/claude-haiku-5-5:low
     security-reviewer: openai-codex/gpt-6.1-sol:max
 modelRoles:
   default: anthropic/claude-opus-5-5:medium
   plan: google-antigravity/gemini-4-argon:high
   slow: anthropic/claude-opus-5-5:xhigh
   task: anthropic/claude-opus-5-5:medium
-  advisor: anthropic/claude-sonnet-5:medium
+  advisor: anthropic/claude-sonnet-5-5:medium
   browser: anthropic/claude-haiku-5-5:medium
   smol: anthropic/claude-haiku-5-5:medium
   vision: google-antigravity/gemini-4-argon:medium
