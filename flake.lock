@@ -347,16 +347,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1792194852,
-        "narHash": "sha256-fzFLPvOwep6CJfyCTne7h+N3hwr3t51/hBpmjJdiiBs=",
+        "lastModified": 1792225321,
+        "narHash": "sha256-txG9PoMnqd64b+E7a9InEmd0tMU9Bfr7reOn+IPF1dY=",
         "ref": "refs/heads/main",
-        "rev": "24335005eb2edb1c155163d7f08fca310f34e3c6",
+        "rev": "f1beeb4d8609c51f7a9793ae92d41812e71f15cd",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "24335005eb2edb1c155163d7f08fca310f34e3c6",
+        "rev": "f1beeb4d8609c51f7a9793ae92d41812e71f15cd",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -464,10 +464,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1792118147,
-        "narHash": "sha256-QVvypdaUAQ9kYqHp3K2k2sfNp2ddeJgaSnJkxAooXR4=",
+        "lastModified": 1792204088,
+        "narHash": "sha256-/lqCdjlF0DwcHh34vp1uc+wLDzWURsz4RBA3XIlbRjo=",
         "ref": "refs/heads/main",
-        "rev": "72ce07930cdd740aa0281f39c1f7ac7d3ad8095a",
+        "rev": "aab785dfb6e76d19f925298286c70cb1dbbbdbad",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
@@ -680,10 +680,10 @@
     "rust-overlay-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1792133817,
-        "narHash": "sha256-LivT78KkZ18adR5daoXj2nlIOxuLw6B96nvW4FOl4d0=",
+        "lastModified": 1792219666,
+        "narHash": "sha256-RMO08tKD+hFIL5ryWi85VY4aHE5oIpdV1h4kVFctOkw=",
         "ref": "master",
-        "rev": "ec07af44be2e0ce4e1a17e00a97d44232607c1ec",
+        "rev": "a110337465cfb76e3806b81b9db3094c3e6e770a",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
