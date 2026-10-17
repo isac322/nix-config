@@ -54,7 +54,7 @@ modelRoles:
   vision: google-antigravity/gemini-4-argon:medium
   tiny: anthropic/claude-haiku-5-5:low
   commit: google-vertex/gemini-3.5-flash-lite:low
-  judge: cloudflare-workers-ai/@cf/cloudflare/clef
+  judge: typesafe/jev-preview
 defaultThinkingLevel: auto
 find:
   enabled: true
