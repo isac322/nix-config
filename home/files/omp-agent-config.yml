@@ -39,7 +39,7 @@ task:
   agentAdvisor:
     task: "off"
   agentModelOverrides:
-    reviewer: openai-codex/gpt-6.1-sol:high
+    reviewer: xai-oauth/grok-4.7-build-fast:low
     scout: xai-oauth/grok-4.7-build-fast:low
     sonic: anthropic/claude-haiku-5-5:low
     security-reviewer: openai-codex/gpt-6.1-sol:max

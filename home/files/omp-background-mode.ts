@@ -156,10 +156,9 @@ const SOL_PROFILE: Profile = {
 		task: `${SOL}:high`,
 		advisor: `${GROK}:low`,
 	},
-	// Sol-authored work gets a review from Grok 4.7 in another model family; lightweight
-	// roles and agents (browser, smol, scout, sonic, tiny, commit) inherit the base config.
+	// Reviewer (Grok 4.7 Build-Fast) and lightweight roles/agents (browser, smol, scout,
+	// sonic, tiny, commit) inherit the base config.
 	agents: {
-		reviewer: `${GROK}:low`,
 		"security-reviewer": `${SOL}:max`,
 	},
 };
@@ -175,7 +174,6 @@ const PROFILES: Record<string, Profile> = {
 			...SOL_PROFILE.roles,
 			default: `${ARGON}:high`,
 		},
-		// Sol still implements, so the Grok reviewer stays in a different model family.
 		agents: SOL_PROFILE.agents,
 	},
 };
