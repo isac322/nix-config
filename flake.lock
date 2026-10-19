@@ -109,10 +109,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1792282364,
-        "narHash": "sha256-LRDED4cTiRTut7C4dS+iDGwmNAnbvLOWUQCSem0TOfU=",
+        "lastModified": 1792346681,
+        "narHash": "sha256-mMd/mm25Z1s3hUU0MlqWtYNGsPpbuBx6jblDdp/pcPU=",
         "ref": "main",
-        "rev": "dad48de75686389612bba9ef842e459ee38134cd",
+        "rev": "6006a3511ea2afde3e413cf635ba1da85ac8a8aa",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -324,10 +324,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1792235498,
-        "narHash": "sha256-ybKwwfc7Tz2XTXYB5Nia05EVfYefI6hLqhJRPugnHgU=",
+        "lastModified": 1792338658,
+        "narHash": "sha256-KGjthlcSYNymo8srWkuXk7O8+vwHFaXrJ1u2CUlsuuI=",
         "ref": "refs/heads/main",
-        "rev": "08d5b470495d242ca0470f4aeae1956c3a074f83",
+        "rev": "2f46b7a8b059af00d20dd13b64dbe165e7c6a742",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -347,16 +347,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1792295049,
-        "narHash": "sha256-yhfeGI3EKvlmzURqFGp6cJGBUiBMkXS2P0MczEMqtkI=",
+        "lastModified": 1792365592,
+        "narHash": "sha256-3hqNK8+5FllvUfqw8+8YnzAgQZqCmwLQIHrG+jNLMRk=",
         "ref": "refs/heads/main",
-        "rev": "90f2b0ae321600d119301d7f5d496c6d8d08d175",
+        "rev": "5a3be28f941d6cf6fc1538bd0a6136993c9e542e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "90f2b0ae321600d119301d7f5d496c6d8d08d175",
+        "rev": "5a3be28f941d6cf6fc1538bd0a6136993c9e542e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -391,10 +391,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1786845137,
-        "narHash": "sha256-oQFip+v0luP8NIxJzmiW4Wu8bILsbFWom5l0zonl8hQ=",
+        "lastModified": 1792366139,
+        "narHash": "sha256-jto4pdsl0bgErQ5vaMc3gOyj//PILLRJuqX3I7fUk6s=",
         "ref": "master",
-        "rev": "4cff07de74b50e64bdd68cd4e722ab5b6b35ee48",
+        "rev": "f0ec2b3fae4df92ea7788359aef9e07bb88d720f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-darwin/nix-darwin.git"
@@ -680,10 +680,10 @@
     "rust-overlay-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1792219666,
-        "narHash": "sha256-RMO08tKD+hFIL5ryWi85VY4aHE5oIpdV1h4kVFctOkw=",
+        "lastModified": 1792307278,
+        "narHash": "sha256-wJgFFtw/vlzsjWrQFmTn40TTkSkqHM4XXN0nh4q4uMk=",
         "ref": "master",
-        "rev": "a110337465cfb76e3806b81b9db3094c3e6e770a",
+        "rev": "42076d1c6a0fb405ed04f9a674e4a8f69de62ba3",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
