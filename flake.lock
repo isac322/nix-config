@@ -324,10 +324,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1792338658,
-        "narHash": "sha256-KGjthlcSYNymo8srWkuXk7O8+vwHFaXrJ1u2CUlsuuI=",
+        "lastModified": 1792371554,
+        "narHash": "sha256-ZdkKSwa3hEoB9EA/bnCDzilYrIf9Wd46YuUH1BTITm0=",
         "ref": "refs/heads/main",
-        "rev": "2f46b7a8b059af00d20dd13b64dbe165e7c6a742",
+        "rev": "0665bd812ae0908fcab17b96fd4f840defb882d9",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -347,16 +347,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1792365592,
-        "narHash": "sha256-3hqNK8+5FllvUfqw8+8YnzAgQZqCmwLQIHrG+jNLMRk=",
+        "lastModified": 1792405059,
+        "narHash": "sha256-4k6+LGOctBpzbBe/JWUY3xFdh9/R1tKK0UTLUWyrhQY=",
         "ref": "refs/heads/main",
-        "rev": "5a3be28f941d6cf6fc1538bd0a6136993c9e542e",
+        "rev": "04f4e45f5be619f430cb5be5c0f579b8ecb27324",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "5a3be28f941d6cf6fc1538bd0a6136993c9e542e",
+        "rev": "04f4e45f5be619f430cb5be5c0f579b8ecb27324",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -464,10 +464,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1792290530,
-        "narHash": "sha256-KglSSAnxz3kC7MrlRsyyDY8k7yLsDzlAeRiTy09pufs=",
+        "lastModified": 1792377765,
+        "narHash": "sha256-mxjznNHgRfjbpe+qQ4GvQAs3F+Z72NVcUWXucImGv18=",
         "ref": "refs/heads/main",
-        "rev": "e0d6753e913428ca660af3bfe6b52e903ba2721f",
+        "rev": "29c7cc33905ed95a56a887bcd885287eb5070fa0",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
@@ -680,10 +680,10 @@
     "rust-overlay-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1792307278,
-        "narHash": "sha256-wJgFFtw/vlzsjWrQFmTn40TTkSkqHM4XXN0nh4q4uMk=",
+        "lastModified": 1792395246,
+        "narHash": "sha256-SfVFE7TKuByeQRwhVbaVrvTV/lI41AYK9CYSfB+pIis=",
         "ref": "master",
-        "rev": "42076d1c6a0fb405ed04f9a674e4a8f69de62ba3",
+        "rev": "550547cefc67e01a6fd11a09e4096a3c844ca840",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
