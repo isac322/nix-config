@@ -1,0 +1,40 @@
+Backport Vim patch 9.2.1170: GTK2 compile error when image feature is enabled.
+
+Upstream: https://github.com/vim/vim/commit/ace29011a11bfafca7f67b4761c9d391eda58cd0
+Fixes: https://github.com/vim/vim/issues/21459
+Pull request: https://github.com/vim/vim/pull/21463
+Author: Foxe Chen <chen.foxe@gmail.com>
+
+Keep the two upstream source hunks unchanged; omit src/version.c so the
+packaged source version and included patch levels remain accurate. GTK2 keeps
+terminal Kitty/Sixel images but does not enable the unsupported GUI image
+backend. Declare gui.scale for all GTK builds with image support, matching
+its existing GTK2 initialization.
+
+diff --git a/src/feature.h b/src/feature.h
+index fc64998c2ee892..04069d4cb79ca3 100644
+--- a/src/feature.h
++++ b/src/feature.h
+@@ -1112,7 +1112,8 @@
+ # define FEAT_IMAGE_KITTY
+ #endif
+
+-#if defined(ALLOW_IMAGE) && (defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MSWIN))
++#if defined(ALLOW_IMAGE) && ((defined(FEAT_GUI_GTK) \
++	    && (defined(USE_GTK4) || defined(USE_GTK3))) || defined(FEAT_GUI_MSWIN))
+ # define FEAT_IMAGE_GUI
+ #endif
+
+diff --git a/src/gui.h b/src/gui.h
+index 4e39ca7d11dc96..1e69b2d1437dc8 100644
+--- a/src/gui.h
++++ b/src/gui.h
+@@ -421,7 +421,7 @@ typedef struct Gui
+ # ifdef GDK_WINDOWING_WAYLAND
+     bool	is_wayland;	    // active gdk backend in gtk is wayland
+ # endif
+-# if defined(FEAT_IMAGE) && GTK_CHECK_VERSION(3,0,0)
++# if defined(FEAT_IMAGE) && defined(FEAT_GUI_GTK)
+     double	scale;		    // Current scaling (may be fractional)
+ # endif
+ #endif	// FEAT_GUI_GTK
