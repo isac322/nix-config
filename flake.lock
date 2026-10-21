@@ -246,10 +246,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1792533813,
-        "narHash": "sha256-3Wx/IJo9HgmxTDOeYQekcXyn3fvjo1xwOp0HByNIap0=",
+        "lastModified": 1792540787,
+        "narHash": "sha256-KxDIFk54Mp1UJYSm3CjlMUKMMpmQ8YD+MKug4Cxdtfk=",
         "ref": "refs/heads/main",
-        "rev": "8f3b4c99d046bad3819b56ea87f51d90eb7ed3a7",
+        "rev": "2a3129aa42084b9c4042be51969b526e426ab9a5",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -347,16 +347,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1792537161,
-        "narHash": "sha256-nXEYS1ivCcYlWV5PJsTnCzqHOm7BID71iQ37xqeG2eE=",
+        "lastModified": 1792577217,
+        "narHash": "sha256-YRvnXVnyZGr6+v118Lb4pTtzLzeJet2Y69qf00katjQ=",
         "ref": "refs/heads/main",
-        "rev": "725055db37a3ae4ac33626247ec17b9fe7c72aad",
+        "rev": "4c0e549dab7167b1fe7433af15adf892a299fb83",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "725055db37a3ae4ac33626247ec17b9fe7c72aad",
+        "rev": "4c0e549dab7167b1fe7433af15adf892a299fb83",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -464,10 +464,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1792464862,
-        "narHash": "sha256-rWBl9cGzhb6sLAjQvhWeoSRE23GtoKoOmF5dX8unsao=",
+        "lastModified": 1792550915,
+        "narHash": "sha256-CMYwq0RE69opEaZsy+mgm3uVxmks0En/qAHnTVa4Cl8=",
         "ref": "refs/heads/main",
-        "rev": "79adeb9b50a7840a76a2885a55d125b10eb42f0b",
+        "rev": "83a73f5d91267a40813601ae8050b244a3155469",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
@@ -528,10 +528,10 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1792488032,
-        "narHash": "sha256-RkAXQ3+a5rHMiP97Er7AawR1kvEXX9tK1mhiWedOPTc=",
+        "lastModified": 1792506237,
+        "narHash": "sha256-Q/8KLB6jNfpaUN1HAedE/u/Et9feE/zYSsutBLKrCFk=",
         "ref": "nixpkgs-unstable",
-        "rev": "e513db7b0a65def6f6e17bb55195dfe510871944",
+        "rev": "5adc50831c259f87faeb09ddf930d43597197473",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
@@ -680,10 +680,10 @@
     "rust-overlay-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1792480937,
-        "narHash": "sha256-arni7i+yH5ZnkvAN9UotvhMml5+fZyXcMHpiOvI3WFY=",
+        "lastModified": 1792567368,
+        "narHash": "sha256-mrM+zFDRO1pI85t2SEq5R739BIq7Nv5XkFtVZK9nkZM=",
         "ref": "master",
-        "rev": "5424e1e6dda30b0626935d2a03a6526db4858d60",
+        "rev": "83dd732f2428827f35d997deae108a2ced5125f4",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
@@ -698,10 +698,10 @@
     "skillclaw": {
       "flake": false,
       "locked": {
-        "lastModified": 1786956487,
-        "narHash": "sha256-a4uQQYZhQpqfA9SzoTHF8HopVkwXeY9qBmA+Ck6K9co=",
+        "lastModified": 1792554928,
+        "narHash": "sha256-5UtM8HM0/9z4Mm7+TBxKa5vXVw6MrU33DDOB9SoUa/0=",
         "ref": "refs/heads/main",
-        "rev": "3938f7537645c961d94498a0a79fc0a977019595",
+        "rev": "334ddf82856826b7a259470c6670fb0ef5ce2dc4",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/AMAP-ML/SkillClaw.git"
