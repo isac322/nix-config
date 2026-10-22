@@ -155,24 +155,24 @@
     "ntn": {
       "assets": [
         {
-          "browser_download_url": "https://ntn.dev/releases/v0.23.21/ntn-aarch64-apple-darwin.tar.gz",
-          "digest": "sha256:4091cf42f1014dd84d2a02ed3352fbf6dd3bab22c08cf2487d5c1e0e43e3a33f",
+          "browser_download_url": "https://ntn.dev/releases/v0.23.25/ntn-aarch64-apple-darwin.tar.gz",
+          "digest": "sha256:53196c36f98fbf94f56837dd5997872b51baf5226824c3cbd8cf7dc1f966ea5c",
           "name": "ntn-aarch64-apple-darwin.tar.gz"
         },
         {
-          "browser_download_url": "https://ntn.dev/releases/v0.23.21/ntn-aarch64-unknown-linux-musl.tar.gz",
-          "digest": "sha256:f69495e0791f2e29e50b5a26deca8727d58dab5fca1acc9b70d6fe0573773914",
+          "browser_download_url": "https://ntn.dev/releases/v0.23.25/ntn-aarch64-unknown-linux-musl.tar.gz",
+          "digest": "sha256:8379954cdb82a3c60866a18923da5f43a3358a6c8c698c085cc2905e7255a927",
           "name": "ntn-aarch64-unknown-linux-musl.tar.gz"
         },
         {
-          "browser_download_url": "https://ntn.dev/releases/v0.23.21/ntn-x86_64-unknown-linux-musl.tar.gz",
-          "digest": "sha256:84ca4d08ab4aa29562f7b2e1addc954ecf43472f905091854c3c4ac25ef15055",
+          "browser_download_url": "https://ntn.dev/releases/v0.23.25/ntn-x86_64-unknown-linux-musl.tar.gz",
+          "digest": "sha256:99faf81af403553b66d0f06a466ba6ba6b0e2708fb6b8f1eac2cf7ad1d5db47f",
           "name": "ntn-x86_64-unknown-linux-musl.tar.gz"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v0.23.21"
+      "tag_name": "v0.23.25"
     },
     "omo": {
       "assets": [
@@ -199,52 +199,52 @@
     "omp": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.12.5/omp-darwin-arm64",
-          "digest": "sha256:5e50df9879de9165d5c6df5e48bb5d038737270013cd849e189da7774fb7368b",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.12.6/omp-darwin-arm64",
+          "digest": "sha256:cfbb5e38cd8f8a3be55e710700be587d287deaacdc58c9b0a661c5086bccfe58",
           "name": "omp-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.12.5/omp-linux-musl-arm64",
-          "digest": "sha256:d2b0b7cdfb56301291ecbdde3dab68ecb13e3a7c0220dd8770c9a30d6203eb43",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.12.6/omp-linux-musl-arm64",
+          "digest": "sha256:c389c46518387f6e81774c0c8880a56a7571a71b4d683b2a8b654e7d3e607d6b",
           "name": "omp-linux-musl-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.12.5/omp-linux-musl-x64",
-          "digest": "sha256:b8da8310e8098ae2011148e31e964e40b7954e764e27d3946331f72faaaa34fa",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.12.6/omp-linux-musl-x64",
+          "digest": "sha256:ffdb46f1d1bfbe73457446bb44dfb01418e2763293a42407e8eab6d32a3f9dd3",
           "name": "omp-linux-musl-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v18.12.5"
+      "tag_name": "v18.12.6"
     },
     "posthog": [
       {
         "assets": [
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.11/posthog-cli-aarch64-apple-darwin.tar.gz",
-            "digest": "sha256:3bb0027df790dd2b497c440c991f1fce2c2aea5767f2739618bc8e00d83cf4ab",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.12/posthog-cli-aarch64-apple-darwin.tar.gz",
+            "digest": "sha256:39f4bd1ea864d2335686a7097f85b5003983a906f934c925afe4443bc5384989",
             "name": "posthog-cli-aarch64-apple-darwin.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.11/posthog-cli-x86_64-apple-darwin.tar.gz",
-            "digest": "sha256:d274259851629b54777bb83a8f05e04ec96e657eb5387eb0b6fd6b7d629fa2ec",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.12/posthog-cli-x86_64-apple-darwin.tar.gz",
+            "digest": "sha256:d0638d2a1acae1f9c6945291805606e4e207e879418bb7493199efa376da1f39",
             "name": "posthog-cli-x86_64-apple-darwin.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.11/posthog-cli-aarch64-unknown-linux-gnu.tar.gz",
-            "digest": "sha256:fb01e39b33a8f541c1f41429e3fb6c222cd8c4935d3f502aaa6e08dbf51c7e35",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.12/posthog-cli-aarch64-unknown-linux-gnu.tar.gz",
+            "digest": "sha256:ff5407411809d6754639e50b17b7aa52de323910e3e69f35b2fd159d6e7f2b17",
             "name": "posthog-cli-aarch64-unknown-linux-gnu.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.11/posthog-cli-x86_64-unknown-linux-gnu.tar.gz",
-            "digest": "sha256:a46e6f78f04587399f789f7e5d077552c5f5a247b6fad92b1266116c7f824f88",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.12/posthog-cli-x86_64-unknown-linux-gnu.tar.gz",
+            "digest": "sha256:313458fd8caf7adec1d15e59b2a1abcc2e9ff52a00e54cad181ec052daa50b25",
             "name": "posthog-cli-x86_64-unknown-linux-gnu.tar.gz"
           }
         ],
         "draft": false,
         "prerelease": false,
-        "tag_name": "posthog-cli/v0.18.11"
+        "tag_name": "posthog-cli/v0.18.12"
       }
     ],
     "sentry": {
