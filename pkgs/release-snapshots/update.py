@@ -137,26 +137,37 @@ def github_latest(
 def posthog_release(
     previous_releases: list[dict[str, Any]] | None,
 ) -> list[dict[str, Any]]:
+    tag_prefix = "posthog-cli/v"
     page = 1
-    while True:
-        releases = fetch_json(
-            f"{GITHUB_API}/PostHog/posthog/releases?per_page=100&page={page}"
-        )
-        release = next(
-            (
-                item
-                for item in releases
-                if not item.get("draft")
-                and not item.get("prerelease")
-                and item.get("tag_name", "").startswith("posthog-cli/v")
-            ),
-            None,
-        )
-        if release is not None:
-            break
-        if len(releases) < 100:
-            raise RuntimeError("no stable PostHog CLI release found")
-        page += 1
+    release: dict[str, Any] | None = None
+    while release is None:
+        tags = fetch_json(f"{GITHUB_API}/PostHog/posthog/tags?per_page=100&page={page}")
+        if not isinstance(tags, list):
+            raise RuntimeError("invalid PostHog tags response")
+        for tag in tags:
+            if not isinstance(tag, dict) or not isinstance(tag.get("name"), str):
+                raise RuntimeError("invalid PostHog tag metadata")
+            tag_name = tag["name"]
+            if not tag_name.startswith(tag_prefix):
+                continue
+            candidate = fetch_json(
+                f"{GITHUB_API}/PostHog/posthog/releases/tags/{tag_name}"
+            )
+            if not isinstance(candidate, dict):
+                raise RuntimeError(f"invalid release metadata for {tag_name}")
+            if candidate.get("tag_name") != tag_name:
+                raise RuntimeError(f"release lookup returned unexpected tag for {tag_name}")
+            if not isinstance(candidate.get("draft"), bool) or not isinstance(
+                candidate.get("prerelease"), bool
+            ):
+                raise RuntimeError(f"invalid release stability metadata for {tag_name}")
+            if not candidate["draft"] and not candidate["prerelease"]:
+                release = candidate
+                break
+        if release is None:
+            if len(tags) < 100:
+                raise RuntimeError("no stable PostHog CLI release found")
+            page += 1
 
     previous_release = previous_releases[0] if previous_releases else None
     return [
