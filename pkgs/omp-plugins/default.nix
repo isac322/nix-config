@@ -5,9 +5,6 @@
   importNpmLock,
   lib,
   nodejs,
-  pkg-config,
-  python3,
-  stdenv,
   stdenvNoCC,
   sourceInputs,
   npmSourceOverrides ? { },
@@ -145,7 +142,7 @@ let
         );
       bunDeps = bun2nix.fetchBunDeps { inherit bunNix; };
     in
-    stdenv.mkDerivation {
+    stdenvNoCC.mkDerivation {
       pname = "context-mode";
       inherit (package) version;
       src = source;
@@ -154,14 +151,13 @@ let
       nativeBuildInputs = [
         bun2nix.hook
         nodejs
-        pkg-config
-        python3
       ];
       bunInstallFlags = [
         "--production"
         "--linker=hoisted"
       ]
-      ++ lib.optionals stdenv.hostPlatform.isDarwin [ "--backend=copyfile" ];
+      ++ lib.optionals stdenvNoCC.hostPlatform.isDarwin [ "--backend=copyfile" ];
+      dontRunLifecycleScripts = true;
       dontUseBunBuild = true;
 
       installPhase = ''
