@@ -61,7 +61,7 @@ in
   #
   # nix-darwin's built-in `nix.gc.automatic` is unavailable because `nix.enable = false`
   # is enforced by Determinate Nix (see docs/decisions/0003-determinate-owns-nix-on-macos.md).
-  # We define a dedicated launchd daemon to prune system generations older than 30 days,
+  # We define a dedicated launchd daemon to prune system generations older than 3 days,
   # dropping stale GC roots so unreferenced store paths can be reclaimed.
   #
   # Automated store optimisation (`nix-store --optimise` via launchd) is deliberately
@@ -69,12 +69,11 @@ in
   # store corruption (NixOS/nix#14599). Store optimisation should be run manually
   # when the system is idle.
   launchd.daemons.nix-gc = {
-    command = "${pkgs.nix}/bin/nix-collect-garbage --delete-older-than 30d";
+    command = "${pkgs.nix}/bin/nix-collect-garbage --delete-older-than 3d";
     serviceConfig = {
       RunAtLoad = false;
       StartCalendarInterval = [
         {
-          Weekday = 7;
           Hour = 3;
           Minute = 15;
         }
