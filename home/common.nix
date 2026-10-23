@@ -76,6 +76,19 @@ let
       "${config.home.homeDirectory}/Library/Caches/Mozilla.sccache"
     else
       "${config.home.homeDirectory}/.cache/sccache";
+  # Go reads this file for any variable missing from the environment, so it
+  # also covers processes started with a scrubbed environment (launchd agents,
+  # `env -i` test harnesses). Those otherwise fell back to ~/go and kept a
+  # second module cache on the internal disk.
+  goEnvTarget =
+    if pkgs.stdenv.hostPlatform.isDarwin then
+      "Library/Application Support/go/env"
+    else
+      ".config/go/env";
+  goEnv = {
+    GOBIN = "${config.home.homeDirectory}/.local/bin";
+    GOPATH = "${config.home.homeDirectory}/.cache/go";
+  };
   sccacheConfig = {
     basedirs = [ config.home.homeDirectory ];
     cache.disk = {
@@ -500,13 +513,11 @@ in
   # Keep that root under XDG_CACHE_HOME. GOMODCACHE then needs no override:
   # Go derives it as $GOPATH/pkg/mod. `go install` output is durable, so GOBIN
   # stays in the conventional user bin path instead of under the cache root.
-  # Session variables also leave Go's mutable GOENV file available for
-  # unrelated `go env -w` settings.
+  # The same values are exported for tools that read them without running Go
+  # and written to Go's own env file (goEnvTarget) for processes without a
+  # shell profile. That file is managed here, so `go env -w` cannot change it.
   home.sessionPath = [ "${config.home.homeDirectory}/.local/bin" ];
-  home.sessionVariables = {
-    GOBIN = "${config.home.homeDirectory}/.local/bin";
-    GOPATH = "${config.home.homeDirectory}/.cache/go";
-  };
+  home.sessionVariables = goEnv;
 
   home.packages = [
     # Every command invoked directly by the managed zshrc. Keeping this set
@@ -888,6 +899,11 @@ in
     # cache makes clean worktrees and branch changes reusable without a daemon.
     "${sccacheConfigTarget}" = {
       source = tomlFormat.generate "sccache-config.toml" sccacheConfig;
+      force = true;
+    };
+
+    "${goEnvTarget}" = {
+      text = lib.concatStrings (lib.mapAttrsToList (name: value: "${name}=${value}\n") goEnv);
       force = true;
     };
 
