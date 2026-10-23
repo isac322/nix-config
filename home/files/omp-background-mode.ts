@@ -1,8 +1,8 @@
 // `/bg` switches the current session to a background profile for work that can run
 // slowly as long as quality holds. Each profile names a main model and re-curates only
 // the roles and agents whose model differs from the base config; everything else
-// inherits it. Overrides live in the runtime settings layer only; they never persist
-// and end with the session or `/bg off`.
+// inherits it. Overrides live in the runtime settings layer (never mutating config.yml
+// on disk) and are re-applied automatically from the session transcript on resume until `/bg off`.
 //
 // - `on` (default): GPT-6.1 Sol main agent, spending ChatGPT Codex quota instead of
 //   Anthropic quota wherever a measured equal exists.
@@ -149,16 +149,156 @@ function appendDirective(baseText: unknown, directive: string, marker: string): 
 	return text ? `${text}\n\n${directive}` : directive;
 }
 
+const BG_ENTRY_TYPE = "bg-mode";
+
+function inferSessionBgState(entries: unknown[]): {
+	mode: string | undefined;
+	prevModel: string | undefined;
+	prevThinking: string | undefined;
+} {
+	let mode: string | undefined;
+	let prevModel: string | undefined;
+	let prevThinking: string | undefined;
+	let inPlanMode = false;
+
+	for (const raw of entries) {
+		if (!raw || typeof raw !== "object") continue;
+		const entry = raw as Record<string, unknown>;
+		const type = entry.type;
+
+		if (type === "mode_change") {
+			const m = entry.mode;
+			inPlanMode = m === "plan" || m === "plan_paused";
+			continue;
+		}
+
+		if (type === "custom" && entry.customType === BG_ENTRY_TYPE) {
+			const data = entry.data;
+			if (data && typeof data === "object") {
+				const d = data as Record<string, unknown>;
+				if (d.mode === "off") {
+					mode = undefined;
+				} else if (typeof d.mode === "string" && PROFILES[d.mode]) {
+					mode = d.mode;
+					if (typeof d.prevModel === "string" && d.prevModel) prevModel = d.prevModel;
+					if (typeof d.prevThinking === "string" && d.prevThinking) prevThinking = d.prevThinking;
+				}
+			}
+			continue;
+		}
+
+		if (type === "model_change") {
+			if (entry.resolvedModelIsFallback === true || entry.role === "plan" || inPlanMode) {
+				continue;
+			}
+			const model = entry.model;
+			if (model === SOL) {
+				mode = "on";
+			} else if (model === ARGON || model === "google/gemini-4-argon") {
+				mode = "argon";
+			} else if (typeof model === "string" && model) {
+				mode = undefined;
+				prevModel = model;
+			}
+			continue;
+		}
+
+		if (type === "thinking_level_change" && !inPlanMode && mode === undefined) {
+			if (typeof entry.thinkingLevel === "string" && entry.thinkingLevel) {
+				prevThinking = entry.thinkingLevel;
+			}
+		}
+	}
+
+	return { mode, prevModel, prevThinking };
+}
+
 export default function (pi: ExtensionAPI) {
 	const scope = pi.pi.settings;
 	// Restores the model and thinking level that were active before the first profile switch.
 	let restore: (() => Promise<void>) | undefined;
 	let active: string | undefined;
+	let savedPrevModel: string | undefined;
+	let savedPrevThinking: string | undefined;
+
+	function applyProfileOverrides(nextMode: string | undefined): void {
+		const roles = lookup("modelRoles");
+		const agents = lookup("task.agentModelOverrides");
+		if (!roles || !agents) return;
+		roles.clearOverride(scope);
+		agents.clearOverride(scope);
+		const profile = nextMode ? PROFILES[nextMode] : undefined;
+		if (profile) {
+			roles.override(scope, { ...roles.get(scope), ...profile.roles });
+			agents.override(scope, { ...agents.get(scope), ...profile.agents });
+			active = nextMode;
+		} else {
+			active = undefined;
+		}
+	}
+
+	function syncFromSession(ctx: unknown): void {
+		if (!ctx || typeof ctx !== "object") return;
+		const c = ctx as {
+			sessionManager?: { getBranch?: () => unknown[] };
+			models?: { resolve?: (selector: string) => unknown };
+		};
+		const branch = c.sessionManager?.getBranch?.();
+		if (!Array.isArray(branch)) return;
+
+		const inferred = inferSessionBgState(branch);
+		const roles = lookup("modelRoles");
+		const agents = lookup("task.agentModelOverrides");
+		const targetProfile = inferred.mode ? PROFILES[inferred.mode] : undefined;
+		const currentRoles = roles?.get(scope) ?? {};
+		const currentAgents = agents?.get(scope) ?? {};
+		const needsSync =
+			active !== inferred.mode ||
+			(targetProfile !== undefined &&
+				(Object.entries(targetProfile.roles).some(([k, v]) => currentRoles[k] !== v) ||
+					Object.entries(targetProfile.agents).some(([k, v]) => currentAgents[k] !== v)));
+		if (needsSync) {
+			applyProfileOverrides(inferred.mode);
+		}
+
+		if (inferred.mode) {
+			if (inferred.prevModel) savedPrevModel = inferred.prevModel;
+			if (inferred.prevThinking) savedPrevThinking = inferred.prevThinking;
+			if (!restore && savedPrevModel && c.models?.resolve) {
+				const targetModelSelector = savedPrevModel;
+				const targetThinking = savedPrevThinking;
+				restore = async () => {
+					const resolved = c.models?.resolve?.(targetModelSelector);
+					if (resolved) await pi.setModel(resolved as Parameters<typeof pi.setModel>[0]);
+					if (targetThinking) pi.setThinkingLevel(targetThinking);
+				};
+			}
+		} else {
+			restore = undefined;
+			savedPrevModel = undefined;
+			savedPrevThinking = undefined;
+		}
+	}
+
+	pi.on("session_start", (_event, ctx) => {
+		syncFromSession(ctx);
+	});
+	pi.on("session_switch", (_event, ctx) => {
+		syncFromSession(ctx);
+	});
+	pi.on("session_branch", (_event, ctx) => {
+		syncFromSession(ctx);
+	});
+	pi.on("session_tree", (_event, ctx) => {
+		syncFromSession(ctx);
+	});
+
 	// Append `SURGICAL_SCOPE` to the turn's systemPrompt in `/bg on` via `before_agent_start`
 	// instead of injecting a custom message into `event.messages`. This keeps conversation
 	// messages untouched, prevents terminal-message hijacking, preserves prompt caching
 	// across tool calls, and clears automatically on `/bg argon` or `/bg off`.
-	pi.on("before_agent_start", async (event) => {
+	pi.on("before_agent_start", async (event, ctx) => {
+		syncFromSession(ctx);
 		if (active !== "on") return;
 		const sys = (event as Record<string, unknown>).systemPrompt;
 		if (Array.isArray(sys)) {
@@ -184,13 +324,45 @@ export default function (pi: ExtensionAPI) {
 		}
 	});
 
-	// Normalize OpenAI strict-schema dummy `name`/`ready` on `bash` calls so OMP's bash
-	// tool does not reject ordinary commands as invalid service-mode invocations.
-	pi.on("tool_call", async (event) => {
-		if (!active || event.toolName !== "bash" || !event.input || typeof event.input !== "object") {
+	// Normalize OpenAI strict-schema dummy fields on `bash` and `task` calls so OMP
+	// does not reject ordinary invocations.
+	pi.on("tool_call", async (event, ctx) => {
+		syncFromSession(ctx);
+		if (!active || !event.input || typeof event.input !== "object") {
 			return;
 		}
 		const rawInput = event.input as Record<string, unknown>;
+		if (event.toolName === "task" && Array.isArray(rawInput.tasks)) {
+			let changed = false;
+			const nextTasks = rawInput.tasks.map((item) => {
+				if (!item || typeof item !== "object") return item;
+				const t = { ...(item as Record<string, unknown>) };
+				if (typeof t.agent === "string" && t.agent.trim() === "") {
+					delete t.agent;
+					changed = true;
+				}
+				if (typeof t.sourceSession === "string" && t.sourceSession.trim() === "") {
+					delete t.sourceSession;
+					changed = true;
+				}
+				if (
+					(typeof t.model === "string" && t.model.trim() === "") ||
+					(Array.isArray(t.model) && t.model.length === 0)
+				) {
+					delete t.model;
+					changed = true;
+				}
+				if (Array.isArray(t.tools) && t.tools.length === 0) {
+					delete t.tools;
+					changed = true;
+				}
+				return t;
+			});
+			return changed ? { input: { ...rawInput, tasks: nextTasks } } : undefined;
+		}
+		if (event.toolName !== "bash") {
+			return;
+		}
 		const name = typeof rawInput.name === "string" ? rawInput.name.trim() : "";
 		if (name === "" || (rawInput.timeout === undefined && rawInput.async === undefined)) {
 			return;
@@ -227,6 +399,7 @@ export default function (pi: ExtensionAPI) {
 			return items.length > 0 ? items : null;
 		},
 		handler: async (args, ctx) => {
+			syncFromSession(ctx);
 			const roles = lookup("modelRoles");
 			const agents = lookup("task.agentModelOverrides");
 			if (!roles || !agents) throw new Error("background mode: required settings are unavailable");
@@ -237,27 +410,33 @@ export default function (pi: ExtensionAPI) {
 				if (!restore) {
 					const previousModel = ctx.models.current();
 					const previousThinking = pi.getThinkingLevel();
+					if (previousModel) {
+						savedPrevModel = `${previousModel.provider}/${previousModel.id}`;
+					}
+					savedPrevThinking = previousThinking;
 					restore = async () => {
 						if (previousModel) await pi.setModel(previousModel);
 						pi.setThinkingLevel(previousThinking);
 					};
 				}
-				roles.clearOverride(scope);
-				agents.clearOverride(scope);
-				roles.override(scope, { ...roles.get(scope), ...profile.roles });
-				agents.override(scope, { ...agents.get(scope), ...profile.agents });
+				applyProfileOverrides(action);
 				const model = ctx.models.resolve(profile.mainModel);
 				if (!model || !(await pi.setModel(model))) {
 					throw new Error(`background mode: cannot switch to ${profile.mainModel}`);
 				}
 				pi.setThinkingLevel(profile.mainThinking);
-				active = action;
+				pi.appendEntry(BG_ENTRY_TYPE, {
+					mode: action,
+					...(savedPrevModel ? { prevModel: savedPrevModel } : {}),
+					...(savedPrevThinking ? { prevThinking: savedPrevThinking } : {}),
+				});
 			} else if (action === "off") {
-				roles.clearOverride(scope);
-				agents.clearOverride(scope);
+				applyProfileOverrides(undefined);
 				await restore?.();
 				restore = undefined;
-				active = undefined;
+				savedPrevModel = undefined;
+				savedPrevThinking = undefined;
+				pi.appendEntry(BG_ENTRY_TYPE, { mode: "off" });
 			} else if (action !== "status") {
 				ctx.ui.notify("usage: /bg [on|argon|off|status]", "warning");
 				return;
