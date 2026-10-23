@@ -19,6 +19,46 @@ let
       "${name} ${if lib.isList value then lib.concatStringsSep "," value else toString value}"
     ) sshAudit.sshdSettings
   );
+
+  # `nix-collect-garbage --delete-older-than` only ages out Nix profiles (`system-*`,
+  # `per-user/root/*`). Indirect roots registered in `/nix/var/nix/gcroots/auto` by
+  # `nix build` or `darwin-rebuild build` (`result`, `result-*`, `/tmp/*`, `/private/tmp/*`)
+  # remain live forever while their target symlink exists on disk, and running as
+  # root skips `/Users/<primaryUser>/.local/state/nix/profiles`. Prune both before
+  # running `nix-collect-garbage`.
+  nixGc = pkgs.writeShellScript "nix-gc" ''
+    set -euo pipefail
+
+    for root in /nix/var/nix/gcroots/auto/*; do
+      [ -L "$root" ] || continue
+      target=$(/usr/bin/readlink "$root" || true)
+      case "$target" in
+        */cache/nix/flake-registry.json)
+          continue
+          ;;
+        /tmp/* | /private/tmp/* | */result | */result-*)
+          if [ ! -L "$target" ]; then
+            /bin/rm -f "$root"
+          elif [ -n "$(/usr/bin/find "$target" -maxdepth 0 -mtime +3 2>/dev/null)" ]; then
+            /bin/rm -f "$target" "$root"
+          fi
+          ;;
+      esac
+    done
+
+    userProfilesDir="/Users/${config.system.primaryUser}/.local/state/nix/profiles"
+    if [ -d "$userProfilesDir" ]; then
+      for profile in "$userProfilesDir"/*; do
+        [ -L "$profile" ] || continue
+        case "$profile" in
+          *-link) continue ;;
+        esac
+        ${pkgs.nix}/bin/nix-env --profile "$profile" --delete-generations 3d || true
+      done
+    fi
+
+    exec ${pkgs.nix}/bin/nix-collect-garbage --delete-older-than 3d
+  '';
 in
 {
   imports = [
@@ -69,7 +109,7 @@ in
   # store corruption (NixOS/nix#14599). Store optimisation should be run manually
   # when the system is idle.
   launchd.daemons.nix-gc = {
-    command = "${pkgs.nix}/bin/nix-collect-garbage --delete-older-than 3d";
+    command = "${nixGc}";
     serviceConfig = {
       RunAtLoad = false;
       StartCalendarInterval = [
