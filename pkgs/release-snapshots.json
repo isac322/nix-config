@@ -4,30 +4,30 @@
     "binaries": [
       {
         "name": "gjc-darwin-arm64",
-        "sha256": "fc88b64263e9227410fb3edbe63ae1d34eb321014689ec7ee4887f96a9198d25",
-        "size": 138975728
+        "sha256": "c374951e9581ae720ca1ed7e75f8e77eca681d8fc0b3f65c866a460bac994699",
+        "size": 139405040
       },
       {
         "name": "gjc-darwin-x64",
-        "sha256": "a650cc752066b5fa85db55785bbd4267d4f5ac065f889449eabb351e5f00e702",
-        "size": 147963040
+        "sha256": "37c33a1ba4553d1c2f793d7ad1f5508a90b88cdcea9068246d45089e4a68f171",
+        "size": 148425376
       },
       {
         "name": "gjc-linux-arm64",
-        "sha256": "3055b0513c8cb0075d23318b5da99f25d96b22986c109e813a4374cc4c7bc73c",
-        "size": 160155640
+        "sha256": "18c3f2568c1c0dfed057c9ccc79da7bdb152f11cb98e08c442f426072a60eeaa",
+        "size": 160614392
       },
       {
         "name": "gjc-linux-x64",
-        "sha256": "692a937dac975b345870340723a5231320d2ecbac7803a263cde38683be94404",
-        "size": 162505928
+        "sha256": "9e0cfe2ad0ffd7851211289e927d709f6d30a8f33ee32ae87a3a7f1fdaf9fc18",
+        "size": 162956488
       }
     ],
     "release_channel": "stable",
-    "release_version": "0.18.12",
+    "release_version": "0.19.0",
     "schema": "gajae-release-binaries-v1",
     "schema_version": 1,
-    "tag": "v0.18.12"
+    "tag": "v0.19.0"
   },
   "npmSourceOverrides": {
     "piCodegraph": {
@@ -84,24 +84,24 @@
     "bun": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-darwin-aarch64.zip",
-          "digest": "sha256:80afd4c069b46a6fa8f3ec520bebc750a7843e4a8d5b9583d29ad436c00a3403",
+          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-darwin-aarch64.zip",
+          "digest": "sha256:c240d7f0ccb90c263a849fcdb09b7ee62630d921348ed6aafda86b9d577bc510",
           "name": "bun-darwin-aarch64.zip"
         },
         {
-          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-linux-aarch64.zip",
-          "digest": "sha256:efa9813da5ed72423bf847f916e8d2c47c0d776add972354026a75e10da9aa21",
+          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-aarch64.zip",
+          "digest": "sha256:baa6bb36f51d6e58561e02bbea825038a9df454f673d6d776e8bbf86f8c7850e",
           "name": "bun-linux-aarch64.zip"
         },
         {
-          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-linux-x64.zip",
-          "digest": "sha256:3e730528d89775f03f87f05c06787c4df4099d0a37f3f252e7b829cb23816e18",
+          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-x64.zip",
+          "digest": "sha256:bf8ccbfb2b0b80159e0f9a6d15c55317add8077534dbc6130a3edb52fccb395c",
           "name": "bun-linux-x64.zip"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "bun-v1.4.3"
+      "tag_name": "bun-v1.4.4"
     },
     "camoufox": {
       "assets": [
@@ -177,24 +177,24 @@
     "omo": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.40/omo-darwin-arm64",
-          "digest": "sha256:3f773018049e4bc4fa99fb0b43ae987f2c412052641223051a5cf2a1da4716fd",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.43/omo-darwin-arm64",
+          "digest": "sha256:7502855ff25cd7e0289b0365a151a7807cb845dc713b0359f2d32c0f36781acb",
           "name": "omo-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.40/omo-linux-arm64",
-          "digest": "sha256:c8351cd375905dff570f888082845c51d2a2bf777700f5c17ceab9bc03b407ef",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.43/omo-linux-arm64",
+          "digest": "sha256:a06d0aca508421d85e3bf514a69ab1dd2bb9f6d71c9f98884ccc913308e794ae",
           "name": "omo-linux-arm64"
         },
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.40/omo-linux-x64",
-          "digest": "sha256:835760548bf7b2665ece2c9488f16655bd85bb531a240cd8824ead4a5bb57ab1",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.43/omo-linux-x64",
+          "digest": "sha256:3c531875e662d461480287b13c6f5494224904a935ce5c9c7b4c26e609f437bc",
           "name": "omo-linux-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v5.1.40"
+      "tag_name": "v5.1.43"
     },
     "omp": {
       "assets": [
@@ -272,45 +272,45 @@
     "slack": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.10.0/slack_cli_4.10.0_macOS_arm64.tar.gz",
-          "digest": "sha256:0f897eee17ce549ba1f34c389c2591c32c191ce94eea15cd4b92053d8f35c80a",
-          "name": "slack_cli_4.10.0_macOS_arm64.tar.gz"
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.11.0/slack_cli_4.11.0_macOS_arm64.tar.gz",
+          "digest": "sha256:d66049692424b1e91014df792b38000709c5361429e3f17f53e64720d8aeabbc",
+          "name": "slack_cli_4.11.0_macOS_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.10.0/slack_cli_4.10.0_linux_arm64.tar.gz",
-          "digest": "sha256:a930e089977e1138320efbe3bc49dc18f40d187bbbf4a9c7ff419c443bc52d30",
-          "name": "slack_cli_4.10.0_linux_arm64.tar.gz"
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.11.0/slack_cli_4.11.0_linux_arm64.tar.gz",
+          "digest": "sha256:b8ae47ae5545240cdcd21ec85a40a56dea26e7f07320733a6e5266188c1b66dc",
+          "name": "slack_cli_4.11.0_linux_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.10.0/slack_cli_4.10.0_linux_amd64.tar.gz",
-          "digest": "sha256:9772b17f70c4ec522ea6ae25545220dfe17d6afb5babe28fa1cd55a24b2abffa",
-          "name": "slack_cli_4.10.0_linux_amd64.tar.gz"
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.11.0/slack_cli_4.11.0_linux_amd64.tar.gz",
+          "digest": "sha256:faebd25d8d27513b95aaabbfda3b73f80c7059c01a53bde65dcf2e9ba6f89afb",
+          "name": "slack_cli_4.11.0_linux_amd64.tar.gz"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v4.10.0"
+      "tag_name": "v4.11.0"
     },
     "vercelDarwinArm64": {
       "dist": {
-        "integrity": "sha512-zCEfC1o4fTE/ubEBCUkAOAywcmlNUgw1vy3n1Z//i47jUC5QGQpqPEt415d+DGNM7Rge+UvSaqRCAc0fHFyBHw==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-65.1.0.tgz"
+        "integrity": "sha512-fan6OYRDqDNTBPqGXzI2mK1QBvQXBzKsyzHxgHq+71dTRwYIYoQZQNzz/Q2MEpWCYhX52LXyI8YBb9M99dlU8Q==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-65.2.0.tgz"
       },
-      "version": "65.1.0"
+      "version": "65.2.0"
     },
     "vercelLinuxArm64": {
       "dist": {
-        "integrity": "sha512-nYXK5z6wfVMZnlVBFllh7jdIgfGMlbezZHi1MJIQA8D/6qhiphGnnrCZdiAZQd+Gov4j9TIwNR5OzAmTfSHTog==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-65.1.0.tgz"
+        "integrity": "sha512-2fuAjL75vfxWXt7kysDgKKaXNPDfn5hjOavHTocCwnTlw5fsCBabBOpUvWoqx+0H5cIkP7pQC8mAGV7IuaalRg==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-65.2.0.tgz"
       },
-      "version": "65.1.0"
+      "version": "65.2.0"
     },
     "vercelLinuxX64": {
       "dist": {
-        "integrity": "sha512-KsMS8szO2JgL/bvU7L52p4+be6C+MhRKGNXsuqouW4DMLKSkiEfkuQgooKR+LV7ZUA46R6Q6VVhXmI9Uh2/0Yg==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-65.1.0.tgz"
+        "integrity": "sha512-f5FDa3LCsRLUkxaRNpOfbUoq4926yi7ZGOJWw0b2LYrEjBRtviMCYYjglawhCoVGt94oV/E7oyYy2qd2CUZ88g==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-65.2.0.tgz"
       },
-      "version": "65.1.0"
+      "version": "65.2.0"
     }
   },
   "schema": 1
