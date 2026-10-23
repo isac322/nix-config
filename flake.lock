@@ -582,10 +582,10 @@
     "pi-codegraph-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1789371054,
-        "narHash": "sha256-oYsx+VkTsaeVVOoNVukup2HxmvvSYz5FNXZ227q+FOo=",
+        "lastModified": 1792732442,
+        "narHash": "sha256-RXOcJdptY/D+MLMdjqE9cPxo0tk5iOBEHDDY/VSJ4po=",
         "ref": "main",
-        "rev": "dc9101df9b339f4d53ce78d61b16f824725e3f4b",
+        "rev": "91d55f10fe0dc3008772c2141e15fac13f555e50",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/isac322/pi-codegraph.git"

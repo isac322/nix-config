@@ -897,6 +897,20 @@ in
     ".vim/swap/.keep".text = "";
     ".vim/backup/.keep".text = "";
 
+    # pi-codegraph indexes whatever directory an agent session starts in. A
+    # session opened in a temp or home root would index all of it (a /tmp
+    # index once reached 25 GB). Exact roots only: Git worktrees created below
+    # /tmp are still indexed. /data/tmp is the server Mac's TMPDIR; entries
+    # that do not exist on a host are ignored.
+    ".config/pi-codegraph/config.json".text = builtins.toJSON {
+      excludedProjectRoots = [
+        "/tmp"
+        "/var/tmp"
+        "/data/tmp"
+        "~"
+      ];
+    };
+
   }
   // {
     # The complete user-level MCP registry. `force` performs the one-time
