@@ -23,6 +23,7 @@ const SOL = "openai-codex/gpt-6.1-sol";
 const ARGON = "google-antigravity/gemini-4-argon";
 const ASTRA = "openai-codex/gpt-6-astra";
 const GROK = "xai-oauth/grok-4.7-build-fast";
+const SONNET = "anthropic/claude-sonnet-5-5";
 
 // Byte-for-byte contiguous sections from:
 // - openai/codex `codex-rs/core/gpt_5_1_prompt.md` (`Autonomy and Persistence`, `Sharing progress updates`, `Validating your work`)
@@ -110,11 +111,12 @@ const SOL_PROFILE: Profile = {
 		// drafts plans for the Sol implementer; escalations go to Astra.
 		slow: `${ASTRA}:xhigh`,
 		task: `${SOL}:high`,
-		advisor: `${GROK}:low`,
 	},
-	// Reviewer (Grok 4.7 Build-Fast) and lightweight roles/agents (browser, smol, scout,
-	// sonic, tiny, commit) inherit the base config.
+	// Sol-authored work gets a review from Grok 4.7 first, falling back to Sonnet 5.5 in
+	// another model family when Grok quota is depleted; advisor and lightweight roles/agents
+	// (browser, smol, scout, sonic, tiny, commit) inherit the base config.
 	agents: {
+		reviewer: `${GROK}:low, ${SONNET}:medium`,
 		"security-reviewer": `${SOL}:max`,
 	},
 };

@@ -1,4 +1,6 @@
 retry:
+  usageAwareFallback: true
+  usageReservePolicy: auto
   fallbackChains:
     anthropic/claude-opus-5-5:
       - google-antigravity/claude-opus-5-5
@@ -39,8 +41,8 @@ task:
   agentAdvisor:
     task: "off"
   agentModelOverrides:
-    reviewer: xai-oauth/grok-4.7-build-fast:low
-    scout: xai-oauth/grok-4.7-build-fast:low
+    reviewer: xai-oauth/grok-4.7-build-fast:low, openai-codex/gpt-6.1-sol:medium
+    scout: xai-oauth/grok-4.7-build-fast:low, anthropic/claude-sonnet-5-5:medium
     sonic: anthropic/claude-haiku-5-5:low
     security-reviewer: openai-codex/gpt-6.1-sol:max
 modelRoles:
