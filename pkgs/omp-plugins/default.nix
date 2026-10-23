@@ -261,14 +261,17 @@ stdenvNoCC.mkDerivation {
     ${lib.concatStringsSep "\n" (
       lib.mapAttrsToList (name: drv: ''
         mkdir -p "$out/node_modules/$(dirname ${lib.escapeShellArg name})"
-        cp -R ${drv} "$out/node_modules/${name}"
+        ln -s ${drv} "$out/node_modules/${name}"
       '') plugins
     )}
 
     runHook postInstall
   '';
 
-  passthru.pluginVersions = lib.mapAttrs (_: drv: drv.version) plugins;
+  passthru = {
+    inherit plugins;
+    pluginVersions = lib.mapAttrs (_: drv: drv.version) plugins;
+  };
 
   meta = {
     description = "Plugins for OMP, resolved and pinned rather than installed at run time";

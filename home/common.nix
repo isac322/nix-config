@@ -251,7 +251,7 @@ let
       "context-mode" = {
         type = "stdio";
         command = lib.getExe pkgs.bun;
-        args = [ "${pkgs.omp-plugins}/node_modules/context-mode/server.bundle.mjs" ];
+        args = [ "${pkgs.omp-plugins.plugins."context-mode"}/server.bundle.mjs" ];
       };
 
       # Granola is OMP-only and stays disabled by default; activate it
@@ -849,9 +849,9 @@ in
   # directories.
   #
   # Their dependencies still resolve: Node walks up from the *real* path of the
-  # importing file, which is inside the store tree, where every dependency the
-  # lockfile pinned is a sibling. That is why pkgs/omp-plugins builds one tree
-  # rather than one derivation per plugin.
+  # importing file, which is inside each plugin's own store derivation where its
+  # lockfile-pinned node_modules live. Linking each plugin derivation directly
+  # avoids copying unchanged plugins into a combined store tree on every update.
   #
   # The trade, unchanged: these entries are store paths, so `omp plugin install`
   # cannot replace them. Adding a plugin is a single package entry in
@@ -920,7 +920,7 @@ in
   // builtins.listToAttrs (
     map (name: {
       name = ".omp/plugins/node_modules/${name}";
-      value.source = "${pkgs.omp-plugins}/node_modules/${name}";
+      value.source = pkgs.omp-plugins.plugins.${name};
     }) (builtins.attrNames ompPlugins)
   );
 }
