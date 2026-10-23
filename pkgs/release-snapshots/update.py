@@ -17,6 +17,7 @@ from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 GITHUB_API = "https://api.github.com/repos"
+GITHUB_PAGE_SIZE = 100
 USER_AGENT = "nix-config-release-updater/1"
 
 
@@ -126,11 +127,35 @@ def github_latest(
     asset_names: Callable[[str], list[str]],
     previous_release: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    release = fetch_json(f"{GITHUB_API}/{repository}/releases/latest")
-    tag = release["tag_name"]
-    if not tag.startswith(tag_prefix):
-        raise RuntimeError(f"unexpected latest tag for {repository}: {tag}")
-    version = tag.removeprefix(tag_prefix)
+    page = 1
+    release: dict[str, Any] | None = None
+    while release is None:
+        releases = fetch_json(
+            f"{GITHUB_API}/{repository}/releases?per_page={GITHUB_PAGE_SIZE}&page={page}"
+        )
+        if not isinstance(releases, list):
+            raise RuntimeError(f"invalid GitHub releases response for {repository}")
+        for candidate in releases:
+            if not isinstance(candidate, dict) or not isinstance(
+                candidate.get("tag_name"), str
+            ) or not isinstance(candidate.get("draft"), bool) or not isinstance(
+                candidate.get("prerelease"), bool
+            ):
+                raise RuntimeError(f"invalid GitHub release metadata for {repository}")
+            if candidate["draft"] or candidate["prerelease"]:
+                continue
+            tag = candidate["tag_name"]
+            if tag.startswith(tag_prefix):
+                release = candidate
+                break
+        if release is None:
+            if len(releases) < GITHUB_PAGE_SIZE:
+                raise RuntimeError(
+                    f"no stable GitHub release found for {repository} "
+                    f"with tag prefix {tag_prefix}"
+                )
+            page += 1
+    version = release["tag_name"].removeprefix(tag_prefix)
     return select_assets(release, asset_names(version), previous_release)
 
 
@@ -141,7 +166,9 @@ def posthog_release(
     page = 1
     release: dict[str, Any] | None = None
     while release is None:
-        tags = fetch_json(f"{GITHUB_API}/PostHog/posthog/tags?per_page=100&page={page}")
+        tags = fetch_json(
+            f"{GITHUB_API}/PostHog/posthog/tags?per_page={GITHUB_PAGE_SIZE}&page={page}"
+        )
         if not isinstance(tags, list):
             raise RuntimeError("invalid PostHog tags response")
         for tag in tags:
@@ -165,7 +192,7 @@ def posthog_release(
                 release = candidate
                 break
         if release is None:
-            if len(tags) < 100:
+            if len(tags) < GITHUB_PAGE_SIZE:
                 raise RuntimeError("no stable PostHog CLI release found")
             page += 1
 
