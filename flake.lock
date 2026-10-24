@@ -109,10 +109,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1792670826,
-        "narHash": "sha256-plLuwmUmi8sbf1qGfqgx4znHgQmS/FtrjZ5MOBV8WD0=",
+        "lastModified": 1792757166,
+        "narHash": "sha256-4wwaGXYRaBn53cHRuh0yOpRjdjGRNfyTk5uh1BWfSf8=",
         "ref": "main",
-        "rev": "90af14e34bf35120c3310f7a75f54fa99d2cabba",
+        "rev": "fc0fda3d2bf62c9c35e085f9a28985088ba5fbca",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -246,10 +246,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1792739697,
-        "narHash": "sha256-rtLpZMx++8WsNP04zq/Al0kqCw1nrPQeNuk1/R7L4rY=",
+        "lastModified": 1792807248,
+        "narHash": "sha256-ODcOm3TmTXGEPrMZtPqzE+KzGse0ftmpu4BPeVy5TJk=",
         "ref": "refs/heads/main",
-        "rev": "eecceea8bcf7fbe5f367ee8c577fc5a148f8cf08",
+        "rev": "5220364a23423d2b16001c9df72c2504f06eeb67",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -289,10 +289,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1792703141,
-        "narHash": "sha256-3X34FaSeMJXMx8CK/BN6sZ9knwNauuiJXQhLM+bQQuI=",
+        "lastModified": 1792773325,
+        "narHash": "sha256-bvba9Lts8r8d15MdIDMwJGDxLtJiTlasKtAZyhTDzXk=",
         "ref": "master",
-        "rev": "6750249c69969d09d952efaf3fab88a2bdac7ec6",
+        "rev": "6d9655f76459099b0db2f57b13563729c7022aa7",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -324,10 +324,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1792716586,
-        "narHash": "sha256-203UZ9l4sQIqHO2uX84iNW+CT5qhXWkErL42W4YFuzk=",
+        "lastModified": 1792806379,
+        "narHash": "sha256-/gsySJb02knv1WqYFN4XVy6eQazaeOzqCoBr+ViMTbQ=",
         "ref": "refs/heads/main",
-        "rev": "5cb95eea9c96479f57afe0732a45470d30183326",
+        "rev": "936867543ac2576920d663cc9803597f6044f3ac",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -347,16 +347,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1792749267,
-        "narHash": "sha256-99x3Y+gy2X/Uy/Ew9YY9pRf1vphvranqJGBybT74Z6Y=",
+        "lastModified": 1792793952,
+        "narHash": "sha256-Y5fOTPtp+5W9t2uvRxkhmV701P+gdIkdzFMySARdcY8=",
         "ref": "refs/heads/main",
-        "rev": "63b55656560b3f6692fb91398b08fe225427a796",
+        "rev": "026ba44dab642e20f82140de114d944f242b8a50",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "63b55656560b3f6692fb91398b08fe225427a796",
+        "rev": "026ba44dab642e20f82140de114d944f242b8a50",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
