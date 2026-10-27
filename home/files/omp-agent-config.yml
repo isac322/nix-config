@@ -36,7 +36,6 @@ checkpoint:
 github:
   enabled: true
 task:
-  eager: preferred
   isolation:
     commits: ai
   showResolvedModelBadge: true
