@@ -4,6 +4,8 @@ retry:
   fallbackChains:
     anthropic/claude-opus-5-5:
       - google-antigravity/claude-opus-5-5
+    vision:
+      - google-antigravity/gemini-4-argon:medium
 setupVersion: 2
 extendedContext: true
 statusLine:
@@ -53,7 +55,7 @@ modelRoles:
   advisor: anthropic/claude-sonnet-5-5:medium
   browser: anthropic/claude-haiku-5-5:medium
   smol: anthropic/claude-haiku-5-5:medium
-  vision: google-antigravity/gemini-4-argon:medium
+  vision: openai-codex/gpt-6.1-terra:low
   tiny: anthropic/claude-haiku-5-5:low
   commit: google-vertex/gemini-3.5-flash-lite:low
   judge: typesafe/jev-preview
