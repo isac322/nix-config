@@ -6,8 +6,10 @@
 //
 // - `on` (default): Claude Opus 5.5 main agent with GPT-6.1 Sol task subagents, keeping
 //   orchestration on Opus while offloading implementation and review work from Anthropic quota.
-// - `argon`: trial that differs from `on` only in the main agent, Gemini 4 Argon, which
-//   understands the problem and writes the specs; Sol still implements them.
+// - `sol`: GPT-6.1 Sol main agent and subagents, spending ChatGPT Codex quota instead of
+//   Anthropic quota wherever a measured equal exists.
+// - `argon`: Gemini 4 Argon main agent, which understands the problem and writes the
+//   specs while Sol implements them.
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 
@@ -26,7 +28,7 @@ const ASTRA = "openai-codex/gpt-6-astra";
 const GROK = "xai-oauth/grok-4.7-build-fast";
 const SONNET = "anthropic/claude-sonnet-5-5";
 
-// Byte-for-byte contiguous sections for `/bg argon` (non-Opus main agent) from:
+// Byte-for-byte contiguous sections for `/bg sol` and `/bg argon` (non-Opus main agent) from:
 // - `openai/codex` (`970111f6cb62cc02fe36a82ea7d71b37a2889c97`) `codex-rs/models-manager/models.json` (`slug: "gpt-6.1-sol"`, `instructions_template`: `# When to ask the user for permission`, `# Autonomy and persistence`, `## Writing style`, `## Technical communication`, `## Rules for getting work done` tail) and `codex-rs/core/gpt_5_1_prompt.md` (`## Validating your work`)
 // - `multica-ai/andrej-karpathy-skills` (`2c606141936f1eeef17fa3043a72095b4765b9c2`) `CLAUDE.md` (`1. Think Before Coding`, `2. Simplicity First`, `3. Surgical Changes`)
 // - `home/skills/isac-decision-brief/SKILL.md` (`DBR-01`..`DBR-12`) and `references/examples.md`
@@ -184,6 +186,16 @@ const ON_PROFILE: Profile = {
 
 const PROFILES: Record<string, Profile> = {
 	on: ON_PROFILE,
+	sol: {
+		label: "Sol",
+		mainModel: SOL,
+		mainThinking: "high",
+		roles: {
+			...ON_PROFILE.roles,
+			default: `${SOL}:high`,
+		},
+		agents: ON_PROFILE.agents,
+	},
 	argon: {
 		label: "Argon",
 		mainModel: ARGON,
@@ -199,7 +211,8 @@ const PROFILES: Record<string, Profile> = {
 
 const SUBCOMMANDS = [
 	{ name: "on", description: "Opus main agent, Sol implementer, roles re-curated around it" },
-	{ name: "argon", description: "Trial: Gemini 4 Argon main agent, Sol implementer" },
+	{ name: "sol", description: "GPT-6.1 Sol main agent, Sol implementer, roles re-curated around it" },
+	{ name: "argon", description: "Gemini 4 Argon main agent, Sol implementer, roles re-curated around it" },
 	{ name: "off", description: "Restore the base config and the previous model" },
 	{ name: "status", description: "Show the active profile and key roles" },
 ];
@@ -256,7 +269,9 @@ function inferSessionBgState(entries: unknown[]): {
 				continue;
 			}
 			const model = entry.model;
-			if (model === ARGON || model === "google/gemini-4-argon") {
+			if (model === SOL) {
+				mode = "sol";
+			} else if (model === ARGON || model === "google/gemini-4-argon") {
 				mode = "argon";
 			} else if (typeof model === "string" && model) {
 				if (mode && PROFILES[mode]?.mainModel === model) {
@@ -284,13 +299,74 @@ function isNonOpusMainProfile(activeMode: string | undefined): boolean {
 	return typeof mainModel === "string" && !mainModel.includes("claude-opus-");
 }
 
+function isSubagentContext(ctx: unknown): boolean {
+	if (!ctx || typeof ctx !== "object" || !("agent" in ctx)) return false;
+	const agent = ctx.agent;
+	if (!agent || typeof agent !== "object" || !("kind" in agent)) return false;
+	return agent.kind === "sub";
+}
+
+function getSubagentParentId(ctx: unknown): string {
+	if (!ctx || typeof ctx !== "object" || !("agent" in ctx)) return "Main";
+	const agent = ctx.agent;
+	if (!agent || typeof agent !== "object" || !("parentId" in agent)) return "Main";
+	return typeof agent.parentId === "string" && agent.parentId.trim() !== ""
+		? agent.parentId.trim()
+		: "Main";
+}
+
+function isOpusContextModel(ctx: unknown): boolean {
+	if (!ctx || typeof ctx !== "object" || !("model" in ctx)) return false;
+	const model = ctx.model;
+	if (!model || typeof model !== "object" || !("id" in model)) return false;
+	return typeof model.id === "string" && model.id.includes("claude-opus-");
+}
+
+function describePendingAsyncWork(ctx: unknown): string | undefined {
+	if (!ctx || typeof ctx !== "object" || !("getAsyncJobSnapshot" in ctx)) return undefined;
+	const getSnap = ctx.getAsyncJobSnapshot;
+	if (typeof getSnap !== "function") return undefined;
+	const snap: unknown = getSnap.call(ctx);
+	if (!snap || typeof snap !== "object") return undefined;
+	const runningRaw = "running" in snap && Array.isArray(snap.running) ? snap.running : [];
+	const runningLabels: string[] = [];
+	const runningIds = new Set<string>();
+	for (const item of runningRaw) {
+		if (!item || typeof item !== "object") continue;
+		const id = "id" in item && typeof item.id === "string" ? item.id : "";
+		const label = "label" in item && typeof item.label === "string" ? item.label : "";
+		if (id) runningIds.add(id);
+		runningLabels.push(label || id || "job");
+	}
+	let queuedCount = 0;
+	let delivering = false;
+	const pendingIds: string[] = [];
+	if ("delivery" in snap && snap.delivery && typeof snap.delivery === "object") {
+		const del = snap.delivery;
+		if ("queued" in del && typeof del.queued === "number") queuedCount = del.queued;
+		if ("delivering" in del && typeof del.delivering === "boolean") delivering = del.delivering;
+		if ("pendingJobIds" in del && Array.isArray(del.pendingJobIds)) {
+			for (const pid of del.pendingJobIds) {
+				if (typeof pid === "string" && !runningIds.has(pid)) pendingIds.push(pid);
+			}
+		}
+	}
+	if (runningLabels.length === 0 && queuedCount === 0 && !delivering) {
+		return undefined;
+	}
+	const labels = [...runningLabels, ...pendingIds];
+	return labels.length > 0 ? labels.join(", ") : `${runningLabels.length + queuedCount} job(s)`;
+}
+
+// Module-scoped state so subagent ExtensionRunner instances bound in the same OMP
+// process observe the active background profile without clobbering parent overrides.
+let restore: (() => Promise<void>) | undefined;
+let active: string | undefined;
+let savedPrevModel: string | undefined;
+let savedPrevThinking: string | undefined;
+
 export default function (pi: ExtensionAPI) {
 	const scope = pi.pi.settings;
-	// Restores the model and thinking level that were active before the first profile switch.
-	let restore: (() => Promise<void>) | undefined;
-	let active: string | undefined;
-	let savedPrevModel: string | undefined;
-	let savedPrevThinking: string | undefined;
 
 	function applyProfileOverrides(nextMode: string | undefined): void {
 		const roles = lookup("modelRoles");
@@ -309,14 +385,13 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	function syncFromSession(ctx: unknown): void {
-		if (!ctx || typeof ctx !== "object") return;
+		if (isSubagentContext(ctx) || !ctx || typeof ctx !== "object") return;
 		const c = ctx as {
 			sessionManager?: { getBranch?: () => unknown[] };
 			models?: { resolve?: (selector: string) => unknown };
 		};
 		const branch = c.sessionManager?.getBranch?.();
 		if (!Array.isArray(branch)) return;
-
 		const inferred = inferSessionBgState(branch);
 		const roles = lookup("modelRoles");
 		const agents = lookup("task.agentModelOverrides");
@@ -365,8 +440,10 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	// Append `SURGICAL_SCOPE` to the turn's systemPrompt only when a non-Opus main
-	// profile (`/bg argon`) is active, never in `/bg on` (Opus main) or subagents.
+	// profile (`/bg sol` or `/bg argon`) is active on the main agent, never in `/bg on`
+	// (Opus main) or inside subagents.
 	pi.on("before_agent_start", async (event, ctx) => {
+		if (isSubagentContext(ctx)) return;
 		syncFromSession(ctx);
 		if (!isNonOpusMainProfile(active)) return;
 		const marker = "# When to ask the user for permission";
@@ -389,14 +466,49 @@ export default function (pi: ExtensionAPI) {
 		}
 	});
 
-	// Normalize OpenAI strict-schema dummy fields on `bash` and `task` calls so OMP
-	// does not reject ordinary invocations.
+	// 1. In subagents (`ctx.agent.kind === "sub"`): block `write` to `agent://Main` /
+	//    `agent://<parentId>` / `agent://all` so Sol subagents do not drip-feed `<irc>`
+	//    progress cards or prematurely wake `wait()`.
+	// 2. In the main agent under `/bg sol` or `/bg argon`: block `goal(op="complete")`
+	//    while background jobs are still running or queued for delivery.
+	// 3. Normalize OpenAI strict-schema dummy fields on `bash` and `task` calls.
 	pi.on("tool_call", async (event, ctx) => {
-		syncFromSession(ctx);
-		if (!isNonOpusMainProfile(active) || !event.input || typeof event.input !== "object") {
+		const subagent = isSubagentContext(ctx);
+		if (!subagent) {
+			syncFromSession(ctx);
+		}
+		if (!active || !event.input || typeof event.input !== "object") {
 			return;
 		}
 		const rawInput = event.input as Record<string, unknown>;
+		if (subagent && event.toolName === "write") {
+			const path = typeof rawInput.path === "string" ? rawInput.path.trim() : "";
+			const parentId = getSubagentParentId(ctx);
+			if (
+				path === "agent://Main" ||
+				path === `agent://${parentId}` ||
+				path === "agent://all"
+			) {
+				return {
+					block: true,
+					reason:
+						"Do not send progress or findings to Main via write(agent://Main); finish your work and end your turn without a tool call so your final result is delivered to Main automatically.",
+				};
+			}
+		}
+		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "goal" && rawInput.op === "complete") {
+			const pending = describePendingAsyncWork(ctx);
+			if (pending) {
+				return {
+					block: true,
+					reason: `Cannot complete goal while background jobs are still running or pending delivery (${pending}). Call wait until all background jobs finish, then emit one consolidated final report.`,
+				};
+			}
+		}
+		const shouldNormalizeToolInput = subagent ? !isOpusContextModel(ctx) : isNonOpusMainProfile(active);
+		if (!shouldNormalizeToolInput) {
+			return;
+		}
 		if (event.toolName === "task" && Array.isArray(rawInput.tasks)) {
 			let changed = false;
 			const nextTasks = rawInput.tasks.map((item) => {
@@ -451,8 +563,31 @@ export default function (pi: ExtensionAPI) {
 		if (nextBash.timeout === 0 && nextBash.async !== true) nextBash.timeout = 300;
 		return { input: nextBash };
 	});
+	pi.on("tool_result", async (event, ctx) => {
+		if (isSubagentContext(ctx)) return;
+		syncFromSession(ctx);
+		if (!isNonOpusMainProfile(active) || event.toolName !== "wait") return;
+		const pending = describePendingAsyncWork(ctx);
+		if (!pending) return;
+		return {
+			additionalContext: `Background jobs are still running or pending delivery (${pending}). Do NOT write an interim synthesis or final report yet; call wait again until 0 background jobs remain.`,
+		};
+	});
+
+	pi.on("session_stop", async (_event, ctx) => {
+		if (isSubagentContext(ctx)) return;
+		syncFromSession(ctx);
+		if (!isNonOpusMainProfile(active)) return;
+		const pending = describePendingAsyncWork(ctx);
+		if (!pending) return;
+		return {
+			decision: "block",
+			reason: `Background jobs are still running or pending delivery (${pending}). Call wait until all background jobs finish before writing the final report.`,
+		};
+	});
+
 	pi.registerCommand("bg", {
-		description: "Background profile: /bg [on|argon|off|status]",
+		description: "Background profile: /bg [on|sol|argon|off|status]",
 		getArgumentCompletions: (prefix: string) => {
 			if (prefix.includes(" ")) return null;
 			const typed = prefix.toLowerCase();
@@ -503,7 +638,7 @@ export default function (pi: ExtensionAPI) {
 				savedPrevThinking = undefined;
 				pi.appendEntry(BG_ENTRY_TYPE, { mode: "off" });
 			} else if (action !== "status") {
-				ctx.ui.notify("usage: /bg [on|argon|off|status]", "warning");
+				ctx.ui.notify("usage: /bg [on|sol|argon|off|status]", "warning");
 				return;
 			}
 
