@@ -257,11 +257,11 @@ MBP의 Direct IP host는 TCP 21118에서 화면과 입력을 제공한다.
 
 ## 코딩 에이전트 — 작업이 있는 곳에서 돈다
 
-`claude-code`, `codex`, `omp`, `gjc` 넷을 **모든 기기**에 둔다
+`claude-code`, `codex`, `antigravity-cli`(`agy`), `omp`, `gjc` 다섯을 **모든 기기**에 둔다
 (`home/common.nix`). 아래 두 CLI 묶음이 이 층에 있는 이유가 이것이라, 순서상
 여기가 먼저다.
 
-`claude-code`와 `codex`는 `llm-agents` 인풋의 캐시된 패키지를 쓴다. `omp`는
+`claude-code`, `codex`, `antigravity-cli`는 `llm-agents` 인풋의 캐시된 패키지를 쓴다. `omp`는
 공식 standalone binary를 직접 설치하므로 상류 Rust·Bun 빌드를 반복하지 않는다.
 `gjc`도 공식 standalone release binary를 쓴다. 두 패키지의 버전·asset
 URL·SHA-256은 `pkgs/release-snapshots.json`에 함께 고정되며

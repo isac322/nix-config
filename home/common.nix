@@ -593,10 +593,11 @@ in
     pkgs.bash
     pkgs.jq
 
-    # llm-agents tracks these two upstreams daily and supplies matching cached
+    # llm-agents tracks these upstreams daily and supplies matching cached
     # outputs for every platform this configuration manages.
     agents.claude-code
     agents.codex
+    agents.antigravity-cli
 
     # Official OMP standalone binaries. `nix run .#update-packages` refreshes
     # the version, platform assets, and sha256 digests in one snapshot. The
