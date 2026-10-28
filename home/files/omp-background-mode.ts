@@ -26,7 +26,7 @@ const ASTRA = "openai-codex/gpt-6-astra";
 const GROK = "xai-oauth/grok-4.7-build-fast";
 const SONNET = "anthropic/claude-sonnet-5-5";
 
-// Byte-for-byte contiguous sections for GPT-6.1 Sol and `/bg argon` from:
+// Byte-for-byte contiguous sections for `/bg argon` (non-Opus main agent) from:
 // - `openai/codex` (`970111f6cb62cc02fe36a82ea7d71b37a2889c97`) `codex-rs/models-manager/models.json` (`slug: "gpt-6.1-sol"`, `instructions_template`: `# When to ask the user for permission`, `# Autonomy and persistence`, `## Writing style`, `## Technical communication`, `## Rules for getting work done` tail) and `codex-rs/core/gpt_5_1_prompt.md` (`## Validating your work`)
 // - `multica-ai/andrej-karpathy-skills` (`2c606141936f1eeef17fa3043a72095b4765b9c2`) `CLAUDE.md` (`1. Think Before Coding`, `2. Simplicity First`, `3. Surgical Changes`)
 // - `home/skills/isac-decision-brief/SKILL.md` (`DBR-01`..`DBR-12`) and `references/examples.md`
@@ -226,6 +226,9 @@ function inferSessionBgState(entries: unknown[]): {
 		if (!raw || typeof raw !== "object") continue;
 		const entry = raw as Record<string, unknown>;
 		const type = entry.type;
+		if (type === "session_init") {
+			return { mode: undefined, prevModel: undefined, prevThinking: undefined };
+		}
 
 		if (type === "mode_change") {
 			const m = entry.mode;
@@ -253,9 +256,7 @@ function inferSessionBgState(entries: unknown[]): {
 				continue;
 			}
 			const model = entry.model;
-			if (model === SOL) {
-				mode = "on";
-			} else if (model === ARGON || model === "google/gemini-4-argon") {
+			if (model === ARGON || model === "google/gemini-4-argon") {
 				mode = "argon";
 			} else if (typeof model === "string" && model) {
 				if (mode && PROFILES[mode]?.mainModel === model) {
@@ -277,50 +278,10 @@ function inferSessionBgState(entries: unknown[]): {
 	return { mode, prevModel, prevThinking };
 }
 
-function resolveCurrentModelSelector(ctx: unknown, activeMode: string | undefined): string | undefined {
-	if (ctx && typeof ctx === "object") {
-		const c = ctx as {
-			models?: { current?: () => { provider?: string; id?: string } | undefined };
-			model?: { provider?: string; id?: string };
-			sessionManager?: { getBranch?: () => unknown[] };
-		};
-		const cur = c.models?.current?.() ?? c.model;
-		if (cur && typeof cur.id === "string" && cur.id) {
-			return cur.provider ? `${cur.provider}/${cur.id}` : cur.id;
-		}
-		const branch = c.sessionManager?.getBranch?.();
-		if (Array.isArray(branch)) {
-			let inPlanMode = false;
-			let lastModel: string | undefined;
-			for (const raw of branch) {
-				if (!raw || typeof raw !== "object") continue;
-				const entry = raw as Record<string, unknown>;
-				if (entry.type === "mode_change") {
-					const m = entry.mode;
-					inPlanMode = m === "plan" || m === "plan_paused";
-					continue;
-				}
-				if (entry.type === "model_change") {
-					if (entry.resolvedModelIsFallback === true || entry.role === "plan" || inPlanMode) {
-						continue;
-					}
-					if (typeof entry.model === "string" && entry.model) {
-						lastModel = entry.model;
-					}
-				}
-			}
-			if (lastModel) return lastModel;
-		}
-	}
-	return activeMode ? PROFILES[activeMode]?.mainModel : undefined;
-}
-
-function shouldApplySolPatches(ctx: unknown, activeMode: string | undefined): boolean {
+function isNonOpusMainProfile(activeMode: string | undefined): boolean {
 	if (!activeMode) return false;
-	const currentModel = resolveCurrentModelSelector(ctx, activeMode);
-	if (typeof currentModel === "string" && currentModel.includes("claude-opus-")) return false;
-	if (activeMode === "on") return currentModel === SOL;
-	return true;
+	const mainModel = PROFILES[activeMode]?.mainModel;
+	return typeof mainModel === "string" && !mainModel.includes("claude-opus-");
 }
 
 export default function (pi: ExtensionAPI) {
@@ -403,11 +364,11 @@ export default function (pi: ExtensionAPI) {
 		syncFromSession(ctx);
 	});
 
-	// Append `SURGICAL_SCOPE` to the turn's systemPrompt only when a non-Opus background
-	// model (GPT-6.1 Sol or `/bg argon`) is active, never when Claude Opus is the active model.
+	// Append `SURGICAL_SCOPE` to the turn's systemPrompt only when a non-Opus main
+	// profile (`/bg argon`) is active, never in `/bg on` (Opus main) or subagents.
 	pi.on("before_agent_start", async (event, ctx) => {
 		syncFromSession(ctx);
-		if (!shouldApplySolPatches(ctx, active)) return;
+		if (!isNonOpusMainProfile(active)) return;
 		const marker = "# When to ask the user for permission";
 		const sys = (event as Record<string, unknown>).systemPrompt;
 		if (Array.isArray(sys)) {
@@ -432,7 +393,7 @@ export default function (pi: ExtensionAPI) {
 	// does not reject ordinary invocations.
 	pi.on("tool_call", async (event, ctx) => {
 		syncFromSession(ctx);
-		if (!shouldApplySolPatches(ctx, active) || !event.input || typeof event.input !== "object") {
+		if (!isNonOpusMainProfile(active) || !event.input || typeof event.input !== "object") {
 			return;
 		}
 		const rawInput = event.input as Record<string, unknown>;
