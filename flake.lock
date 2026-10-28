@@ -109,10 +109,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1793124243,
-        "narHash": "sha256-uQupGPCUH41l2ubP6L8D2h/a0rRCGURW6vVL/ieN7sE=",
+        "lastModified": 1793189073,
+        "narHash": "sha256-Lq+cEkE7/LGdw2+8d3k2aRV4mjjkbi4HmkBSYjZe3fA=",
         "ref": "main",
-        "rev": "b77ba447f51ff193962d6f0fb78c061c76ae871c",
+        "rev": "397137b0cfc2007f48f837c52958f9ec811db9c5",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -289,10 +289,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1793124281,
-        "narHash": "sha256-KdGTOgYXgMDA/ymTV10yLMt9tOjz9EmTgnTvaD+bhe4=",
+        "lastModified": 1793193205,
+        "narHash": "sha256-X6xa6sGA7RnJQuZGbFMC+K+KToWAlBDCCjJXfTwEPsw=",
         "ref": "master",
-        "rev": "1e3ebeb683d055d1675d3f64e6d2b186cb2ee504",
+        "rev": "095fef2f265c3c0da4fe315efba8f8a04495ab34",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
