@@ -4,8 +4,8 @@
 // inherits it. Overrides live in the runtime settings layer (never mutating config.yml
 // on disk) and are re-applied automatically from the session transcript on resume until `/bg off`.
 //
-// - `on` (default): GPT-6.1 Sol main agent, spending ChatGPT Codex quota instead of
-//   Anthropic quota wherever a measured equal exists.
+// - `on` (default): Claude Opus 5.5 main agent with GPT-6.1 Sol task subagents, keeping
+//   orchestration on Opus while offloading implementation and review work from Anthropic quota.
 // - `argon`: trial that differs from `on` only in the main agent, Gemini 4 Argon, which
 //   understands the problem and writes the specs; Sol still implements them.
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
@@ -19,13 +19,14 @@ type Profile = {
 	agents: Record<string, string>;
 };
 
+const OPUS = "anthropic/claude-opus-5-5";
 const SOL = "openai-codex/gpt-6.1-sol";
 const ARGON = "google-antigravity/gemini-4-argon";
 const ASTRA = "openai-codex/gpt-6-astra";
 const GROK = "xai-oauth/grok-4.7-build-fast";
 const SONNET = "anthropic/claude-sonnet-5-5";
 
-// Byte-for-byte contiguous sections for `/bg on` and `/bg argon` from:
+// Byte-for-byte contiguous sections for GPT-6.1 Sol and `/bg argon` from:
 // - `openai/codex` (`970111f6cb62cc02fe36a82ea7d71b37a2889c97`) `codex-rs/models-manager/models.json` (`slug: "gpt-6.1-sol"`, `instructions_template`: `# When to ask the user for permission`, `# Autonomy and persistence`, `## Writing style`, `## Technical communication`, `## Rules for getting work done` tail) and `codex-rs/core/gpt_5_1_prompt.md` (`## Validating your work`)
 // - `multica-ai/andrej-karpathy-skills` (`2c606141936f1eeef17fa3043a72095b4765b9c2`) `CLAUDE.md` (`1. Think Before Coding`, `2. Simplicity First`, `3. Surgical Changes`)
 // - `home/skills/isac-decision-brief/SKILL.md` (`DBR-01`..`DBR-12`) and `references/examples.md`
@@ -161,12 +162,12 @@ const SURGICAL_SCOPE = [
 	"For all of testing, running, building, and formatting, do not attempt to fix unrelated bugs. It is not your responsibility to fix them. (You may mention them to the user in your final message though.)",
 ].join("\n");
 
-const SOL_PROFILE: Profile = {
-	label: "Sol",
-	mainModel: SOL,
-	mainThinking: "high",
+const ON_PROFILE: Profile = {
+	label: "Opus",
+	mainModel: OPUS,
+	mainThinking: "medium",
 	roles: {
-		default: `${SOL}:high`,
+		default: `${OPUS}:medium`,
 		// Planning inherits the base Argon plan role, so a different model family still
 		// drafts plans for the Sol implementer; escalations go to Astra.
 		slow: `${ASTRA}:xhigh`,
@@ -182,22 +183,22 @@ const SOL_PROFILE: Profile = {
 };
 
 const PROFILES: Record<string, Profile> = {
-	on: SOL_PROFILE,
+	on: ON_PROFILE,
 	argon: {
 		label: "Argon",
 		mainModel: ARGON,
 		// high is Argon's top thinking level.
 		mainThinking: "high",
 		roles: {
-			...SOL_PROFILE.roles,
+			...ON_PROFILE.roles,
 			default: `${ARGON}:high`,
 		},
-		agents: SOL_PROFILE.agents,
+		agents: ON_PROFILE.agents,
 	},
 };
 
 const SUBCOMMANDS = [
-	{ name: "on", description: "Sol main agent, roles re-curated around it" },
+	{ name: "on", description: "Opus main agent, Sol implementer, roles re-curated around it" },
 	{ name: "argon", description: "Trial: Gemini 4 Argon main agent, Sol implementer" },
 	{ name: "off", description: "Restore the base config and the previous model" },
 	{ name: "status", description: "Show the active profile and key roles" },
@@ -257,6 +258,9 @@ function inferSessionBgState(entries: unknown[]): {
 			} else if (model === ARGON || model === "google/gemini-4-argon") {
 				mode = "argon";
 			} else if (typeof model === "string" && model) {
+				if (mode && PROFILES[mode]?.mainModel === model) {
+					continue;
+				}
 				mode = undefined;
 				prevModel = model;
 			}
@@ -271,6 +275,52 @@ function inferSessionBgState(entries: unknown[]): {
 	}
 
 	return { mode, prevModel, prevThinking };
+}
+
+function resolveCurrentModelSelector(ctx: unknown, activeMode: string | undefined): string | undefined {
+	if (ctx && typeof ctx === "object") {
+		const c = ctx as {
+			models?: { current?: () => { provider?: string; id?: string } | undefined };
+			model?: { provider?: string; id?: string };
+			sessionManager?: { getBranch?: () => unknown[] };
+		};
+		const cur = c.models?.current?.() ?? c.model;
+		if (cur && typeof cur.id === "string" && cur.id) {
+			return cur.provider ? `${cur.provider}/${cur.id}` : cur.id;
+		}
+		const branch = c.sessionManager?.getBranch?.();
+		if (Array.isArray(branch)) {
+			let inPlanMode = false;
+			let lastModel: string | undefined;
+			for (const raw of branch) {
+				if (!raw || typeof raw !== "object") continue;
+				const entry = raw as Record<string, unknown>;
+				if (entry.type === "mode_change") {
+					const m = entry.mode;
+					inPlanMode = m === "plan" || m === "plan_paused";
+					continue;
+				}
+				if (entry.type === "model_change") {
+					if (entry.resolvedModelIsFallback === true || entry.role === "plan" || inPlanMode) {
+						continue;
+					}
+					if (typeof entry.model === "string" && entry.model) {
+						lastModel = entry.model;
+					}
+				}
+			}
+			if (lastModel) return lastModel;
+		}
+	}
+	return activeMode ? PROFILES[activeMode]?.mainModel : undefined;
+}
+
+function shouldApplySolPatches(ctx: unknown, activeMode: string | undefined): boolean {
+	if (!activeMode) return false;
+	const currentModel = resolveCurrentModelSelector(ctx, activeMode);
+	if (typeof currentModel === "string" && currentModel.includes("claude-opus-")) return false;
+	if (activeMode === "on") return currentModel === SOL;
+	return true;
 }
 
 export default function (pi: ExtensionAPI) {
@@ -353,13 +403,11 @@ export default function (pi: ExtensionAPI) {
 		syncFromSession(ctx);
 	});
 
-	// Append the profile's scope to the turn's systemPrompt in `/bg on` and `/bg argon`
-	// via `before_agent_start` instead of injecting a custom message into `event.messages`.
-	// This keeps conversation messages untouched, prevents terminal-message hijacking,
-	// preserves prompt caching across tool calls, and clears automatically on `/bg off`.
+	// Append `SURGICAL_SCOPE` to the turn's systemPrompt only when a non-Opus background
+	// model (GPT-6.1 Sol or `/bg argon`) is active, never when Claude Opus is the active model.
 	pi.on("before_agent_start", async (event, ctx) => {
 		syncFromSession(ctx);
-		if (!active) return;
+		if (!shouldApplySolPatches(ctx, active)) return;
 		const marker = "# When to ask the user for permission";
 		const sys = (event as Record<string, unknown>).systemPrompt;
 		if (Array.isArray(sys)) {
@@ -384,7 +432,7 @@ export default function (pi: ExtensionAPI) {
 	// does not reject ordinary invocations.
 	pi.on("tool_call", async (event, ctx) => {
 		syncFromSession(ctx);
-		if (!active || !event.input || typeof event.input !== "object") {
+		if (!shouldApplySolPatches(ctx, active) || !event.input || typeof event.input !== "object") {
 			return;
 		}
 		const rawInput = event.input as Record<string, unknown>;
