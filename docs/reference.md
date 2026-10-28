@@ -271,6 +271,9 @@ x86_64-linux·aarch64-linux를 지원한다.
 **Orca 는 여기 없다.** GUI 앱이라 cask 로 오고, 그래서 맥 둘에만 있다 —
 위 [GUI 앱](#gui-앱) 을 보라.
 
+`jevify-writing`은 coding agent가 목적지별 초안의 route, claim provenance, revision,
+fan-out, BearDrive semantic boundary를 외부 쓰기 없이 검사하는 로컬 validator다.
+
 ### BearDrive — 실행 파일은 공통, 동기화 대상은 노드별
 
 `bdrive`를 **모든 기기**에 둔다. nixpkgs에는 아직 없으므로
@@ -328,10 +331,17 @@ registry는 cleanup seed로 사용할 수 있으며, registry가 없던 구형 O
 regular skill은 `home/skills/<name>/SKILL.md`에서 읽고, `onDemand` policy segment는
 Nix가 SKILL frontmatter를 생성한다.
 
+`destination-aware-writing`은 코딩 작업의 사실 기록을 GitHub PR, Linear, BearDrive,
+업무 보고서로 목적지별 변환하는 repository-owned skill이다. `jevify-writing`은
+외부 쓰기 없이 목적지·revision·claim provenance·fan-out·BearDrive renderer 경계를
+결정적으로 검사한다. 실제 BearDrive onboarding과 sync 대상은 여전히 각 노드에서
+사용자가 선택한다.
+
 모든 regular skill과 applicable policy skill은 `~/.agents/skills/<name>`과
-`~/.claude/skills/<name>`에 각각 복사된다. 전자는 OMP와 Codex가 사용하고 SkillClaw가
-동기화하며, 후자는 Claude Code의 native personal skill tree다. target별 외부
-managed-name registry가 이전 generation에서 제거된 Nix-owned name만 정리한다.
+`~/.claude/skills/<name>`에 각각 복사된다. 전자는 OMP와 Codex가 사용하고
+SkillClaw가 동기화하며, 후자는 Claude Code의 native personal skill tree다.
+target별 managed-name registry가 이전 generation에서 제거할 Nix-owned name만
+정리하므로 사용자 소유 skill은 보존된다.
 
 Nix-managed shared skill 이름은 SkillClaw가 공유 backend로 push하지만 pull에서는
 보호한다. 그래서 cloud의 이전 복사본이 방금 switch한 Nix revision을 덮지 못한다.

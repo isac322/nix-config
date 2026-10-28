@@ -312,6 +312,7 @@
             langfuse-cli
             vercel-cli
             beardrive
+            jevify-writing
             gajae-code
             sentry
             ntn

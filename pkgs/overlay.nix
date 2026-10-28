@@ -50,6 +50,7 @@ let
           "x86_64-linux" = releaseManifests.vercelLinuxX64;
         };
       };
+      jevify-writing = final.callPackage ./jevify-writing/package.nix { };
       beardrive = final.callPackage ./beardrive/package.nix {
         checksumsFile = beardriveChecksums;
       };
