@@ -327,6 +327,7 @@ let
     alwaysThinkingEnabled = true;
     tui = "fullscreen";
     skipDangerousModePermissionPrompt = true;
+    permissions.defaultMode = "bypassPermissions";
   };
 
   # The package exposes versions from each flake-locked upstream manifest, so
