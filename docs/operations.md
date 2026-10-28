@@ -265,6 +265,7 @@ rule과 Claude skill tree는 기존 registry를 cleanup seed로 사용할 수 �
 - 저장소 소유 `home/skills/receiving-code-review`: `receiving-code-review`
 - 저장소 소유 `home/skills/issue-validation`: `issue-validation`
 - 저장소 소유 `home/skills/five-whys-root-cause-analysis`: `five-whys-root-cause-analysis`
+- 저장소 소유 `home/skills/destination-aware-writing`: destination-aware composition, transformation, review, and draft/publish routing for GitHub, Linear, BearDrive, and workplace reports
 
 `humanizer`는 repository root의 `SKILL.md`가 canonical entrypoint라서 repository
 전체가 설치된다. `impeccable`은 upstream이 harness별로 생성해 commit한 skill
