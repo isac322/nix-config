@@ -109,10 +109,10 @@
     "context-mode-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1793189073,
-        "narHash": "sha256-Lq+cEkE7/LGdw2+8d3k2aRV4mjjkbi4HmkBSYjZe3fA=",
+        "lastModified": 1793210774,
+        "narHash": "sha256-LmvuZZKnOnX/b4uJfq25EXH2H7o5sNuNn0mxeMfaicU=",
         "ref": "main",
-        "rev": "397137b0cfc2007f48f837c52958f9ec811db9c5",
+        "rev": "0f8ba1010411bc6b1c6b1147b4ef0c5c5e2bc694",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/mksglu/context-mode.git"
@@ -246,10 +246,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1793161019,
-        "narHash": "sha256-bg4AMDBZMvzvnsdZYFH9m2bxkV0c1Io31AxZ6CI1ZYE=",
+        "lastModified": 1793226443,
+        "narHash": "sha256-arWhhcEsID8B9Zln2gP6gZOB7FiKc+xCRjG1HxKBiOo=",
         "ref": "refs/heads/main",
-        "rev": "a6e371b502a24a0a0f57e8d75730150416c0d3f3",
+        "rev": "c2b1dde48872d448e9daf52881109e4dfc4dbea5",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -324,10 +324,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1793177363,
-        "narHash": "sha256-U4TdZjovTyjwVjb6eFGoMkuOPUJSbW8N3nzQmeMy6LA=",
+        "lastModified": 1793230131,
+        "narHash": "sha256-9HYHSKHpc61zwTa6bG832It+fKPfPKpBjBYpXTsYiYs=",
         "ref": "refs/heads/main",
-        "rev": "8409a564d1baee90b2dde4f7a8f06288838e3921",
+        "rev": "5e745ace7e151feb2a93d360d0281fe39448b857",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -347,16 +347,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1793167323,
-        "narHash": "sha256-JxeqQKUhBn5kj6xfE4nIrxw/q3jFJyT+TKc8mLsnuhc=",
+        "lastModified": 1793229026,
+        "narHash": "sha256-p8tFaj+rWseSrRIVUmbDEnVATzIPEHibiUxpT5+Ardw=",
         "ref": "refs/heads/main",
-        "rev": "91ff550fe42d4dd51dcf8b6bad87a0134fe7f314",
+        "rev": "63656bb90d9f156962ac0ff87580f173b7285487",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "91ff550fe42d4dd51dcf8b6bad87a0134fe7f314",
+        "rev": "63656bb90d9f156962ac0ff87580f173b7285487",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -511,16 +511,16 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1792116957,
-        "narHash": "sha256-EjZqHKObBfIOeHZnMRVV87HB3pPq/WBkmRJWyFxmZu8=",
+        "lastModified": 1793195608,
+        "narHash": "sha256-lNZLwWf5tYNKjothaoFq/VZYvzaclmLafjgMdUlpJPQ=",
         "ref": "refs/heads/master",
-        "rev": "f20cd90e28fe0403873f473b29e42662cd86e8c4",
+        "rev": "58deea654ec5dd0644f31c840a07c29fa0592528",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
       },
       "original": {
-        "rev": "f20cd90e28fe0403873f473b29e42662cd86e8c4",
+        "rev": "58deea654ec5dd0644f31c840a07c29fa0592528",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
@@ -528,10 +528,10 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1793136825,
-        "narHash": "sha256-2pkE69JpFRInaARSczZytcfPw83IL82E2KdhbWGwdMs=",
+        "lastModified": 1793195608,
+        "narHash": "sha256-lNZLwWf5tYNKjothaoFq/VZYvzaclmLafjgMdUlpJPQ=",
         "ref": "nixpkgs-unstable",
-        "rev": "f05535a0efcb2134c478d1e88434fadf486d42b5",
+        "rev": "58deea654ec5dd0644f31c840a07c29fa0592528",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"

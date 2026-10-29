@@ -177,24 +177,24 @@
     "omo": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.48/omo-darwin-arm64",
-          "digest": "sha256:3de5125cc0a9c248b485e4ef7ffd151d0d879e9713bd5a5588a4b2ed80c6f5af",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.51/omo-darwin-arm64",
+          "digest": "sha256:6fc53f8674880119f40961d4a24145ce923081c099024282b733b6218c5be2d5",
           "name": "omo-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.48/omo-linux-arm64",
-          "digest": "sha256:cf43f4e583af45f795fb51ee7697fde3978488a86aba3f1b1a86250dae9c61f1",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.51/omo-linux-arm64",
+          "digest": "sha256:933f0fbb7fdc4a550180f751721c57be52bd4b1721251d19572ac479f97afe6d",
           "name": "omo-linux-arm64"
         },
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.48/omo-linux-x64",
-          "digest": "sha256:7f23a1c0bb2139add9f50c3311088676b6135c5560920aae073a683a386b6913",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.51/omo-linux-x64",
+          "digest": "sha256:ea7833ea47d11108ce83778ca697c13afb3dd37ef165e160c09ddd4d3184d506",
           "name": "omo-linux-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v5.1.48"
+      "tag_name": "v5.1.51"
     },
     "omp": {
       "assets": [
@@ -222,29 +222,29 @@
       {
         "assets": [
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.12/posthog-cli-aarch64-apple-darwin.tar.gz",
-            "digest": "sha256:39f4bd1ea864d2335686a7097f85b5003983a906f934c925afe4443bc5384989",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.19.0/posthog-cli-aarch64-apple-darwin.tar.gz",
+            "digest": "sha256:2254c197b7c8f1dd793a05208b4eb1c6d58a3fa95864649adfe3f5f3833e9257",
             "name": "posthog-cli-aarch64-apple-darwin.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.12/posthog-cli-x86_64-apple-darwin.tar.gz",
-            "digest": "sha256:d0638d2a1acae1f9c6945291805606e4e207e879418bb7493199efa376da1f39",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.19.0/posthog-cli-x86_64-apple-darwin.tar.gz",
+            "digest": "sha256:bb107689f4db99ee4fe0ee0c8e8397884673433dfb5144fcb884250047b8743a",
             "name": "posthog-cli-x86_64-apple-darwin.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.12/posthog-cli-aarch64-unknown-linux-gnu.tar.gz",
-            "digest": "sha256:ff5407411809d6754639e50b17b7aa52de323910e3e69f35b2fd159d6e7f2b17",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.19.0/posthog-cli-aarch64-unknown-linux-gnu.tar.gz",
+            "digest": "sha256:13a986a164b3ec8f093ef7f2a9cd1360ba2f9748deab1e8e4a471fbec85bb46c",
             "name": "posthog-cli-aarch64-unknown-linux-gnu.tar.gz"
           },
           {
-            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.18.12/posthog-cli-x86_64-unknown-linux-gnu.tar.gz",
-            "digest": "sha256:313458fd8caf7adec1d15e59b2a1abcc2e9ff52a00e54cad181ec052daa50b25",
+            "browser_download_url": "https://github.com/PostHog/posthog/releases/download/posthog-cli/v0.19.0/posthog-cli-x86_64-unknown-linux-gnu.tar.gz",
+            "digest": "sha256:6d753ad8eafef0c2a4cf3d64d59dca7ad8236688a812f58c4496cc482016d6b3",
             "name": "posthog-cli-x86_64-unknown-linux-gnu.tar.gz"
           }
         ],
         "draft": false,
         "prerelease": false,
-        "tag_name": "posthog-cli/v0.18.12"
+        "tag_name": "posthog-cli/v0.19.0"
       }
     ],
     "sentry": {
@@ -293,24 +293,24 @@
     },
     "vercelDarwinArm64": {
       "dist": {
-        "integrity": "sha512-xFM8XCKtJA6mAdC2rP/5vIHAx0++6nKGpELcprjyVrlrqkfO6L49IJS6l8DV5JUXpAl/FslFaNLzNXRbLUpvjg==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-65.5.0.tgz"
+        "integrity": "sha512-+DbLuv5f35pdVJcWPLGt4McQYJJWksGxsG4P3TGGOW8g/0ZljOdHcUulviW26BUCpDuSEX3FTR5HsgjbAcPf1A==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-65.6.0.tgz"
       },
-      "version": "65.5.0"
+      "version": "65.6.0"
     },
     "vercelLinuxArm64": {
       "dist": {
-        "integrity": "sha512-njCJeRylIenYUbYX9mRqpprXxRDYWMRWSScfzPa3YRWbMHS6qXy4LrhwhmpLqu8pZABPAjy8D1D6j4AOhEQ+sA==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-65.5.0.tgz"
+        "integrity": "sha512-bHUzj0ztCnoM4MxZjJGkQYB75O11+XvHfHJLo9M3uUyQjg6Sc2+XoVQ9qAQQJxnFK6+ecBgY7VfGIAz4INWjVQ==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-65.6.0.tgz"
       },
-      "version": "65.5.0"
+      "version": "65.6.0"
     },
     "vercelLinuxX64": {
       "dist": {
-        "integrity": "sha512-11gn+EaKph3T/HkKtVy/KVXoLWBH6pQydzFLuuSJRbvQFEULMHXmuquYEz3HvXz1/9WylB+GY+GMkREuhYj9Xw==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-65.5.0.tgz"
+        "integrity": "sha512-N4ZIo8+TlG1UKOGhMddeE6/4Ax+0tMTCk9EgbOUJZtpgpuGPpA2cOAhfMdfstVolU7t9zURMyW6FCPxphLfv1Q==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-65.6.0.tgz"
       },
-      "version": "65.5.0"
+      "version": "65.6.0"
     }
   },
   "schema": 1
