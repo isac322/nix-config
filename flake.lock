@@ -561,24 +561,6 @@
         "url": "https://github.com/code-yeongyu/pi-anthropic-web-fetch.git"
       }
     },
-    "pi-anthropic-web-search-source": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1792969400,
-        "narHash": "sha256-lzGkJ7qHbTuK4G29bYbGmO0ucuLEse7jMh3XewhekbA=",
-        "ref": "main",
-        "rev": "7f262be0dde2d5e565cd407591772ea9e736e8b0",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/code-yeongyu/pi-anthropic-web-search.git"
-      },
-      "original": {
-        "ref": "main",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/code-yeongyu/pi-anthropic-web-search.git"
-      }
-    },
     "pi-codegraph-source": {
       "flake": false,
       "locked": {
@@ -595,24 +577,6 @@
         "shallow": true,
         "type": "git",
         "url": "https://github.com/isac322/pi-codegraph.git"
-      }
-    },
-    "pi-google-google-search-source": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1792969481,
-        "narHash": "sha256-6xPJk/ca4cfZABj5nV30JjA0Zk/trJjlHt+3bCCyB9U=",
-        "ref": "main",
-        "rev": "1262d7e6cc0311de51ef85886acf50498f6c3e6a",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/code-yeongyu/pi-google-google-search.git"
-      },
-      "original": {
-        "ref": "main",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/code-yeongyu/pi-google-google-search.git"
       }
     },
     "pi-google-url-context-source": {
@@ -633,24 +597,6 @@
         "url": "https://github.com/code-yeongyu/pi-google-url-context.git"
       }
     },
-    "pi-openai-web-search-source": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1792969590,
-        "narHash": "sha256-Kl7rXy+dC/abmkglWDwS988gOROWeddXG9xZaTjt0nY=",
-        "ref": "main",
-        "rev": "9c1715fb44e099c4cfb662562867afd6aa9ec4ef",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/code-yeongyu/pi-openai-web-search.git"
-      },
-      "original": {
-        "ref": "main",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/code-yeongyu/pi-openai-web-search.git"
-      }
-    },
     "root": {
       "inputs": {
         "agent-toolkit": "agent-toolkit",
@@ -667,11 +613,8 @@
         "nixpkgs": "nixpkgs_4",
         "nixpkgs-firefox-darwin": "nixpkgs-firefox-darwin",
         "pi-anthropic-web-fetch-source": "pi-anthropic-web-fetch-source",
-        "pi-anthropic-web-search-source": "pi-anthropic-web-search-source",
         "pi-codegraph-source": "pi-codegraph-source",
-        "pi-google-google-search-source": "pi-google-google-search-source",
         "pi-google-url-context-source": "pi-google-url-context-source",
-        "pi-openai-web-search-source": "pi-openai-web-search-source",
         "rust-overlay-source": "rust-overlay-source",
         "skillclaw": "skillclaw",
         "zsh-auto-notify-source": "zsh-auto-notify-source"

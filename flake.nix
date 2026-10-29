@@ -103,18 +103,6 @@
       url = "git+https://github.com/code-yeongyu/pi-google-url-context.git?ref=main&shallow=1";
       flake = false;
     };
-    pi-anthropic-web-search-source = {
-      url = "git+https://github.com/code-yeongyu/pi-anthropic-web-search.git?ref=main&shallow=1";
-      flake = false;
-    };
-    pi-openai-web-search-source = {
-      url = "git+https://github.com/code-yeongyu/pi-openai-web-search.git?ref=main&shallow=1";
-      flake = false;
-    };
-    pi-google-google-search-source = {
-      url = "git+https://github.com/code-yeongyu/pi-google-google-search.git?ref=main&shallow=1";
-      flake = false;
-    };
 
     # Lets nix-darwin manage /etc/nix/nix.custom.conf declaratively. It forces
     # `nix.enable = false`, leaving /etc/nix/nix.conf to Determinate Nix.
@@ -166,9 +154,6 @@
         piCodegraph = inputs.pi-codegraph-source;
         piAnthropicWebFetch = inputs.pi-anthropic-web-fetch-source;
         piGoogleUrlContext = inputs.pi-google-url-context-source;
-        piAnthropicWebSearch = inputs.pi-anthropic-web-search-source;
-        piOpenaiWebSearch = inputs.pi-openai-web-search-source;
-        piGoogleGoogleSearch = inputs.pi-google-google-search-source;
       };
       packageOverlay = nixpkgs.lib.composeExtensions (import inputs.rust-overlay-source) (
         import ./pkgs/overlay.nix {

@@ -222,11 +222,6 @@ let
   plugins = {
     "pi-anthropic-web-fetch" = sourcePackage "pi-anthropic-web-fetch" sourceInputs.piAnthropicWebFetch;
     "pi-google-url-context" = sourcePackage "pi-google-url-context" sourceInputs.piGoogleUrlContext;
-    "pi-anthropic-web-search" =
-      sourcePackage "pi-anthropic-web-search" sourceInputs.piAnthropicWebSearch;
-    "pi-openai-web-search" = sourcePackage "pi-openai-web-search" sourceInputs.piOpenaiWebSearch;
-    "pi-google-google-search" =
-      sourcePackage "pi-google-google-search" sourceInputs.piGoogleGoogleSearch;
     "@isac322/pi-codegraph" = npmPackage {
       name = "pi-codegraph";
       source = sourceInputs.piCodegraph;

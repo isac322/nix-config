@@ -80,7 +80,7 @@ browser:
 snapcompact:
   toolResults: true
 web_search:
-  enabled: false
+  enabled: true
 symbolPreset: nerd
 dev:
   autoqaConsent: granted

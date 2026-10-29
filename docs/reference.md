@@ -107,6 +107,23 @@ AirPlay 수신기, 스핀덤프, sleepimage 등 불필요한 소비자용 데스
 세 층 어디에도 안 맞는 것은 `extraModules` / `extraHomeModules`로 넘긴다 —
 한 기계가 미디어 서버를 겸하는 식의 경우.
 
+## OMP 웹 검색 (모든 호스트)
+
+`home/files/omp-agent-config.yml`에서 내장 `web_search`를 켠다. 검색 전용
+플러그인은 설치하지 않으며, URL 본문을 읽는 플러그인과 Camofox는 유지한다.
+웹 검색 모델과 fallback은 별도로 지정하지 않고 OMP 기본값을 따른다.
+
+일반 검색은 `web/parallel`을 먼저 시도하고, 실패하면 `web/hosted`로 넘어간다.
+Parallel 키가 없으면 공개 MCP를 쓰며, 익명 사용량 제한은 서비스 정책을 따른다.
+키가 있으면 인증된 API를 쓰므로 무료 사용을 보장하지 않는다. `web/hosted`는
+현재 세션 provider의 검색 가능 모델을 별도 요청으로 호출한다. 세션의 대화
+이력은 전달하지 않으며, hosted 검색도 실패하면 이후 기본 후보를 시도한다.
+
+각 호스트에서 switch한 뒤 `omp config get web_search.enabled --json`과
+`omp plugin list --json`으로 활성화 상태를 확인한다. 새 세션에서 내장 도구로
+검색을 요청해 결과와 출처가 돌아오는지 확인한다. `omp search`는 provider를
+직접 시험하는 명령이므로 세션 도구 활성화 확인을 대신하지 않는다.
+
 ## OMP MCP registry (모든 호스트)
 
 `home/common.nix`가 `~/.omp/agent/mcp.json` 전체를 Home Manager symlink로 만든다.
