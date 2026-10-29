@@ -467,7 +467,7 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	// 1. In subagents (`ctx.agent.kind === "sub"`): block `write` to `agent://Main` /
-	//    `agent://<parentId>` / `agent://all` so Sol subagents do not drip-feed `<irc>`
+	//    `agent://<parentId>` / `agent://all` so subagents do not drip-feed `<irc>`
 	//    progress cards or prematurely wake `wait()`.
 	// 2. In the main agent under `/bg sol` or `/bg argon`: block `goal(op="complete")`
 	//    while background jobs are still running or queued for delivery.
@@ -477,7 +477,7 @@ export default function (pi: ExtensionAPI) {
 		if (!subagent) {
 			syncFromSession(ctx);
 		}
-		if (!active || !event.input || typeof event.input !== "object") {
+		if (!event.input || typeof event.input !== "object") {
 			return;
 		}
 		const rawInput = event.input as Record<string, unknown>;
@@ -495,6 +495,9 @@ export default function (pi: ExtensionAPI) {
 						"Do not send progress or findings to Main via write(agent://Main); finish your work and end your turn without a tool call so your final result is delivered to Main automatically.",
 				};
 			}
+		}
+		if (!active) {
+			return;
 		}
 		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "goal" && rawInput.op === "complete") {
 			const pending = describePendingAsyncWork(ctx);

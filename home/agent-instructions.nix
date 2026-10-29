@@ -128,7 +128,6 @@ let
     + "\n"
     + ''
       skills:
-        enableClaudeUser: false
         ignoredSkills:
     ''
     + lib.concatMapStrings (name: "    - ${builtins.toJSON name}\n") policySkillNames

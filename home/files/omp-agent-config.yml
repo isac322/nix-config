@@ -24,8 +24,6 @@ memory:
   backend: hindsight
 autolearn:
   autoContinue: true
-bashInterceptor:
-  enabled: true
 eval:
   autoBackground:
     enabled: true
@@ -68,8 +66,6 @@ hindsight:
 compaction:
   idleEnabled: true
   idleThresholdTokens: 300000
-worktree:
-  base: ""
 tier:
   advisor: inherit
   google: priority
@@ -80,8 +76,6 @@ browser:
   enabled: false
 snapcompact:
   toolResults: true
-web_search:
-  enabled: true
 symbolPreset: nerd
 dev:
   autoqaConsent: granted
