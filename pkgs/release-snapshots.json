@@ -4,30 +4,30 @@
     "binaries": [
       {
         "name": "gjc-darwin-arm64",
-        "sha256": "c374951e9581ae720ca1ed7e75f8e77eca681d8fc0b3f65c866a460bac994699",
-        "size": 139405040
+        "sha256": "ac0bc50db45f86cfe1c3d704a3cae46646311b2cc8acb2ce67711e0e8b59fb98",
+        "size": 139537136
       },
       {
         "name": "gjc-darwin-x64",
-        "sha256": "37c33a1ba4553d1c2f793d7ad1f5508a90b88cdcea9068246d45089e4a68f171",
-        "size": 148425376
+        "sha256": "3fcd4aea34fed2b56ae73c9c95f3e033cc5ca4ce4483da260b1514f14933f097",
+        "size": 148557472
       },
       {
         "name": "gjc-linux-arm64",
-        "sha256": "18c3f2568c1c0dfed057c9ccc79da7bdb152f11cb98e08c442f426072a60eeaa",
-        "size": 160614392
+        "sha256": "de2be5d9f33fa32448498b9be37a39e83c1a54adb200829b5fef9aff4e40f88a",
+        "size": 160745464
       },
       {
         "name": "gjc-linux-x64",
-        "sha256": "9e0cfe2ad0ffd7851211289e927d709f6d30a8f33ee32ae87a3a7f1fdaf9fc18",
-        "size": 162956488
+        "sha256": "21adbac4c68d9d3e6f443e68c47087f20917ea4b57ce618c45045ef0c0790361",
+        "size": 163062984
       }
     ],
     "release_channel": "stable",
-    "release_version": "0.19.0",
+    "release_version": "0.19.2",
     "schema": "gajae-release-binaries-v1",
     "schema_version": 1,
-    "tag": "v0.19.0"
+    "tag": "v0.19.2"
   },
   "npmSourceOverrides": {
     "piCodegraph": {
