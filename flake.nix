@@ -87,10 +87,6 @@
       url = "git+https://github.com/jo-inc/camofox-browser.git?ref=master&shallow=1";
       flake = false;
     };
-    context-mode-source = {
-      url = "git+https://github.com/mksglu/context-mode.git?ref=main&shallow=1";
-      flake = false;
-    };
     zsh-auto-notify-source = {
       url = "git+https://github.com/MichaelAquilina/zsh-auto-notify.git?ref=master&shallow=1";
       flake = false;
@@ -150,7 +146,6 @@
       gajaeCodeManifest = snapshotFile "gajae-code" releaseSnapshots.gajaeCodeManifest;
       sourceInputs = {
         camofoxBrowser = inputs.camofox-browser-source;
-        contextMode = inputs.context-mode-source;
         piCodegraph = inputs.pi-codegraph-source;
         piAnthropicWebFetch = inputs.pi-anthropic-web-fetch-source;
         piGoogleUrlContext = inputs.pi-google-url-context-source;
@@ -163,7 +158,6 @@
             releaseManifests
             sourceInputs
             ;
-          bun2nix = inputs.llm-agents.inputs.bun2nix;
           npmSourceOverrides = releaseSnapshots.npmSourceOverrides;
         }
       );

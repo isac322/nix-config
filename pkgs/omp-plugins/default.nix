@@ -1,10 +1,8 @@
 {
   buildNpmPackage,
   fetchurl,
-  bun2nix,
   importNpmLock,
   lib,
-  nodejs,
   stdenvNoCC,
   sourceInputs,
   npmSourceOverrides ? { },
@@ -95,79 +93,6 @@ let
       '';
     };
 
-  contextModePackage =
-    let
-      source = sourceInputs.contextMode;
-      package = builtins.fromJSON (builtins.readFile "${source}/package.json");
-      lockLines = lib.splitString "\n" (builtins.readFile "${source}/bun.lock");
-      packageLines = builtins.filter (line: builtins.match ''^    ".*": [[].*$'' line != null) lockLines;
-      parseRegistryPackage =
-        line:
-        let
-          match = builtins.match ''^    "[^"]+": [[]"([^"]+)", "", .*"(sha512-[^"]+)"[]],?$'' line;
-        in
-        if match == null then
-          null
-        else
-          let
-            spec = builtins.elemAt match 0;
-            hash = builtins.elemAt match 1;
-            parts = lib.splitString "@" spec;
-            version = lib.last parts;
-            packageName = lib.concatStringsSep "@" (lib.init parts);
-            tarballName = lib.last (lib.splitString "/" packageName);
-          in
-          {
-            name = spec;
-            value = {
-              url = "https://registry.npmjs.org/${packageName}/-/${tarballName}-${version}.tgz";
-              inherit hash;
-            };
-          };
-      parsedPackages = map parseRegistryPackage packageLines;
-      registryPackages = builtins.filter (entry: entry != null) parsedPackages;
-      bunNix =
-        {
-          fetchurl,
-          ...
-        }:
-        assert lib.assertMsg (
-          builtins.length registryPackages == builtins.length packageLines
-        ) "context-mode bun.lock contains a non-registry or unhashed package";
-        builtins.listToAttrs (
-          map (entry: {
-            inherit (entry) name;
-            value = fetchurl entry.value;
-          }) registryPackages
-        );
-      bunDeps = bun2nix.fetchBunDeps { inherit bunNix; };
-    in
-    stdenvNoCC.mkDerivation {
-      pname = "context-mode";
-      inherit (package) version;
-      src = source;
-      inherit bunDeps;
-
-      nativeBuildInputs = [
-        bun2nix.hook
-        nodejs
-      ];
-      bunInstallFlags = [
-        "--production"
-        "--linker=hoisted"
-      ]
-      ++ lib.optionals stdenvNoCC.hostPlatform.isDarwin [ "--backend=copyfile" ];
-      dontRunLifecycleScripts = true;
-      dontUseBunBuild = true;
-
-      installPhase = ''
-        runHook preInstall
-        mkdir -p "$out"
-        cp -R . "$out/"
-        runHook postInstall
-      '';
-    };
-
   piCodegraphPackageLock = builtins.fromJSON (
     builtins.readFile "${sourceInputs.piCodegraph}/package-lock.json"
   );
@@ -235,7 +160,6 @@ let
         ${piCodingAgentPath} = piCodingAgentWithoutShrinkwrap;
       };
     };
-    "context-mode" = contextModePackage;
   };
 in
 stdenvNoCC.mkDerivation {

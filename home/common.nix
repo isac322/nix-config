@@ -259,14 +259,6 @@ let
   # here rather than in the shared definitions.
   ompMcpServers = lib.mapAttrs (_: server: server // { timeout = 120000; }) (
     {
-      # An OMP plugin that happens to speak MCP. It ships inside the plugin set
-      # this file installs, so it stays out of the shared definitions.
-      "context-mode" = {
-        type = "stdio";
-        command = lib.getExe pkgs.bun;
-        args = [ "${pkgs.omp-plugins.plugins."context-mode"}/server.bundle.mjs" ];
-      };
-
       # Granola is OMP-only and stays disabled by default; activate it
       # on demand via `/mcp enable granola`.
       granola = {
@@ -935,8 +927,8 @@ in
 
   }
   // {
-    # The complete user-level MCP registry. `force` performs the one-time
-    # migration from the mutable file that context-mode originally created.
+    # The complete user-level MCP registry. `force` replaces any mutable file
+    # left behind by manual edits so the Nix declaration stays authoritative.
     # OAuth credentials are stored separately, so remote authentication never
     # puts secrets in this world-readable Nix store file.
     ".omp/agent/mcp.json" = {

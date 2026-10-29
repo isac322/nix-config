@@ -39,6 +39,7 @@ task:
   isolation:
     commits: ai
   showResolvedModelBadge: true
+  completionProbe: false
   agentAdvisor:
     task: "off"
   agentModelOverrides:
@@ -86,3 +87,5 @@ dev:
   autoqaConsent: granted
 features:
   unexpectedStopDetection: true
+providers:
+  cacheWarming: streaming

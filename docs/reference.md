@@ -127,13 +127,12 @@ Parallel 키가 없으면 공개 MCP를 쓰며, 익명 사용량 제한은 서�
 ## OMP MCP registry (모든 호스트)
 
 `home/common.nix`가 `~/.omp/agent/mcp.json` 전체를 Home Manager symlink로 만든다.
-기본 registry에는 local stdio server인 `context-mode`와 Linear의 공식 remote MCP
-server가 들어간다. `local.camofox.enable`이 켜진 모든 호스트에는 session-aware
-`camofox` stdio bridge도 같은 registry에 추가된다.
+기본 registry에는 Linear의 공식 remote MCP server가 들어간다.
+`local.camofox.enable`이 켜진 모든 호스트에는 session-aware `camofox` stdio
+bridge도 같은 registry에 추가된다.
 
 | 이름 | transport | endpoint / command | 인증 |
 |---|---|---|---|
-| `context-mode` | stdio | Nix로 고정한 plugin bundle | 없음 |
 | `linear` | streamable HTTP | `https://mcp.linear.app/mcp` | OAuth 2.1 |
 | `camofox` | stdio | `camofox-browser-mcp-session omp` | loopback API |
 
@@ -621,7 +620,7 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `tempo-cli` | nixpkgs override | `subPackages`를 하나로 줄인다 |
 | `camoufox` | GitHub release archive | aarch64-darwin·aarch64-linux browser core |
 | `camofox-browser` | Git source + npm lock | source revision과 dependency lock을 함께 추적 |
-| `omp-plugins` | Git source + upstream npm/Bun locks | plugin version과 OMP registry를 같은 source snapshot에서 생성 |
+| `omp-plugins` | Git source + upstream npm lock | plugin version과 OMP registry를 같은 source snapshot에서 생성 |
 | `camofox-url-handler` | 로컬 Objective-C/Cocoa | HTTP/HTTPS URL을 관리 Camofox API에 전달 |
 | `deskpad` | GitHub app zip | aarch64-darwin virtual display |
 | `displayplacer` | GitHub release binary | aarch64-darwin display layout tool |
@@ -655,8 +654,7 @@ lock을 `flake.lock`에 고정한다. release API, npm `latest`, 공식 checksum
 하위 GitHub 입력 override는 선택된 상위 flake의 lock과 같은 revision·내용을
 유지하도록 생성한다. OMP plugin registry는 각 source의 `package.json` version에서
 만들어지며, pi-codegraph의 누락된 npm integrity는 선택된 source lock에 맞춘
-`npmSourceOverrides` snapshot으로 보완한다. `context-mode`는 `bun.lock`의 registry
-package와 integrity를 직접 읽어 같은 flake에 잠긴 `bun2nix` dependency cache로 넘긴다.
+`npmSourceOverrides` snapshot으로 보완한다.
 CLI 패키징 결정과 각 패키지의 함정은
 [0019](decisions/0019-package-from-published-artifacts.md), Camofox 쪽 결정은
 [0031](decisions/0031-deskpad-virtual-display-on-clamshell-macos.md)에 있다.

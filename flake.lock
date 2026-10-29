@@ -106,24 +106,6 @@
         "url": "https://github.com/jo-inc/camofox-browser.git"
       }
     },
-    "context-mode-source": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1793210774,
-        "narHash": "sha256-LmvuZZKnOnX/b4uJfq25EXH2H7o5sNuNn0mxeMfaicU=",
-        "ref": "main",
-        "rev": "0f8ba1010411bc6b1c6b1147b4ef0c5c5e2bc694",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/mksglu/context-mode.git"
-      },
-      "original": {
-        "ref": "main",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/mksglu/context-mode.git"
-      }
-    },
     "determinate": {
       "inputs": {
         "determinate-nixd-aarch64-darwin": "determinate-nixd-aarch64-darwin",
@@ -601,7 +583,6 @@
       "inputs": {
         "agent-toolkit": "agent-toolkit",
         "camofox-browser-source": "camofox-browser-source",
-        "context-mode-source": "context-mode-source",
         "determinate": "determinate",
         "gentle-ai": "gentle-ai",
         "home-manager": "home-manager",
