@@ -72,14 +72,14 @@ description: Use when reviewing a GitHub pull request as the reviewer, including
 
 - **PRR-25** [U] 판정은 라벨이 아니라 GitHub 리뷰 이벤트로 남긴다. `GREEN`은 `gh pr review <N> --approve`, `BLOCKING`(`partially superseded`, `close-without-merge` 포함)은 `--request-changes`, 판정이 아닌 보고(superseded 닫기 안내, 판정 없이 남기는 정보)는 `--comment`다. `GREEN`이지만 `PR-ready: false`(check 실패, 충돌)여도 diff에 blocking finding이 없으면 APPROVE하고 본문 첫 줄에 이유를 적는다. 리뷰 계정이 PR 작성자라서 GitHub가 APPROVE·REQUEST_CHANGES를 거부하면(`gh api user --jq .login`과 PR author 비교) 같은 본문을 `COMMENT`로 남기고, 원래 이벤트를 쓰지 못한 이유를 최종 보고에 적는다. 초안 모드에서는 쓸 이벤트를 초안에 함께 적는다.
 - **PRR-26** 코멘트는 판정을 맨 앞에 두고 `references/comment-template.md`의 PR 고유 요소를 담는다. 문체, 위생, 승인 초안 대조, 게시 주체는 `isac-github-publishing`을 따른다.
-- **PRR-37** head가 바뀐 뒤의 재리뷰는 새 판정에 맞는 이벤트로 다시 남긴다. 같은 리뷰어의 최신 리뷰가 이전 APPROVE·REQUEST_CHANGES를 대체하므로 이전 리뷰를 따로 dismiss하지 않는다. 재리뷰하지 않을 거면 이전 APPROVE가 새 head를 보증하지 않는다고 최종 보고에 적는다.
+- **PRR-37** 리뷰 대상 코드 diff가 바뀐 뒤의 재리뷰는 새 판정에 맞는 이벤트로 다시 남긴다. 같은 리뷰어의 최신 리뷰가 이전 APPROVE·REQUEST_CHANGES를 대체하므로 이전 리뷰를 따로 dismiss하지 않는다. 충돌 없는 base 최신화나 문서 전용 수정으로 재리뷰를 생략할 때는 기존 리뷰가 그대로 유효하다고 보고한다.
 - **PRR-28** fork PR의 CI 실패(예: 토큰 권한 부족으로 인한 403)는 PR 결함이라고 말하기 전에 환경·권한 문제인지 먼저 분리하고, 그렇다면 그렇게 보고한다.
 
 ## 8. 재리뷰
 
 재리뷰 루프와 head 변경 시 판정 무효화는 `isac-multi-agent-consensus`, 자동 리뷰어 재요청과 대기는 전역 `pull-request-review-guard`를 따른다. PR에 고유한 부분만 둔다.
 
-- **PRR-29** 새 head의 재리뷰 코멘트는 이전 finding마다 새 라인 증거로 Closed/Open을 먼저 표시하고, 그다음 새 finding을 나열한다. 수정이 새 회귀 경로를 만들지 않았는지 §4 회귀 항목을 다시 적용한다. head가 바뀌면 이전 판정과 CI 결과도 무효로 보고 PRR-37대로 다시 남긴다.
+- **PRR-29** 재리뷰 코멘트는 이전 finding마다 새 라인 증거로 Closed/Open을 먼저 표시하고, 그다음 새 finding을 나열한다. 수정이 새 회귀 경로를 만들지 않았는지 §4 회귀 항목을 다시 적용한다. MAC-20에 따라 리뷰 대상 코드 diff가 바뀌면 이전 판정도 무효로 보고 PRR-37대로 다시 남긴다.
 - **PRR-30** 문구·범위만 바꾸는 fix-round에서는 판정을 바꾸지 않고 재현도 다시 돌리지 않는다. 원래 모르는 영역에 대해 새 테스트나 근본 원인의 확실성을 새로 요구하지 않는다. 교정은 구체적일 때만 내고 아니면 통과시킨다.
 
 ## 9. 사용자 보고(한국어)

@@ -86,7 +86,7 @@ description: Use when turning a GitHub issue whose defect, root cause, and fix d
 - **I2P-27** [U] 우회 경로로 통과시키고 "완료"라고 하지 않는다. 검증 대상 기능 자체가 실제 경로로 동작해야 완료다. 외부 자원을 관리하는 제품이면 "제품이 실제로 했는가"는 제품이 기록한 원격 식별자와 외부 시스템의 실제 객체를 1:1로 대조해 증명한다.
 - **I2P-28** [U] 설치·실사용 검증(데모, 릴리스 후 확인, 설치 경로 이슈, 제보자 동등 환경 검증)에서는 README의 공개 설치 방법으로 설치한 산출물로 검증하고 소스 트리 직접 실행이나 개발용 지름길을 쓰지 않는다. 수정이 아직 릴리스 전이면 브랜치에서 릴리스와 같은 방식(wheel, 이미지, 패키지)으로 산출물을 빌드해 같은 설치 방법으로 설치한다. 막히면 문서에 없는 패키지나 숨은 우회를 쓰지 않고 실제 실패를 보고하며 문서나 코드 수정을 제안한다. 보고에는 설치 방법, README 경로 일치 여부, 설치·실행 중 문제를 적는다. 어느 검증이든 API 성공 문자열이 아니라 실제 결과를 본다.
 - **I2P-30** pass / fail / blocked를 분리해 보고하고 blocked를 pass로 세지 않는다. 권한 부족으로 못 하는 쓰기는 빼지 않고 permission-denial 테스트나 blocked 항목으로 남긴다. 실환경·공유 환경에서 돌릴 항목은 `isac-live-qa`의 안전 절차를 거친다.
-- **I2P-32** PR 전에 `isac-multi-agent-consensus`의 독립 리뷰어 규칙대로 구현과 분리된 리뷰어가 commit된 head SHA(worktree는 그 SHA를 checkout한 상태)를 교차 리뷰하고, 그 루프의 종료 조건을 만족해야 PR을 연다. head SHA가 바뀌면 MAC-20대로 다시 리뷰한다.
+- **I2P-32** PR 전에 `isac-multi-agent-consensus`의 독립 리뷰어 규칙대로 구현과 분리된 리뷰어가 commit된 head SHA(worktree는 그 SHA를 checkout한 상태)를 교차 리뷰하고, 그 루프의 종료 조건을 만족해야 PR을 연다. 이후 변경 시 재리뷰 여부는 MAC-20과 전역 PR 리뷰 가드를 따른다.
 
 ## 테스트 코드화
 
@@ -120,7 +120,7 @@ description: Use when turning a GitHub issue whose defect, root cause, and fix d
 - **I2P-51** [U] main 리뷰어(`isac-multi-agent-consensus`의 병렬 수정 리뷰 규칙)는 각 PR 코드를 한 줄씩 읽고 이슈와 대조해 세 가지를 판정한다: 또 다른 regression을 일으키는가, 성능 문제를 일으키는가, 이슈의 문제를 실제로 해결하는가. 기준과 판정 형식은 `isac-pr-review`를 따른다. finding은 담당 에이전트가 고치고 CI green을 유지한다.
 - **I2P-52** [U] 머지 게이트: 리뷰 통과(`isac-multi-agent-consensus` 리뷰-GREEN 루프 종료 조건; `PR-ready: true`만으로는 부족), QA list 전부 테스트 코드화, CI 전부 green, 회귀 테스트와 제보자 동등 환경 검증 완료. 넷이 모두 충족돼야 머지 후보가 된다. 머지 승인·방법·옵션은 전역 PR 머지 가드를 따른다.
 - **I2P-53** [U] 머지 여부는 요청마다 다르다. 현재 지시를 다시 확인하고 추정하지 않는다. 머지하라는 지시가 없으면 머지하지 않는다.
-- **I2P-54** [U] 여러 PR의 머지를 지시받았으면 하나씩 처리한다: 최신 main으로 up to date → CI 통과 확인 → 머지. 형제 PR이 머지되면 남은 PR은 새 main을 합치고 새 HEAD에서 전체 검증을 다시 돌린다.
+- **I2P-54** [U] 여러 PR의 머지를 지시받았으면 하나씩 처리한다: 최신 main으로 up to date → CI 통과 확인 → 머지. 형제 PR이 머지되면 남은 PR은 새 main을 합쳐 CI 통과를 확인하고, 충돌 해결이나 겹치는 변경이 있는 범위만 재검증·재리뷰한다.
 - **I2P-56** 머지 승인을 구하거나 머지 알림을 줄 때 변경 범위를 명시한다: 테스트 전용인지 제품 런타임인지, 무엇을 건드리지 않았는지.
 
 ## 머지 후와 보고
