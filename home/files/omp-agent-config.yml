@@ -10,12 +10,10 @@ setupVersion: 2
 extendedContext: true
 statusLine:
   preset: nerd
-  compactThinkingLevel: false
 terminal:
   showProgress: true
 tui:
   tight: true
-  codexResetFireworks: true
   imeSafeCursor: true
 display:
   showTokenUsage: true
@@ -57,7 +55,6 @@ modelRoles:
   tiny: anthropic/claude-haiku-5-5:low, google-vertex/gemini-3.8-flash:low, openai-codex/gpt-6-luna:low
   commit: google-vertex/gemini-3.5-flash-lite:low
   judge: typesafe/jev-preview
-defaultThinkingLevel: auto
 find:
   enabled: true
 hindsight:
