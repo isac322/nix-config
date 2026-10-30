@@ -121,12 +121,7 @@ def select_assets(
     }
 
 
-def github_latest(
-    repository: str,
-    tag_prefix: str,
-    asset_names: Callable[[str], list[str]],
-    previous_release: dict[str, Any] | None,
-) -> dict[str, Any]:
+def github_latest_release(repository: str, tag_prefix: str) -> dict[str, Any]:
     page = 1
     release: dict[str, Any] | None = None
     while release is None:
@@ -155,9 +150,18 @@ def github_latest(
                     f"with tag prefix {tag_prefix}"
                 )
             page += 1
+    return release
+
+
+def github_latest(
+    repository: str,
+    tag_prefix: str,
+    asset_names: Callable[[str], list[str]],
+    previous_release: dict[str, Any] | None,
+) -> dict[str, Any]:
+    release = github_latest_release(repository, tag_prefix)
     version = release["tag_name"].removeprefix(tag_prefix)
     return select_assets(release, asset_names(version), previous_release)
-
 
 def posthog_release(
     previous_releases: list[dict[str, Any]] | None,
@@ -661,6 +665,74 @@ def camoufox_release(lock: dict[str, Any], previous_release: dict[str, Any] | No
     )
 
 
+
+def cf_release(repository: Path, previous_release: dict[str, Any] | None) -> dict[str, Any]:
+    """Select cloudflare/cf's latest GitHub release tag and pnpm dependency hash."""
+    release = github_latest_release("cloudflare/cf", "cf@")
+    tag_name = release["tag_name"]
+    version = tag_name.removeprefix("cf@")
+    if (
+        previous_release
+        and previous_release.get("tag_name") == tag_name
+        and isinstance(previous_release.get("hash"), str)
+        and previous_release["hash"].startswith("sha256-")
+    ):
+        src_hash = previous_release["hash"]
+    else:
+        print(f"prefetching {tag_name} source", file=sys.stderr)
+        archive_url = f"https://github.com/cloudflare/cf/archive/refs/tags/{quote(tag_name, safe='')}.tar.gz"
+        src_hash = nix_json(
+            "store", "prefetch-file", "--unpack", "--name", "source", "--json", archive_url
+        )["hash"]
+    if (
+        previous_release
+        and previous_release.get("tag_name") == tag_name
+        and previous_release.get("hash") == src_hash
+        and isinstance(previous_release.get("pnpmDepsHash"), str)
+        and previous_release["pnpmDepsHash"].startswith("sha256-")
+    ):
+        pnpm_deps_hash = previous_release["pnpmDepsHash"]
+    else:
+        print(f"hashing {tag_name} pnpmDeps", file=sys.stderr)
+        expr = f"""
+        let
+          flake = builtins.getFlake (toString {nix_string(str(repository))});
+          pkgs = flake.inputs.nixpkgs.legacyPackages.${{builtins.currentSystem}};
+          cf = pkgs.cf.overrideAttrs (finalAttrs: prevAttrs: {{
+            version = {nix_string(version)};
+            __intentionallyOverridingVersion = true;
+            src = prevAttrs.src.override {{
+              tag = {nix_string(tag_name)};
+              hash = {nix_string(src_hash)};
+            }};
+            pnpmDeps = prevAttrs.pnpmDeps.override {{
+              inherit (finalAttrs) version src;
+              hash = pkgs.lib.fakeHash;
+            }};
+          }});
+        in cf.pnpmDeps
+        """
+        result = subprocess.run(
+            ["nix", "build", "--no-link", "--impure", "--expr", expr],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        match = re.search(r"\bgot:\s+(sha256-[A-Za-z0-9+/=]+)", result.stderr)
+        if not match:
+            raise RuntimeError(
+                f"failed to compute pnpmDepsHash for {tag_name}: {result.stderr.strip()}"
+            )
+        pnpm_deps_hash = match.group(1)
+    return {
+        "draft": bool(release.get("draft", False)),
+        "hash": src_hash,
+        "pnpmDepsHash": pnpm_deps_hash,
+        "prerelease": bool(release.get("prerelease", False)),
+        "tag_name": tag_name,
+        "version": version,
+    }
+
 def npm_source_overrides(lock: dict[str, Any], previous: dict[str, Any]) -> dict[str, Any]:
     owner, repository, rev = locked_github_source(lock, "pi-codegraph-source")
     package_lock = fetch_json(
@@ -773,6 +845,9 @@ def main() -> int:
         verify_lock_graph(lock, parents)
         snapshot["releaseManifests"]["camoufox"] = camoufox_release(
             lock, previous_data.get("releaseManifests", {}).get("camoufox")
+        )
+        snapshot["releaseManifests"]["cf"] = cf_release(
+            repository, previous_data.get("releaseManifests", {}).get("cf")
         )
         snapshot["npmSourceOverrides"] = npm_source_overrides(
             lock, previous_data.get("npmSourceOverrides", {})

@@ -185,6 +185,33 @@ let
         }
       );
 
+      # Follow cloudflare/cf's GitHub releases directly rather than waiting for
+      # nixpkgs bumps to land in nixpkgs-unstable. nixpkgs's expression already
+      # builds from the `cf@<version>` GitHub tag and a platform-independent
+      # pnpm dependency archive, so overriding the version, source hash, and
+      # pnpmDeps hash preserves its workerd fixups, Linux autoPatchelf, and
+      # generated shell completions across all three platforms.
+      cf = prev.cf.overrideAttrs (
+        finalAttrs: prevAttrs:
+        let
+          manifest = builtins.fromJSON (builtins.readFile releaseManifests.cf);
+        in
+        {
+          inherit (manifest) version;
+          __intentionallyOverridingVersion = true;
+
+          src = prevAttrs.src.override {
+            tag = manifest.tag_name;
+            inherit (manifest) hash;
+          };
+
+          pnpmDeps = prevAttrs.pnpmDeps.override {
+            inherit (finalAttrs) version src;
+            hash = manifest.pnpmDepsHash;
+          };
+        }
+      );
+
       # nixpkgs builds all four of Tempo's commands, three of which are the
       # server side of a trace store nothing here runs. Building only the CLI
       # takes the closure from 237 MiB to about 70 and keeps a binary called

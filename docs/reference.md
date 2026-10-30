@@ -410,19 +410,23 @@ endpoint, bucket, region과 S3 자격증명은
 
 ## 서비스 CLI — 읽는 것에서 하는 것으로
 
-`wrangler`, `stripe`, `gws`는 모든 노드의 같은 자리에 둔다(`home/common.nix`).
+`cf`, `wrangler`, `stripe`, `gws`는 모든 노드의 같은 자리에 둔다(`home/common.nix`).
 관측 CLI가 "무슨 일이 있었는지"를 읽는 쪽이라면 이쪽은 에이전트가 실제로
 **손을 대는** 쪽이다 — Worker를 배포하고, 결제 이벤트를 찾고, 캘린더를 읽는다.
 브라우저 자동화는 별도 CLI가 아니라 모든 호스트의 Camofox MCP가 담당한다.
 NixOS server에는 별도 Chrome/Chromium 패키지를 설치하지 않는다.
 
-이름이 다른 둘에는 다음 주의가 필요하다.
+이름이 다른 셋에는 다음 주의가 필요하다.
 
 - **`gws`가 구글 워크스페이스 CLI다.** 상류 이름은 `@googleworkspace/cli`인데
   설치되는 바이너리는 `gws`이고, nixpkgs의 attribute도 `gws`다.
   `google-workspace-cli` 같은 attribute는 없다. 구글 저장소에 있지만
   "officially supported Google product가 아니다"라고 스스로 명시한다.
 - **`stripe-cli`가 설치하는 바이너리는 `stripe`다.**
+- **`cf`는 `cloudflare-cli`가 아니다.** Cloudflare의 공식 API·Workers CLI는
+  `cf` attribute이고(`cf`와 `cloudflare` 바이너리 제공), `pkgs/overlay.nix`가
+  `cloudflare/cf`의 최신 GitHub release 태그를 직접 따라간다. nixpkgs의
+  `cloudflare-cli`는 무관한 서드파티 `cfcli`다.
 - **`wrangler` 는 클로저가 774 MiB 다.** 상류가 `workerd` 와 여러 플랫폼용
   `esbuild` 를 함께 담기 때문이고, 잘라낼 `subPackages` 같은 손잡이가 없다.
   `cache.nixos.org` 에서 그대로 받아오니 빌드 시간은 들지 않는다.
@@ -617,6 +621,7 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `slack-cli` | GitHub release binary | nixpkgs의 동명 attribute를 갈아끼운다 |
 | `ntn` | ntn.dev release archive | Notion CLI; 상류 설치 스크립트와 같은 target별 archive·`.sha256` |
 | `bun` | GitHub release binary override | 잠긴 nixpkgs보다 최신인 동안만 override |
+| `cf` | GitHub release source override | `cloudflare/cf`의 최신 릴리스 태그와 `pnpmDeps` 해시를 추적 |
 | `tempo-cli` | nixpkgs override | `subPackages`를 하나로 줄인다 |
 | `camoufox` | GitHub release archive | aarch64-darwin·aarch64-linux browser core |
 | `camofox-browser` | Git source + npm lock | source revision과 dependency lock을 함께 추적 |

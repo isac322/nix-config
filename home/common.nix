@@ -641,6 +641,7 @@ in
     # Notion's `ntn`, which nixpkgs does not have.
     pkgs.slack-cli
     pkgs.ntn
+    pkgs.cf
     pkgs.wrangler
     pkgs.stripe-cli
     pkgs.gws

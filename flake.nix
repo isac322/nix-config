@@ -299,6 +299,7 @@
             omp-bin
             omo
             tempo-cli
+            cf
             ;
         }
         // nixpkgs.lib.optionalAttrs (system == "aarch64-darwin") {

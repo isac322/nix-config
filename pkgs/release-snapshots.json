@@ -94,6 +94,14 @@
       "prerelease": false,
       "tag_name": "v152.0.4-beta.30"
     },
+    "cf": {
+      "draft": false,
+      "hash": "sha256-j17xSQ3NEFSrM4hJ4KO7qiSbkb4KLQK7OeupNlOVnWY=",
+      "pnpmDepsHash": "sha256-C0LpZQlljt1Y3hnq9B/aoGOgLHrbqKuS67uTqLuwKF4=",
+      "prerelease": false,
+      "tag_name": "cf@1.0.0-beta.26",
+      "version": "1.0.0-beta.26"
+    },
     "deskpad": {
       "assets": [
         {
