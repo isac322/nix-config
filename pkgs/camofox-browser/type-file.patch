@@ -1,0 +1,66 @@
+--- a/mcp/lib/tool-contracts.mjs
++++ b/mcp/lib/tool-contracts.mjs
+@@ -22,6 +22,7 @@
+  * and response adapter stay declarative.
+  */
+ 
++import { readFileSync, unlinkSync } from 'node:fs';
+ import { readCookieFile } from './cookies.mjs';
+ 
+ /**
+@@ -120,10 +121,15 @@
+         tabId: { type: 'string', description: 'Tab identifier' },
+         ref: { type: 'string', description: 'Element ref from snapshot (e.g., e2)' },
+         selector: { type: 'string', description: 'CSS selector (alternative to ref)' },
+-        text: { type: 'string', description: 'Text to type' },
++        text: { type: 'string', description: 'Text to type (provide either text or textFile)' },
++        textFile: {
++          type: 'string',
++          description:
++            'Path to a local UTF-8 file containing the text to type (single trailing newline stripped). The file is deleted immediately after reading so secrets never appear in tool arguments or transcripts.',
++        },
+         pressEnter: { type: 'boolean', description: 'Press Enter after typing' },
+       },
+-      required: ['tabId', 'text'],
++      required: ['tabId'],
+     },
+   },
+   {
+@@ -307,14 +313,35 @@
+         responseKind: 'json',
+         body: { ...without(args), userId, sessionKey },
+       };
+-    case 'camofox_type':
++    case 'camofox_type': {
++      const { textFile, ...rest } = without(args);
++      if (textFile !== undefined) {
++        if (typeof textFile !== 'string' || !textFile.trim()) {
++          throw new Error('textFile must be a non-empty file path');
++        }
++        if (rest.text !== undefined) {
++          throw new Error('Provide either text or textFile, not both');
++        }
++        let raw;
++        try {
++          raw = readFileSync(textFile, 'utf8');
++        } finally {
++          try {
++            unlinkSync(textFile);
++          } catch {}
++        }
++        rest.text = raw.replace(/\r?\n$/, '');
++      } else if (typeof rest.text !== 'string') {
++        throw new Error('text or textFile is required');
++      }
+       return {
+         method: 'POST',
+         path: `/tabs/${args.tabId}/type`,
+         auth: 'accessKey',
+         responseKind: 'json',
+-        body: { ...without(args), userId, sessionKey },
++        body: { ...rest, userId, sessionKey },
+       };
++    }
+     case 'camofox_press':
+       return {
+         method: 'POST',

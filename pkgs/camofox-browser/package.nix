@@ -100,11 +100,17 @@ buildNpmPackage {
   # Camoufox humanizes every cursor path, which costs seconds per click and is
   # unwanted while measuring UI latency. Keep it on by default and allow
   # CAMOFOX_HUMANIZE=0 to turn it off for a measurement run.
+  #
+  # Typing a password or TOTP code directly through camofox_type puts the
+  # plaintext secret into the tool-call arguments and session transcript.
+  # Allow camofox_type to read the text from a local file (textFile) and
+  # unlink it immediately so credentials never pass through model context.
   patches = [
     ./session-isolation.patch
     ./click-witness.patch
     ./select-tool.patch
     ./press-tool.patch
+    ./type-file.patch
     ./humanize-toggle.patch
   ];
   postPatch = ''

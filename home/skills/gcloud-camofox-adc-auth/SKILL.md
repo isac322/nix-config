@@ -36,6 +36,7 @@ hub(
 Retrieve the OAuth authorization URL from process stdout/logs (`hub(op="logs", name="gcloud-auth")`): `https://accounts.google.com/o/oauth2/auth?...`.
 
 ### 3. Camofox Browser Automation
+Delegate this browser flow to the `browser` subagent (unless already running inside `browser`):
 1. **Create Tab**: Call `camofox_create_tab` with the authorization URL.
 2. **Account Selection or Email Entry**:
    - Take snapshot with `camofox_snapshot`.
@@ -47,14 +48,14 @@ Retrieve the OAuth authorization URL from process stdout/logs (`hub(op="logs", n
    - **Case B: Email Entry Form** (`#identifierId` or `input[type="email"]`):
      Type email (`isac@runbear.io`) and submit (press Enter or click Next).
 3. **Password Entry** (if prompted):
-   - Retrieve password from macOS Keychain:
+   - Write the password from macOS Keychain to a mode-`0600` temporary file without printing it to stdout:
      ```bash
-     security find-generic-password -a "isac@runbear.io" -s "google-login" -w
+     f=$(mktemp "${TMPDIR:-/tmp}/camofox-secret.XXXXXX") && chmod 600 "$f" && /usr/bin/security find-generic-password -a "isac@runbear.io" -s "google-login" -w > "$f" && [ -s "$f" ] && printf '%s\n' "$f" || { rm -f "$f"; exit 1; }
      ```
      *(If Keychain is locked or lookup fails with error code 36, prompt the user to unlock the keychain or enter password).*
-   - Type into `input[type="password"]` and submit.
+   - Pass the returned file path as `textFile` to `camofox_type` targeting `input[type="password"]` with `pressEnter: true` (the tool reads the password and deletes the file immediately).
 4. **2-Step Verification (2FA)** (if prompted):
-   - If `totp list` has `Google:isac@runbear.io`, switch the challenge to the authenticator app ("Try another way" → Google Authenticator) and enter `totp code "Google:isac@runbear.io"`, following the two-factor codes instructions in your context.
+   - If `totp list` has `Google:isac@runbear.io`, switch the challenge to the authenticator app ("Try another way" → Google Authenticator), write a fresh code to a mode-`0600` temporary file (`f=$(mktemp "${TMPDIR:-/tmp}/camofox-secret.XXXXXX") && chmod 600 "$f" && totp code "Google:isac@runbear.io" > "$f" && [ -s "$f" ] && printf '%s\n' "$f"`), and pass `textFile` to `camofox_type` with `pressEnter: true`.
    - Otherwise, **DO NOT** attempt to bypass or simulate hardware 2FA / push notifications. Prompt the user using `ask` tool with clear instructions (e.g. tap 'Yes' on Galaxy Tab S7+ or mobile device), and wait for user confirmation.
 5. **Consent Approval**:
    - On Google Cloud SDK consent screen ("Google Cloud SDK wants access to your Google Account"), locate the "Allow" button.

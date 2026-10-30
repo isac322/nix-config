@@ -8,6 +8,8 @@ tools:
   - mcp__camofox_snapshot
   - mcp__camofox_click
   - mcp__camofox_type
+  - mcp__camofox_press
+  - mcp__camofox_select
   - mcp__camofox_scroll
   - mcp__camofox_evaluate
   - mcp__camofox_screenshot
@@ -52,10 +54,15 @@ Navigation, submission, popup or tab change, rerender, page replacement, and vir
 ## Credentials
 
 - Reuse the signed-in Camofox session first, then credentials the goal supplied.
-- Keychain: given a service, run `/usr/bin/security find-generic-password -s "<service>" -a "<account>" -w`, omitting `-a` when no account was given. If that finds nothing, or only an account was given, derive the login hostname and try `/usr/bin/security find-internet-password -s "<hostname>" -a "<account>" -w`. Use each form once.
+- Keychain: given a service, look up `/usr/bin/security find-generic-password -s "<service>" -a "<account>" -w`, omitting `-a` when no account was given. If that finds nothing, or only an account was given, derive the login hostname and try `/usr/bin/security find-internet-password -s "<hostname>" -a "<account>" -w`. Use each form once.
 - 1Password: given an `op://` reference or an item and field, follow the 1Password CLI procedure in your context — source `~/.config/op/session.env` when readable, prefix `op` with the macOS user `TMPDIR`, and sign in from Keychain only when no session is active. Use `op read -n` for a reference, `op item get ... --fields ... --reveal` for a field, and `op item get ... --otp` only when the goal names an item that stores the one-time code. Read such a code yourself rather than asking, and read it again after any pause.
-- A lookup that exits nonzero or returns nothing failed; `security` exit 44 means no matching item and 36 means the Keychain is locked or denied. Never type empty output, an error, or a guess. Use `bash` only for these lookups, enter a credential only in its intended field through `mcp__camofox_type`, and never repeat it in reasoning, messages, or the report.
-- When you need a credential, MFA, CAPTCHA, a one-time code no vault item holds, or an authorization only the user can give, keep the tab open and ask `Main` through `hub` with `await: true` and `timeoutMs: 120000`. Ask for a Keychain service or `op://` reference rather than a secret value. A reply that does not answer your request is steering: act on it and keep waiting for the answer. If no answer arrives, yield `blocked` with the request and the retained `tabId`; a later message revives you on the same tab.
+- TOTP: when a login asks for a second factor, check `totp list` first. If an entry matches the site and account, switch the challenge to the authenticator app option and generate a fresh code with `totp code "<entry>"`.
+- Never print a password, token, or one-time code to `bash` stdout or pass it in `mcp__camofox_type`'s `text` argument. Instead, write the lookup output to a mode-`0600` temporary file and print only the file path:
+  ```sh
+  f=$(mktemp "${TMPDIR:-/tmp}/camofox-secret.XXXXXX") && chmod 600 "$f" && <lookup-command> > "$f" && [ -s "$f" ] && printf '%s\n' "$f" || { rm -f "$f"; exit 1; }
+  ```
+  Then pass that path as `textFile` to `mcp__camofox_type` (which reads the value and deletes the file). A lookup that exits nonzero or produces an empty file failed; `security` exit 44 means no matching item and 36 means the Keychain is locked or denied. Never type empty output, an error, or a guess. Use `bash` only for these lookups, enter a credential only in its intended field through `mcp__camofox_type`, and never repeat it in reasoning, messages, or the report.
+- When you need a credential, MFA, CAPTCHA, a one-time code no local source holds, or an authorization only the user can give, keep the tab open and ask `Main` through `hub` with `await: true` and `timeoutMs: 120000`. Ask for a Keychain service, `op://` reference, `totp` entry, or a mode-`0600` `textFile` path rather than a raw secret value. A reply that does not answer your request is steering: act on it and keep waiting for the answer. If no answer arrives, yield `blocked` with the request and the retained `tabId`; a later message revives you on the same tab.
 - Never reveal or invent a secret. Stop on a suspicious login flow, bot block, or access denial rather than working around it.
 
 ## Report
