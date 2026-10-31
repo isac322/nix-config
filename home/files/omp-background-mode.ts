@@ -376,22 +376,28 @@ let restore: (() => Promise<void>) | undefined;
 let active: string | undefined;
 let savedPrevModel: string | undefined;
 let savedPrevThinking: string | undefined;
-// Whether the main agent has shown a decision brief in visible assistant text since the
-// last user prompt or executed `ask`.
-let briefVisible = false;
+// Number of main-agent assistant messages since the last one that showed a decision brief in
+// visible text (0 = the current message), or undefined when none did since the last user
+// submission, executed `ask`, or session change.
+let briefAge: number | undefined;
+// Thresholds from 553 judged `ask` calls (2026-10-18..31): requiring one message with 200+
+// visible characters within the last 6 assistant messages blocked none of the 331 calls
+// with an adequate brief and all 147 without an explanation.
+const BRIEF_MIN_CHARS = 200;
+const BRIEF_MAX_AGE = 5;
 
-// A decision brief must sit in visible assistant text: `ask` previews only four lines of
-// its question, and thinking blocks never reach the user.
-function hasVisibleBrief(content: unknown): boolean {
-	if (!Array.isArray(content)) return false;
-	const text = content
+// `ask` previews only four lines of its question, and thinking blocks never reach the
+// user, so the brief must sit in visible text blocks.
+function visibleTextLength(content: unknown): number {
+	if (!Array.isArray(content)) return 0;
+	return content
 		.map((block) =>
 			block && typeof block === "object" && "type" in block && block.type === "text" && "text" in block
 				? String(block.text)
 				: "",
 		)
-		.join("\n");
-	return text.includes("현상") && text.includes("선택지");
+		.join("")
+		.trim().length;
 }
 
 export default function (pi: ExtensionAPI) {
@@ -456,15 +462,19 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	pi.on("session_start", (_event, ctx) => {
+		briefAge = undefined;
 		syncFromSession(ctx);
 	});
 	pi.on("session_switch", (_event, ctx) => {
+		briefAge = undefined;
 		syncFromSession(ctx);
 	});
 	pi.on("session_branch", (_event, ctx) => {
+		briefAge = undefined;
 		syncFromSession(ctx);
 	});
 	pi.on("session_tree", (_event, ctx) => {
+		briefAge = undefined;
 		syncFromSession(ctx);
 	});
 
@@ -473,7 +483,6 @@ export default function (pi: ExtensionAPI) {
 	// (Opus main) or inside subagents.
 	pi.on("before_agent_start", async (event, ctx) => {
 		if (isSubagentContext(ctx)) return;
-		briefVisible = false;
 		syncFromSession(ctx);
 		if (!isNonOpusMainProfile(active)) return;
 		const marker = "# When to ask the user for permission";
@@ -496,15 +505,25 @@ export default function (pi: ExtensionAPI) {
 		}
 	});
 
-	// Record whether the main agent showed a decision brief in visible text. This runs
-	// before tool dispatch, so `tool_call` sees the brief from the same message. Failed or
-	// aborted generations do not count: the replays showed Argon calling a bare `ask` right
+	// A new user message starts a fresh decision context. `input` fires only for user
+	// submissions, so goal continuations and background-job wakes keep a brief that the
+	// previous turn just showed.
+	pi.on("input", (event) => {
+		// Slash commands such as `/bg status` are not new requests.
+		if (typeof event.text === "string" && event.text.trimStart().startsWith("/")) return;
+		briefAge = undefined;
+	});
+
+	// Track how recently the main agent showed a decision brief in visible text. This runs
+	// before tool dispatch, so `tool_call` sees a brief from the same message. Failed or
+	// aborted generations are skipped: the replays showed Argon calling a bare `ask` right
 	// after a MALFORMED_FUNCTION_CALL whose cut-off text still held a brief.
 	pi.on("assistant_message", (event, ctx) => {
 		if (isSubagentContext(ctx) || !isNonOpusMainProfile(active)) return;
 		const { stopReason, content } = event.message;
 		if (stopReason === "error" || stopReason === "aborted") return;
-		if (hasVisibleBrief(content)) briefVisible = true;
+		if (visibleTextLength(content) >= BRIEF_MIN_CHARS) briefAge = 0;
+		else if (briefAge !== undefined) briefAge += 1;
 	});
 
 	// 1. In subagents (`ctx.agent.kind === "sub"`): block `write` to `agent://Main` /
@@ -562,7 +581,12 @@ export default function (pi: ExtensionAPI) {
 		// A blocked `ask` ends in a text-only brief: in replays of session 01a01e84 Gemini 4
 		// Argon often failed with MALFORMED_FUNCTION_CALL when it retried a long brief and
 		// `ask` in one message, while a text-only brief always reached the user.
-		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "ask" && !briefVisible) {
+		if (
+			!subagent &&
+			isNonOpusMainProfile(active) &&
+			event.toolName === "ask" &&
+			(briefAge === undefined || briefAge > BRIEF_MAX_AGE)
+		) {
 			return {
 				block: true,
 				reason:
@@ -630,7 +654,7 @@ export default function (pi: ExtensionAPI) {
 	pi.on("tool_result", async (event, ctx) => {
 		if (isSubagentContext(ctx)) return;
 		syncFromSession(ctx);
-		if (event.toolName === "ask") briefVisible = false;
+		if (event.toolName === "ask") briefAge = undefined;
 		if (!isNonOpusMainProfile(active) || event.toolName !== "wait") return;
 		const pending = describePendingAsyncWork(ctx);
 		if (!pending) return;
