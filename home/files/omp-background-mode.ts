@@ -376,6 +376,23 @@ let restore: (() => Promise<void>) | undefined;
 let active: string | undefined;
 let savedPrevModel: string | undefined;
 let savedPrevThinking: string | undefined;
+// Whether the main agent has shown a decision brief in visible assistant text since the
+// last user prompt or executed `ask`.
+let briefVisible = false;
+
+// A decision brief must sit in visible assistant text: `ask` previews only four lines of
+// its question, and thinking blocks never reach the user.
+function hasVisibleBrief(content: unknown): boolean {
+	if (!Array.isArray(content)) return false;
+	const text = content
+		.map((block) =>
+			block && typeof block === "object" && "type" in block && block.type === "text" && "text" in block
+				? String(block.text)
+				: "",
+		)
+		.join("\n");
+	return text.includes("현상") && text.includes("선택지");
+}
 
 export default function (pi: ExtensionAPI) {
 	const scope = pi.pi.settings;
@@ -456,6 +473,7 @@ export default function (pi: ExtensionAPI) {
 	// (Opus main) or inside subagents.
 	pi.on("before_agent_start", async (event, ctx) => {
 		if (isSubagentContext(ctx)) return;
+		briefVisible = false;
 		syncFromSession(ctx);
 		if (!isNonOpusMainProfile(active)) return;
 		const marker = "# When to ask the user for permission";
@@ -478,11 +496,23 @@ export default function (pi: ExtensionAPI) {
 		}
 	});
 
+	// Record whether the main agent showed a decision brief in visible text. This runs
+	// before tool dispatch, so `tool_call` sees the brief from the same message. Failed or
+	// aborted generations do not count: the replays showed Argon calling a bare `ask` right
+	// after a MALFORMED_FUNCTION_CALL whose cut-off text still held a brief.
+	pi.on("assistant_message", (event, ctx) => {
+		if (isSubagentContext(ctx) || !isNonOpusMainProfile(active)) return;
+		const { stopReason, content } = event.message;
+		if (stopReason === "error" || stopReason === "aborted") return;
+		if (hasVisibleBrief(content)) briefVisible = true;
+	});
+
 	// 1. In subagents (`ctx.agent.kind === "sub"`): block `write` to `agent://Main` /
 	//    `agent://<parentId>` / `agent://all` so subagents do not drip-feed `<irc>`
 	//    progress cards or prematurely wake `wait()`.
 	// 2. In the main agent under `/bg sol` or `/bg argon`: block `goal(op="complete")`
-	//    while background jobs are still running or queued for delivery.
+	//    while background jobs are still running or queued for delivery, and block `ask`
+	//    until a decision brief appeared in visible assistant text.
 	// 3. Normalize OpenAI strict-schema dummy fields on `bash` and `task` calls.
 	pi.on("tool_call", async (event, ctx) => {
 		const subagent = isSubagentContext(ctx);
@@ -528,6 +558,16 @@ export default function (pi: ExtensionAPI) {
 					reason: `Only background bash job(s) remain (${pending}). Do NOT call wait (which wakes the LLM every 30m); end your turn now and OMP will wait with zero LLM calls and wake this session automatically the moment the job finishes.`,
 				};
 			}
+		}
+		// A blocked `ask` ends in a text-only brief: in replays of session 01a01e84 Gemini 4
+		// Argon often failed with MALFORMED_FUNCTION_CALL when it retried a long brief and
+		// `ask` in one message, while a text-only brief always reached the user.
+		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "ask" && !briefVisible) {
+			return {
+				block: true,
+				reason:
+					"ask를 호출하지 말고, 진행 상황·현상·원인/배경·선택지 비교·권장 이유와 질문을 thinking이 아닌 본문 텍스트로만 출력한 뒤 도구 호출 없이 턴을 끝내세요.",
+			};
 		}
 		const shouldNormalizeToolInput = subagent ? !isOpusContextModel(ctx) : isNonOpusMainProfile(active);
 		if (!shouldNormalizeToolInput) {
@@ -590,6 +630,7 @@ export default function (pi: ExtensionAPI) {
 	pi.on("tool_result", async (event, ctx) => {
 		if (isSubagentContext(ctx)) return;
 		syncFromSession(ctx);
+		if (event.toolName === "ask") briefVisible = false;
 		if (!isNonOpusMainProfile(active) || event.toolName !== "wait") return;
 		const pending = describePendingAsyncWork(ctx);
 		if (!pending) return;
