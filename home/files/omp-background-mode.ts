@@ -358,6 +358,18 @@ function describePendingAsyncWork(ctx: unknown): string | undefined {
 	return labels.length > 0 ? labels.join(", ") : `${runningLabels.length + queuedCount} job(s)`;
 }
 
+function hasRunningTaskSubagent(ctx: unknown): boolean {
+	if (!ctx || typeof ctx !== "object" || !("getAsyncJobSnapshot" in ctx)) return false;
+	const getSnap = ctx.getAsyncJobSnapshot;
+	if (typeof getSnap !== "function") return false;
+	const snap: unknown = getSnap.call(ctx);
+	if (!snap || typeof snap !== "object") return false;
+	const runningRaw = "running" in snap && Array.isArray(snap.running) ? snap.running : [];
+	return runningRaw.some(
+		(item) => item && typeof item === "object" && "type" in item && item.type === "task",
+	);
+}
+
 // Module-scoped state so subagent ExtensionRunner instances bound in the same OMP
 // process observe the active background profile without clobbering parent overrides.
 let restore: (() => Promise<void>) | undefined;
@@ -504,7 +516,16 @@ export default function (pi: ExtensionAPI) {
 			if (pending) {
 				return {
 					block: true,
-					reason: `Cannot complete goal while background jobs are still running or pending delivery (${pending}). Call wait until all background jobs finish, then emit one consolidated final report.`,
+					reason: `Cannot complete goal while background jobs are still running or pending delivery (${pending}). End your turn without completing the goal so OMP wakes this session automatically when the background work finishes.`,
+				};
+			}
+		}
+		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "wait") {
+			const pending = describePendingAsyncWork(ctx);
+			if (pending && !hasRunningTaskSubagent(ctx)) {
+				return {
+					block: true,
+					reason: `Only background bash job(s) remain (${pending}). Do NOT call wait (which wakes the LLM every 30m); end your turn now and OMP will wait with zero LLM calls and wake this session automatically the moment the job finishes.`,
 				};
 			}
 		}
@@ -572,20 +593,13 @@ export default function (pi: ExtensionAPI) {
 		if (!isNonOpusMainProfile(active) || event.toolName !== "wait") return;
 		const pending = describePendingAsyncWork(ctx);
 		if (!pending) return;
+		if (!hasRunningTaskSubagent(ctx)) {
+			return {
+				additionalContext: `Only background bash job(s) remain (${pending}). Do NOT call wait again and do NOT write a final report yet; end your turn now so OMP waits with zero LLM calls and wakes this session automatically when the job finishes.`,
+			};
+		}
 		return {
 			additionalContext: `Background jobs are still running or pending delivery (${pending}). Do NOT write an interim synthesis or final report yet; call wait again until 0 background jobs remain.`,
-		};
-	});
-
-	pi.on("session_stop", async (_event, ctx) => {
-		if (isSubagentContext(ctx)) return;
-		syncFromSession(ctx);
-		if (!isNonOpusMainProfile(active)) return;
-		const pending = describePendingAsyncWork(ctx);
-		if (!pending) return;
-		return {
-			decision: "block",
-			reason: `Background jobs are still running or pending delivery (${pending}). Call wait until all background jobs finish before writing the final report.`,
 		};
 	});
 
