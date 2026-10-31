@@ -306,10 +306,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1793355386,
-        "narHash": "sha256-LqcJT70bmWwc+zExlP8wcvmgaT7NRLAkkV7AGcB/vXA=",
+        "lastModified": 1793428911,
+        "narHash": "sha256-bUgGsuGGTIlF7zmM/ca/vK7YUZ65YH7cnSVGJZX3GcU=",
         "ref": "refs/heads/main",
-        "rev": "df3a4abe7d0840d5f60324812c432e00b66a4e75",
+        "rev": "b7a89176e4e87422b40f98adabceb051dbb5448b",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -329,16 +329,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1793421291,
-        "narHash": "sha256-dAxTsgOTmVRPhI8WoM3GwPM3WCAPBsEEUp9iyqbuGdQ=",
+        "lastModified": 1793435943,
+        "narHash": "sha256-kl4L50m8mMMyQLjH2d46ljtdzR+9vlgpoDmOrpNV/SU=",
         "ref": "refs/heads/main",
-        "rev": "acb4dc6e4aed9da686428e9e09a93979f5a76387",
+        "rev": "b14f9d18b6d127221bd9f63817a40e1cca2b344b",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "acb4dc6e4aed9da686428e9e09a93979f5a76387",
+        "rev": "b14f9d18b6d127221bd9f63817a40e1cca2b344b",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -604,10 +604,10 @@
     "rust-overlay-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1793348683,
-        "narHash": "sha256-qv+P8z2xS5Xdws5Kigvr/WKJiaJSa6Ke8iH7ozmO53w=",
+        "lastModified": 1793434469,
+        "narHash": "sha256-+sgVNI2c67di+XIeMaz5KSei4T65kX68s5Nl0E5Gzbc=",
         "ref": "master",
-        "rev": "96a0986b0486341fbc163fa2fabc6d3b44cdcbf1",
+        "rev": "6ecf534a7c16e7c969f26838fdd8c93597ae93f3",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
