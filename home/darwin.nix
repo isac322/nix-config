@@ -20,13 +20,11 @@ let
   # in a new /nix/store directory. Where omp is itself the responsible process
   # (the server logged such prompts for 18.4.0 and again for 18.4.1), each
   # update therefore asked again.
-  # Activation copies the binary to this fixed file and the `omp` on PATH is
-  # a symlink to it, so one grant keeps matching the next release too.
+  # Activation copies the binary to this fixed file and the `omp` on PATH
+  # (home/omp-launcher.nix) execs that file, so one grant keeps matching the
+  # next release too.
   ompStablePath = "${config.home.homeDirectory}/.local/libexec/omp/omp";
-  ompStable = pkgs.runCommand "omp-stable" { meta.mainProgram = "omp"; } ''
-    mkdir -p "$out/bin"
-    ln -s ${lib.escapeShellArg ompStablePath} "$out/bin/omp"
-  '';
+  ompStable = import ./omp-launcher.nix { inherit (pkgs) writeText writeTextFile; } ompStablePath;
 
   # One key does everything: SSH authentication, git commit signing, and the
   # PGP signing that Arch packaging needs. The GPG key's authentication subkey

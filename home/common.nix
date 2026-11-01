@@ -594,9 +594,12 @@ in
 
     # Official OMP standalone binaries. `nix run .#update-packages` refreshes
     # the version, platform assets, and sha256 digests in one snapshot. The
-    # Macs put a fixed-path copy on PATH instead (home/darwin.nix).
+    # `omp` on PATH is home/omp-launcher.nix in front of the binary; the Macs
+    # point it at a fixed-path copy instead (home/darwin.nix).
   ]
-  ++ lib.optional (!pkgs.stdenv.hostPlatform.isDarwin) pkgs.omp-bin
+  ++ lib.optional (!pkgs.stdenv.hostPlatform.isDarwin) (
+    import ./omp-launcher.nix { inherit (pkgs) writeText writeTextFile; } (lib.getExe pkgs.omp-bin)
+  )
   ++ [
 
     # Gajae Code is also an agent harness, tracking verified upstream release
