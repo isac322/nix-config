@@ -159,46 +159,46 @@
     "omo": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.55/omo-darwin-arm64",
-          "digest": "sha256:9fa82d8de31035d61c46f3374f0581d8ef8d155f5188282e9c2c9274e51ae98c",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.56/omo-darwin-arm64",
+          "digest": "sha256:e5a4545ce3b89ef31aab5567bf39748df3684468d5a5b810f592665e9ff4b1b7",
           "name": "omo-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.55/omo-linux-arm64",
-          "digest": "sha256:9e2026c9a2c2081f3e8ccba64f9f864cc1678716c6e4d2c37a9e123b9856eea5",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.56/omo-linux-arm64",
+          "digest": "sha256:3215829f9ad0dfd1882f7c2754fa4d6b8c4e6da0c530554e5aed478ca4d6c844",
           "name": "omo-linux-arm64"
         },
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.55/omo-linux-x64",
-          "digest": "sha256:e5186d782d7f32695095f6980170633c2fd775d03d1e12a3d8352390a261776b",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.56/omo-linux-x64",
+          "digest": "sha256:6a75f4baf92814c96fb71b3e6bdaecb5772a393e6e9d37ffd812cc3505c08360",
           "name": "omo-linux-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v5.1.55"
+      "tag_name": "v5.1.56"
     },
     "omp": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.14.2/omp-darwin-arm64",
-          "digest": "sha256:9b7bda0bd8ec8d1fd8f8deda076180deef2d4921ee60e7d2f39044ee7d9437ee",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.15.0/omp-darwin-arm64",
+          "digest": "sha256:d36dfabf0ee52d6f08efadb59c46f0349545c6f6975522417adae29646e73e34",
           "name": "omp-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.14.2/omp-linux-musl-arm64",
-          "digest": "sha256:a743f0b3e10dda03c3eb317ea377e76263772887c83e54aff45cc508aa62df24",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.15.0/omp-linux-musl-arm64",
+          "digest": "sha256:f20148c4765287a9cb473ad7337ceb3841ecf602e0478c220e02e30d8cfc1ab2",
           "name": "omp-linux-musl-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.14.2/omp-linux-musl-x64",
-          "digest": "sha256:e66e537d86189bc47b059f94d512915c2ed5dfc8541729c5c5e000557c65391b",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.15.0/omp-linux-musl-x64",
+          "digest": "sha256:f3e8152c17b1ea7ce054103c55dadfe2c18991c76dbf4057cd0d2049345ba05c",
           "name": "omp-linux-musl-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v18.14.2"
+      "tag_name": "v18.15.0"
     },
     "posthog": [
       {
