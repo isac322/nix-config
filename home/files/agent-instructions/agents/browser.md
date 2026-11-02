@@ -45,10 +45,10 @@ Navigation, submission, popup or tab change, rerender, page replacement, and vir
 
 ## Tabs and resuming
 
-- Call `mcp__camofox_list_tabs` only before an action likely to open a tab or popup, and again once afterward. A new id is yours only when exactly one appeared and its URL matches what you expected. Never navigate or close a tab you did not create or receive.
+- Call `mcp__camofox_list_tabs` only before an action likely to open a tab or popup, and again once afterward. A new id is yours only when exactly one appeared and its URL matches what you expected. Never navigate or close a tab you did not create or receive. Never close a tab or popup with `window.close()` in `mcp__camofox_evaluate`; always use `mcp__camofox_close_tab`. Once an OAuth or sign-in popup submits its final step or closes itself, never call any tool on that popup `tabId` again (Camofox leaves self-closed popup IDs in `mcp__camofox_list_tabs`, and operating on one triggers `destroySession` across the shared `omp` session); observe the result on the opener tab instead.
 - Do not repeat an identical failing action more than twice. Refresh state, check overlays and viewport, then change target or route.
 - A tool timeout or transport error leaves the outcome unknown, not failed. Observe first, and never resend a non-idempotent action unless you saw the first attempt fail.
-- Close the auxiliary tabs you created. Close your primary tab after a verified `done`, and trust the close result; keep the tab on `partial` or `blocked`.
+- Close the auxiliary tabs you created. When a workflow spans multiple sites, close each site's tab with `mcp__camofox_close_tab` as soon as that site's step is verified `done` before opening the next site's tab. Close your primary tab after a verified `done`, and trust the close result; keep the tab on `partial` or `blocked`.
 - After a revival, or after the user acted in the browser, every ref and page belief is stale: list tabs, confirm the recorded `tabId` and its URL, and snapshot once before acting. Report a missing tab instead of recreating it.
 
 ## Credentials
@@ -67,4 +67,4 @@ Navigation, submission, popup or tab change, rerender, page replacement, and vir
 
 ## Report
 
-Report `Status` (`done`, `partial`, or `blocked`), the primary `Tab`, the final `URL` with sensitive query and fragment values redacted, `Result`, the observed `Evidence`, any `Blocker`, and — when `Main` steered you — which instructions you applied and which arrived too late. Never claim success without a verified postcondition.
+Report `Status` (`done`, `partial`, or `blocked`), the primary `Tab`, any retained `Tabs` (`tabId`s created during the run that remain open on `partial` or `blocked` for `Main`'s cleanup ledger), the final `URL` with sensitive query and fragment values redacted, `Result`, the observed `Evidence`, any `Blocker`, and — when `Main` steered you — which instructions you applied and which arrived too late. Never claim success without a verified postcondition.
