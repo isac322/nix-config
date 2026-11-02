@@ -411,9 +411,13 @@ function visibleTextLength(content: unknown): number {
 // todo task with the same text. Only the user can drop an item: a completed todo task
 // `SCOPE CHANGE: <item> — user said: "<quote>"` excuses it when the quote appears in a user
 // message or `ask` answer given after the goal started. In replays of sessions that stopped
-// early, this blocked all 8 premature completes that still reproduced.
+// early, this blocked all 8 premature completes that still reproduced; in 8 fresh live goals
+// (PR to merge against a local GitHub stand-in) Sol wrote the list first every time and no
+// finished goal was blocked.
 const CHECKLIST_SWITCH_TYPE = "bg-checklist-switch";
-const CHECKLIST_LOCK_TYPE = "bg-checklist";
+// Todo changes made through `tool.todo` inside eval land as this custom entry instead of a
+// todo tool result.
+const TODO_EDIT_TYPE = "user_todo_edit";
 const ACCEPTANCE_PHASE = "Acceptance";
 const SCOPE_CHANGE_PREFIX = "SCOPE CHANGE:";
 const MIN_QUOTE_CHARS = 8;
@@ -461,13 +465,23 @@ function askAnswers(details: unknown, out: string[] = []): string[] {
 	return out;
 }
 
+// The locked checklist is the first todo state with an "Acceptance" phase recorded while the
+// goal is active, so it survives resume and compaction without a separate entry.
 function readGoalChecklist(branch: unknown[]): GoalChecklist {
 	let goalId: string | undefined;
 	let goalActive = false;
-	const startedGoals = new Set<string>();
 	const locks = new Map<string, string[]>();
 	let tasks: TodoTask[] = [];
 	let userText = "";
+	const onTodo = (details: unknown) => {
+		const phases = (details as { phases?: { name?: string; tasks?: TodoTask[] }[] } | undefined)?.phases;
+		if (!Array.isArray(phases)) return;
+		tasks = phases.flatMap((p) => p.tasks ?? []);
+		if (!goalActive || !goalId || locks.has(goalId)) return;
+		const phase = phases.find((p) => normText(p.name ?? "").toLowerCase() === ACCEPTANCE_PHASE.toLowerCase());
+		const items = (phase?.tasks ?? []).map((t) => normText(t.content ?? "")).filter(Boolean);
+		if (items.length > 0) locks.set(goalId, items);
+	};
 	for (const raw of branch) {
 		if (!raw || typeof raw !== "object") continue;
 		const entry = raw as Record<string, unknown>;
@@ -477,15 +491,11 @@ function readGoalChecklist(branch: unknown[]): GoalChecklist {
 			if (goalActive && typeof goal?.id === "string") {
 				if (goal.id !== goalId) userText = "";
 				goalId = goal.id;
-				startedGoals.add(goalId);
 			}
 			continue;
 		}
-		if (entry.type === "custom" && entry.customType === CHECKLIST_LOCK_TYPE) {
-			const d = entry.data as { goalId?: unknown; items?: unknown } | undefined;
-			if (typeof d?.goalId === "string" && Array.isArray(d.items)) {
-				locks.set(d.goalId, d.items.filter((i): i is string => typeof i === "string"));
-			}
+		if (entry.type === "custom" && entry.customType === TODO_EDIT_TYPE) {
+			onTodo(entry.data);
 			continue;
 		}
 		if (entry.type !== "message") continue;
@@ -494,20 +504,10 @@ function readGoalChecklist(branch: unknown[]): GoalChecklist {
 		if (m.role === "user" && goalActive) userText += `\n${contentText(m.content)}`;
 		if (m.role !== "toolResult") continue;
 		if (m.toolName === "ask" && goalActive) userText += `\n${askAnswers(m.details).join("\n")}`;
-		if (m.toolName !== "todo") continue;
-		const phases = (m.details as { phases?: { tasks?: TodoTask[] }[] } | undefined)?.phases;
-		if (Array.isArray(phases)) tasks = phases.flatMap((p) => p.tasks ?? []);
+		if (m.toolName === "todo") onTodo(m.details);
 	}
 	const id = goalActive ? goalId : undefined;
 	return { goalId: id, locked: id ? locks.get(id) : undefined, tasks, userText: normText(userText) };
-}
-
-function acceptancePhaseItems(details: unknown): string[] | undefined {
-	const phases = (details as { phases?: { name?: string; tasks?: TodoTask[] }[] } | undefined)?.phases;
-	if (!Array.isArray(phases)) return undefined;
-	const phase = phases.find((p) => normText(p.name ?? "").toLowerCase() === ACCEPTANCE_PHASE.toLowerCase());
-	const items = (phase?.tasks ?? []).map((t) => normText(t.content ?? "")).filter(Boolean);
-	return items.length > 0 ? items : undefined;
 }
 
 function checklistVerdict(state: GoalChecklist, locked: string[]): { unfinished: string[]; rejected: string[] } {
@@ -824,19 +824,6 @@ export default function (pi: ExtensionAPI) {
 		if (isSubagentContext(ctx)) return;
 		syncFromSession(ctx);
 		if (event.toolName === "ask") briefAge = undefined;
-		if (active === "sol" && event.toolName === "todo" && !event.isError) {
-			const branch = sessionBranch(ctx);
-			if (checklistSwitchOn(branch)) {
-				const goal = readGoalChecklist(branch);
-				const items = acceptancePhaseItems("details" in event ? event.details : undefined);
-				if (goal.goalId && !goal.locked && items) {
-					pi.appendEntry(CHECKLIST_LOCK_TYPE, { goalId: goal.goalId, items });
-					return {
-						additionalContext: `The "${ACCEPTANCE_PHASE}" checklist is now locked for this goal (${items.length} items). goal complete is rejected until each is marked completed with the same text.`,
-					};
-				}
-			}
-		}
 		if (!isNonOpusMainProfile(active) || event.toolName !== "wait") return;
 		const pending = describePendingAsyncWork(ctx);
 		if (!pending) return;
