@@ -126,6 +126,30 @@ let
           ) [ ./vim/gtk2-image-compat.patch ];
       });
 
+      # mold 3.0.0's build.rs skips mold-wrapper.so on macOS (`mold -run` uses
+      # ELF LD_PRELOAD and is unsupported there), while nixpkgs' postInstall
+      # unconditionally moves `$out/lib/mold-wrapper.so`. Strip that move on
+      # Darwin; Linux keeps the upstream derivation and binary cache hit.
+      mold-unwrapped =
+        if final.stdenv.hostPlatform.isDarwin then
+          prev.mold-unwrapped.overrideAttrs (old: {
+            postInstall =
+              builtins.replaceStrings
+                [
+                  ''
+                    mkdir -p $out/lib/mold
+                    mv $out/lib/mold-wrapper.so $out/lib/mold
+                  ''
+                ]
+                [ "" ]
+                (old.postInstall or "");
+            passthru = (old.passthru or { }) // {
+              tests = builtins.removeAttrs (old.passthru.tests or { }) [ "run" ];
+            };
+          })
+        else
+          prev.mold-unwrapped;
+
       # omp's plugins as one node_modules tree, pinned here rather than fetched at
       # run time by `omp plugin install`.
       omp-bin = final.callPackage ./omp-bin/package.nix {

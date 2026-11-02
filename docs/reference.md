@@ -650,6 +650,12 @@ GTK2 Vim의 이미지 기능 컴파일 오류에는 릴리스된 9.2.1170의
 GTK2 GUI·클립보드·huge 기능과 터미널 kitty/sixel 이미지는 유지하고,
 GTK2가 지원하지 않는 GUI 이미지 경로(`FEAT_IMAGE_GUI`)만 비활성화한다.
 
+Darwin의 `mold-unwrapped` 3.0.0 설치 오류에는 `postInstall`에서 macOS가 빌드하지
+않는 `mold-wrapper.so`(`LD_PRELOAD`용 preload 라이브러리) 이동 단계만 제거한다.
+상류가 Darwin 조건 분기를 넣으면 문자열 치환은 무해한 no-op이 되어 상류 derivation과
+같은 store 경로를 유지하며, Linux는 처음부터 상류 derivation과 바이너리 캐시를
+그대로 쓴다.
+
 Git branch 기반 source는 `flake = false` input으로 두어 revision과 dependency
 lock을 `flake.lock`에 고정한다. release API, npm `latest`, 공식 checksum처럼
 내용이 같은 URL에서 바뀌는 응답은 flake input으로 삼지 않는다.
