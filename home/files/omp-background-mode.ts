@@ -10,6 +10,8 @@
 //   Anthropic quota wherever a measured equal exists.
 // - `argon`: Gemini 4 Argon main agent, which understands the problem and writes the
 //   specs while Sol implements them.
+// - `checklist on|off`: experimental acceptance-checklist gate for goals under `sol`
+//   (see `CHECKLIST_SWITCH_TYPE`); off by default, recorded per session.
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 
@@ -215,6 +217,7 @@ const SUBCOMMANDS = [
 	{ name: "argon", description: "Gemini 4 Argon main agent, Sol implementer, roles re-curated around it" },
 	{ name: "off", description: "Restore the base config and the previous model" },
 	{ name: "status", description: "Show the active profile and key roles" },
+	{ name: "checklist", description: "Experimental: lock a goal's acceptance checklist under /bg sol (on|off)" },
 ];
 
 function appendDirective(baseText: unknown, directive: string, marker: string): string {
@@ -400,6 +403,159 @@ function visibleTextLength(content: unknown): number {
 		.trim().length;
 }
 
+// Acceptance checklist gate (experimental, `/bg checklist on`, effective only under `/bg sol`).
+// Sol tends to call goal complete once it has written a report, treating an uninvestigated
+// failure or its own narrowed reading of the objective as the end state. At goal start Sol
+// writes the goal's deliverables as a todo phase named "Acceptance"; the first such list is
+// locked for that goal, and `goal complete` is blocked until every locked item is a completed
+// todo task with the same text. Only the user can drop an item: a completed todo task
+// `SCOPE CHANGE: <item> — user said: "<quote>"` excuses it when the quote appears in a user
+// message or `ask` answer given after the goal started. In replays of sessions that stopped
+// early, this blocked all 8 premature completes that still reproduced.
+const CHECKLIST_SWITCH_TYPE = "bg-checklist-switch";
+const CHECKLIST_LOCK_TYPE = "bg-checklist";
+const ACCEPTANCE_PHASE = "Acceptance";
+const SCOPE_CHANGE_PREFIX = "SCOPE CHANGE:";
+const MIN_QUOTE_CHARS = 8;
+const CHECKLIST_MARKER = "# Goal acceptance checklist";
+const CHECKLIST_DIRECTIVE = [
+	CHECKLIST_MARKER,
+	`Before any other work on the active goal, call the todo tool with a phase named exactly "${ACCEPTANCE_PHASE}" whose tasks are every deliverable that must be true for the goal to be complete, taken from the objective and the user's instructions (each target, merge, deploy or apply, push, live QA, report, ...). Keep your working steps in other phases.`,
+	`The first "${ACCEPTANCE_PHASE}" list is locked for this goal: goal complete is rejected until every locked item is marked completed with the same text, and you mark an item completed only when it is actually true now. Only the user can drop or change an item.`,
+].join("\n");
+
+type TodoTask = { content?: string; status?: string };
+
+type GoalChecklist = {
+	goalId: string | undefined;
+	locked: string[] | undefined;
+	tasks: TodoTask[];
+	userText: string;
+};
+
+function normText(s: string): string {
+	return s.replace(/\s+/g, " ").trim();
+}
+
+function contentText(content: unknown): string {
+	if (typeof content === "string") return content;
+	if (!Array.isArray(content)) return "";
+	return content
+		.map((b) => (b && typeof b === "object" && b.type === "text" && typeof b.text === "string" ? b.text : ""))
+		.join("\n");
+}
+
+// Answers typed or picked in the `ask` dialog: details carry them as `customInput`, `note`, and
+// `selectedOptions`, at the top level for one question and per result for several.
+function askAnswers(details: unknown, out: string[] = []): string[] {
+	if (Array.isArray(details)) {
+		for (const d of details) askAnswers(d, out);
+		return out;
+	}
+	if (!details || typeof details !== "object") return out;
+	for (const [key, value] of Object.entries(details)) {
+		if ((key === "customInput" || key === "note") && typeof value === "string") out.push(value);
+		else if (key === "selectedOptions" && Array.isArray(value)) out.push(...value.filter((v) => typeof v === "string"));
+		else if (value && typeof value === "object") askAnswers(value, out);
+	}
+	return out;
+}
+
+function readGoalChecklist(branch: unknown[]): GoalChecklist {
+	let goalId: string | undefined;
+	let goalActive = false;
+	const startedGoals = new Set<string>();
+	const locks = new Map<string, string[]>();
+	let tasks: TodoTask[] = [];
+	let userText = "";
+	for (const raw of branch) {
+		if (!raw || typeof raw !== "object") continue;
+		const entry = raw as Record<string, unknown>;
+		if (entry.type === "mode_change") {
+			const goal = (entry.data as { goal?: { id?: unknown } } | undefined)?.goal;
+			goalActive = entry.mode === "goal" || entry.mode === "goal_paused";
+			if (goalActive && typeof goal?.id === "string") {
+				if (goal.id !== goalId) userText = "";
+				goalId = goal.id;
+				startedGoals.add(goalId);
+			}
+			continue;
+		}
+		if (entry.type === "custom" && entry.customType === CHECKLIST_LOCK_TYPE) {
+			const d = entry.data as { goalId?: unknown; items?: unknown } | undefined;
+			if (typeof d?.goalId === "string" && Array.isArray(d.items)) {
+				locks.set(d.goalId, d.items.filter((i): i is string => typeof i === "string"));
+			}
+			continue;
+		}
+		if (entry.type !== "message") continue;
+		const m = entry.message as { role?: string; toolName?: string; content?: unknown; details?: unknown } | undefined;
+		if (!m) continue;
+		if (m.role === "user" && goalActive) userText += `\n${contentText(m.content)}`;
+		if (m.role !== "toolResult") continue;
+		if (m.toolName === "ask" && goalActive) userText += `\n${askAnswers(m.details).join("\n")}`;
+		if (m.toolName !== "todo") continue;
+		const phases = (m.details as { phases?: { tasks?: TodoTask[] }[] } | undefined)?.phases;
+		if (Array.isArray(phases)) tasks = phases.flatMap((p) => p.tasks ?? []);
+	}
+	const id = goalActive ? goalId : undefined;
+	return { goalId: id, locked: id ? locks.get(id) : undefined, tasks, userText: normText(userText) };
+}
+
+function acceptancePhaseItems(details: unknown): string[] | undefined {
+	const phases = (details as { phases?: { name?: string; tasks?: TodoTask[] }[] } | undefined)?.phases;
+	if (!Array.isArray(phases)) return undefined;
+	const phase = phases.find((p) => normText(p.name ?? "").toLowerCase() === ACCEPTANCE_PHASE.toLowerCase());
+	const items = (phase?.tasks ?? []).map((t) => normText(t.content ?? "")).filter(Boolean);
+	return items.length > 0 ? items : undefined;
+}
+
+function checklistVerdict(state: GoalChecklist, locked: string[]): { unfinished: string[]; rejected: string[] } {
+	const status = new Map(state.tasks.map((t) => [normText(t.content ?? ""), t.status]));
+	const excused = new Set<string>();
+	const rejected: string[] = [];
+	for (const t of state.tasks) {
+		const content = normText(t.content ?? "");
+		if (!content.startsWith(SCOPE_CHANGE_PREFIX) || t.status !== "completed") continue;
+		const item = locked.find((i) => content.includes(i));
+		const quote = normText(/"([^"]+)"/.exec(content)?.[1] ?? "");
+		if (!item) rejected.push(`${content} (does not contain a locked item's exact text)`);
+		else if (quote.length < MIN_QUOTE_CHARS) rejected.push(`${content} (has no quoted user text)`);
+		else if (!state.userText.includes(quote)) rejected.push(`${content} (quote is not in any user message or ask answer since the goal started)`);
+		else excused.add(item);
+	}
+	const unfinished = locked.filter((i) => status.get(i) !== "completed" && !excused.has(i));
+	return { unfinished, rejected };
+}
+
+function checklistBlockReason(unfinished: string[], rejected: string[]): string {
+	const rej = rejected.length ? `\nRejected scope changes:\n${rejected.map((r) => `- ${r}`).join("\n")}` : "";
+	return [
+		"Goal NOT completed. The acceptance checklist locked when this goal started is not satisfied. Not completed:",
+		`${unfinished.map((i) => `- ${i}`).join("\n")}${rej}`,
+		"Each item must exist in the todo list with exactly this text and be marked completed only when it is actually true now. Do the remaining work now; an external failure is not a blocker until you have investigated and tried to fix it. If an item needs a decision only the user can make, ask it with the ask tool.",
+		"Only the user can change this checklist. If a user message or ask answer given after the goal started dropped or changed an item, add a todo task, mark it completed, and write it exactly as:",
+		`${SCOPE_CHANGE_PREFIX} <the locked item's exact text> — user said: "<verbatim quote from that user message>"`,
+		"The quote is checked against the user's messages and ask answers; your own reasoning or reports do not count.",
+	].join("\n");
+}
+
+function checklistSwitchOn(branch: unknown[]): boolean {
+	let on = false;
+	for (const raw of branch) {
+		const entry = raw as Record<string, unknown> | null;
+		if (entry?.type === "custom" && entry.customType === CHECKLIST_SWITCH_TYPE) {
+			on = (entry.data as { enabled?: unknown } | undefined)?.enabled === true;
+		}
+	}
+	return on;
+}
+
+function sessionBranch(ctx: unknown): unknown[] {
+	const branch = (ctx as { sessionManager?: { getBranch?: () => unknown } } | undefined)?.sessionManager?.getBranch?.();
+	return Array.isArray(branch) ? branch : [];
+}
+
 export default function (pi: ExtensionAPI) {
 	const scope = pi.pi.settings;
 
@@ -480,27 +636,26 @@ export default function (pi: ExtensionAPI) {
 
 	// Append `SURGICAL_SCOPE` to the turn's systemPrompt only when a non-Opus main
 	// profile (`/bg sol` or `/bg argon`) is active on the main agent, never in `/bg on`
-	// (Opus main) or inside subagents.
+	// (Opus main) or inside subagents. Under `/bg sol` with the checklist switch on, an
+	// active goal without a locked checklist also gets `CHECKLIST_DIRECTIVE`.
 	pi.on("before_agent_start", async (event, ctx) => {
 		if (isSubagentContext(ctx)) return;
 		syncFromSession(ctx);
 		if (!isNonOpusMainProfile(active)) return;
-		const marker = "# When to ask the user for permission";
+		const branch = sessionBranch(ctx);
+		const goal = active === "sol" && checklistSwitchOn(branch) ? readGoalChecklist(branch) : undefined;
+		const directives: [string, string][] = [[SURGICAL_SCOPE, "# When to ask the user for permission"]];
+		if (goal?.goalId && !goal.locked) directives.push([CHECKLIST_DIRECTIVE, CHECKLIST_MARKER]);
 		const sys = (event as Record<string, unknown>).systemPrompt;
 		if (Array.isArray(sys)) {
-			if (
-				sys.some(
-					(block) =>
-						typeof block === "string" && block.includes(marker),
-				)
-			) {
-				return { systemPrompt: sys };
-			}
-			return { systemPrompt: [...sys, SURGICAL_SCOPE] };
+			const missing = directives.filter(
+				([, marker]) => !sys.some((block) => typeof block === "string" && block.includes(marker)),
+			);
+			return { systemPrompt: [...sys, ...missing.map(([text]) => text)] };
 		}
 		if (typeof sys === "string") {
 			return {
-				systemPrompt: appendDirective(sys, SURGICAL_SCOPE, marker),
+				systemPrompt: directives.reduce((text, [directive, marker]) => appendDirective(text, directive, marker), sys),
 			};
 		}
 	});
@@ -567,6 +722,20 @@ export default function (pi: ExtensionAPI) {
 					block: true,
 					reason: `Cannot complete goal while background jobs are still running or pending delivery (${pending}). End your turn without completing the goal so OMP wakes this session automatically when the background work finishes.`,
 				};
+			}
+			const branch = sessionBranch(ctx);
+			if (active === "sol" && checklistSwitchOn(branch)) {
+				const goal = readGoalChecklist(branch);
+				if (goal.goalId && !goal.locked) {
+					return {
+						block: true,
+						reason: `Goal NOT completed. This goal has no locked acceptance checklist. Call the todo tool with a phase named exactly "${ACCEPTANCE_PHASE}" listing every deliverable from the objective and the user's instructions, mark only the ones that are actually true now as completed, and finish the rest before calling goal complete again.`,
+					};
+				}
+				if (goal.locked) {
+					const { unfinished, rejected } = checklistVerdict(goal, goal.locked);
+					if (unfinished.length > 0) return { block: true, reason: checklistBlockReason(unfinished, rejected) };
+				}
 			}
 		}
 		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "wait") {
@@ -655,6 +824,19 @@ export default function (pi: ExtensionAPI) {
 		if (isSubagentContext(ctx)) return;
 		syncFromSession(ctx);
 		if (event.toolName === "ask") briefAge = undefined;
+		if (active === "sol" && event.toolName === "todo" && !event.isError) {
+			const branch = sessionBranch(ctx);
+			if (checklistSwitchOn(branch)) {
+				const goal = readGoalChecklist(branch);
+				const items = acceptancePhaseItems("details" in event ? event.details : undefined);
+				if (goal.goalId && !goal.locked && items) {
+					pi.appendEntry(CHECKLIST_LOCK_TYPE, { goalId: goal.goalId, items });
+					return {
+						additionalContext: `The "${ACCEPTANCE_PHASE}" checklist is now locked for this goal (${items.length} items). goal complete is rejected until each is marked completed with the same text.`,
+					};
+				}
+			}
+		}
 		if (!isNonOpusMainProfile(active) || event.toolName !== "wait") return;
 		const pending = describePendingAsyncWork(ctx);
 		if (!pending) return;
@@ -669,7 +851,7 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.registerCommand("bg", {
-		description: "Background profile: /bg [on|sol|argon|off|status]",
+		description: "Background profile: /bg [on|sol|argon|off|status|checklist on|off]",
 		getArgumentCompletions: (prefix: string) => {
 			if (prefix.includes(" ")) return null;
 			const typed = prefix.toLowerCase();
@@ -687,7 +869,17 @@ export default function (pi: ExtensionAPI) {
 			if (!roles || !agents) throw new Error("background mode: required settings are unavailable");
 			const action = args.trim() || "on";
 			const profile = PROFILES[action];
+			const checklistArg = /^checklist(?:\s+(on|off))?$/.exec(action);
 
+			if (checklistArg) {
+				if (checklistArg[1]) pi.appendEntry(CHECKLIST_SWITCH_TYPE, { enabled: checklistArg[1] === "on" });
+				const on = checklistArg[1] ? checklistArg[1] === "on" : checklistSwitchOn(sessionBranch(ctx));
+				ctx.ui.notify(
+					`acceptance checklist gate ${on ? "ON" : "OFF"}${on && active !== "sol" ? " (takes effect under /bg sol)" : ""}`,
+					"info",
+				);
+				return;
+			}
 			if (profile) {
 				if (!restore) {
 					const previousModel = ctx.models.current();
@@ -720,7 +912,7 @@ export default function (pi: ExtensionAPI) {
 				savedPrevThinking = undefined;
 				pi.appendEntry(BG_ENTRY_TYPE, { mode: "off" });
 			} else if (action !== "status") {
-				ctx.ui.notify("usage: /bg [on|sol|argon|off|status]", "warning");
+				ctx.ui.notify("usage: /bg [on|sol|argon|off|status|checklist on|off]", "warning");
 				return;
 			}
 
@@ -728,8 +920,9 @@ export default function (pi: ExtensionAPI) {
 			const roleMap = roles.get(scope);
 			const agentMap = agents.get(scope);
 			const state = active ? `ON (${PROFILES[active].label})` : "OFF";
+			const checklist = checklistSwitchOn(sessionBranch(ctx)) ? ", checklist=on" : "";
 			ctx.ui.notify(
-				`background mode ${state}: ${current ? `${current.provider}/${current.id}` : "?"}:${pi.getThinkingLevel()}, task=${roleMap.task}, plan=${roleMap.plan}, reviewer=${agentMap.reviewer}`,
+				`background mode ${state}: ${current ? `${current.provider}/${current.id}` : "?"}:${pi.getThinkingLevel()}, task=${roleMap.task}, plan=${roleMap.plan}, reviewer=${agentMap.reviewer}${checklist}`,
 				"info",
 			);
 		},
