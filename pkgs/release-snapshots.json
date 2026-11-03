@@ -96,11 +96,11 @@
     },
     "cf": {
       "draft": false,
-      "hash": "sha256-j17xSQ3NEFSrM4hJ4KO7qiSbkb4KLQK7OeupNlOVnWY=",
-      "pnpmDepsHash": "sha256-C0LpZQlljt1Y3hnq9B/aoGOgLHrbqKuS67uTqLuwKF4=",
+      "hash": "sha256-gFJ7kE7SPH7p4dx2939GBq8dlB9xhaJjLZmsmyy2Tgs=",
+      "pnpmDepsHash": "sha256-NoNkfM9K7S4CaizUtEUh6bpgwkWIFfIMaG4gC5RqFYM=",
       "prerelease": false,
-      "tag_name": "cf@1.0.0-beta.26",
-      "version": "1.0.0-beta.26"
+      "tag_name": "cf@1.0.0-beta.27",
+      "version": "1.0.0-beta.27"
     },
     "deskpad": {
       "assets": [
@@ -181,24 +181,24 @@
     "omp": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.15.0/omp-darwin-arm64",
-          "digest": "sha256:d36dfabf0ee52d6f08efadb59c46f0349545c6f6975522417adae29646e73e34",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.16.0/omp-darwin-arm64",
+          "digest": "sha256:d4a10d97488d6054d2b18198bd24f461079952c7e0fb75ba66336ca0df0cb99e",
           "name": "omp-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.15.0/omp-linux-musl-arm64",
-          "digest": "sha256:f20148c4765287a9cb473ad7337ceb3841ecf602e0478c220e02e30d8cfc1ab2",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.16.0/omp-linux-musl-arm64",
+          "digest": "sha256:5e47342bf25fe18e88660b8fe3a692173ac8941e1c769ba19e154a2ca67de405",
           "name": "omp-linux-musl-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.15.0/omp-linux-musl-x64",
-          "digest": "sha256:f3e8152c17b1ea7ce054103c55dadfe2c18991c76dbf4057cd0d2049345ba05c",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.16.0/omp-linux-musl-x64",
+          "digest": "sha256:5e549f632abd7e22da9551a673b3f3ef7915e9ce9fff92d225236a09b60a3c59",
           "name": "omp-linux-musl-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v18.15.0"
+      "tag_name": "v18.16.0"
     },
     "posthog": [
       {
