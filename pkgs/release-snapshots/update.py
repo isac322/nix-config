@@ -244,31 +244,6 @@ def beardrive_checksums() -> str:
     return "\n".join(lines) + "\n"
 
 
-def gajae_manifest() -> dict[str, Any]:
-    url = "https://github.com/Yeachan-Heo/gajae-code/releases/latest/download/gajae-release-binaries-v1.json"
-    manifest = fetch_json(url)
-    wanted = {"gjc-darwin-arm64", "gjc-darwin-x64", "gjc-linux-arm64", "gjc-linux-x64"}
-    binaries = [
-        {
-            key: binary[key]
-            for key in ("name", "sha256", "size")
-            if key in binary
-        }
-        for binary in manifest.get("binaries", [])
-        if binary.get("name") in wanted
-    ]
-    if {binary.get("name") for binary in binaries} != wanted:
-        raise RuntimeError("Gajae Code manifest does not contain every supported binary")
-    return {
-        "binaries": sorted(binaries, key=lambda binary: binary["name"]),
-        "release_channel": manifest.get("release_channel", "stable"),
-        "release_version": manifest["release_version"],
-        "schema": manifest.get("schema", "gajae-release-binaries-v1"),
-        "schema_version": manifest.get("schema_version", 1),
-        "tag": manifest.get("tag", f"v{manifest['release_version']}"),
-    }
-
-
 def ntn_release() -> dict[str, Any]:
     # The Notion CLI's source repository is private, so its GitHub releases are
     # not readable. ntn.dev is what upstream's own installer downloads from: a
@@ -394,7 +369,6 @@ def build_snapshot(previous_snapshot: dict[str, Any] | None) -> dict[str, Any]:
     }
     return {
         "beardriveChecksums": beardrive_checksums(),
-        "gajaeCodeManifest": gajae_manifest(),
         "releaseManifests": releases,
         "schema": 1,
     }
@@ -865,7 +839,6 @@ def main() -> int:
         release = manifest[0] if isinstance(manifest, list) else manifest
         print(f"{name}: {release.get('version') or release.get('tag_name')}")
     print(f"beardrive: {snapshot['beardriveChecksums'].split('_', 2)[1]}")
-    print(f"gajae-code: {snapshot['gajaeCodeManifest']['release_version']}")
     if bootstrap:
         upgrade_determinate_nixd()
     print("Run the target host's switch to install the updated packages and managed apps.")

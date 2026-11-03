@@ -1,34 +1,5 @@
 {
   "beardriveChecksums": "b815e314b2f1f06393978e3884e6db2937014152e61e05828e41c5d3e6f00445  beardrive_0.18.1_darwin_amd64.tar.gz\n9f1c70821df0f4d0689bf9b529fcdfdb302a953be304b80903ee196fe84c4064  beardrive_0.18.1_darwin_arm64.tar.gz\n2c09deffdca63eacb99d65c99d0680fa6c449a5d51d38ec042c7fa2f5eb4d6fa  beardrive_0.18.1_linux_amd64.tar.gz\n1621f73a5be1740e6806fc0bbcc4d37eaf94d9d2f323b4fc38b53b9888b89ce0  beardrive_0.18.1_linux_arm64.tar.gz\n",
-  "gajaeCodeManifest": {
-    "binaries": [
-      {
-        "name": "gjc-darwin-arm64",
-        "sha256": "ac0bc50db45f86cfe1c3d704a3cae46646311b2cc8acb2ce67711e0e8b59fb98",
-        "size": 139537136
-      },
-      {
-        "name": "gjc-darwin-x64",
-        "sha256": "3fcd4aea34fed2b56ae73c9c95f3e033cc5ca4ce4483da260b1514f14933f097",
-        "size": 148557472
-      },
-      {
-        "name": "gjc-linux-arm64",
-        "sha256": "de2be5d9f33fa32448498b9be37a39e83c1a54adb200829b5fef9aff4e40f88a",
-        "size": 160745464
-      },
-      {
-        "name": "gjc-linux-x64",
-        "sha256": "21adbac4c68d9d3e6f443e68c47087f20917ea4b57ce618c45045ef0c0790361",
-        "size": 163062984
-      }
-    ],
-    "release_channel": "stable",
-    "release_version": "0.19.2",
-    "schema": "gajae-release-binaries-v1",
-    "schema_version": 1,
-    "tag": "v0.19.2"
-  },
   "npmSourceOverrides": {
     "piCodegraph": {}
   },

@@ -9,7 +9,6 @@ let
   impl =
     {
       beardriveChecksums ? null,
-      gajaeCodeManifest ? null,
       npmSourceOverrides ? { },
       releaseManifests ? { },
       sourceInputs ? { },
@@ -52,9 +51,6 @@ let
       jevify-writing = final.callPackage ./jevify-writing/package.nix { };
       beardrive = final.callPackage ./beardrive/package.nix {
         checksumsFile = beardriveChecksums;
-      };
-      gajae-code = final.callPackage ./gajae-code/package.nix {
-        manifestFile = gajaeCodeManifest;
       };
       sentry = final.callPackage ./sentry/package.nix {
         manifestFile = releaseManifests.sentry;

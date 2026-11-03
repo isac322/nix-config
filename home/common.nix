@@ -602,10 +602,6 @@ in
   )
   ++ [
 
-    # Gajae Code is also an agent harness, tracking verified upstream release
-    # binaries via flake input rather than the llm-agents input.
-    pkgs.gajae-code
-
     # OmO Native (`omo`), the standalone OmO agent harness, from its official
     # release binaries rather than the `bun add -g omo-ai` install path.
     pkgs.omo

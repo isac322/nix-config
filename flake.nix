@@ -143,7 +143,6 @@
       snapshotFile = name: value: builtins.toFile "release-snapshot-${name}.json" (builtins.toJSON value);
       releaseManifests = nixpkgs.lib.mapAttrs snapshotFile releaseSnapshots.releaseManifests;
       beardriveChecksums = builtins.toFile "beardrive-checksums.txt" releaseSnapshots.beardriveChecksums;
-      gajaeCodeManifest = snapshotFile "gajae-code" releaseSnapshots.gajaeCodeManifest;
       sourceInputs = {
         camofoxBrowser = inputs.camofox-browser-source;
         piCodegraph = inputs.pi-codegraph-source;
@@ -154,7 +153,6 @@
         import ./pkgs/overlay.nix {
           inherit
             beardriveChecksums
-            gajaeCodeManifest
             releaseManifests
             sourceInputs
             ;
@@ -292,7 +290,6 @@
             vercel-cli
             beardrive
             jevify-writing
-            gajae-code
             sentry
             ntn
             slack-cli

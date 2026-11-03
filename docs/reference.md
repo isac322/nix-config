@@ -273,14 +273,13 @@ MBP의 Direct IP host는 TCP 21118에서 화면과 입력을 제공한다.
 
 ## 코딩 에이전트 — 작업이 있는 곳에서 돈다
 
-`claude-code`, `codex`, `antigravity-cli`(`agy`), `omp`, `gjc` 다섯을 **모든 기기**에 둔다
+`claude-code`, `codex`, `antigravity-cli`(`agy`), `omp` 네 가지를 **모든 기기**에 둔다
 (`home/common.nix`). 아래 두 CLI 묶음이 이 층에 있는 이유가 이것이라, 순서상
 여기가 먼저다.
 
 `claude-code`, `codex`, `antigravity-cli`는 `llm-agents` 인풋의 캐시된 패키지를 쓴다. `omp`는
 공식 standalone binary를 직접 설치하므로 상류 Rust·Bun 빌드를 반복하지 않는다.
-`gjc`도 공식 standalone release binary를 쓴다. 두 패키지의 버전·asset
-URL·SHA-256은 `pkgs/release-snapshots.json`에 함께 고정되며
+버전·asset URL·SHA-256은 `pkgs/release-snapshots.json`에 고정되며
 `nix run .#update-packages`가 원자적으로 갱신한다. aarch64-darwin과
 x86_64-linux·aarch64-linux를 지원한다.
 
@@ -614,7 +613,6 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `langfuse-cli` | npm 타르볼 | dependency가 없는 published CLI |
 | `vercel-cli` | npm platform binary | 현재 플랫폼의 `vc-native` 패키지 |
 | `beardrive` | GitHub release binaries | snapshot이 보존하는 platform별 공식 checksum |
-| `gajae-code` | GitHub release binaries | snapshot이 보존하는 platform별 공식 manifest |
 | `omp-bin` | GitHub release binary | 공식 standalone `omp`; 상류 Rust·Bun 빌드 생략 |
 | `omo` | GitHub release binary | OmO Native 공식 standalone `omo`; 업그레이드는 Nix가 맡으므로 자체 업데이트 알림을 끈 wrapper로 설치. Sustainable Use License라 unfree 허용 목록에 둔다 |
 | `sentry` | GitHub release binary | getsentry/cli의 현재 platform binary |
