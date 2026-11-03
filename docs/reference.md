@@ -136,6 +136,8 @@ bridge도 같은 registry에 추가된다.
 | `linear` | streamable HTTP | `https://mcp.linear.app/mcp` | OAuth 2.1 |
 | `camofox` | stdio | `camofox-browser-mcp-session omp` | loopback API |
 
+CodeGraph(`@isac322/pi-codegraph`)는 OMP에서는 `~/.omp/plugins`로 로드하고, Claude Code(`~/.claude.json`)와 Codex(`~/.codex/config.toml`)에는 같은 패키지의 `dist/bin/codegraph-mcp.js`를 `codegraph` stdio MCP 서버로 등록한다. 세 클라이언트는 `~/.config/pi-codegraph/config.json`과 `~/.cache/pi-codegraph/daemon` 아래의 단일 CodeGraph 데몬·중앙 인덱스 저장소를 공유한다.
+
 Linear 항목에는 token을 넣지 않는다. OMP가 endpoint의 OAuth metadata를 발견하고,
 승인 뒤 credential을 endpoint URL 기준의 auth storage에 별도로 저장한다. 따라서
 Home Manager switch는 MCP server 정의만 갱신하고 로그인 상태를 지우거나 Nix

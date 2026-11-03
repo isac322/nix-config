@@ -210,8 +210,8 @@ let
   } osConfig;
 
   # The MCP services every agent on this machine should see. OMP and Claude
-  # Code accept the same server object directly; the Codex activation below
-  # derives its CLI-managed entry from the same Camofox definition.
+  # Code accept the same server objects directly; the Codex activation below
+  # derives its CLI-managed stdio entries from the same definitions.
   #
   # These are definition-only remote entries. Each agent discovers OAuth
   # metadata from the endpoint and stores the resulting credential in its own
@@ -250,6 +250,15 @@ let
     };
   };
 
+  # OMP loads pi-codegraph from ~/.omp/plugins so its session extension can
+  # bind omitted projectPath to ctx.cwd and inject workspace status. Claude
+  # Code and Codex run the same package's stdio MCP entry point directly; all
+  # three share ~/.config/pi-codegraph and one daemon under ~/.cache/pi-codegraph/daemon.
+  codegraphMcpServer = {
+    type = "stdio";
+    command = "${pkgs.omp-plugins.plugins."@isac322/pi-codegraph"}/dist/bin/codegraph-mcp.js";
+  };
+
   # OMP reads one user-level MCP registry on every host. Remote services stay
   # here beside plugin-backed stdio servers so a switch produces the complete
   # registry and removes entries that are no longer declared.
@@ -284,21 +293,88 @@ let
   # a system-wide managed-mcp.json, takes exclusive control of MCP and would
   # suppress the claude.ai connectors and every plugin-provided server.
   claudeMcpServers =
-    remoteMcpServers // lib.optionalAttrs camofoxCfg.enable { camofox = camofoxMcpServer "claude"; };
+    remoteMcpServers
+    // {
+      codegraph = codegraphMcpServer;
+    }
+    // lib.optionalAttrs camofoxCfg.enable { camofox = camofoxMcpServer "claude"; };
 
-  codexCamofoxMcpServer = camofoxMcpServer "codex";
+  codexMcpAddArgs =
+    server:
+    let
+      env = server.env or { };
+      args = server.args or [ ];
+    in
+    lib.escapeShellArgs (
+      lib.concatMap (name: [
+        "--env"
+        "${name}=${env.${name}}"
+      ]) (builtins.attrNames env)
+      ++ [
+        "--"
+        server.command
+      ]
+      ++ args
+    );
 
-  codexCamofoxMcpAddArgs = lib.escapeShellArgs (
-    lib.concatMap (name: [
-      "--env"
-      "${name}=${codexCamofoxMcpServer.env.${name}}"
-    ]) (builtins.attrNames codexCamofoxMcpServer.env)
-    ++ [
-      "--"
-      codexCamofoxMcpServer.command
-    ]
-    ++ codexCamofoxMcpServer.args
-  );
+  syncCodexStdioMcp =
+    {
+      name,
+      enable ? true,
+      server,
+    }:
+    let
+      escapedName = lib.escapeShellArg name;
+      command = lib.escapeShellArg server.command;
+      args = lib.escapeShellArg (builtins.toJSON (server.args or [ ]));
+      env = lib.escapeShellArg (builtins.toJSON (server.env or { }));
+    in
+    if enable then
+      ''
+        current=""
+        present=0
+        exact=0
+
+        if current=$("$codex" mcp get ${escapedName} --json 2>/dev/null); then
+          present=1
+          if printf '%s\n' "$current" | "$jq" -e \
+            --arg command ${command} \
+            --argjson args ${args} \
+            --argjson env ${env} \
+            '.enabled == true
+              and .transport.type == "stdio"
+              and .transport.command == $command
+              and (.transport.args // []) == $args
+              and (.transport.env // {}) == $env' > /dev/null; then
+            exact=1
+          fi
+        fi
+
+        if [ "$exact" -eq 1 ]; then
+          :
+        elif [ -n "$DRY_RUN_CMD" ]; then
+          if [ "$present" -eq 1 ]; then
+            echo "codex-mcp: would replace stale ${name} entry." >&2
+          else
+            echo "codex-mcp: would add ${name} entry." >&2
+          fi
+        else
+          if [ "$present" -eq 1 ]; then
+            "$codex" mcp remove ${escapedName}
+          fi
+          "$codex" mcp add ${escapedName} ${codexMcpAddArgs server}
+        fi
+      ''
+    else
+      ''
+        if "$codex" mcp get ${escapedName} --json > /dev/null 2>&1; then
+          if [ -n "$DRY_RUN_CMD" ]; then
+            echo "codex-mcp: would remove ${name} entry." >&2
+          else
+            "$codex" mcp remove ${escapedName}
+          fi
+        fi
+      '';
 
   # Claude Code reads one user-level settings file on every host. Keep only the
   # explicitly shared UI and safety controls here: machine-local hooks,
@@ -421,64 +497,24 @@ in
   '';
 
   # Codex owns ~/.codex/config.toml and preserves comments and unrelated
-  # tables when its MCP commands edit one server. Compare the complete
-  # Camofox stdio definition before calling those commands: exact state is a
-  # no-op, stale state replaces only camofox, and disabling Camofox removes
-  # only that entry.
-  home.activation.codexCamofoxMcp = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  # tables when its MCP commands edit one server. Compare each managed stdio
+  # definition before calling those commands: exact state is a no-op, stale
+  # state replaces only that entry, and disabling an optional server removes
+  # only its entry.
+  home.activation.codexMcpRegistry = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     codex=${lib.escapeShellArg (lib.getExe agents.codex)}
     jq=${lib.escapeShellArg (lib.getExe pkgs.jq)}
-    command=${lib.escapeShellArg codexCamofoxMcpServer.command}
-    args=${lib.escapeShellArg (builtins.toJSON codexCamofoxMcpServer.args)}
-    env=${lib.escapeShellArg (builtins.toJSON codexCamofoxMcpServer.env)}
 
-    ${
-      if camofoxCfg.enable then
-        ''
-          current=""
-          present=0
-          exact=0
+    ${syncCodexStdioMcp {
+      name = "codegraph";
+      server = codegraphMcpServer;
+    }}
 
-          if current=$("$codex" mcp get camofox --json 2>/dev/null); then
-            present=1
-            if printf '%s\n' "$current" | "$jq" -e \
-              --arg command "$command" \
-              --argjson args "$args" \
-              --argjson env "$env" \
-              '.transport.type == "stdio"
-                and .transport.command == $command
-                and .transport.args == $args
-                and .transport.env == $env' > /dev/null; then
-              exact=1
-            fi
-          fi
-
-          if [ "$exact" -eq 1 ]; then
-            :
-          elif [ -n "$DRY_RUN_CMD" ]; then
-            if [ "$present" -eq 1 ]; then
-              echo "codex-camofox-mcp: would replace stale camofox entry." >&2
-            else
-              echo "codex-camofox-mcp: would add camofox entry." >&2
-            fi
-          else
-            if [ "$present" -eq 1 ]; then
-              "$codex" mcp remove camofox
-            fi
-            "$codex" mcp add camofox ${codexCamofoxMcpAddArgs}
-          fi
-        ''
-      else
-        ''
-          if "$codex" mcp get camofox --json > /dev/null 2>&1; then
-            if [ -n "$DRY_RUN_CMD" ]; then
-              echo "codex-camofox-mcp: would remove camofox entry." >&2
-            else
-              "$codex" mcp remove camofox
-            fi
-          fi
-        ''
-    }
+    ${syncCodexStdioMcp {
+      name = "camofox";
+      enable = camofoxCfg.enable;
+      server = camofoxMcpServer "codex";
+    }}
   '';
 
   # Codex 0.158 starts a shared app-server daemon for interactive launches by
