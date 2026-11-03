@@ -18,6 +18,8 @@ tui:
 display:
   showTokenUsage: true
   cacheMissMarker: true
+btw:
+  inject: true
 memory:
   backend: hindsight
 autolearn:
@@ -59,7 +61,8 @@ find:
   enabled: true
 hindsight:
   apiUrl: https://hindsight-api.bhyoo.com
-  scoping: per-project
+  scoping: per-project-tagged
+  globalScope: true
 compaction:
   idleEnabled: true
   idleThresholdTokens: 300000
