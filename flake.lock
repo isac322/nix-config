@@ -446,10 +446,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1793591215,
-        "narHash": "sha256-nrvAVrRZQAmjuxTvpaiQPHkfcHdP6aYd5Gjjcck0pLc=",
+        "lastModified": 1793681473,
+        "narHash": "sha256-VAy07Ju4gYI5JM+igmCCeeH9EIi6FAmyCzEzl4gBj9E=",
         "ref": "refs/heads/main",
-        "rev": "ae8a1507c036c1d7ab7fc385a70743c7432c87d9",
+        "rev": "8d255f147601f498adbf06bee739f02dcaf2f0e5",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
