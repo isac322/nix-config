@@ -1,5 +1,5 @@
 {
-  "beardriveChecksums": "b815e314b2f1f06393978e3884e6db2937014152e61e05828e41c5d3e6f00445  beardrive_0.18.1_darwin_amd64.tar.gz\n9f1c70821df0f4d0689bf9b529fcdfdb302a953be304b80903ee196fe84c4064  beardrive_0.18.1_darwin_arm64.tar.gz\n2c09deffdca63eacb99d65c99d0680fa6c449a5d51d38ec042c7fa2f5eb4d6fa  beardrive_0.18.1_linux_amd64.tar.gz\n1621f73a5be1740e6806fc0bbcc4d37eaf94d9d2f323b4fc38b53b9888b89ce0  beardrive_0.18.1_linux_arm64.tar.gz\n",
+  "beardriveChecksums": "1ac2bbdb056580971331a2fe95f3677842266c88cfe44b2b3d3af406ac42ada5  beardrive_0.18.2_darwin_amd64.tar.gz\ndc8c9716866bd40e6c2008c4d4a17429a76e89a290832ec2a7ddc5a974cbdb47  beardrive_0.18.2_darwin_arm64.tar.gz\n585699ded71ba24ef0d93c93ed3600f28b5f0b5c6ac72ec5173d5499c1b995b8  beardrive_0.18.2_linux_amd64.tar.gz\na3faa0b7458e2612b64709c25f94b8b68170791c889a7835abd72d8e065d8662  beardrive_0.18.2_linux_arm64.tar.gz\n",
   "npmSourceOverrides": {
     "piCodegraph": {}
   },
@@ -130,24 +130,24 @@
     "omo": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.59/omo-darwin-arm64",
-          "digest": "sha256:387be6a22ab738a6bb057f61dab5f7ec3e460a33ee691565937f9e81e0714d66",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.60/omo-darwin-arm64",
+          "digest": "sha256:36d2db9aaa65c79f1b545e267226c3953ed3228c5fefc6df61d0741492f37a77",
           "name": "omo-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.59/omo-linux-arm64",
-          "digest": "sha256:c0bb9b96301677050bfd683060f8bfa5f13e390214f09715710bb2a572c70bbb",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.60/omo-linux-arm64",
+          "digest": "sha256:c346c293e04f54926f702f9fd6aebf90bf24f2627310377ad1235966b35ec183",
           "name": "omo-linux-arm64"
         },
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.59/omo-linux-x64",
-          "digest": "sha256:a27ba82a4f9717ec3f4b65ea73f8716e74f8ddb5039a0e20578c355d88f1827a",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.60/omo-linux-x64",
+          "digest": "sha256:c18605f015ccd046c62c1a6ec8ba017ae4d87eb2a079f6ad56a25d782982c8b4",
           "name": "omo-linux-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v5.1.59"
+      "tag_name": "v5.1.60"
     },
     "omp": {
       "assets": [
@@ -246,24 +246,24 @@
     },
     "vercelDarwinArm64": {
       "dist": {
-        "integrity": "sha512-HSQsnaz4sQHrQqzBRcdvMDH86qN/LW1W+12r1+4Kjap+mUveYrcGqdVdX4K64OsoM5ajyURGZ9VDGhobxq6/gw==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-65.10.0.tgz"
+        "integrity": "sha512-mvNIMqLt8LhVbJ3MTtMZMu6NjQeZgXWe4SuQiIF3Xy5L7cfLeqQCpN7XW99KH5qpI27jNrI6ux5MO6LaX0+5Og==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-65.11.0.tgz"
       },
-      "version": "65.10.0"
+      "version": "65.11.0"
     },
     "vercelLinuxArm64": {
       "dist": {
-        "integrity": "sha512-GhjcosaJqo1jWPnowDe/Ry4O97B2IaBc4pP/S7hbRgGqHtLfILK8pbbTae2aHP2cvgePbZUP2XdiVsGf2vVcfQ==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-65.10.0.tgz"
+        "integrity": "sha512-57vA1tsudA30ex8q4bFiFmCxgFkC41bGn6Rf8c5Ppk4QHUWcXNVRROgoTPjenGbC4h0q7a3hENLYmNLan8zXPg==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-65.11.0.tgz"
       },
-      "version": "65.10.0"
+      "version": "65.11.0"
     },
     "vercelLinuxX64": {
       "dist": {
-        "integrity": "sha512-tpTdd3jKH5vjwrK8YlZkHbgUnhgqrEG/jXk98D99QBH3p6UT/2yTerjOQ2VxuHJPGD6tzcY+HZvBPlgjZolZiQ==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-65.10.0.tgz"
+        "integrity": "sha512-rZAHMe8uyHRLUFIoTxot4t9hYwyyt9OPvqQRY58dmHZHCqJnT/zWS0juXWh+wo3PMDMsaWDEZSKwTWW2j3RsFA==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-65.11.0.tgz"
       },
-      "version": "65.10.0"
+      "version": "65.11.0"
     }
   },
   "schema": 1
