@@ -25,6 +25,11 @@ let
   # next release too.
   ompStablePath = "${config.home.homeDirectory}/.local/libexec/omp/omp";
   ompStable = import ./omp-launcher.nix { inherit (pkgs) writeText writeTextFile; } ompStablePath;
+  # Moving the binary out of /nix/store hides Nix ownership from OMP's path
+  # check (`update-cli.ts`), making OMP treat the copy as a self-updating
+  # standalone install. OMP also checks `<prefix>/manager.json` two levels above
+  # `realpath(process.execPath)`, which for `~/.local/libexec/omp/omp` is
+  # `~/.local/libexec/manager.json`.
 
   # One key does everything: SSH authentication, git commit signing, and the
   # PGP signing that Arch packaging needs. The GPG key's authentication subkey
@@ -131,6 +136,10 @@ in
   # Reclaim ~/.ssh/config without colliding with an existing backup even if an
   # external tool (e.g. Coder) replaced the managed symlink with a regular file.
   home.file.".ssh/config".force = true;
+
+  home.file.".local/libexec/manager.json".text = ''
+    {"manager":"nix"}
+  '';
 
   programs.ssh = {
     enable = true;

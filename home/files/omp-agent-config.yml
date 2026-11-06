@@ -8,7 +8,7 @@ retry:
       - google-vertex/gemini-3.8-flash:low
     vision:
       - google-antigravity/gemini-4-argon:medium
-setupVersion: 2
+setupVersion: 3
 extendedContext: true
 statusLine:
   preset: nerd
