@@ -630,17 +630,6 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `deskpad` | GitHub app zip | aarch64-darwin virtual display |
 | `displayplacer` | GitHub release binary | aarch64-darwin display layout tool |
 
-Azure CLI의 Fabric 의존성에는 [상류 수정](https://github.com/fabric/fabric/commit/7fa309db9dd5dac69079c1fb83b6f579555f7d53) 중
-Invoke 3 API 호환에 필요한 변경만 적용한다. 버전을 내리거나 `allowBroken`으로
-오류를 우회하지 않는다. `flake check`는 호스트의 전체 시스템 패키지를 빌드하지
-않으므로, 갱신 후에는 실제 호스트 빌드를 별도로 확인한다. 적용 후에는 `az` 실행도
-확인한다.
-
-```sh
-darwin-rebuild build --flake /etc/nix-darwin#bhyoo-macbook-pro --no-update-lock-file
-az version
-```
-
 GTK2 Vim의 이미지 기능 컴파일 오류에는 릴리스된 9.2.1170의
 [공식 수정](https://github.com/vim/vim/commit/ace29011a11bfafca7f67b4761c9d391eda58cd0)
 ([PR #21463](https://github.com/vim/vim/pull/21463)) 중 `src/feature.h`와 `src/gui.h` 변경만

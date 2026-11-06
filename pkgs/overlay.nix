@@ -83,35 +83,6 @@ let
       pinentry-keychain = final.callPackage ./pinentry-keychain/package.nix { };
       keychain-totp = final.callPackage ./keychain-totp/package.nix { };
 
-      # Patch Azure CLI's generated Python scope, not the outer interpreter:
-      # python-packages.nix replaces its packageOverrides. Keep this local until
-      # nixpkgs Fabric includes the Invoke 3 remainder/context compatibility fix.
-      # https://github.com/fabric/fabric/commit/7fa309db9dd5dac69079c1fb83b6f579555f7d53
-      azure-cli = prev.azure-cli.override {
-        callPackage =
-          path: args:
-          let
-            # callPackage's outer override targets python-packages.nix arguments;
-            # the package scope retains the interpreter's native override.
-            generatedPython = (prev.callPackage path args).pkgs.python;
-            python = generatedPython.override (old: {
-              self = python;
-              packageOverrides = final.lib.composeExtensions old.packageOverrides (
-                _: pythonPrev: {
-                  fabric = pythonPrev.fabric.overridePythonAttrs (oldFabric: {
-                    patches = (oldFabric.patches or [ ]) ++ [ ./azure-cli/fabric-invoke-3.patch ];
-                    pythonRelaxDeps = (oldFabric.pythonRelaxDeps or [ ]) ++ [ "invoke" ];
-                    meta = oldFabric.meta // {
-                      broken = false;
-                    };
-                  });
-                }
-              );
-            });
-          in
-          python;
-      };
-
       # Backport Vim 9.2.1170's GTK2 image fix only across its affected releases.
       # vim-full's native overrideAttrs also rebinds Home Manager's .customize.
       vim-full = prev.vim-full.overrideAttrs (old: {
