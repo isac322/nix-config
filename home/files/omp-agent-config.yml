@@ -11,7 +11,40 @@ retry:
 setupVersion: 3
 extendedContext: true
 statusLine:
-  preset: nerd
+  preset: custom
+  leftSegments:
+    - vim
+    - model
+    - mode
+    - path
+    - git
+    - pr
+    - session
+    - subagents
+  rightSegments:
+    - session_name
+    - token_rate
+    - cache
+    - cache_hit
+    - cost
+    - context_pct
+    - context_total
+    - time_spent
+  segmentOptions:
+    model:
+      showThinkingLevel: true
+    path:
+      abbreviate: true
+      maxLength: 60
+      stripWorkPrefix: true
+    git:
+      showBranch: true
+      showStaged: false
+      showUnstaged: false
+      showUntracked: false
+    time:
+      format: "24h"
+      showSeconds: true
 terminal:
   showProgress: true
 tui:
