@@ -35,7 +35,7 @@ statusLine:
       showThinkingLevel: true
     path:
       abbreviate: true
-      maxLength: 60
+      maxLength: 32
       stripWorkPrefix: true
     git:
       showBranch: true
