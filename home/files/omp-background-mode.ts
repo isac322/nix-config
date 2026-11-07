@@ -4,12 +4,14 @@
 // inherits it. Overrides live in the runtime settings layer (never mutating config.yml
 // on disk) and are re-applied automatically from the session transcript on resume until `/bg off`.
 //
-// - `on` (default): Claude Opus 5.5 main agent with GPT-6.1 Sol task subagents, keeping
+// - `on` (default): Claude Opus 5.5 main agent with GPT-6 Astra task subagents, keeping
 //   orchestration on Opus while offloading implementation and review work from Anthropic quota.
-// - `sol`: GPT-6.1 Sol main agent and subagents, spending ChatGPT Codex quota instead of
-//   Anthropic quota wherever a measured equal exists.
+// - `sol`: GPT-6.1 Sol main agent with GPT-6 Astra task subagents, spending ChatGPT Codex
+//   quota instead of Anthropic quota.
+// - `astra`: GPT-6 Astra main agent and task subagents, spending ChatGPT Codex quota
+//   instead of Anthropic quota.
 // - `argon`: Gemini 4 Argon main agent, which understands the problem and writes the
-//   specs while Sol implements them.
+//   specs while Astra implements them.
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 
@@ -28,7 +30,7 @@ const ASTRA = "openai-codex/gpt-6-astra";
 const GROK = "xai-oauth/grok-4.7-build-fast";
 const SONNET = "anthropic/claude-sonnet-5-5";
 
-// Byte-for-byte contiguous sections for `/bg sol` and `/bg argon` (non-Opus main agent) from:
+// Byte-for-byte contiguous sections for `/bg sol`, `/bg astra`, and `/bg argon` (non-Opus main agent) from:
 // - `openai/codex` (`970111f6cb62cc02fe36a82ea7d71b37a2889c97`) `codex-rs/models-manager/models.json` (`slug: "gpt-6.1-sol"`, `instructions_template`: `# When to ask the user for permission`, `# Autonomy and persistence`, `## Writing style`, `## Technical communication`, `## Rules for getting work done` tail) and `codex-rs/core/gpt_5_1_prompt.md` (`## Validating your work`)
 // - `multica-ai/andrej-karpathy-skills` (`2c606141936f1eeef17fa3043a72095b4765b9c2`) `CLAUDE.md` (`1. Think Before Coding`, `2. Simplicity First`, `3. Surgical Changes`)
 // - `home/skills/isac-decision-brief/SKILL.md` (`DBR-01`..`DBR-12`) and `references/examples.md`
@@ -171,11 +173,11 @@ const ON_PROFILE: Profile = {
 	roles: {
 		default: `${OPUS}:medium`,
 		// Planning inherits the base Argon plan role, so a different model family still
-		// drafts plans for the Sol implementer; escalations go to Astra.
+		// drafts plans for the Astra implementer; escalations go to Astra xhigh.
 		slow: `${ASTRA}:xhigh`,
-		task: `${SOL}:high`,
+		task: `${ASTRA}:high`,
 	},
-	// Sol-authored work gets a review from Grok 4.7 first, falling back to Sonnet 5.5 in
+	// Codex-authored work gets a review from Grok 4.7 first, falling back to Sonnet 5.5 in
 	// another model family when Grok quota is depleted; advisor and lightweight roles/agents
 	// (browser, smol, scout, sonic, tiny, commit) inherit the base config.
 	agents: {
@@ -196,6 +198,16 @@ const PROFILES: Record<string, Profile> = {
 		},
 		agents: ON_PROFILE.agents,
 	},
+	astra: {
+		label: "Astra",
+		mainModel: ASTRA,
+		mainThinking: "high",
+		roles: {
+			...ON_PROFILE.roles,
+			default: `${ASTRA}:high`,
+		},
+		agents: ON_PROFILE.agents,
+	},
 	argon: {
 		label: "Argon",
 		mainModel: ARGON,
@@ -210,9 +222,10 @@ const PROFILES: Record<string, Profile> = {
 };
 
 const SUBCOMMANDS = [
-	{ name: "on", description: "Opus main agent, Sol implementer, roles re-curated around it" },
-	{ name: "sol", description: "GPT-6.1 Sol main agent, Sol implementer, roles re-curated around it" },
-	{ name: "argon", description: "Gemini 4 Argon main agent, Sol implementer, roles re-curated around it" },
+	{ name: "on", description: "Opus main agent, Astra implementer, roles re-curated around it" },
+	{ name: "sol", description: "GPT-6.1 Sol main agent, Astra implementer, roles re-curated around it" },
+	{ name: "astra", description: "GPT-6 Astra main agent, Astra implementer, roles re-curated around it" },
+	{ name: "argon", description: "Gemini 4 Argon main agent, Astra implementer, roles re-curated around it" },
 	{ name: "off", description: "Restore the base config and the previous model" },
 	{ name: "status", description: "Show the active profile and key roles" },
 ];
@@ -271,6 +284,8 @@ function inferSessionBgState(entries: unknown[]): {
 			const model = entry.model;
 			if (model === SOL) {
 				mode = "sol";
+			} else if (model === ASTRA) {
+				mode = "astra";
 			} else if (model === ARGON || model === "google/gemini-4-argon") {
 				mode = "argon";
 			} else if (typeof model === "string" && model) {
@@ -479,8 +494,8 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	// Append `SURGICAL_SCOPE` to the turn's systemPrompt only when a non-Opus main
-	// profile (`/bg sol` or `/bg argon`) is active on the main agent, never in `/bg on`
-	// (Opus main) or inside subagents.
+	// profile (`/bg sol`, `/bg astra`, or `/bg argon`) is active on the main agent,
+	// never in `/bg on` (Opus main) or inside subagents.
 	pi.on("before_agent_start", async (event, ctx) => {
 		if (isSubagentContext(ctx)) return;
 		syncFromSession(ctx);
@@ -529,7 +544,7 @@ export default function (pi: ExtensionAPI) {
 	// 1. In subagents (`ctx.agent.kind === "sub"`): block `write` to `agent://Main` /
 	//    `agent://<parentId>` / `agent://all` so subagents do not drip-feed `<irc>`
 	//    progress cards or prematurely wake `wait()`.
-	// 2. In the main agent under `/bg sol` or `/bg argon`: block `goal(op="complete")`
+	// 2. In the main agent under `/bg sol`, `/bg astra`, or `/bg argon`: block `goal(op="complete")`
 	//    while background jobs are still running or queued for delivery, and block `ask`
 	//    until a decision brief appeared in visible assistant text.
 	// 3. Normalize OpenAI strict-schema dummy fields on `bash` and `task` calls.
@@ -669,7 +684,7 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.registerCommand("bg", {
-		description: "Background profile: /bg [on|sol|argon|off|status]",
+		description: "Background profile: /bg [on|sol|astra|argon|off|status]",
 		getArgumentCompletions: (prefix: string) => {
 			if (prefix.includes(" ")) return null;
 			const typed = prefix.toLowerCase();
@@ -720,7 +735,7 @@ export default function (pi: ExtensionAPI) {
 				savedPrevThinking = undefined;
 				pi.appendEntry(BG_ENTRY_TYPE, { mode: "off" });
 			} else if (action !== "status") {
-				ctx.ui.notify("usage: /bg [on|sol|argon|off|status]", "warning");
+				ctx.ui.notify("usage: /bg [on|sol|astra|argon|off|status]", "warning");
 				return;
 			}
 
