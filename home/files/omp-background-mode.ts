@@ -201,10 +201,10 @@ const PROFILES: Record<string, Profile> = {
 	astra: {
 		label: "Astra",
 		mainModel: ASTRA,
-		mainThinking: "high",
+		mainThinking: "medium",
 		roles: {
 			...ON_PROFILE.roles,
-			default: `${ASTRA}:high`,
+			default: `${ASTRA}:medium`,
 		},
 		agents: ON_PROFILE.agents,
 	},

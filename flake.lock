@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1793976550,
-        "narHash": "sha256-QfLDw/5RPBwKcjCbUJ4wiCD36KXxUT8lEKChE6Kmx0Y=",
+        "lastModified": 1794002665,
+        "narHash": "sha256-Yn3ADY5tHCxUXSHAM1fJ+0vqqr8qp2tX6YWvu3I+WWw=",
         "ref": "refs/heads/main",
-        "rev": "f1c35b4f08e3e12a93691090b1359844e3b0320a",
+        "rev": "113f42969d532037f14ebb50efd6629e51e92224",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -271,10 +271,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1793757180,
-        "narHash": "sha256-gyV7AtCwLnOImcrfSETP4J3Ie96bz19DY47B7m7Y3HM=",
+        "lastModified": 1793979366,
+        "narHash": "sha256-7OoWDsYO9teiPxl0QdlS5lYE20Pue8/5mpscSL32FUA=",
         "ref": "master",
-        "rev": "b787c48e2ec57a9d098f5c2721882a3bc1e16f97",
+        "rev": "2c0c1f01521469cf0271180c453c79782d53c2f6",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -306,10 +306,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1793917228,
-        "narHash": "sha256-0hSxihFy2M+iD0LAmgDQXe4Ho91Fm1hLZ3PxxtVRBQI=",
+        "lastModified": 1794008774,
+        "narHash": "sha256-gBLdDyf0YuPUj6lr7gf8g9EbOkZ3iJ934pLpgq8LCjw=",
         "ref": "refs/heads/main",
-        "rev": "c3bb418ee38ee49a6b999b7752c1368f3123a2bd",
+        "rev": "687bc381bc9091bf252c0a05303640561014a425",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -329,16 +329,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1793949034,
-        "narHash": "sha256-xws6ZOZuv6+BtqF9BZ9NRH5GdJ8zTa/ACN9lNeKC/+s=",
+        "lastModified": 1794009285,
+        "narHash": "sha256-eheXUFjbw6txzeNpeBA1Cuurqoj+gtGYaeWumq+edOY=",
         "ref": "refs/heads/main",
-        "rev": "baf924369e8d5ec02af1eab444db411d6fed1e5e",
+        "rev": "2add2fd83bf01a23357d401ba24155e35d9d93d2",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "baf924369e8d5ec02af1eab444db411d6fed1e5e",
+        "rev": "2add2fd83bf01a23357d401ba24155e35d9d93d2",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
