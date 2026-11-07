@@ -4,14 +4,14 @@
 // inherits it. Overrides live in the runtime settings layer (never mutating config.yml
 // on disk) and are re-applied automatically from the session transcript on resume until `/bg off`.
 //
-// - `on` (default): Claude Opus 5.5 main agent with GPT-6 Astra task subagents, keeping
+// - `on` (default): Claude Opus 5.5 main agent with GPT-6.1 Sol task subagents, keeping
 //   orchestration on Opus while offloading implementation and review work from Anthropic quota.
-// - `sol`: GPT-6.1 Sol main agent with GPT-6 Astra task subagents, spending ChatGPT Codex
+// - `sol`: GPT-6.1 Sol main agent and subagents, spending ChatGPT Codex quota instead of
+//   Anthropic quota wherever a measured equal exists.
+// - `astra`: GPT-6 Astra main agent with GPT-6.1 Sol task subagents, spending ChatGPT Codex
 //   quota instead of Anthropic quota.
-// - `astra`: GPT-6 Astra main agent and task subagents, spending ChatGPT Codex quota
-//   instead of Anthropic quota.
 // - `argon`: Gemini 4 Argon main agent, which understands the problem and writes the
-//   specs while Astra implements them.
+//   specs while Sol implements them.
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 
@@ -173,9 +173,9 @@ const ON_PROFILE: Profile = {
 	roles: {
 		default: `${OPUS}:medium`,
 		// Planning inherits the base Argon plan role, so a different model family still
-		// drafts plans for the Astra implementer; escalations go to Astra xhigh.
+		// drafts plans for the Sol implementer; escalations go to Astra.
 		slow: `${ASTRA}:xhigh`,
-		task: `${ASTRA}:high`,
+		task: `${SOL}:high`,
 	},
 	// Codex-authored work gets a review from Grok 4.7 first, falling back to Sonnet 5.5 in
 	// another model family when Grok quota is depleted; advisor and lightweight roles/agents
@@ -222,10 +222,10 @@ const PROFILES: Record<string, Profile> = {
 };
 
 const SUBCOMMANDS = [
-	{ name: "on", description: "Opus main agent, Astra implementer, roles re-curated around it" },
-	{ name: "sol", description: "GPT-6.1 Sol main agent, Astra implementer, roles re-curated around it" },
-	{ name: "astra", description: "GPT-6 Astra main agent, Astra implementer, roles re-curated around it" },
-	{ name: "argon", description: "Gemini 4 Argon main agent, Astra implementer, roles re-curated around it" },
+	{ name: "on", description: "Opus main agent, Sol implementer, roles re-curated around it" },
+	{ name: "sol", description: "GPT-6.1 Sol main agent, Sol implementer, roles re-curated around it" },
+	{ name: "astra", description: "GPT-6 Astra main agent, Sol implementer, roles re-curated around it" },
+	{ name: "argon", description: "Gemini 4 Argon main agent, Sol implementer, roles re-curated around it" },
 	{ name: "off", description: "Restore the base config and the previous model" },
 	{ name: "status", description: "Show the active profile and key roles" },
 ];
