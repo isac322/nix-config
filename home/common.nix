@@ -627,7 +627,7 @@ in
     agents.claude-code
     agents.codex
     agents.antigravity-cli
-
+    agents.herdr-core
     # Official OMP standalone binaries. `nix run .#update-packages` refreshes
     # the version, platform assets, and sha256 digests in one snapshot. The
     # `omp` on PATH is home/omp-launcher.nix in front of the binary; the Macs

@@ -58,6 +58,7 @@ in
     home = "/home/bhyoo";
     extraGroups = [ "wheel" ];
     shell = pkgs.zsh;
+    linger = true;
   };
 
   # Required for `users.users.bhyoo.shell = pkgs.zsh` to be a valid login shell.

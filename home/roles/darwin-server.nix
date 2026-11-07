@@ -6,6 +6,7 @@
 # role. What lands here is tooling this machine alone has a use for.
 {
   config,
+  inputs,
   lib,
   osConfig,
   pkgs,
@@ -148,6 +149,39 @@ let
   # between its Homebrew activation and home-manager's user activation.
   orb = "/opt/homebrew/bin/orb";
   timeout = lib.getExe' pkgs.coreutils "timeout";
+  herdrCore = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.herdr-core;
+  herdrCoreBin = "${herdrCore}/bin/herdr-core";
+
+  herdrCoreStart = pkgs.writeShellScript "herdr-core-start" ''
+    set -u
+
+    # Start or refresh herdr-core inside the logged-in Aqua session with the
+    # server's full PATH rather than letting the first incoming non-login SSH
+    # `hc connect` spawn it inside sshd's minimal environment.
+    export PATH=/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
+    export SSH_AUTH_SOCK=${lib.escapeShellArg "${config.programs.gpg.homedir}/S.gpg-agent.ssh"}
+    unset SSH_CONNECTION SSH_CLIENT SSH_TTY
+
+    jq=${lib.getExe pkgs.jq}
+    status_json=$(${timeout} -k 5 30 ${herdrCoreBin} server start --json) || exit 1
+    running=$(printf '%s\n' "$status_json" | "$jq" -r '.version // empty')
+    pid=$(printf '%s\n' "$status_json" | "$jq" -r '.pid // empty')
+    comm=""
+    if [ -n "$pid" ]; then
+      comm=$(/bin/ps -p "$pid" -o comm= 2>/dev/null || true)
+    fi
+
+    case "$comm" in
+      ${lib.escapeShellArg "${herdrCore}/bin/"}*)
+        if [ "$running" = ${lib.escapeShellArg herdrCore.version} ]; then
+          exit 0
+        fi
+        ;;
+    esac
+
+    echo "herdr-core-start: serving ''${running:-unknown} (''${comm:-unknown}), installed ${herdrCore.version} — restarting the core (terminals kept)." >&2
+    ${timeout} -k 5 30 ${herdrCoreBin} server restart --json >/dev/null
+  '';
   orbstackDockerConfig = pkgs.writeText "orbstack-docker.json" (
     builtins.toJSON {
       "log-driver" = "local";
@@ -574,6 +608,23 @@ in
       run ${orcaServeRefresh} || warnEcho "Orca server was not moved to the installed version; see above."
     ''
   );
+
+  # Ensure herdr-core is started in the Aqua session at login and smoothly
+  # restarted into the current Nix store generation on switch while keeping
+  # running terminal holder processes alive.
+  launchd.agents.herdr-core = {
+    enable = true;
+    config = {
+      ProgramArguments = [ "${herdrCoreStart}" ];
+      RunAtLoad = true;
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/herdr-core-start.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/herdr-core-start.log";
+    };
+  };
+
+  home.activation.herdrCoreRefresh = lib.hm.dag.entryAfter [ "setupLaunchAgents" ] ''
+    run ${herdrCoreStart} || warnEcho "herdr-core server was not moved to the installed version; see ~/Library/Logs/herdr-core-start.log."
+  '';
 
   # A pinentry that can both remember and ask.
   #
