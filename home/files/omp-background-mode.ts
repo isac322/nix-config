@@ -181,7 +181,7 @@ const ON_PROFILE: Profile = {
 	// another model family when Grok quota is depleted; advisor and lightweight roles/agents
 	// (browser, smol, scout, sonic, tiny, commit) inherit the base config.
 	agents: {
-		reviewer: `${GROK}:low, ${SONNET}:medium`,
+		reviewer: `${GROK}:low, ${SONNET}:high`,
 		"security-reviewer": `${SOL}:max`,
 	},
 };

@@ -44,19 +44,19 @@ task:
     task: "off"
   agentModelOverrides:
     reviewer: openai-codex/gpt-6.1-terra:medium, xai-oauth/grok-4.7-build-fast:low
-    scout: xai-oauth/grok-4.7-build-fast:low, anthropic/claude-sonnet-5-5:medium
-    sonic: anthropic/claude-haiku-5-5:low, google-vertex/gemini-3.8-flash:low, openai-codex/gpt-6-luna:low
+    scout: xai-oauth/grok-4.7-build-fast:low, anthropic/claude-sonnet-5-5:high
+    sonic: anthropic/claude-haiku-5-5:low, google-vertex/gemini-3.8-flash:low, openai-codex/gpt-6.1-terra:low
     security-reviewer: openai-codex/gpt-6.1-sol:max
 modelRoles:
   default: anthropic/claude-opus-5-5:medium
   plan: google-antigravity/gemini-4-argon:high
   slow: anthropic/claude-opus-5-5:xhigh
   task: anthropic/claude-opus-5-5:medium
-  advisor: anthropic/claude-sonnet-5-5:medium
+  advisor: anthropic/claude-sonnet-5-5:high
   browser: anthropic/claude-haiku-5-5:medium, google-vertex/gemini-3.8-flash:low, openai-codex/gpt-6.1-terra:low
   smol: anthropic/claude-haiku-5-5:medium, google-vertex/gemini-3.8-flash:low, google-vertex/gemini-3.5-flash-lite:medium
   vision: openai-codex/gpt-6.1-terra:low
-  tiny: anthropic/claude-haiku-5-5:low, google-vertex/gemini-3.8-flash:low, openai-codex/gpt-6-luna:low
+  tiny: anthropic/claude-haiku-5-5:low, google-vertex/gemini-3.8-flash:low, openai-codex/gpt-6.1-terra:low
   commit: google-vertex/gemini-3.5-flash-lite:low
   judge: typesafe/jev-preview
 find:
