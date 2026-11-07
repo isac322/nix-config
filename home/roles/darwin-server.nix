@@ -6,7 +6,6 @@
 # role. What lands here is tooling this machine alone has a use for.
 {
   config,
-  inputs,
   lib,
   osConfig,
   pkgs,
@@ -149,8 +148,9 @@ let
   # between its Homebrew activation and home-manager's user activation.
   orb = "/opt/homebrew/bin/orb";
   timeout = lib.getExe' pkgs.coreutils "timeout";
-  herdrCore = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.herdr-core;
-  herdrCoreBin = "${herdrCore}/bin/herdr-core";
+  herdrCoreBase = "${config.home.homeDirectory}/.local/share/herdr-core";
+  herdrCoreActiveExe = "${herdrCoreBase}/active/Herdr Core.app/Contents/MacOS/herdr-core";
+  herdrCoreCurrentExe = "${herdrCoreBase}/current/Contents/MacOS/herdr-core";
 
   herdrCoreStart = pkgs.writeShellScript "herdr-core-start" ''
     set -u
@@ -163,24 +163,35 @@ let
     unset SSH_CONNECTION SSH_CLIENT SSH_TTY
 
     jq=${lib.getExe pkgs.jq}
-    status_json=$(${timeout} -k 5 30 ${herdrCoreBin} server start --json) || exit 1
+    status_json=$(${timeout} -k 5 30 ${lib.escapeShellArg herdrCoreCurrentExe} server start --json) || exit 1
     running=$(printf '%s\n' "$status_json" | "$jq" -r '.version // empty')
     pid=$(printf '%s\n' "$status_json" | "$jq" -r '.pid // empty')
+    live=$(printf '%s\n' "$status_json" | "$jq" -r '.live // 0')
+    holder_pid=$(printf '%s\n' "$status_json" | "$jq" -r '.holder.pid // empty')
     comm=""
     if [ -n "$pid" ]; then
       comm=$(/bin/ps -p "$pid" -o comm= 2>/dev/null || true)
     fi
+    holder_comm=""
+    if [ -n "$holder_pid" ]; then
+      holder_comm=$(/bin/ps -p "$holder_pid" -o comm= 2>/dev/null || true)
+    fi
 
-    case "$comm" in
-      ${lib.escapeShellArg "${herdrCore}/bin/"}*)
-        if [ "$running" = ${lib.escapeShellArg herdrCore.version} ]; then
-          exit 0
-        fi
-        ;;
-    esac
+    if [ "$running" = ${lib.escapeShellArg pkgs.herdr-core.version} ] \
+      && [ "$comm" = ${lib.escapeShellArg herdrCoreActiveExe} ] \
+      && { [ -z "$holder_pid" ] || [ "$holder_comm" = ${lib.escapeShellArg herdrCoreActiveExe} ]; }; then
+      exit 0
+    fi
 
-    echo "herdr-core-start: serving ''${running:-unknown} (''${comm:-unknown}), installed ${herdrCore.version} — restarting the core (terminals kept)." >&2
-    ${timeout} -k 5 30 ${herdrCoreBin} server restart --json >/dev/null
+    if [ "$live" = "0" ] && [ -n "$holder_pid" ] && [ "$holder_comm" != ${lib.escapeShellArg herdrCoreActiveExe} ]; then
+      echo "herdr-core-start: replacing idle pre-bundle holder (''${holder_comm:-unknown}) with ${herdrCoreActiveExe}." >&2
+      ${timeout} -k 5 30 ${lib.escapeShellArg herdrCoreCurrentExe} server stop --json >/dev/null || true
+      ${timeout} -k 5 30 ${lib.escapeShellArg herdrCoreCurrentExe} server start --json >/dev/null
+      exit 0
+    fi
+
+    echo "herdr-core-start: serving ''${running:-unknown} (''${comm:-unknown}), installed ${pkgs.herdr-core.version} — restarting the core (terminals kept)." >&2
+    ${timeout} -k 5 30 ${lib.escapeShellArg herdrCoreCurrentExe} server restart --json >/dev/null
   '';
   orbstackDockerConfig = pkgs.writeText "orbstack-docker.json" (
     builtins.toJSON {
@@ -622,9 +633,15 @@ in
     };
   };
 
-  home.activation.herdrCoreRefresh = lib.hm.dag.entryAfter [ "setupLaunchAgents" ] ''
-    run ${herdrCoreStart} || warnEcho "herdr-core server was not moved to the installed version; see ~/Library/Logs/herdr-core-start.log."
-  '';
+  home.activation.herdrCoreRefresh =
+    lib.hm.dag.entryAfter
+      [
+        "setupLaunchAgents"
+        "herdrCoreBundle"
+      ]
+      ''
+        run ${herdrCoreStart} || warnEcho "herdr-core server was not moved to the installed version; see ~/Library/Logs/herdr-core-start.log."
+      '';
 
   # A pinentry that can both remember and ask.
   #

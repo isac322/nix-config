@@ -7,14 +7,13 @@
 # `pkgs.firefox` desktop configuration here rather than widening common.nix.
 {
   config,
-  inputs,
   lib,
   pkgs,
   ...
 }:
 
 let
-  herdrCore = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.herdr-core;
+  herdrCore = pkgs.herdr-core;
   herdrCoreBin = "${herdrCore}/bin/herdr-core";
   timeout = lib.getExe' pkgs.coreutils "timeout";
   jq = lib.getExe pkgs.jq;

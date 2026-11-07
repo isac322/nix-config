@@ -627,15 +627,17 @@ in
     agents.claude-code
     agents.codex
     agents.antigravity-cli
-    agents.herdr-core
-    # Official OMP standalone binaries. `nix run .#update-packages` refreshes
-    # the version, platform assets, and sha256 digests in one snapshot. The
-    # `omp` on PATH is home/omp-launcher.nix in front of the binary; the Macs
-    # point it at a fixed-path copy instead (home/darwin.nix).
+
+    # Official OMP and herdr-core standalone binaries. `nix run .#update-packages`
+    # refreshes their versions, platform assets, and sha256 digests in one
+    # snapshot. On macOS, both are installed at fixed paths under ~/.local so
+    # their Developer ID signatures keep one TCC identity across updates
+    # (home/darwin.nix).
   ]
-  ++ lib.optional (!pkgs.stdenv.hostPlatform.isDarwin) (
-    import ./omp-launcher.nix { inherit (pkgs) writeText writeTextFile; } (lib.getExe pkgs.omp-bin)
-  )
+  ++ lib.optionals (!pkgs.stdenv.hostPlatform.isDarwin) [
+    (import ./omp-launcher.nix { inherit (pkgs) writeText writeTextFile; } (lib.getExe pkgs.omp-bin))
+    pkgs.herdr-core
+  ]
   ++ [
 
     # OmO Native (`omo`), the standalone OmO agent harness, from its official

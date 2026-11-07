@@ -279,9 +279,9 @@ MBP의 Direct IP host는 TCP 21118에서 화면과 입력을 제공한다.
 **모든 기기**에 둔다 (`home/common.nix`). 아래 두 CLI 묶음이 이 층에 있는 이유가
 이것이라, 순서상 여기가 먼저다.
 
-`claude-code`, `codex`, `antigravity-cli`, `herdr-core`는 `llm-agents` 인풋의
-캐시된 패키지를 쓴다. `omp`는 공식 standalone binary를 직접 설치하므로 상류
-Rust·Bun 빌드를 반복하지 않는다. 버전·asset URL·SHA-256은
+`claude-code`, `codex`, `antigravity-cli`는 `llm-agents` 인풋의 캐시된 패키지를 쓴다.
+`omp`와 `herdr-core`는 공식 릴리스 바이너리를 직접 설치하므로 상류 빌드를 반복하지 않고
+macOS의 Developer ID 서명(`Herdr Core.app` 포함)도 그대로 유지한다. 버전·asset URL·SHA-256은
 `pkgs/release-snapshots.json`에 고정되며 `nix run .#update-packages`가 원자적으로
 갱신한다. aarch64-darwin과 x86_64-linux·aarch64-linux를 지원한다.
 

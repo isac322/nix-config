@@ -292,6 +292,7 @@
             jevify-writing
             sentry
             ntn
+            herdr-core
             slack-cli
             omp-bin
             omo
