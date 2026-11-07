@@ -23,7 +23,6 @@ statusLine:
     - subagents
   rightSegments:
     - session_name
-    - token_rate
     - cache
     - cache_hit
     - cost
