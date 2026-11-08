@@ -302,10 +302,10 @@
     "herdr-t3-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1794119512,
-        "narHash": "sha256-/5gzf9TX8ZT1uWkEXVYZMA4xY6a+SuGJ91xZ7pvLwAU=",
+        "lastModified": 1794123692,
+        "narHash": "sha256-1MJngypl0rKeKE3KN2O6NdGt5qsmEb9WlTpfIJGOWwU=",
         "ref": "main",
-        "rev": "74fad42166d4560df8c87f2d5bf15a8f8e1cff80",
+        "rev": "64226f9fa71c55bf2abd0175f61c09b52445959e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/JinJieBeWater/herdr-t3.git"
