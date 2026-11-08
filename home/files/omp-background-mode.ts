@@ -194,10 +194,10 @@ const PROFILES: Record<string, Profile> = {
 	sol: {
 		label: "Sol",
 		mainModel: SOL,
-		mainThinking: "medium",
+		mainThinking: "high",
 		roles: {
 			...ON_PROFILE.roles,
-			default: `${SOL}:medium`,
+			default: `${SOL}:high`,
 		},
 		agents: ON_PROFILE.agents,
 	},
