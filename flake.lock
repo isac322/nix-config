@@ -302,10 +302,10 @@
     "herdr-t3-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1794075573,
-        "narHash": "sha256-sZExiTrRdLFPiC8AvVLYvGkb1yf1oAuS4OZvXfolCq4=",
+        "lastModified": 1794119512,
+        "narHash": "sha256-/5gzf9TX8ZT1uWkEXVYZMA4xY6a+SuGJ91xZ7pvLwAU=",
         "ref": "main",
-        "rev": "fc7f6c3bafe09bfdd924d45845fca8848c3cff40",
+        "rev": "74fad42166d4560df8c87f2d5bf15a8f8e1cff80",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/JinJieBeWater/herdr-t3.git"
@@ -382,16 +382,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1794092552,
-        "narHash": "sha256-s5dOaCnDgsZEw2a5XfGRXw4LfEgqNTeRtcqDbv6bOtk=",
+        "lastModified": 1794116168,
+        "narHash": "sha256-Dsc08opiicQ3fnDfNdobPwp1ciLO24lhj+cioQ7NN1E=",
         "ref": "refs/heads/main",
-        "rev": "9749aedff46456aa55451a7a01f103224af40451",
+        "rev": "cc555ccdfc76237727ce7ceccdc40fde61dae577",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "9749aedff46456aa55451a7a01f103224af40451",
+        "rev": "cc555ccdfc76237727ce7ceccdc40fde61dae577",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
