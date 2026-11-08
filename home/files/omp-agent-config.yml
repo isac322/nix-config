@@ -1,6 +1,4 @@
 retry:
-  usageAwareFallback: true
-  usageReservePolicy: auto
   fallbackChains:
     anthropic/claude-opus-5-5:
       - google-antigravity/claude-opus-5-5
