@@ -95,6 +95,14 @@
       url = "git+https://github.com/MichaelAquilina/zsh-auto-notify.git?ref=master&shallow=1";
       flake = false;
     };
+    herdr-layout-examples-source = {
+      url = "git+https://github.com/herdrdev/herdr-layout-examples.git?ref=main&shallow=1";
+      flake = false;
+    };
+    herdr-t3-source = {
+      url = "git+https://github.com/JinJieBeWater/herdr-t3.git?ref=main&shallow=1";
+      flake = false;
+    };
     pi-anthropic-web-fetch-source = {
       url = "git+https://github.com/code-yeongyu/pi-anthropic-web-fetch.git?ref=main&shallow=1";
       flake = false;

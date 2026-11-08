@@ -287,6 +287,10 @@ macOS의 Developer ID 서명(`Herdr Core.app` 포함)도 그대로 유지한다.
 
 **Orca와 Herdr 데스크톱 앱은 여기 없다.** GUI 앱이라 cask로 오며, Orca는 맥 둘에,
 `herdr-app`(`Herdr.app`)은 클라이언트 랩탑(`modules/roles/darwin-laptop.nix`)에
+설치하며, 같은 역할의 Home Manager(`home/roles/darwin-laptop.nix`)가 `flake.lock`에
+고정된 `herdrdev/herdr-layout-examples`의 `threads` layout(`layouts/threads.json`,
+`mods/t4-*`)과 `JinJieBeWater/herdr-t3`의 `herdr-t3` layout(`layouts/herdr-t3.json`,
+`layouts/herdr-t3.svg`, `mods/t3-*`, `keys.json` 병합)을 `~/.config/herdr-app`에
 설치한다. 서버 맥(`home/roles/darwin-server.nix`)과 NixOS 서버(`home/linux.nix`,
 `modules/nixos.nix`의 `linger = true`)는 `herdr-core`(`hc`) 런타임만 띄우고
 switch 시 실행 중인 코어를 현재 세대 바이너리로 무중단 재시작(`hc server restart`)한다 —

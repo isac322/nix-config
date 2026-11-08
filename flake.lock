@@ -281,6 +281,42 @@
         "url": "https://github.com/herdrdev/herdr-core.git"
       }
     },
+    "herdr-layout-examples-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1793568532,
+        "narHash": "sha256-vrA4BkUrIVQZrOFhfzCSTjQFygjldQx9pB80tOcudzI=",
+        "ref": "main",
+        "rev": "0ec967640bf854ffb839e9af06c1e0c328bc9815",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/herdrdev/herdr-layout-examples.git"
+      },
+      "original": {
+        "ref": "main",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/herdrdev/herdr-layout-examples.git"
+      }
+    },
+    "herdr-t3-source": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1794075573,
+        "narHash": "sha256-sZExiTrRdLFPiC8AvVLYvGkb1yf1oAuS4OZvXfolCq4=",
+        "ref": "main",
+        "rev": "fc7f6c3bafe09bfdd924d45845fca8848c3cff40",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/JinJieBeWater/herdr-t3.git"
+      },
+      "original": {
+        "ref": "main",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/JinJieBeWater/herdr-t3.git"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -603,6 +639,8 @@
         "determinate": "determinate",
         "gentle-ai": "gentle-ai",
         "herdr-core": "herdr-core",
+        "herdr-layout-examples-source": "herdr-layout-examples-source",
+        "herdr-t3-source": "herdr-t3-source",
         "home-manager": "home-manager",
         "humanizer": "humanizer",
         "impeccable": "impeccable",
