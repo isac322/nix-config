@@ -714,12 +714,38 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	const z = pi.zod;
-	function renderAskWithBrief(card: Component, args: unknown): Component {
+	type ToolDescription = Record<string, unknown> & { body?: unknown[] };
+	const askRendererWithDescribe = askToolRenderer as typeof askToolRenderer & {
+		describeCall?: (args: unknown, options?: unknown) => ToolDescription;
+		describeResult?: (result: unknown, options?: unknown, args?: unknown) => ToolDescription;
+	};
+	function extractUnsuppressedBrief(args: unknown): string {
 		const brief =
 			args && typeof args === "object" && "brief" in args && typeof args.brief === "string"
 				? args.brief.trim()
 				: "";
 		if (brief.length < BRIEF_MIN_CHARS || suppressedBriefs.has(brief)) {
+			return "";
+		}
+		return brief;
+	}
+	function describeAskWithBrief(base: ToolDescription, args: unknown): ToolDescription {
+		const brief = extractUnsuppressedBrief(args);
+		if (!brief) {
+			return base;
+		}
+		const prevBody = Array.isArray(base.body) ? base.body : [];
+		return {
+			...base,
+			inline: false,
+			open: true,
+			preview: "none",
+			body: [{ k: "md", p: { text: brief } }, ...prevBody],
+		};
+	}
+	function renderAskWithBrief(card: Component, args: unknown): Component {
+		const brief = extractUnsuppressedBrief(args);
+		if (!brief) {
 			return card;
 		}
 		const container = new Container();
@@ -728,7 +754,6 @@ export default function (pi: ExtensionAPI) {
 		container.addChild(card);
 		return container;
 	}
-
 	pi.registerTool({
 		name: "ask",
 		label: "Ask",
@@ -764,6 +789,14 @@ export default function (pi: ExtensionAPI) {
 				)
 				.min(1),
 		}),
+		describeCall(args: unknown, options: unknown) {
+			const base = askRendererWithDescribe.describeCall?.(args, options) ?? {};
+			return describeAskWithBrief(base, args);
+		},
+		describeResult(result: unknown, options: unknown, args: unknown) {
+			const base = askRendererWithDescribe.describeResult?.(result, options, args) ?? {};
+			return describeAskWithBrief(base, args);
+		},
 		renderCall(args, options, theme) {
 			const card = askToolRenderer.renderCall(
 				args as Parameters<typeof askToolRenderer.renderCall>[0],
