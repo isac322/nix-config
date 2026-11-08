@@ -55,6 +55,10 @@
       url = "git+https://github.com/Gentleman-Programming/gentle-ai.git?shallow=1";
       flake = false;
     };
+    herdr-core = {
+      url = "git+https://github.com/herdrdev/herdr-core.git?shallow=1";
+      flake = false;
+    };
     humanizer = {
       url = "git+https://github.com/blader/humanizer.git?shallow=1";
       flake = false;

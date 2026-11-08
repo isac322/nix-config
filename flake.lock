@@ -264,6 +264,23 @@
         "url": "https://api.flakehub.com/f/pinned/cachix/git-hooks.nix/0.1.1231%2Brev-43b3c1ab9d40fb1dbb008f451988a91e375825e9/019f7135-8fdf-76f0-b1a1-d2c67e91af8d/source.tar.gz"
       }
     },
+    "herdr-core": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1794081474,
+        "narHash": "sha256-Nqtod8pJtZsCmshKkvyzRMmukQoacjqf1gXuuYcodoM=",
+        "ref": "refs/heads/master",
+        "rev": "cd12ddd88bc11490228343291dc1096c9ed3bf77",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/herdrdev/herdr-core.git"
+      },
+      "original": {
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/herdrdev/herdr-core.git"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -585,6 +602,7 @@
         "camofox-browser-source": "camofox-browser-source",
         "determinate": "determinate",
         "gentle-ai": "gentle-ai",
+        "herdr-core": "herdr-core",
         "home-manager": "home-manager",
         "humanizer": "humanizer",
         "impeccable": "impeccable",

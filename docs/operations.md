@@ -257,6 +257,7 @@ rule과 Claude skill tree는 기존 registry를 cleanup seed로 사용할 수 �
 `~/.agents/skills`와 `~/.claude/skills`에 각각 복사한다.
 
 - `Gentleman-Programming/gentle-ai`: `comment-writer`
+- `herdrdev/herdr-core`: `herdr-core`
 - `blader/humanizer`: `humanizer`
 - `softaworks/agent-toolkit`: `writing-clearly-and-concisely`
 - `pbakaus/impeccable`: `impeccable` (`~/.agents/skills`에는 upstream `.agents`
@@ -276,10 +277,10 @@ design hook은 사용하지 않는다. skill launcher(`scripts/impeccable`)는 �
 directory만 설치된다.
 저장소 소유 skill은 `home/skills/<name>/SKILL.md`가 canonical source다.
 
-네 upstream만 갱신하고 배포하는 절차:
+다섯 upstream만 갱신하고 배포하는 절차:
 
 ```sh
-nix flake update gentle-ai humanizer agent-toolkit impeccable
+nix flake update gentle-ai herdr-core humanizer agent-toolkit impeccable
 nix flake check
 darwin-rebuild build --flake .#<hostname>
 sudo darwin-rebuild switch --flake .#<hostname>
