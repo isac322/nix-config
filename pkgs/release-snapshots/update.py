@@ -233,8 +233,24 @@ def npm_latest(package_name: str, include_dependencies: bool = False) -> dict[st
 
 
 def beardrive_checksums() -> str:
-    url = "https://github.com/runbear-io/beardrive/releases/latest/download/checksums.txt"
-    text = fetch_bytes(url).decode("utf-8")
+    release = fetch_json(f"{GITHUB_API}/runbear-io/beardrive/releases/latest")
+    assets = {
+        asset["name"]: asset
+        for asset in release.get("assets", [])
+        if isinstance(asset.get("name"), str) and isinstance(asset.get("url"), str)
+    }
+    asset = assets.get("checksums.txt")
+    if asset is None:
+        raise RuntimeError("BearDrive latest release has no checksums.txt asset")
+
+    headers = request_headers(asset["url"])
+    headers["Accept"] = "application/octet-stream"
+    try:
+        with urlopen(Request(asset["url"], headers=headers), timeout=120) as response:
+            text = response.read().decode("utf-8")
+    except (HTTPError, URLError, UnicodeDecodeError) as error:
+        raise RuntimeError(f"failed to fetch BearDrive checksums from GitHub API: {error}") from error
+
     lines = [line for line in text.splitlines() if line]
     pattern = re.compile(
         r"^[0-9a-f]{64}  beardrive_[0-9]+\.[0-9]+\.[0-9]+_(darwin|linux)_(amd64|arm64)\.tar\.gz$"
