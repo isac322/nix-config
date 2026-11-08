@@ -14,6 +14,9 @@
 //   specs while Sol implements them.
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
+import { type Component, Container, Markdown, Spacer } from "@oh-my-pi/pi-tui";
+import { getMarkdownTheme } from "@oh-my-pi/pi-tui/theme";
+import { askToolRenderer } from "@oh-my-pi/pi-tui/tools/ask";
 
 type Profile = {
 	label: string;
@@ -97,7 +100,7 @@ const SURGICAL_SCOPE = [
 	"",
 	"Your writing adapts to the conversation, matching the tone and understanding of the user. Make sure to state the main point clearly and early, then develop it with the explanation and detail the reader needs. Let each sentence build on what came before. Develop the points that matter and provide enough support to be useful. ",
 	"",
-	"Use plain, simple language: familiar words, concrete examples, and precise verbs. Prefer active voice and direct statements. Write in connected prose. Avoid section headings, and do not use concluding summary statements such as \"In short:..\", \"The simplest mental model is:...\".",
+	"Use plain, simple language: familiar words, concrete examples, and precise verbs. Prefer active voice and direct statements.",
 	"",
 	"Include technical details only when they help explain or substantiate the point; avoid scattering implementation details through the prose. Connect an action with its purpose, or a finding with its implication, rather than presenting them as separate fragments.",
 	"",
@@ -126,7 +129,7 @@ const SURGICAL_SCOPE = [
 	"",
 	"### 2. 사용자 결정이나 승인이 필요할 때의 설명과 `ask` 형식",
 	"- **DBR-02 · DBR-12** 전역 승인 가드(미승인 앱 코드 수정, PR 머지, 파괴적 작업, 명시적 프라이버시·네트워크 경계)가 승인을 요구하거나, 사용자 의도에 따라 제품 동작·비용·보안·운영 정책이 달라지는 진정한 선택지가 있을 때만 `ask`를 호출한다. 서로 연관된 결정은 한 번의 `ask`로 묶어서 묻는다.",
-	"- **DBR-06 (같은 턴 본문 출력 및 `todo` 턴 분리 금지)**: 사용자는 에이전트가 내부에서 읽은 파일·도구 출력·서브에이전트 로그를 보지 못한다. 단일 점검·감사 후 `ask`로 이어지는 작업에서는 `todo` 항목을 여러 개로 쪼개 만들어 `ask` 직전에 `todo(op=\"done\")` 전용 턴을 연달아 돌지 않는다(필요시 `todo`는 `ask`와 같은 턴에서 최대 1회만 병렬 호출). 또한 설명을 이전 `todo` 턴에 먼저 쓰거나 `ask.questions` 인자 안에만 넣지 말고, **반드시 `ask` 도구를 호출하는 바로 그 턴(`same_turn`)의 어시스턴트 채팅 본문(`text`)**에 먼저 사용자와 같은 언어(한국어 대화에서는 평이한 한국어)로 다음 브리프 전체를 출력한다:",
+	"- **DBR-06 (`ask` 호출 시 `brief` 필수 포함 및 `todo` 턴 분리 금지)**: 사용자는 에이전트가 내부에서 읽은 파일·도구 출력·서브에이전트 로그·`thinking` 블록을 보지 못하며, `ask` 하단 팝업창의 `question`은 최대 4줄만 표시된다. 단일 점검·감사 후 `ask`로 이어지는 작업에서는 `todo` 항목을 여러 개로 쪼개 만들어 `ask` 직전에 `todo(op=\"done\")` 전용 턴을 연달아 돌지 않는다(필요시 `todo`는 `ask`와 같은 턴에서 최대 1회만 병렬 호출). 설명을 이전 `todo` 턴에 먼저 쓰거나 `thinking`·`ask.questions` 인자 안에만 넣지 말고, **반드시 `ask` 도구의 `brief` 인자**(또는 같은 턴의 어시스턴트 채팅 본문 `text`; 단, 긴 마크다운 표를 `text`에 쓰고 `ask`를 함께 호출하면 스트림 오류가 날 수 있으므로 `text`를 비우고 `ask`의 `brief` 인자 안에 전체 브리프를 넣는 것을 권장)에 사용자와 같은 언어(한국어 대화에서는 평이한 한국어)로 다음 브리프 전체를 작성하고, `questions[].question`에는 4줄 팝업에 들어갈 1~2줄 핵심 질문만 넣는다:",
 	"  1. **진행 상황**: 지금 어떤 작업을 어디까지 확인·완료했는지 한두 문장",
 	"  2. **현상과 배경**: 무엇이 문제이거나 왜 지금 사용자의 결정·승인이 필요한지 평이한 설명",
 	"  3. **선택지 비교표**: 각 선택지를 골랐을 때 실제로 무엇이 달라지는지, 비용·시간·동작 트레이드오프와 권장안",
@@ -147,7 +150,7 @@ const SURGICAL_SCOPE = [
 	"| <비용 / 소요 시간 / 위험> | <트레이드오프> | <트레이드오프> |",
 	"",
 	"**권장 이유**: <한 줄>",
-	"다른 방향이 있으면 직접 적어 주세요.",
+	"위 권장안으로 진행할까요, 아니면 다른 방향으로 조정할까요?",
 	"```",
 	"",
 	"- Do not introduce unsolicited warnings, disclaimers, approval flows, or safety/compliance checklists due to hypothetical risk.",
@@ -392,9 +395,10 @@ let active: string | undefined;
 let savedPrevModel: string | undefined;
 let savedPrevThinking: string | undefined;
 // Number of main-agent assistant messages since the last one that showed a decision brief in
-// visible text (0 = the current message), or undefined when none did since the last user
-// submission, executed `ask`, or session change.
+// visible text or `ask.brief` (0 = the current message), or undefined when none did since the
+// last user submission, executed `ask`, or session change.
 let briefAge: number | undefined;
+const suppressedBriefs = new Set<string>();
 // Thresholds from 553 judged `ask` calls (2026-10-18..31): requiring one message with 200+
 // visible characters within the last 6 assistant messages blocked none of the 331 calls
 // with an adequate brief and all 147 without an explanation.
@@ -402,9 +406,9 @@ const BRIEF_MIN_CHARS = 200;
 const BRIEF_MAX_AGE = 5;
 
 // `ask` previews only four lines of its question, and thinking blocks never reach the
-// user, so the brief must sit in visible text blocks.
-function visibleTextLength(content: unknown): number {
-	if (!Array.isArray(content)) return 0;
+// user, so the brief must sit in visible text blocks or `ask.brief`.
+function visibleText(content: unknown): string {
+	if (!Array.isArray(content)) return "";
 	return content
 		.map((block) =>
 			block && typeof block === "object" && "type" in block && block.type === "text" && "text" in block
@@ -412,7 +416,7 @@ function visibleTextLength(content: unknown): number {
 				: "",
 		)
 		.join("")
-		.trim().length;
+		.trim();
 }
 
 export default function (pi: ExtensionAPI) {
@@ -478,18 +482,22 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("session_start", (_event, ctx) => {
 		briefAge = undefined;
+		suppressedBriefs.clear();
 		syncFromSession(ctx);
 	});
 	pi.on("session_switch", (_event, ctx) => {
 		briefAge = undefined;
+		suppressedBriefs.clear();
 		syncFromSession(ctx);
 	});
 	pi.on("session_branch", (_event, ctx) => {
 		briefAge = undefined;
+		suppressedBriefs.clear();
 		syncFromSession(ctx);
 	});
 	pi.on("session_tree", (_event, ctx) => {
 		briefAge = undefined;
+		suppressedBriefs.clear();
 		syncFromSession(ctx);
 	});
 
@@ -527,18 +535,42 @@ export default function (pi: ExtensionAPI) {
 		// Slash commands such as `/bg status` are not new requests.
 		if (typeof event.text === "string" && event.text.trimStart().startsWith("/")) return;
 		briefAge = undefined;
+		suppressedBriefs.clear();
 	});
 
 	// Track how recently the main agent showed a decision brief in visible text. This runs
-	// before tool dispatch, so `tool_call` sees a brief from the same message. Failed or
-	// aborted generations are skipped: the replays showed Argon calling a bare `ask` right
-	// after a MALFORMED_FUNCTION_CALL whose cut-off text still held a brief.
+	// before tool dispatch, so `tool_call` sees a brief from the same message. Even when a
+	// turn stops with `MALFORMED_FUNCTION_CALL` (`stopReason === "error"`), OMP commits the
+	// already-streamed visible text to the transcript, so 200+ visible characters still count.
 	pi.on("assistant_message", (event, ctx) => {
-		if (isSubagentContext(ctx) || !isNonOpusMainProfile(active)) return;
+		if (isSubagentContext(ctx)) return;
 		const { stopReason, content } = event.message;
-		if (stopReason === "error" || stopReason === "aborted") return;
-		if (visibleTextLength(content) >= BRIEF_MIN_CHARS) briefAge = 0;
-		else if (briefAge !== undefined) briefAge += 1;
+		if (stopReason === "aborted") return;
+		const visText = visibleText(content);
+		const hasVisibleBrief = visText.length >= BRIEF_MIN_CHARS;
+		if (hasVisibleBrief && Array.isArray(content)) {
+			for (const block of content) {
+				if (
+					block &&
+					typeof block === "object" &&
+					"type" in block &&
+					block.type === "toolCall" &&
+					"name" in block &&
+					block.name === "ask" &&
+					"arguments" in block &&
+					block.arguments &&
+					typeof block.arguments === "object" &&
+					"brief" in block.arguments &&
+					typeof block.arguments.brief === "string"
+				) {
+					const trimmed = block.arguments.brief.trim();
+					if (trimmed && visText.includes(trimmed)) suppressedBriefs.add(trimmed);
+				}
+			}
+		}
+		if (!isNonOpusMainProfile(active)) return;
+		if (hasVisibleBrief) briefAge = 0;
+		else if (stopReason !== "error" && briefAge !== undefined) briefAge += 1;
 	});
 
 	// 1. In subagents (`ctx.agent.kind === "sub"`): block `write` to `agent://Main` /
@@ -593,20 +625,18 @@ export default function (pi: ExtensionAPI) {
 				};
 			}
 		}
-		// A blocked `ask` ends in a text-only brief: in replays of session 01a01e84 Gemini 4
-		// Argon often failed with MALFORMED_FUNCTION_CALL when it retried a long brief and
-		// `ask` in one message, while a text-only brief always reached the user.
-		if (
-			!subagent &&
-			isNonOpusMainProfile(active) &&
-			event.toolName === "ask" &&
-			(briefAge === undefined || briefAge > BRIEF_MAX_AGE)
-		) {
-			return {
-				block: true,
-				reason:
-					"ask를 호출하지 말고, 진행 상황·현상·원인/배경·선택지 비교·권장 이유와 질문을 thinking이 아닌 본문 텍스트로만 출력한 뒤 도구 호출 없이 턴을 끝내세요.",
-			};
+		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "ask") {
+			const askBrief = typeof rawInput.brief === "string" ? rawInput.brief.trim() : "";
+			if (askBrief.length >= BRIEF_MIN_CHARS) {
+				briefAge = 0;
+			}
+			if (briefAge === undefined || briefAge > BRIEF_MAX_AGE) {
+				return {
+					block: true,
+					reason:
+						"ask 호출에 사용자 브리프가 누락되었습니다. ask의 brief 인자 안에 진행 상황·현상·원인/배경·선택지 비교·권장 이유 전체(200자 이상)를 한국어 마크다운으로 담아 ask를 다시 호출하세요.",
+				};
+			}
 		}
 		const shouldNormalizeToolInput = subagent ? !isOpusContextModel(ctx) : isNonOpusMainProfile(active);
 		if (!shouldNormalizeToolInput) {
@@ -682,6 +712,83 @@ export default function (pi: ExtensionAPI) {
 			additionalContext: `Background jobs are still running or pending delivery (${pending}). Do NOT write an interim synthesis or final report yet; call wait again until 0 background jobs remain.`,
 		};
 	});
+
+	const z = pi.zod;
+	function renderAskWithBrief(card: Component, args: unknown): Component {
+		const brief =
+			args && typeof args === "object" && "brief" in args && typeof args.brief === "string"
+				? args.brief.trim()
+				: "";
+		if (brief.length < BRIEF_MIN_CHARS || suppressedBriefs.has(brief)) {
+			return card;
+		}
+		const container = new Container();
+		container.addChild(new Markdown(brief, 1, 0, getMarkdownTheme()));
+		container.addChild(new Spacer(1));
+		container.addChild(card);
+		return container;
+	}
+
+	pi.registerTool({
+		name: "ask",
+		label: "Ask",
+		approval: "read",
+		concurrency: "exclusive",
+		loadMode: "discoverable",
+		mergeCallAndResult: true,
+		description:
+			"Ask the user for a decision when materially different tradeoffs or required approvals exist. Supply the full user-facing decision brief (**진행 상황**, **현상**, **원인 / 배경**, **선택지 비교** markdown table, **권장 이유**) in `brief` so it renders in the chat transcript above the 4-line popup.",
+		parameters: z.object({
+			i: z.string().optional().describe("Capitalized 2-6 word present-participle intent"),
+			brief: z
+				.string()
+				.describe(
+					"Self-contained decision brief in Markdown (**진행 상황**, **현상**, **원인 / 배경**, **선택지 비교** markdown table, **권장 이유**) rendered in the chat transcript above the question popup.",
+				),
+			questions: z
+				.array(
+					z.object({
+						id: z.string(),
+						question: z.string().describe("Concise 1-2 line question for the 4-line popup header"),
+						header: z.string().optional().describe("Short display chip"),
+						multi: z.boolean().optional(),
+						recommended: z.number().optional().describe("0-based default index"),
+						options: z.array(
+							z.object({
+								label: z.string(),
+								description: z.string().optional(),
+								preview: z.string().optional(),
+							}),
+						),
+					}),
+				)
+				.min(1),
+		}),
+		renderCall(args, options, theme) {
+			const card = askToolRenderer.renderCall(
+				args as Parameters<typeof askToolRenderer.renderCall>[0],
+				options,
+				theme,
+			);
+			return renderAskWithBrief(card, args);
+		},
+		renderResult(result, options, theme, args) {
+			const card = askToolRenderer.renderResult(
+				result as Parameters<typeof askToolRenderer.renderResult>[0],
+				options,
+				theme,
+				args as Parameters<typeof askToolRenderer.renderResult>[3],
+			);
+			return renderAskWithBrief(card, args);
+		},
+		async execute(_toolCallId, params, signal, onUpdate, ctx) {
+			const { brief: _brief, ...nativeParams } = params as Record<string, unknown>;
+			if (typeof ctx.invokeTool === "function") {
+				return await ctx.invokeTool(nativeParams, { signal, onUpdate });
+			}
+			throw new Error("Native ask tool is unavailable in this context");
+		},
+	} as Parameters<typeof pi.registerTool>[0]);
 
 	pi.registerCommand("bg", {
 		description: "Background profile: /bg [on|sol|astra|argon|off|status]",
