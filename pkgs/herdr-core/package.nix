@@ -33,20 +33,17 @@ stdenvNoCC.mkDerivation {
   installPhase = ''
     runHook preInstall
     mkdir -p "$out/bin"
-    ${
-      if stdenvNoCC.hostPlatform.isDarwin then
-        ''
-          mkdir -p "$out/Applications"
-          cp -pR "Herdr Core.app" "$out/Applications/Herdr Core.app"
-          ln -s "../Applications/Herdr Core.app/Contents/MacOS/herdr-core" "$out/bin/herdr-core"
-          ln -s herdr-core "$out/bin/hc"
-        ''
-      else
-        ''
-          install -Dm755 herdr-core "$out/bin/herdr-core"
-          ln -s herdr-core "$out/bin/hc"
-        ''
-    }
+    install -Dm755 herdr-core "$out/bin/herdr-core"
+    ln -s herdr-core "$out/bin/hc"
+    ${lib.optionalString stdenvNoCC.hostPlatform.isDarwin ''
+      # Store the signed bundle without a `.app` directory suffix and never
+      # execute its inner binary inside $out: macOS attaches `com.apple.macl`
+      # (App Management TCC) to a `.app` bundle as soon as its executable runs,
+      # which blocks nix-daemon's post-build `lchflags` on hosts where the
+      # daemon lacks Full Disk Access.
+      mkdir -p "$out/share/herdr-core"
+      cp -pR "Herdr Core.app" "$out/share/herdr-core/bundle"
+    ''}
     runHook postInstall
   '';
 

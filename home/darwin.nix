@@ -363,20 +363,17 @@ in
   '';
 
   home.activation.herdrCoreBundle = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    src_app="${pkgs.herdr-core}/Applications/Herdr Core.app"
-    src="$src_app/Contents/MacOS/herdr-core"
+    src_bundle="${pkgs.herdr-core}/share/herdr-core/bundle"
+    src="$src_bundle/Contents/MacOS/herdr-core"
     dst=${lib.escapeShellArg herdrCoreActiveExe}
     entry=${lib.escapeShellArg herdrCoreEntry}
     current=${lib.escapeShellArg herdrCoreCurrentExe}
     if [ ! -x "$current" ] || ! /usr/bin/cmp -s "$src" "$dst"; then
       run /bin/mkdir -p "$(/usr/bin/dirname "$entry")"
-      if [ -d ${lib.escapeShellArg herdrCoreBase} ]; then
-        run /bin/chmod -R u+w ${lib.escapeShellArg herdrCoreBase}
-      fi
       tmp_dir=$(/usr/bin/mktemp -d "/tmp/herdr-core-bundle.XXXXXX")
-      /usr/bin/ditto "$src_app" "$tmp_dir/Herdr Core.app"
+      /usr/bin/ditto "$src_bundle" "$tmp_dir/Herdr Core.app"
       /bin/chmod -R u+w "$tmp_dir/Herdr Core.app"
-      run "$tmp_dir/Herdr Core.app/Contents/MacOS/herdr-core" --hc-install-bundle \
+      run "${pkgs.herdr-core}/bin/herdr-core" --hc-install-bundle \
         "$tmp_dir/Herdr Core.app/Contents/MacOS/herdr-core" "$entry"
       /bin/rm -rf "$tmp_dir"
     fi
