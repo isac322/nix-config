@@ -10,10 +10,12 @@ setupVersion: 3
 extendedContext: true
 statusLine:
   preset: custom
+  showHookStatus: false
   leftSegments:
     - vim
     - model
     - mode
+    - status
     - path
     - git
     - pr

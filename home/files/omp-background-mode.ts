@@ -12,6 +12,10 @@
 //   quota instead of Anthropic quota.
 // - `argon`: Gemini 4 Argon main agent, which understands the problem and writes the
 //   specs while Sol implements them.
+import { createHash } from "node:crypto";
+import { readdirSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 import { type Component, Container, Markdown, Spacer } from "@oh-my-pi/pi-tui";
@@ -241,14 +245,141 @@ function appendDirective(baseText: unknown, directive: string, marker: string): 
 
 const BG_ENTRY_TYPE = "bg-mode";
 
-function inferSessionBgState(entries: unknown[]): {
+type InferredBgState = {
 	mode: string | undefined;
 	prevModel: string | undefined;
 	prevThinking: string | undefined;
-} {
+	profileHash: string | undefined;
+	savedRoles: Record<string, string> | undefined;
+	savedAgents: Record<string, string> | undefined;
+	inPlanMode: boolean;
+};
+
+function isStringRecord(val: unknown): val is Record<string, string> {
+	if (!val || typeof val !== "object" || Array.isArray(val)) return false;
+	return Object.values(val).every((v) => typeof v === "string");
+}
+
+function computeProfileHash(profile: Profile): string {
+	const canonical = JSON.stringify({
+		mainModel: profile.mainModel,
+		mainThinking: profile.mainThinking,
+		roles: Object.entries(profile.roles).sort(([a], [b]) => a.localeCompare(b)),
+		agents: Object.entries(profile.agents).sort(([a], [b]) => a.localeCompare(b)),
+	});
+	return createHash("sha256").update(canonical).digest("hex").slice(0, 4);
+}
+
+const OMP_AGENT_DIR = join(homedir(), ".omp/agent");
+const NIX_DARWIN_HOME_DIR = "/etc/nix-darwin/home";
+const OMP_HASH_TTL_MS = 5_000;
+
+function readTextSafe(filePath: string): string | undefined {
+	try {
+		return readFileSync(filePath, "utf8");
+	} catch {
+		return undefined;
+	}
+}
+
+function computeDeployedOmpHash(ompDir = OMP_AGENT_DIR): string {
+	const hash = createHash("sha256");
+	const fixedFiles = [
+		"AGENTS.md",
+		"PERSONALITY.md",
+		"RULES.md",
+		"agents/browser.md",
+		"config.yml",
+		"extensions/background-mode.ts",
+	];
+	for (const rel of fixedFiles) {
+		const content = readTextSafe(join(ompDir, rel));
+		if (content !== undefined) {
+			hash.update(`${rel}\0${content.trim()}\0`);
+		}
+	}
+	try {
+		const rulesDir = join(ompDir, "rules");
+		const ruleFiles = readdirSync(rulesDir)
+			.filter((name) => name.endsWith(".md"))
+			.sort();
+		for (const name of ruleFiles) {
+			const content = readTextSafe(join(rulesDir, name));
+			if (content !== undefined) {
+				hash.update(`rules/${name}\0${content.trim()}\0`);
+			}
+		}
+	} catch {}
+	return hash.digest("hex").slice(0, 4);
+}
+
+function checkRepoUnswitched(ompDir = OMP_AGENT_DIR, nixHomeDir = NIX_DARWIN_HOME_DIR): boolean {
+	const repoExt = readTextSafe(join(nixHomeDir, "files/omp-background-mode.ts"));
+	const depExt = readTextSafe(join(ompDir, "extensions/background-mode.ts"));
+	if (repoExt !== undefined && depExt !== undefined && repoExt.trim() !== depExt.trim()) {
+		return true;
+	}
+	const repoCfg = readTextSafe(join(nixHomeDir, "files/omp-agent-config.yml"));
+	const depCfg = readTextSafe(join(ompDir, "config.yml"));
+	if (
+		repoCfg !== undefined &&
+		depCfg !== undefined &&
+		!depCfg.trimStart().startsWith(repoCfg.trim())
+	) {
+		return true;
+	}
+	const repoBrowser = readTextSafe(join(nixHomeDir, "files/agent-instructions/agents/browser.md"));
+	const depBrowser = readTextSafe(join(ompDir, "agents/browser.md"));
+	if (repoBrowser !== undefined && depBrowser !== undefined && repoBrowser.trim() !== depBrowser.trim()) {
+		return true;
+	}
+	try {
+		const segmentsDir = join(nixHomeDir, "files/agent-instructions/segments");
+		const segmentFiles = readdirSync(segmentsDir).filter(
+			(name) => name.endsWith(".md") && name !== "claude-tools.md" && name !== "codex-tools.md",
+		);
+		const deployedBodies: string[] = [];
+		for (const rel of ["AGENTS.md", "PERSONALITY.md", "RULES.md"]) {
+			const text = readTextSafe(join(ompDir, rel));
+			if (text !== undefined) deployedBodies.push(text);
+		}
+		const rulesDir = join(ompDir, "rules");
+		for (const name of readdirSync(rulesDir).filter((n) => n.endsWith(".md"))) {
+			const text = readTextSafe(join(rulesDir, name));
+			if (text !== undefined) deployedBodies.push(text);
+		}
+		const combinedDeployed = deployedBodies.join("\n\n");
+		for (const name of segmentFiles) {
+			const segText = readTextSafe(join(segmentsDir, name))?.trim();
+			if (segText && !combinedDeployed.includes(segText)) {
+				return true;
+			}
+		}
+	} catch {}
+	return false;
+}
+
+const LOADED_OMP_HASH = computeDeployedOmpHash();
+let cachedDiskCheck: { at: number; deployedHash: string; repoUnswitched: boolean } | undefined;
+
+function getDiskVersionState(force = false): { deployedHash: string; repoUnswitched: boolean } {
+	const now = Date.now();
+	if (!force && cachedDiskCheck && now - cachedDiskCheck.at < OMP_HASH_TTL_MS) {
+		return cachedDiskCheck;
+	}
+	const deployedHash = computeDeployedOmpHash();
+	const repoUnswitched = checkRepoUnswitched();
+	cachedDiskCheck = { at: now, deployedHash, repoUnswitched };
+	return cachedDiskCheck;
+}
+
+function inferSessionBgState(entries: unknown[]): InferredBgState {
 	let mode: string | undefined;
 	let prevModel: string | undefined;
 	let prevThinking: string | undefined;
+	let profileHash: string | undefined;
+	let savedRoles: Record<string, string> | undefined;
+	let savedAgents: Record<string, string> | undefined;
 	let inPlanMode = false;
 
 	for (const raw of entries) {
@@ -256,7 +387,15 @@ function inferSessionBgState(entries: unknown[]): {
 		const entry = raw as Record<string, unknown>;
 		const type = entry.type;
 		if (type === "session_init") {
-			return { mode: undefined, prevModel: undefined, prevThinking: undefined };
+			return {
+				mode: undefined,
+				prevModel: undefined,
+				prevThinking: undefined,
+				profileHash: undefined,
+				savedRoles: undefined,
+				savedAgents: undefined,
+				inPlanMode: false,
+			};
 		}
 
 		if (type === "mode_change") {
@@ -271,10 +410,16 @@ function inferSessionBgState(entries: unknown[]): {
 				const d = data as Record<string, unknown>;
 				if (d.mode === "off") {
 					mode = undefined;
+					profileHash = undefined;
+					savedRoles = undefined;
+					savedAgents = undefined;
 				} else if (typeof d.mode === "string" && PROFILES[d.mode]) {
 					mode = d.mode;
 					if (typeof d.prevModel === "string" && d.prevModel) prevModel = d.prevModel;
 					if (typeof d.prevThinking === "string" && d.prevThinking) prevThinking = d.prevThinking;
+					profileHash = typeof d.profileHash === "string" ? d.profileHash : undefined;
+					savedRoles = isStringRecord(d.roles) ? d.roles : undefined;
+					savedAgents = isStringRecord(d.agents) ? d.agents : undefined;
 				}
 			}
 			continue;
@@ -286,16 +431,34 @@ function inferSessionBgState(entries: unknown[]): {
 			}
 			const model = entry.model;
 			if (model === SOL) {
-				mode = "sol";
+				if (mode !== "sol") {
+					mode = "sol";
+					profileHash = undefined;
+					savedRoles = undefined;
+					savedAgents = undefined;
+				}
 			} else if (model === ASTRA) {
-				mode = "astra";
+				if (mode !== "astra") {
+					mode = "astra";
+					profileHash = undefined;
+					savedRoles = undefined;
+					savedAgents = undefined;
+				}
 			} else if (model === ARGON || model === "google/gemini-4-argon") {
-				mode = "argon";
+				if (mode !== "argon") {
+					mode = "argon";
+					profileHash = undefined;
+					savedRoles = undefined;
+					savedAgents = undefined;
+				}
 			} else if (typeof model === "string" && model) {
 				if (mode && PROFILES[mode]?.mainModel === model) {
 					continue;
 				}
 				mode = undefined;
+				profileHash = undefined;
+				savedRoles = undefined;
+				savedAgents = undefined;
 				prevModel = model;
 			}
 			continue;
@@ -308,7 +471,7 @@ function inferSessionBgState(entries: unknown[]): {
 		}
 	}
 
-	return { mode, prevModel, prevThinking };
+	return { mode, prevModel, prevThinking, profileHash, savedRoles, savedAgents, inPlanMode };
 }
 
 function isNonOpusMainProfile(activeMode: string | undefined): boolean {
@@ -424,7 +587,11 @@ function visibleText(content: unknown): string {
 export default function (pi: ExtensionAPI) {
 	const scope = pi.pi.settings;
 
-	function applyProfileOverrides(nextMode: string | undefined): void {
+	function applyProfileOverrides(
+		nextMode: string | undefined,
+		rolesOverride?: Record<string, string>,
+		agentsOverride?: Record<string, string>,
+	): void {
 		const roles = lookup("modelRoles");
 		const agents = lookup("task.agentModelOverrides");
 		if (!roles || !agents) return;
@@ -432,8 +599,8 @@ export default function (pi: ExtensionAPI) {
 		agents.clearOverride(scope);
 		const profile = nextMode ? PROFILES[nextMode] : undefined;
 		if (profile) {
-			roles.override(scope, { ...roles.get(scope), ...profile.roles });
-			agents.override(scope, { ...agents.get(scope), ...profile.agents });
+			roles.override(scope, { ...roles.get(scope), ...(rolesOverride ?? profile.roles) });
+			agents.override(scope, { ...agents.get(scope), ...(agentsOverride ?? profile.agents) });
 			active = nextMode;
 		} else {
 			active = undefined;
@@ -441,7 +608,63 @@ export default function (pi: ExtensionAPI) {
 		}
 	}
 
-	function syncFromSession(ctx: unknown): void {
+	function isProfileOutdatedForSession(ctx: unknown, inferred: InferredBgState): boolean {
+		if (!inferred.mode) return false;
+		const profile = PROFILES[inferred.mode];
+		if (!profile) return false;
+		if (inferred.profileHash !== computeProfileHash(profile)) return true;
+		if (inferred.inPlanMode) return false;
+		const c = ctx as {
+			models?: { current?: () => { provider?: string; id?: string } | undefined };
+			model?: { provider?: string; id?: string };
+		};
+		const current = c.models?.current?.() ?? c.model;
+		if (current?.provider && current?.id) {
+			const selector = `${current.provider}/${current.id}`;
+			if (selector !== profile.mainModel) return true;
+		}
+		const currentThinking = pi.getThinkingLevel?.();
+		if (typeof currentThinking === "string" && currentThinking && currentThinking !== profile.mainThinking) {
+			return true;
+		}
+		return false;
+	}
+
+	function updateStatusLineBadge(ctx: unknown, inferred?: InferredBgState, forceDiskCheck = false): void {
+		if (isSubagentContext(ctx) || !ctx || typeof ctx !== "object" || !("ui" in ctx)) return;
+		const uiObj = ctx.ui;
+		if (!uiObj || typeof uiObj !== "object" || !("setStatus" in uiObj)) return;
+		const setStatus = uiObj.setStatus;
+		if (typeof setStatus !== "function") return;
+		const state =
+			inferred ??
+			(() => {
+				if (!("sessionManager" in ctx) || !ctx.sessionManager || typeof ctx.sessionManager !== "object") {
+					return undefined;
+				}
+				const sm = ctx.sessionManager;
+				if (!("getBranch" in sm) || typeof sm.getBranch !== "function") return undefined;
+				const branch: unknown = sm.getBranch.call(sm);
+				return Array.isArray(branch) ? inferSessionBgState(branch) : undefined;
+			})();
+		const { deployedHash, repoUnswitched } = getDiskVersionState(forceDiskCheck);
+		let verBadge = `#${LOADED_OMP_HASH}`;
+		if (LOADED_OMP_HASH !== deployedHash) {
+			verBadge = `#${LOADED_OMP_HASH}→#${deployedHash} ↻restart`;
+		} else if (repoUnswitched) {
+			verBadge = `#${LOADED_OMP_HASH} ⚠switch`;
+		}
+		const mode = state?.mode ?? active;
+		if (mode && PROFILES[mode]) {
+			const outdated = state ? isProfileOutdatedForSession(ctx, state) : false;
+			const bgBadge = outdated ? `bg:${PROFILES[mode].label}(↻/bg)` : `bg:${PROFILES[mode].label}`;
+			setStatus.call(uiObj, "bg-mode", `${bgBadge} ${verBadge}`);
+		} else {
+			setStatus.call(uiObj, "bg-mode", verBadge);
+		}
+	}
+
+	function syncFromSession(ctx: unknown, forceDiskCheck = false): void {
 		if (isSubagentContext(ctx) || !ctx || typeof ctx !== "object") return;
 		const c = ctx as {
 			sessionManager?: { getBranch?: () => unknown[] };
@@ -453,17 +676,22 @@ export default function (pi: ExtensionAPI) {
 		const roles = lookup("modelRoles");
 		const agents = lookup("task.agentModelOverrides");
 		const targetProfile = inferred.mode ? PROFILES[inferred.mode] : undefined;
+		const desiredRoles = inferred.savedRoles ?? targetProfile?.roles;
+		const desiredAgents = inferred.savedAgents ?? targetProfile?.agents;
 		const currentRoles = roles?.get(scope) ?? {};
 		const currentAgents = agents?.get(scope) ?? {};
 		const needsSync =
 			active !== inferred.mode ||
 			(targetProfile !== undefined &&
-				(Object.entries(targetProfile.roles).some(([k, v]) => currentRoles[k] !== v) ||
-					Object.entries(targetProfile.agents).some(([k, v]) => currentAgents[k] !== v)));
+				desiredRoles !== undefined &&
+				desiredAgents !== undefined &&
+				(Object.entries(desiredRoles).some(([k, v]) => currentRoles[k] !== v) ||
+					Object.entries(desiredAgents).some(([k, v]) => currentAgents[k] !== v)));
 		if (needsSync) {
-			applyProfileOverrides(inferred.mode);
+			applyProfileOverrides(inferred.mode, desiredRoles, desiredAgents);
 		}
 		updateGoalContinuationOverride(scope, inferred.mode, Boolean(describePendingAsyncWork(ctx)));
+		updateStatusLineBadge(ctx, inferred, forceDiskCheck);
 
 		if (inferred.mode) {
 			if (inferred.prevModel) savedPrevModel = inferred.prevModel;
@@ -892,7 +1120,7 @@ export default function (pi: ExtensionAPI) {
 						pi.setThinkingLevel(previousThinking);
 					};
 				}
-				applyProfileOverrides(action);
+				applyProfileOverrides(action, profile.roles, profile.agents);
 				const model = ctx.models.resolve(profile.mainModel);
 				if (!model || !(await pi.setModel(model))) {
 					throw new Error(`background mode: cannot switch to ${profile.mainModel}`);
@@ -900,6 +1128,9 @@ export default function (pi: ExtensionAPI) {
 				pi.setThinkingLevel(profile.mainThinking);
 				pi.appendEntry(BG_ENTRY_TYPE, {
 					mode: action,
+					profileHash: computeProfileHash(profile),
+					roles: profile.roles,
+					agents: profile.agents,
 					...(savedPrevModel ? { prevModel: savedPrevModel } : {}),
 					...(savedPrevThinking ? { prevThinking: savedPrevThinking } : {}),
 				});
@@ -915,6 +1146,7 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 
+			syncFromSession(ctx, true);
 			const current = ctx.models.current();
 			const roleMap = roles.get(scope);
 			const agentMap = agents.get(scope);
