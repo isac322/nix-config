@@ -376,16 +376,18 @@ function describePendingAsyncWork(ctx: unknown): string | undefined {
 	return labels.length > 0 ? labels.join(", ") : `${runningLabels.length + queuedCount} job(s)`;
 }
 
-function hasRunningTaskSubagent(ctx: unknown): boolean {
-	if (!ctx || typeof ctx !== "object" || !("getAsyncJobSnapshot" in ctx)) return false;
-	const getSnap = ctx.getAsyncJobSnapshot;
-	if (typeof getSnap !== "function") return false;
-	const snap: unknown = getSnap.call(ctx);
-	if (!snap || typeof snap !== "object") return false;
-	const runningRaw = "running" in snap && Array.isArray(snap.running) ? snap.running : [];
-	return runningRaw.some(
-		(item) => item && typeof item === "object" && "type" in item && item.type === "task",
-	);
+function updateGoalContinuationOverride(
+	scope: unknown,
+	activeMode: string | undefined,
+	pendingAsyncWork: boolean,
+): void {
+	const contModes = lookup("goal.continuationModes");
+	if (!contModes) return;
+	if (isNonOpusMainProfile(activeMode) && pendingAsyncWork) {
+		contModes.override(scope, []);
+	} else {
+		contModes.clearOverride(scope);
+	}
 }
 
 // Module-scoped state so subagent ExtensionRunner instances bound in the same OMP
@@ -435,6 +437,7 @@ export default function (pi: ExtensionAPI) {
 			active = nextMode;
 		} else {
 			active = undefined;
+			updateGoalContinuationOverride(scope, undefined, false);
 		}
 	}
 
@@ -460,6 +463,7 @@ export default function (pi: ExtensionAPI) {
 		if (needsSync) {
 			applyProfileOverrides(inferred.mode);
 		}
+		updateGoalContinuationOverride(scope, inferred.mode, Boolean(describePendingAsyncWork(ctx)));
 
 		if (inferred.mode) {
 			if (inferred.prevModel) savedPrevModel = inferred.prevModel;
@@ -573,12 +577,35 @@ export default function (pi: ExtensionAPI) {
 		else if (stopReason !== "error" && briefAge !== undefined) briefAge += 1;
 	});
 
+	// Pause `/goal` auto-continuation timers while background jobs are still running or
+	// pending delivery so `InteractiveMode.#scheduleGoalContinuation` (which runs on the
+	// session `agent_end` event BEFORE extension `agent_end` handlers) does not inject a
+	// new `"Continue active goal"` prompt 800ms after the turn ends. Syncing on tool
+	// execution and before/after each turn ensures `goal.continuationModes` is already `[]`
+	// before the turn settles into `agent_end`, and restores it as soon as 0 jobs remain.
+	pi.on("tool_execution_start", (_event, ctx) => {
+		if (isSubagentContext(ctx)) return;
+		updateGoalContinuationOverride(scope, active, Boolean(describePendingAsyncWork(ctx)));
+	});
+	pi.on("tool_execution_end", (_event, ctx) => {
+		if (isSubagentContext(ctx)) return;
+		updateGoalContinuationOverride(scope, active, Boolean(describePendingAsyncWork(ctx)));
+	});
+	pi.on("agent_end", (event, ctx) => {
+		if (isSubagentContext(ctx)) return;
+		syncFromSession(ctx);
+		const awaiting =
+			Boolean((event as Record<string, unknown>).awaitingAsyncWork) ||
+			Boolean(describePendingAsyncWork(ctx));
+		updateGoalContinuationOverride(scope, active, awaiting);
+	});
+
 	// 1. In subagents (`ctx.agent.kind === "sub"`): block `write` to `agent://Main` /
 	//    `agent://<parentId>` / `agent://all` so subagents do not drip-feed `<irc>`
 	//    progress cards or prematurely wake `wait()`.
-	// 2. In the main agent under `/bg sol`, `/bg astra`, or `/bg argon`: block `goal(op="complete")`
-	//    while background jobs are still running or queued for delivery, and block `ask`
-	//    until a decision brief appeared in visible assistant text.
+	// 2. In the main agent under `/bg sol`, `/bg astra`, or `/bg argon`: block `wait` and
+	//    `read(proc://...)` polling, block `goal(op="complete")` while background jobs are
+	//    still running or queued for delivery, and block `ask` until a decision brief appeared.
 	// 3. Normalize OpenAI strict-schema dummy fields on `bash` and `task` calls.
 	pi.on("tool_call", async (event, ctx) => {
 		const subagent = isSubagentContext(ctx);
@@ -618,10 +645,23 @@ export default function (pi: ExtensionAPI) {
 		}
 		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "wait") {
 			const pending = describePendingAsyncWork(ctx);
-			if (pending && !hasRunningTaskSubagent(ctx)) {
+			return {
+				block: true,
+				reason: pending
+					? `Do NOT call wait while background work is in flight (${pending}). Results and subagent outputs are delivered automatically; continue independent work or end your turn now without a tool call so OMP wakes this session with zero intermediate LLM calls the moment a job finishes.`
+					: "Do NOT call wait to poll; background results and messages arrive automatically. Continue useful work or end your turn without a tool call.",
+			};
+		}
+		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "read") {
+			const path = typeof rawInput.path === "string" ? rawInput.path.trim() : "";
+			if (
+				(path === "proc://" || /^proc:\/\/bg_\d+(?:\/.*)?$/.test(path)) &&
+				describePendingAsyncWork(ctx)
+			) {
 				return {
 					block: true,
-					reason: `Only background bash job(s) remain (${pending}). Do NOT call wait (which wakes the LLM every 30m); end your turn now and OMP will wait with zero LLM calls and wake this session automatically the moment the job finishes.`,
+					reason:
+						"Do NOT poll running background jobs via read(proc://...). Background job outputs are delivered automatically when they finish; end your turn now without a tool call.",
 				};
 			}
 		}
@@ -702,14 +742,10 @@ export default function (pi: ExtensionAPI) {
 		if (event.toolName === "ask") briefAge = undefined;
 		if (!isNonOpusMainProfile(active) || event.toolName !== "wait") return;
 		const pending = describePendingAsyncWork(ctx);
-		if (!pending) return;
-		if (!hasRunningTaskSubagent(ctx)) {
-			return {
-				additionalContext: `Only background bash job(s) remain (${pending}). Do NOT call wait again and do NOT write a final report yet; end your turn now so OMP waits with zero LLM calls and wakes this session automatically when the job finishes.`,
-			};
-		}
 		return {
-			additionalContext: `Background jobs are still running or pending delivery (${pending}). Do NOT write an interim synthesis or final report yet; call wait again until 0 background jobs remain.`,
+			additionalContext: pending
+				? `Background jobs are still running or pending delivery (${pending}). Do NOT call wait again and do NOT write a final report yet; end your turn now without any tool call so OMP waits with zero LLM calls and wakes this session automatically when the job finishes.`
+				: "Do NOT call wait again; background results and messages arrive automatically.",
 		};
 	});
 
