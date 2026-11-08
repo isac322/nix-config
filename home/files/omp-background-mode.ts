@@ -260,6 +260,13 @@ function isStringRecord(val: unknown): val is Record<string, string> {
 	return Object.values(val).every((v) => typeof v === "string");
 }
 
+function recordsMatch(a: Record<string, string>, b: Record<string, string>): boolean {
+	const aKeys = Object.keys(a);
+	const bKeys = Object.keys(b);
+	if (aKeys.length !== bKeys.length) return false;
+	return aKeys.every((k) => a[k] === b[k]);
+}
+
 function computeProfileHash(profile: Profile): string {
 	const canonical = JSON.stringify({
 		mainModel: profile.mainModel,
@@ -612,7 +619,15 @@ export default function (pi: ExtensionAPI) {
 		if (!inferred.mode) return false;
 		const profile = PROFILES[inferred.mode];
 		if (!profile) return false;
-		if (inferred.profileHash !== computeProfileHash(profile)) return true;
+		if (inferred.profileHash !== undefined && inferred.profileHash !== computeProfileHash(profile)) {
+			return true;
+		}
+		if (inferred.savedRoles !== undefined && !recordsMatch(inferred.savedRoles, profile.roles)) {
+			return true;
+		}
+		if (inferred.savedAgents !== undefined && !recordsMatch(inferred.savedAgents, profile.agents)) {
+			return true;
+		}
 		if (inferred.inPlanMode) return false;
 		const c = ctx as {
 			models?: { current?: () => { provider?: string; id?: string } | undefined };
