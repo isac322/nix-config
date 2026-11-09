@@ -267,10 +267,10 @@
     "herdr-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1794167297,
-        "narHash": "sha256-5LnpLp32THP5ApVfx779KZSZmcREIv2uzO3ExyL5sq0=",
+        "lastModified": 1794239506,
+        "narHash": "sha256-MV9y8deAz68KqqAeBpizTiahTVMLpAbIqHiUH8KEo7A=",
         "ref": "refs/heads/master",
-        "rev": "3ba03e6fc59fb974a4e2627586646f87ebbaf2ee",
+        "rev": "5b14636341aef6cedc0c8d27b921aeab90e9693b",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/herdrdev/herdr-core.git"
@@ -302,10 +302,10 @@
     "herdr-t3-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1794230532,
-        "narHash": "sha256-d9XE3fP2fd6hWo5QhdCxyIlmjFEmnY518SCSntSesKY=",
+        "lastModified": 1794239202,
+        "narHash": "sha256-AK+qvxWhlKtGYcOwp+k4Fo5d5Hr/5xKSunS1ckgdCMI=",
         "ref": "main",
-        "rev": "e4b278792b98656a5ea12c03eefbeaa9866f910f",
+        "rev": "8f2cc7da05b094265ea5ad780c5a7e8241bed04f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/JinJieBeWater/herdr-t3.git"
