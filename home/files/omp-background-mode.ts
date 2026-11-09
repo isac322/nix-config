@@ -593,6 +593,10 @@ function visibleText(content: unknown): string {
 
 export default function (pi: ExtensionAPI) {
 	const scope = pi.pi.settings;
+	const completeScrollback = lookup("tui.completeScrollback");
+	if (completeScrollback) {
+		completeScrollback.override(scope, true);
+	}
 
 	function applyProfileOverrides(
 		nextMode: string | undefined,
@@ -1069,20 +1073,18 @@ export default function (pi: ExtensionAPI) {
 				.min(1),
 		}),
 		describeCall(args: unknown, options: unknown) {
-			const base = askRendererWithDescribe.describeCall?.(args, options) ?? {};
-			return describeAskWithBrief(base, args);
+			return askRendererWithDescribe.describeCall?.(args, options) ?? {};
 		},
 		describeResult(result: unknown, options: unknown, args: unknown) {
 			const base = askRendererWithDescribe.describeResult?.(result, options, args) ?? {};
 			return describeAskWithBrief(base, args);
 		},
 		renderCall(args, options, theme) {
-			const card = askToolRenderer.renderCall(
+			return askToolRenderer.renderCall(
 				args as Parameters<typeof askToolRenderer.renderCall>[0],
 				options,
 				theme,
 			);
-			return renderAskWithBrief(card, args);
 		},
 		renderResult(result, options, theme, args) {
 			const card = askToolRenderer.renderResult(
@@ -1094,11 +1096,72 @@ export default function (pi: ExtensionAPI) {
 			return renderAskWithBrief(card, args);
 		},
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
-			const { brief: _brief, ...nativeParams } = params as Record<string, unknown>;
-			if (typeof ctx.invokeTool === "function") {
-				return await ctx.invokeTool(nativeParams, { signal, onUpdate });
+			type ScrollbackChatContainer = {
+				children: Component[];
+				insertChildAt: (comp: Component, idx: number) => void;
+				peekFlushBatch: (cols: number) => unknown;
+				peekFinalizedBatch?: (cols: number, maxLiveRows: number) => unknown;
+			};
+			let patchedChat: ScrollbackChatContainer | undefined;
+			const brief = extractUnsuppressedBrief(params);
+			if (brief && ctx.hasUI && typeof ctx.ui?.custom === "function") {
+				await ctx.ui.custom((tui, _theme, _kb, done) => {
+					const tuiObj: unknown = tui;
+					const children =
+						tuiObj && typeof tuiObj === "object" && "children" in tuiObj && Array.isArray(tuiObj.children)
+							? tuiObj.children
+							: undefined;
+					const chat = children?.find(
+						(c): c is ScrollbackChatContainer =>
+							Boolean(
+								c &&
+									typeof c === "object" &&
+									"children" in c &&
+									Array.isArray(c.children) &&
+									"insertChildAt" in c &&
+									typeof c.insertChildAt === "function" &&
+									"peekFlushBatch" in c &&
+									typeof c.peekFlushBatch === "function",
+							),
+					);
+					if (chat) {
+						suppressedBriefs.add(brief);
+						const md = new Markdown(brief, 1, 0, getMarkdownTheme());
+						const unfinIdx = chat.children.findIndex((c: unknown) =>
+							Boolean(
+								c &&
+									typeof c === "object" &&
+									"isTranscriptBlockFinalized" in c &&
+									typeof c.isTranscriptBlockFinalized === "function" &&
+									c.isTranscriptBlockFinalized() === false,
+							),
+						);
+						const askIdx = unfinIdx >= 0 ? unfinIdx : Math.max(0, chat.children.length - 1);
+						chat.insertChildAt(md, askIdx);
+						patchedChat = chat;
+						chat.peekFinalizedBatch = (cols: number) => chat.peekFlushBatch(cols);
+						for (const child of chat.children) {
+							child.invalidate?.();
+						}
+						if (tuiObj && typeof tuiObj === "object" && "requestRender" in tuiObj && typeof tuiObj.requestRender === "function") {
+							tuiObj.requestRender();
+						}
+					}
+					done(undefined);
+					return new Container();
+				});
 			}
-			throw new Error("Native ask tool is unavailable in this context");
+			const { brief: _brief, ...nativeParams } = params as Record<string, unknown>;
+			try {
+				if (typeof ctx.invokeTool === "function") {
+					return await ctx.invokeTool(nativeParams, { signal, onUpdate });
+				}
+				throw new Error("Native ask tool is unavailable in this context");
+			} finally {
+				if (patchedChat) {
+					delete patchedChat.peekFinalizedBatch;
+				}
+			}
 		},
 	} as Parameters<typeof pi.registerTool>[0]);
 
