@@ -302,10 +302,10 @@
     "herdr-t3-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1794220311,
-        "narHash": "sha256-aluf1qxB4yiDb8+3W1xZd2FV+nsZtIzuVTEYD7F5N44=",
+        "lastModified": 1794230532,
+        "narHash": "sha256-d9XE3fP2fd6hWo5QhdCxyIlmjFEmnY518SCSntSesKY=",
         "ref": "main",
-        "rev": "a0802e92e7635e7807fa5f697da87c8f9459a4b9",
+        "rev": "e4b278792b98656a5ea12c03eefbeaa9866f910f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/JinJieBeWater/herdr-t3.git"
@@ -359,10 +359,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1794228445,
-        "narHash": "sha256-YPGJGgHml+gbh221f2BODuM34ScE7HFCRl8AOqPeW7k=",
+        "lastModified": 1794231016,
+        "narHash": "sha256-ON4OA/K2PVSX/Iv5whXsWiXq9sjNOTJG8K6d2o0JpMQ=",
         "ref": "refs/heads/main",
-        "rev": "0fb9d01efd70c5dc0bc341f3baaa297444261f9a",
+        "rev": "cf7ea4a8fe56f3e186e9ffaca3124937e36e6430",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -382,16 +382,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1794229407,
-        "narHash": "sha256-4L7pYuOdzzV5VgDBwZGYA6L4qs+S7/QcVKeBS9fIPZA=",
+        "lastModified": 1794236353,
+        "narHash": "sha256-rcmzzR+kdb4yKL+NPfF/M0I6oXA9YfzVazBzWDlG2Xg=",
         "ref": "refs/heads/main",
-        "rev": "0538a7598ce7eb1f80619bb93f613ed664d33510",
+        "rev": "4c6c37495fc45a46cb6f86cc6b0865e363fb77f2",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "0538a7598ce7eb1f80619bb93f613ed664d33510",
+        "rev": "4c6c37495fc45a46cb6f86cc6b0865e363fb77f2",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
