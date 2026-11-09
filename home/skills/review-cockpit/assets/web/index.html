@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Repository-agnostic premerge review report">
+  <title>프리머지 결정 보드 · REVIEW COCKPIT</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-block">
+      <div class="brand-title-row">
+        <span id="repo-badge" class="meta-badge">REVIEW COCKPIT</span>
+        <h1>작업 검토 및 오너 결정 보드</h1>
+        <span id="latest-release" class="meta-pill">릴리스 정보 없음</span>
+        <span id="base-sha" class="meta-pill">기준 커밋 확인 중</span>
+        <span id="report-age" class="meta-subtle">불러오는 중…</span>
+        <span id="repo-eyebrow" class="visually-hidden">REVIEW COCKPIT / PREMERGE</span>
+      </div>
+      <p class="boundary">열린 이슈·PR의 목적과 현황·검증 자료를 한눈에 살펴보고 오너 피드백(승인·보류·수정요청·정보추가·메모)을 기록하는 리뷰 콕핏입니다. 항목별 피드백을 고른 뒤 우측 상단의 '피드백 제출'을 누르면 대기 중인 에이전트가 즉시 전달받아 처리합니다.</p>
+    </div>
+    <div class="header-controls" aria-label="요약 및 도구">
+      <div class="summary-inline" aria-label="검토 요약">
+        <span class="summary-pill summary-pill-highlight">결정 필요 <strong id="summary-needs-decision">0</strong></span>
+        <span class="summary-pill">작업 중 <strong id="summary-working">0</strong></span>
+        <span class="summary-pill">결정 완료 <strong id="summary-decisions">0</strong></span>
+        <span class="summary-pill">통과 가능 <strong id="summary-ready">0</strong></span>
+        <span class="summary-pill">전체 <strong id="summary-total">0</strong></span>
+        <span class="visually-hidden">저장 시험 <strong id="summary-synthetic">0</strong><strong id="summary-synthetic-decisions">0</strong> QA 대기 <strong id="summary-qa-pending">0</strong> 리뷰 대기 <strong id="summary-review-pending">0</strong></span>
+      </div>
+      <div class="header-meta" aria-label="보고서 도구">
+        <div class="theme-switch" role="group" aria-label="화면 테마">
+          <button type="button" class="theme-option" data-theme-option="system" aria-pressed="true">시스템</button>
+          <button type="button" class="theme-option" data-theme-option="light" aria-pressed="false">라이트</button>
+          <button type="button" class="theme-option" data-theme-option="dark" aria-pressed="false">다크</button>
+        </div>
+        <button id="submit-feedback" class="submit-button" type="button">피드백 제출 (에이전트 전달)</button>
+        <button id="handoff-toggle" class="refresh-button" type="button" aria-expanded="false">수집된 피드백</button>
+        <button id="audit-toggle" class="refresh-button" type="button" aria-expanded="false">분류 감사</button>
+        <button id="refresh-report" class="refresh-button" type="button">새로고침</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <div class="workspace">
+      <aside class="filter-panel" aria-label="그룹 필터">
+        <div class="panel-heading">
+          <h2>필터</h2>
+          <button id="clear-filters" class="text-button" type="button">초기화</button>
+        </div>
+        <label class="search-label" for="search">검색</label>
+        <div class="search-wrap">
+          <input id="search" type="search" placeholder="제목, 이슈·PR 번호" autocomplete="off">
+          <span aria-hidden="true">⌕</span>
+        </div>
+        <fieldset class="quick-decision-filter">
+          <legend>빠른 필터</legend>
+          <label><input id="needs-decision-only" type="checkbox" name="needs-decision-only"> 결정 필요 항목만</label>
+        </fieldset>
+        <fieldset>
+          <legend>하네스 작업 여부</legend>
+          <label><input type="checkbox" name="activity" value="working" checked> 작업 진행 중</label>
+          <label><input type="checkbox" name="activity" value="idle" checked> 미작업 · 유휴</label>
+        </fieldset>
+        <fieldset id="harness-fieldset" hidden>
+          <legend>하네스 종류</legend>
+          <div id="harness-filters" class="filter-options"></div>
+        </fieldset>
+        <fieldset>
+          <legend>상태</legend>
+          <label><input type="checkbox" name="status" value="passed" checked> 통과 가능</label>
+          <label><input type="checkbox" name="status" value="pending" checked> 진행·대기 중</label>
+          <label><input type="checkbox" name="status" value="unknown" checked> 미확인</label>
+          <label><input type="checkbox" name="status" value="failed" checked> 실패</label>
+          <label><input id="show-completed" type="checkbox" name="status" value="completed"> 완료됨 포함 (병합·종료)</label>
+        </fieldset>
+        <fieldset>
+          <legend>우선도</legend>
+          <label><input type="checkbox" name="priority" value="high" checked> 높음</label>
+          <label><input type="checkbox" name="priority" value="normal" checked> 보통</label>
+          <label><input type="checkbox" name="priority" value="low" checked> 낮음</label>
+        </fieldset>
+        <fieldset>
+          <legend>영역</legend>
+          <div id="area-filters" class="filter-options"></div>
+        </fieldset>
+        <span id="visible-count" class="visually-hidden">0</span>
+      </aside>
+      <section class="list-panel" aria-label="검토 그룹 목록">
+        <div class="list-header">
+          <div id="list-status" class="list-status" role="status">보고서를 불러오는 중입니다.</div>
+          <button id="next-undecided" class="text-button" type="button">다음 미결정 →</button>
+        </div>
+        <div id="group-list" class="group-list"></div>
+      </section>
+
+      <section id="detail-panel" class="detail-panel" aria-label="선택한 그룹 상세" aria-live="polite">
+        <div class="empty-detail">
+          <span class="empty-mark">→</span>
+          <h2>그룹을 선택하세요.</h2>
+          <p>왼쪽 목록에서 하나를 열면 문제 정의, 실제 결과, 독립 리뷰와 결정을 한 흐름으로 확인할 수 있습니다.</p>
+        </div>
+      </section>
+    </div>
+
+    <section id="audit-panel" class="audit-panel" hidden aria-label="분류 방법 감사"></section>
+    <section id="handoff-panel" class="handoff-panel" hidden aria-label="에이전트 후속 작업 큐"></section>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
