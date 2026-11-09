@@ -1012,6 +1012,54 @@ export default function (pi: ExtensionAPI) {
 		}
 		return brief;
 	}
+	function escapeAskHtml(text: string): string {
+		return text
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;");
+	}
+	function withAskFormHtml(args: unknown): Record<string, unknown> {
+		if (!args || typeof args !== "object") {
+			return {};
+		}
+		const record = { ...(args as Record<string, unknown>) };
+		if (typeof record.html === "string" && record.html.trim().length > 0) {
+			return record;
+		}
+		if (!Array.isArray(record.questions) || record.questions.length === 0) {
+			return record;
+		}
+		const fieldsets: string[] = [];
+		for (const q of record.questions) {
+			if (!q || typeof q !== "object") continue;
+			const id = "id" in q && typeof q.id === "string" && q.id.trim() ? q.id.trim() : "q";
+			const question = "question" in q && typeof q.question === "string" && q.question.trim() ? q.question.trim() : id;
+			const multi = "multi" in q && q.multi === true;
+			const recommended = "recommended" in q && typeof q.recommended === "number" ? q.recommended : 0;
+			const options = "options" in q && Array.isArray(q.options) ? q.options : [];
+			const controls: string[] = [];
+			options.forEach((opt: unknown, idx: number) => {
+				if (!opt || typeof opt !== "object") return;
+				const label = "label" in opt && typeof opt.label === "string" ? opt.label.trim() : "";
+				if (!label) return;
+				const description =
+					"description" in opt && typeof opt.description === "string" && opt.description.trim()
+						? ` — ${escapeAskHtml(opt.description.trim())}`
+						: "";
+				const inputType = multi ? "checkbox" : "radio";
+				const checkedAttr = !multi && idx === recommended ? " checked" : "";
+				controls.push(
+					`<label><input type="${inputType}" name="${escapeAskHtml(id)}" value="${escapeAskHtml(label)}"${checkedAttr}> <strong>${escapeAskHtml(label)}</strong>${description}</label>`,
+				);
+			});
+			fieldsets.push(`<fieldset><legend>${escapeAskHtml(question)}</legend>${controls.join("")}</fieldset>`);
+		}
+		if (fieldsets.length > 0) {
+			record.html = `<form>${fieldsets.join("")}</form>`;
+		}
+		return record;
+	}
 	function describeAskWithBrief(base: ToolDescription, args: unknown): ToolDescription {
 		const brief = extractUnsuppressedBrief(args);
 		if (!brief) {
@@ -1073,27 +1121,30 @@ export default function (pi: ExtensionAPI) {
 				.min(1),
 		}),
 		describeCall(args: unknown, options: unknown) {
-			return askRendererWithDescribe.describeCall?.(args, options) ?? {};
+			return askRendererWithDescribe.describeCall?.(withAskFormHtml(args), options) ?? {};
 		},
 		describeResult(result: unknown, options: unknown, args: unknown) {
-			const base = askRendererWithDescribe.describeResult?.(result, options, args) ?? {};
-			return describeAskWithBrief(base, args);
+			const normalizedArgs = withAskFormHtml(args);
+			const base = askRendererWithDescribe.describeResult?.(result, options, normalizedArgs) ?? {};
+			return describeAskWithBrief(base, normalizedArgs);
 		},
 		renderCall(args, options, theme) {
+			const normalizedArgs = withAskFormHtml(args);
 			return askToolRenderer.renderCall(
-				args as Parameters<typeof askToolRenderer.renderCall>[0],
+				normalizedArgs as Parameters<typeof askToolRenderer.renderCall>[0],
 				options,
 				theme,
 			);
 		},
 		renderResult(result, options, theme, args) {
+			const normalizedArgs = withAskFormHtml(args);
 			const card = askToolRenderer.renderResult(
 				result as Parameters<typeof askToolRenderer.renderResult>[0],
 				options,
 				theme,
-				args as Parameters<typeof askToolRenderer.renderResult>[3],
+				normalizedArgs as Parameters<typeof askToolRenderer.renderResult>[3],
 			);
-			return renderAskWithBrief(card, args);
+			return renderAskWithBrief(card, normalizedArgs);
 		},
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
 			type ScrollbackChatContainer = {
@@ -1151,7 +1202,8 @@ export default function (pi: ExtensionAPI) {
 					return new Container();
 				});
 			}
-			const { brief: _brief, ...nativeParams } = params as Record<string, unknown>;
+			const { brief: _brief, ...restParams } = params as Record<string, unknown>;
+			const nativeParams = withAskFormHtml(restParams);
 			try {
 				if (typeof ctx.invokeTool === "function") {
 					return await ctx.invokeTool(nativeParams, { signal, onUpdate });
