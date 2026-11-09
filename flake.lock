@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1794069245,
-        "narHash": "sha256-zkJfRwWnUY+ltvVhEWzjlKzzq395tgJDO4ZWsO6LSXY=",
+        "lastModified": 1794174879,
+        "narHash": "sha256-9BI4gaxVTsJLJH7bgUA95dyTkqY0PREbrtRLMJXntR0=",
         "ref": "refs/heads/main",
-        "rev": "55240afb100ad6d2ef5fbe16f7be33a7693f77ad",
+        "rev": "3108ef03fd81d96518eab3b3e469ed69d4e0f52d",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -267,10 +267,10 @@
     "herdr-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1794145940,
-        "narHash": "sha256-QCLx5BCWfSCr+Lyhh5Q5ew+uwqXqCasmih5oGgCqjo4=",
+        "lastModified": 1794167297,
+        "narHash": "sha256-5LnpLp32THP5ApVfx779KZSZmcREIv2uzO3ExyL5sq0=",
         "ref": "refs/heads/master",
-        "rev": "06793ede1bedb1fed8d22d3cae476d3eb239edf0",
+        "rev": "3ba03e6fc59fb974a4e2627586646f87ebbaf2ee",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/herdrdev/herdr-core.git"
@@ -359,10 +359,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1794105626,
-        "narHash": "sha256-EQuP40jWT7kZO1hB8ukGHVgPSJuMoUBJIpkwz231rTA=",
+        "lastModified": 1794191527,
+        "narHash": "sha256-ZPEF8xhVNDDF/O8anpqnFaYFWuXPs3RpgP8SuCJKxwA=",
         "ref": "refs/heads/main",
-        "rev": "924bbd194d02e5e15a227e75b5901fb0d7a4ecad",
+        "rev": "4b6b80f9c21cac9376deadaa2ef4924f341b8b4d",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -382,16 +382,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1794136683,
-        "narHash": "sha256-cvhBTH6nsE6R6b6uNjoSeuCOH4iaurC5A+/prTxk8Rw=",
+        "lastModified": 1794178147,
+        "narHash": "sha256-RDWuueNfF5JxlTDQUpZfDmpsiG2kXvTW4Cw8COvKJmQ=",
         "ref": "refs/heads/main",
-        "rev": "b351c893c53850908a89bc30ea2cbf6437ada413",
+        "rev": "e7ec2cef4fda261e0f92e65ea55ac54948ca3a40",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "b351c893c53850908a89bc30ea2cbf6437ada413",
+        "rev": "e7ec2cef4fda261e0f92e65ea55ac54948ca3a40",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
