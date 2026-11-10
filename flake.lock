@@ -359,10 +359,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1794272040,
-        "narHash": "sha256-OSujOUmRoWu8VwYCkdLnQyxYQG0flXsdMmF2QTxD1Z8=",
+        "lastModified": 1794272544,
+        "narHash": "sha256-2Xhdl8RNFhvBACgaRFOZJsUo+FJ94XyvW7mh/ZyWJiw=",
         "ref": "refs/heads/main",
-        "rev": "cb8c9f50975209ad4477366d8e35cbaecb9621c1",
+        "rev": "57882a7957ff1ffd50cbbdb58d7ea7defaf7f00a",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
