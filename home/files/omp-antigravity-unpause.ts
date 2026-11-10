@@ -1,10 +1,11 @@
 // omp 18.18.4 paused Google Antigravity: sign-ins from omp were getting Google
 // accounts restricted. The pause is compiled into the binary, and there is no
 // settings switch. Registering a login under the same provider id is the
-// upstream escape hatch. Login and token refresh still use the built-in
-// implementation. Key assembly does not: a registered login is consulted
-// first, so this file reproduces the built-in structured credential. Stored
-// logins are left on disk and work again. Delete this file to restore the pause.
+// upstream escape hatch. That registration is consulted before the built-in
+// key formatter and before token refresh, so this file supplies both and
+// delegates the exchange itself to the built-in refresher. Stored logins stay
+// on disk. Delete this file to restore the pause.
+import { refreshOAuthToken } from "@oh-my-pi/pi-ai/oauth";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 
 const PROVIDER = "google-antigravity";
@@ -30,6 +31,7 @@ export default function (pi: ExtensionAPI) {
 					"Google Antigravity login is handled by the built-in provider. This registration only lifts the pause.",
 				);
 			},
+			refreshToken: (credentials, signal) => refreshOAuthToken(PROVIDER, credentials, signal),
 		},
 	});
 	// Auth storage loads before extensions. While the provider is still paused
