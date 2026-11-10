@@ -231,6 +231,15 @@ let
       url = "https://mcp.vanta.com/mcp";
       enabled = false;
     };
+
+    # Woodpecker (cold email) hosts this endpoint with an OAuth login, so it
+    # needs no API key or paid add-on. Disabled by default; activate on demand
+    # via `/mcp enable woodpecker`.
+    woodpecker = {
+      type = "http";
+      url = "https://api.woodpecker.co/mcp/v1";
+      enabled = false;
+    };
   };
 
   # The adapter is only an HTTP client to the launchd-owned Camofox singleton.
