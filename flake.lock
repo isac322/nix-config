@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1794174879,
-        "narHash": "sha256-9BI4gaxVTsJLJH7bgUA95dyTkqY0PREbrtRLMJXntR0=",
+        "lastModified": 1794289927,
+        "narHash": "sha256-fw+lZBMPE1kitIOEYcNptnOJQsX2/6TuFAsa1qMYc8w=",
         "ref": "refs/heads/main",
-        "rev": "3108ef03fd81d96518eab3b3e469ed69d4e0f52d",
+        "rev": "a0693c6603f72b4aa9323b1fb2ba704509bbda5f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -499,10 +499,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1794196692,
-        "narHash": "sha256-BK4nT6EDDlfs2S5+GoyRDQXBKhaIZKU42R/Ypbpnskc=",
+        "lastModified": 1794288663,
+        "narHash": "sha256-zuaxJkDrSzm+t/r05thmtv7W8+D2dyK1Rpau5iHAiZY=",
         "ref": "refs/heads/main",
-        "rev": "e64b5578d7f3b3639ff7877388cb854053b46676",
+        "rev": "856f190c5df1b05ebe85adf8e38e48d62cb74f6d",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
