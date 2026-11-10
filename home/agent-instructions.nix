@@ -244,6 +244,12 @@ in
     force = true;
   };
 
+  # Lifts the omp 18.18.4 Google Antigravity pause. See the file header.
+  home.file.".omp/agent/extensions/antigravity-unpause.ts" = {
+    source = ./files/omp-antigravity-unpause.ts;
+    force = true;
+  };
+
   # OMP reads this dotenv itself, so the Vertex settings reach OMP without
   # entering every shell. Vertex serves only the Gemini models the GCP project
   # holds Provisioned Throughput for (`google-vertex/...` in the config above);
