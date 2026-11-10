@@ -342,10 +342,10 @@
     "humanizer": {
       "flake": false,
       "locked": {
-        "lastModified": 1794271109,
-        "narHash": "sha256-5DYOwIY9XXIqnUIMP7Vy/XWb/SiUq1/IIHmP8rdf5aw=",
+        "lastModified": 1794274313,
+        "narHash": "sha256-kqjGc7dnxbRMS3wQI0tW4LJG+3lopwzVER7NSaHxgV4=",
         "ref": "refs/heads/main",
-        "rev": "6042f310a7e3eaf9bdaf22f2ec6bb32eb840984e",
+        "rev": "a7ade02ce7d548d26e040581ad8d0aca4610f8fd",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/blader/humanizer.git"
@@ -359,10 +359,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1794272544,
-        "narHash": "sha256-2Xhdl8RNFhvBACgaRFOZJsUo+FJ94XyvW7mh/ZyWJiw=",
+        "lastModified": 1794273100,
+        "narHash": "sha256-Bxms+YJIbTiG0RrC2aPBG+QSEAMTA8HY8Z8ZkMZZvjo=",
         "ref": "refs/heads/main",
-        "rev": "57882a7957ff1ffd50cbbdb58d7ea7defaf7f00a",
+        "rev": "7537147d3541d758cbdd9931354ca97fcdfa54ce",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -382,16 +382,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1794236353,
-        "narHash": "sha256-rcmzzR+kdb4yKL+NPfF/M0I6oXA9YfzVazBzWDlG2Xg=",
+        "lastModified": 1794274216,
+        "narHash": "sha256-3KM2p27/Ln0d3+H56A7f2TZAh8QaTpNQivP1Uv736xo=",
         "ref": "refs/heads/main",
-        "rev": "4c6c37495fc45a46cb6f86cc6b0865e363fb77f2",
+        "rev": "4e006a04fd2990f1193aeb3daeafa1ba655a608e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "4c6c37495fc45a46cb6f86cc6b0865e363fb77f2",
+        "rev": "4e006a04fd2990f1193aeb3daeafa1ba655a608e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
