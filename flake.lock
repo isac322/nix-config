@@ -267,10 +267,10 @@
     "herdr-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1794268964,
-        "narHash": "sha256-99BNGNBN5dWMsuhePrYVSOlXmBEWQm72Qrp1j7edr44=",
+        "lastModified": 1794321590,
+        "narHash": "sha256-+pQHlp+LVafx1y7Q7Zmtbnruu8TPYWFaV7pEDSmszoM=",
         "ref": "refs/heads/master",
-        "rev": "ce81486e3d4032405060bb823687376fadaa087b",
+        "rev": "10f012e886c2a6cd26c2a320e8fba6ef7351a72f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/herdrdev/herdr-core.git"
