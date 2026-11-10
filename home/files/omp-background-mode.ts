@@ -21,6 +21,7 @@ import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 import { type Component, Container, Markdown, Spacer } from "@oh-my-pi/pi-tui";
 import { getMarkdownTheme } from "@oh-my-pi/pi-tui/theme";
 import { askToolRenderer } from "@oh-my-pi/pi-tui/tools/ask";
+import { waitToolRenderer } from "@oh-my-pi/pi-tui/tools/wait";
 
 type Profile = {
 	label: string;
@@ -36,6 +37,25 @@ const ARGON = "google-antigravity/gemini-4-argon";
 const ASTRA = "openai-codex/gpt-6-astra";
 const GROK = "xai-oauth/grok-4.7-build-fast";
 const SONNET = "anthropic/claude-sonnet-5-5";
+const PROC_STREAMS_PATH_RE = /^proc:\/\/[^/]+\/streams(?:\/.*)?$/;
+const WAIT_POLL_TIMEOUT_RE =
+	/(?:^|\n\n)(?:No job finished|No reply|No service finished) within (?:\d+(?:\.\d+)?s|\d+m); a back-to-back wait allows up to (?:\d+(?:\.\d+)?s|\d+m)\.(?: Read proc:\/\/ for status\.)?$/;
+const BUILTIN_OMP_TOOLS: Record<string, true> = {
+	read: true,
+	bash: true,
+	edit: true,
+	write: true,
+	grep: true,
+	glob: true,
+	find: true,
+	task: true,
+	wait: true,
+	todo: true,
+	ask: true,
+	eval: true,
+	web_search: true,
+	goal: true,
+};
 
 // Byte-for-byte contiguous sections for `/bg sol`, `/bg astra`, and `/bg argon` (non-Opus main agent) from:
 // - `openai/codex` (`970111f6cb62cc02fe36a82ea7d71b37a2889c97`) `codex-rs/models-manager/models.json` (`slug: "gpt-6.1-sol"`, `instructions_template`: `# When to ask the user for permission`, `# Autonomy and persistence`, `## Writing style`, `## Technical communication`, `## Rules for getting work done` tail) and `codex-rs/core/gpt_5_1_prompt.md` (`## Validating your work`)
@@ -850,9 +870,10 @@ export default function (pi: ExtensionAPI) {
 	// 1. In subagents (`ctx.agent.kind === "sub"`): block `write` to `agent://Main` /
 	//    `agent://<parentId>` / `agent://all` so subagents do not drip-feed `<irc>`
 	//    progress cards or prematurely wake `wait()`.
-	// 2. In the main agent under `/bg sol`, `/bg astra`, or `/bg argon`: block `wait` and
-	//    `read(proc://...)` polling, block `goal(op="complete")` while background jobs are
-	//    still running or queued for delivery, and block `ask` until a decision brief appeared.
+	// 2. In the main agent under `/bg sol`, `/bg astra`, or `/bg argon`: block
+	//    `read(proc://...)` status polling while jobs are in flight, block
+	//    `goal(op="complete")` while background jobs are still running or queued for
+	//    delivery, and block `ask` until a decision brief appeared.
 	// 3. Normalize OpenAI strict-schema dummy fields on `bash` and `task` calls.
 	pi.on("tool_call", async (event, ctx) => {
 		const subagent = isSubagentContext(ctx);
@@ -890,25 +911,17 @@ export default function (pi: ExtensionAPI) {
 				};
 			}
 		}
-		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "wait") {
-			const pending = describePendingAsyncWork(ctx);
-			return {
-				block: true,
-				reason: pending
-					? `Do NOT call wait while background work is in flight (${pending}). Results and subagent outputs are delivered automatically; continue independent work or end your turn now without a tool call so OMP wakes this session with zero intermediate LLM calls the moment a job finishes.`
-					: "Do NOT call wait to poll; background results and messages arrive automatically. Continue useful work or end your turn without a tool call.",
-			};
-		}
 		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "read") {
 			const path = typeof rawInput.path === "string" ? rawInput.path.trim() : "";
 			if (
-				(path === "proc://" || /^proc:\/\/bg_\d+(?:\/.*)?$/.test(path)) &&
+				path.startsWith("proc://") &&
+				!PROC_STREAMS_PATH_RE.test(path) &&
 				describePendingAsyncWork(ctx)
 			) {
 				return {
 					block: true,
 					reason:
-						"Do NOT poll running background jobs via read(proc://...). Background job outputs are delivered automatically when they finish; end your turn now without a tool call.",
+						"Do NOT poll running background jobs via read(proc://...). Call wait to block until the next job finishes, or continue independent work.",
 				};
 			}
 		}
@@ -949,9 +962,17 @@ export default function (pi: ExtensionAPI) {
 					delete t.model;
 					changed = true;
 				}
-				if (Array.isArray(t.tools) && t.tools.length === 0) {
-					delete t.tools;
-					changed = true;
+				if (Array.isArray(t.tools)) {
+					const filtered = t.tools.filter(
+						(name) => typeof name === "string" && !BUILTIN_OMP_TOOLS[name.trim()],
+					);
+					if (filtered.length === 0) {
+						delete t.tools;
+						changed = true;
+					} else if (filtered.length !== t.tools.length) {
+						t.tools = filtered;
+						changed = true;
+					}
 				}
 				return t;
 			});
@@ -987,13 +1008,6 @@ export default function (pi: ExtensionAPI) {
 		if (isSubagentContext(ctx)) return;
 		syncFromSession(ctx);
 		if (event.toolName === "ask") briefAge = undefined;
-		if (!isNonOpusMainProfile(active) || event.toolName !== "wait") return;
-		const pending = describePendingAsyncWork(ctx);
-		return {
-			additionalContext: pending
-				? `Background jobs are still running or pending delivery (${pending}). Do NOT call wait again and do NOT write a final report yet; end your turn now without any tool call so OMP waits with zero LLM calls and wakes this session automatically when the job finishes.`
-				: "Do NOT call wait again; background results and messages arrive automatically.",
-		};
 	});
 
 	const z = pi.zod;
@@ -1212,6 +1226,116 @@ export default function (pi: ExtensionAPI) {
 			} finally {
 				if (patchedChat) {
 					delete patchedChat.peekFinalizedBatch;
+				}
+			}
+		},
+	} as Parameters<typeof pi.registerTool>[0]);
+
+	const waitRendererWithDescribe = waitToolRenderer as typeof waitToolRenderer & {
+		describeCall?: (args: unknown, options?: unknown) => ToolDescription;
+		describeResult?: (result: unknown, options?: unknown, args?: unknown) => ToolDescription;
+	};
+	function isWaitPollTimeoutResult(result: unknown): boolean {
+		if (!result || typeof result !== "object") return false;
+		const r = result as {
+			useless?: boolean;
+			details?: {
+				jobs?: Array<{ status?: string }>;
+				cancelled?: unknown[];
+				waited?: unknown[];
+				interrupted?: boolean;
+			};
+			content?: Array<{ type?: string; text?: string }>;
+		};
+		if (r.useless !== true || !r.details || !Array.isArray(r.details.jobs)) return false;
+		if (r.details.interrupted || r.details.cancelled?.length || r.details.waited?.length) return false;
+		if (!r.details.jobs.every((job) => job?.status === "running")) return false;
+		if (!Array.isArray(r.content) || r.content.length === 0) return false;
+		const firstText =
+			r.content[0]?.type === "text" && typeof r.content[0]?.text === "string" ? r.content[0].text : "";
+		return WAIT_POLL_TIMEOUT_RE.test(firstText);
+	}
+	function stripSettleWindowTimeoutFooter<T>(result: T): T {
+		if (!result || typeof result !== "object") return result;
+		const r = result as {
+			details?: { jobs?: Array<{ status?: string }> };
+			content?: Array<{ type?: string; text?: string }>;
+		};
+		if (
+			!Array.isArray(r.details?.jobs) ||
+			!r.details.jobs.some((job) => job?.status !== "running") ||
+			!Array.isArray(r.content) ||
+			r.content.length === 0
+		) {
+			return result;
+		}
+		const firstBlock = r.content[0];
+		if (!firstBlock || firstBlock.type !== "text" || typeof firstBlock.text !== "string") {
+			return result;
+		}
+		if (!WAIT_POLL_TIMEOUT_RE.test(firstBlock.text)) return result;
+		const cleanedText = firstBlock.text.replace(WAIT_POLL_TIMEOUT_RE, "");
+		return {
+			...result,
+			content: [{ ...firstBlock, text: cleanedText }],
+		};
+	}
+	pi.registerTool({
+		name: "wait",
+		label: "Wait",
+		summary: "Wait for the next result of a background job or service you started, or a reply you asked for",
+		approval: "read",
+		loadMode: "essential",
+		strict: true,
+		interruptible: true,
+		handlesToolInterrupt: true,
+		intent: "optional",
+		inline: true,
+		mergeCallAndResult: true,
+		description: [
+			"Wait only when blocked with nothing else to do.",
+			"Blocks on background jobs/services you started, or on the answer to a question you sent this run.",
+			"Nothing you started running and no answer owed? Returns at once.",
+			"- MUST wait only on your own jobs/services, or rarely the answer to a question that blocks you.",
+			"- NEVER wait for another agent's progress or for messages nobody owes you.",
+			"- Result in, other jobs still running? SHOULD act on it before waiting again.",
+			"Results and messages auto-deliver. NEVER poll while work remains.",
+		].join("\n"),
+		parameters: z.object({
+			i: z.string().optional().describe("Capitalized 2-6 word present-participle intent"),
+		}),
+		activitySummary() {
+			return waitToolRenderer.activitySummary();
+		},
+		describeCall(args: unknown, options: unknown) {
+			return waitRendererWithDescribe.describeCall?.(args, options) ?? {};
+		},
+		describeResult(result: unknown, options: unknown, args: unknown) {
+			return waitRendererWithDescribe.describeResult?.(result, options, args) ?? {};
+		},
+		renderCall(args, options, theme) {
+			return waitToolRenderer.renderCall(
+				args as Parameters<typeof waitToolRenderer.renderCall>[0],
+				options,
+				theme,
+			);
+		},
+		renderResult(result, options, theme) {
+			return waitToolRenderer.renderResult(
+				result as Parameters<typeof waitToolRenderer.renderResult>[0],
+				options,
+				theme,
+			);
+		},
+		async execute(_toolCallId, params, signal, onUpdate, ctx) {
+			if (typeof ctx.invokeTool !== "function") {
+				throw new Error("Native wait tool is unavailable in this context");
+			}
+			const { i: _intent, ...nativeParams } = (params ?? {}) as Record<string, unknown>;
+			while (true) {
+				const result = await ctx.invokeTool(nativeParams, { signal, onUpdate });
+				if (signal?.aborted || !isWaitPollTimeoutResult(result)) {
+					return stripSettleWindowTimeoutFooter(result);
 				}
 			}
 		},
