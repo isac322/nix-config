@@ -128,6 +128,21 @@ buildNpmPackage {
         "    executablePath: platform() === 'darwin'
       ? realpathSync(resolvedExecutable)
       : ensureLaunchShim(resolvedExecutable, resourceDir),"
+
+    # Passing locale/timezoneId to Playwright's browser.newContext() enables
+    # Juggler-level emulation on the main frame while cross-origin iframes
+    # (such as Cloudflare Turnstile) read Camoufox's C++ CAMOU_CONFIG, causing
+    # iframe/main-frame mismatch blocks. Pass directIdentity.timezoneId into
+    # camoufox-js launchOptions(config) at the C++ layer instead.
+    substituteInPlace lib/browser-identity.js \
+      --replace-fail \
+        "  return directIdentity ? { ...directIdentity } : {};" \
+        "  return {};"
+
+    substituteInPlace server.js \
+      --replace-fail \
+        "locale: launchLocale({ hasProxy: !!proxyPool, directIdentity: CONFIG.directIdentity })," \
+        "config: !launchProxy && CONFIG.directIdentity?.timezoneId ? { timezone: CONFIG.directIdentity.timezoneId } : undefined, i_know_what_im_doing: !launchProxy && !!CONFIG.directIdentity?.timezoneId, locale: launchLocale({ hasProxy: !!proxyPool, directIdentity: CONFIG.directIdentity }),"
   '';
 
   inherit npmDeps;
@@ -167,6 +182,8 @@ buildNpmPackage {
       --set CAMOUFOX_INSTALL_DIR "$installDir" \
       --set CAMOFOX_DISABLE_DEFAULT_ADDONS 1 \
       --set CAMOFOX_CRASH_REPORT_ENABLED false \
+      --set-default CAMOFOX_LOCALE "ko-KR" \
+      --set-default CAMOFOX_TIMEZONE "Asia/Seoul" \
       ${lib.optionalString stdenv.hostPlatform.isDarwin "--set CAMOFOX_INTERACTIVE desktop \\"}
       --set SENTRY_DSN ""
   '';
