@@ -14,6 +14,14 @@ import time
 from urllib.parse import quote
 
 
+# 이 CLI는 github.com만 지원한다. slug가 생략돼도 Actions 앱을 식별한다.
+GITHUB_ACTIONS_APP_ID = 15368
+PR_ACTION_EVENTS = frozenset((
+    "push", "pull_request", "pull_request_review", "pull_request_target",
+    "deployment", "deployment_status",
+))
+
+
 class Failure(Exception):
     def __init__(self, outcome, reason, *, transient=False, status=None):
         super().__init__(reason)
@@ -126,11 +134,19 @@ class GitHub:
         if not isinstance(value, list):
             raise Failure("transport-error", "GitHub API 페이지 목록 응답이 필요합니다.")
         result = []
+        totals = set()
         for page in value:
             rows = page.get(key) if key and isinstance(page, dict) else page
             if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
                 raise Failure("transport-error", "GitHub API 페이지 형식을 해석할 수 없습니다.")
             result.extend(rows)
+            if key == "workflow_runs":
+                total = page.get("total_count")
+                if type(total) is not int or total < 0:
+                    raise Failure("unknown-policy", "워크플로 실행 목록의 전체 개수를 확인할 수 없습니다.")
+                totals.add(total)
+        if key == "workflow_runs" and totals != {len(result)}:
+            raise Failure("unknown-policy", "워크플로 실행 목록이 불완전하거나 조회 중 변경되었습니다.")
         return result
 
 
@@ -204,11 +220,39 @@ def latest(rows, identity):
     return [entry[1] for entry in result.values()]
 
 
+def eligible_checks(api, root, checks):
+    events = {}
+    eligible = []
+    for check in checks:
+        if (check.get("app") or {}).get("id") != GITHUB_ACTIONS_APP_ID:
+            eligible.append(check)
+            continue
+        suite = (check.get("check_suite") or {}).get("id")
+        if type(suite) is not int or suite <= 0:
+            raise Failure("unknown-policy", "Actions 검사의 check suite를 확인할 수 없습니다.")
+        if suite not in events:
+            runs = api.get(f"{root}/actions/runs?check_suite_id={suite}&per_page=100",
+                           pages=True, key="workflow_runs")
+            if not runs or any(
+                    type(run.get("check_suite_id")) is not int or run["check_suite_id"] != suite
+                    or not isinstance(run.get("event"), str) or not run["event"]
+                    for run in runs):
+                raise Failure("unknown-policy", "Actions 검사의 실행 이벤트를 확인할 수 없습니다.")
+            suite_events = {run["event"] for run in runs}
+            if len(suite_events) != 1:
+                raise Failure("unknown-policy", "동일 check suite의 실행 이벤트가 일치하지 않습니다.")
+            events[suite] = suite_events.pop()
+        if events[suite] in PR_ACTION_EVENTS:
+            eligible.append(check)
+    return eligible
+
+
 def commit_observation(api, root, sha):
     ref = quote(sha, safe="")
     checks = api.get(f"{root}/commits/{ref}/check-runs?per_page=100&filter=all", pages=True, key="check_runs")
     statuses = api.get(f"{root}/commits/{ref}/statuses?per_page=100", pages=True)
-    return {"sha": sha, "checks": latest(checks, lambda row: (row.get("name"), (row.get("app") or {}).get("id"))),
+    return {"sha": sha, "checks": latest(eligible_checks(api, root, checks),
+                                        lambda row: (row.get("name"), (row.get("app") or {}).get("id"))),
             "statuses": latest(statuses, lambda row: row["context"].lower())}
 
 
@@ -327,15 +371,16 @@ def observe(api, selected, args):
         if merge and merge != head:
             try:
                 merge_commit = api.get(f"{root}/commits/{quote(merge, safe='')}")
+            except Failure as error:
+                if error.status != 404:
+                    raise
+            else:
                 parents = {parent["sha"] for parent in merge_commit["parents"]}
                 # mergeable 재계산 중 남아 있는 이전 test merge의 성공을 재사용하지 않는다.
                 if {head, pr["base"]["sha"]}.issubset(parents):
                     observed = commit_observation(api, root, merge)
                 else:
                     result["evidence"]["ignoredTestMerge"] = {"sha": merge, "reason": "parents-do-not-match"}
-            except Failure as error:
-                if error.status != 404:
-                    raise
             if observed is not None and not observed["checks"] and not observed["statuses"]:
                 observed = None
         if observed is None:

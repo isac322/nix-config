@@ -93,7 +93,7 @@ def review_row(identifier=10, state="COMMENTED", **changes):
 
 def contract_api(*, checks=None, statuses=None, pr=None, classic=None, rules=None):
     """An independent protected-branch scenario; no inferred classic 404."""
-    return RESTBodies({
+    responses = {
         PULL: copy.deepcopy(pr if pr is not None else {**PR, "merge_commit_sha": None}),
         ROOT + "/branches/main": {"name": "main", "protected": True,
                                   "commit": {"sha": "base"}},
@@ -105,7 +105,15 @@ def contract_api(*, checks=None, statuses=None, pr=None, classic=None, rules=Non
             "total_count": len(checks or []), "check_runs": checks or []},
         ROOT + "/commits/head/statuses?per_page=100": statuses or [],
         ROOT + "/compare/base...head": {"status": "identical", "ahead_by": 0, "behind_by": 0},
-    })
+    }
+    for row in checks or []:
+        if (row.get("app") or {}).get("id") == 15368:
+            suite_id = row["check_suite"]["id"]
+            responses[ROOT + f"/actions/runs?check_suite_id={suite_id}&per_page=100"] = {
+                "total_count": 1,
+                "workflow_runs": [{"id": suite_id, "check_suite_id": suite_id,
+                                   "event": "pull_request"}]}
+    return RESTBodies(responses)
 
 
 def review_api(rows, pr=None):
@@ -142,6 +150,9 @@ class OfficialCheckStateContracts(unittest.TestCase):
             row = check_row(status=state, conclusion="success" if state == "completed" else None)
             api.responses[ROOT + "/commits/head/check-runs?per_page=100&filter=all"] = {
                 "total_count": 1, "check_runs": [row]}
+            api.responses[ROOT + "/actions/runs?check_suite_id=90&per_page=100"] = {
+                "total_count": 1,
+                "workflow_runs": [{"id": 90, "check_suite_id": 90, "event": "pull_request"}]}
             clock.return_value += _seconds
 
         advance()

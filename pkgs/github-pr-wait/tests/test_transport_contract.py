@@ -226,7 +226,7 @@ class TransportContractTests(unittest.TestCase):
     def test_later_check_run_page_can_prevent_false_success(self):
         required = [{"context": name, "app_id": 15368} for name in ("build", "test")]
         checks = [{"id": identifier, "name": name, "app": {"id": 15368},
-                   "status": "completed", "conclusion": conclusion}
+                   "status": "completed", "conclusion": conclusion, "check_suite": {"id": 90}}
                   for identifier, name, conclusion in ((1, "build", "success"), (2, "test", "failure"))]
         code, result, gh = self.cli([
             reply(PULL, PR), reply(ROOT + "/branches/main", {"protected": True}),
@@ -236,7 +236,11 @@ class TransportContractTests(unittest.TestCase):
             reply(ROOT + "/commits/head/check-runs?per_page=100&filter=all",
                   [{"total_count": 2, "check_runs": [checks[0]]},
                    {"total_count": 2, "check_runs": [checks[1]]}]),
-            reply(ROOT + "/commits/head/statuses?per_page=100", [[]]), reply(PULL, PR)],
+            reply(ROOT + "/commits/head/statuses?per_page=100", [[]]),
+            reply(ROOT + "/actions/runs?check_suite_id=90&per_page=100",
+                  [{"total_count": 1, "workflow_runs": [
+                      {"id": 90, "check_suite_id": 90, "event": "pull_request"}]}]),
+            reply(PULL, PR)],
             purpose="required-checks")
         self.assertEqual((code, result["outcome"]), (0, "checks-failed"))
         self.assertEqual(result["evidence"]["failed"][0]["context"], "test")

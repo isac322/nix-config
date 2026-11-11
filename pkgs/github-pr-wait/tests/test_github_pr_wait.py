@@ -49,7 +49,8 @@ def review(identifier=2, state="COMMENTED", **changes):
 
 def check(identifier=1, name="test", app=15368, conclusion="success", **changes):
     return {"id": identifier, "name": name, "app": {"id": app}, "status": "completed",
-            "conclusion": conclusion, "started_at": "2026-11-11T10:00:00Z", **changes}
+            "conclusion": conclusion, "started_at": "2026-11-11T10:00:00Z",
+            "check_suite": {"id": identifier}, **changes}
 
 
 class FakeAPI:
@@ -71,18 +72,27 @@ class FakeAPI:
 
 def ci_api(*, checks=None, statuses=None, rules=None, classic=None, metadata=None,
            merge_checks=None, merge_statuses=None, behind=0):
-    return FakeAPI({PULL: PR,
+    checks = checks if checks is not None else [check()]
+    merge_checks = merge_checks or []
+    responses = {PULL: PR,
         ROOT + "/branches/main": metadata if metadata is not None else {"protected": True, "protection": {"enabled": False}},
         ROOT + "/branches/main/protection": classic if classic is not None else w.Failure("transport-error", "404", status=404),
         ROOT + "/rules/branches/main?per_page=100": rules if rules is not None else [{"type": "required_status_checks", "parameters": {
             "required_status_checks": [{"context": "test", "integration_id": 15368}],
             "strict_required_status_checks_policy": True}}],
-        ROOT + "/commits/head/check-runs?per_page=100&filter=all": checks if checks is not None else [check()],
+        ROOT + "/commits/head/check-runs?per_page=100&filter=all": checks,
         ROOT + "/commits/head/statuses?per_page=100": statuses or [],
         ROOT + "/commits/test-merge": {"sha": "test-merge", "parents": [{"sha": "base"}, {"sha": "head"}]},
-        ROOT + "/commits/test-merge/check-runs?per_page=100&filter=all": merge_checks or [],
+        ROOT + "/commits/test-merge/check-runs?per_page=100&filter=all": merge_checks,
         ROOT + "/commits/test-merge/statuses?per_page=100": merge_statuses or [],
-        ROOT + "/compare/base...head": {"behind_by": behind}})
+        ROOT + "/compare/base...head": {"behind_by": behind}}
+    for row in checks + merge_checks:
+        if (row.get("app") or {}).get("id") == 15368:
+            suite_id = (row.get("check_suite") or {}).get("id")
+            if type(suite_id) is int and suite_id > 0:
+                responses[ROOT + f"/actions/runs?check_suite_id={suite_id}&per_page=100"] = [
+                    {"id": suite_id, "check_suite_id": suite_id, "event": "pull_request"}]
+    return FakeAPI(responses)
 
 
 class ReviewTests(unittest.TestCase):
@@ -233,7 +243,7 @@ class ChecksTests(unittest.TestCase):
 
     def test_absent_test_merge_falls_back_to_head(self):
         api = ci_api()
-        api.responses[ROOT + "/commits/test-merge/check-runs?per_page=100&filter=all"] = w.Failure("transport-error", "404", status=404)
+        api.responses[ROOT + "/commits/test-merge"] = w.Failure("transport-error", "404", status=404)
         self.assertEqual(self.observe(api)["evidence"]["observation"]["sha"], "head")
 
     def test_stale_test_merge_is_not_used_for_current_head(self):
