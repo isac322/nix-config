@@ -142,7 +142,7 @@ buildNpmPackage {
     substituteInPlace server.js \
       --replace-fail \
         "locale: launchLocale({ hasProxy: !!proxyPool, directIdentity: CONFIG.directIdentity })," \
-        "config: !launchProxy && CONFIG.directIdentity?.timezoneId ? { timezone: CONFIG.directIdentity.timezoneId } : undefined, i_know_what_im_doing: !launchProxy && !!CONFIG.directIdentity?.timezoneId, locale: launchLocale({ hasProxy: !!proxyPool, directIdentity: CONFIG.directIdentity }),"
+        "config: { disableInstantAnimations: true, ...(!launchProxy && CONFIG.directIdentity?.timezoneId ? { timezone: CONFIG.directIdentity.timezoneId } : {}) }, firefox_user_prefs: { 'privacy.baselineFingerprintingProtection': false, 'privacy.fingerprintingProtection': false, 'privacy.fingerprintingProtection.pbmode': false, 'privacy.resistFingerprinting': false, 'privacy.resistFingerprinting.pbmode': false, 'toolkit.cosmeticAnimations.enabled': true }, i_know_what_im_doing: true, locale: launchLocale({ hasProxy: !!proxyPool, directIdentity: CONFIG.directIdentity }),"
   '';
 
   inherit npmDeps;
@@ -177,12 +177,26 @@ buildNpmPackage {
     ln -s ${camoufoxResourceDir}/version.json "$installDir/version.json"
     ln -s ${camoufoxResourceDir}/fontconfig "$installDir/fontconfig"
 
+    # Do not inject canvas:seed / canvas:aaOffset into CAMOU_CONFIG: perturbing
+    # solid fillRect readback matches Firefox Private Browsing canvas poisoning
+    # and triggers Stytch PRIVATE_BROWSING blocks.
+    substituteInPlace "$out/lib/node_modules/@askjo/camofox-browser/node_modules/camoufox-js/dist/utils.js" \
+      --replace-fail \
+        'for (const seed of ["fonts:spacing_seed", "audio:seed", "canvas:seed"]) {' \
+        'for (const seed of ["fonts:spacing_seed"]) {' \
+      --replace-fail \
+        '"canvas:aaOffset": Math.floor(Math.random() * 101) - 50, // nosec' \
+        '"canvas:aaOffset": 0,' \
+      --replace-fail \
+        '"canvas:aaCapOffset": true,' \
+        '"canvas:aaCapOffset": false,'
+
     wrapProgram "$out/bin/camofox-browser" \
       --set CAMOUFOX_EXECUTABLE "${camoufoxExecutable}" \
       --set CAMOUFOX_INSTALL_DIR "$installDir" \
       --set CAMOFOX_DISABLE_DEFAULT_ADDONS 1 \
       --set CAMOFOX_CRASH_REPORT_ENABLED false \
-      --set-default CAMOFOX_LOCALE "ko-KR" \
+      --set-default CAMOFOX_LOCALE "en-US" \
       --set-default CAMOFOX_TIMEZONE "Asia/Seoul" \
       ${lib.optionalString stdenv.hostPlatform.isDarwin "--set CAMOFOX_INTERACTIVE desktop \\"}
       --set SENTRY_DSN ""
