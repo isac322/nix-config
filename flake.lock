@@ -382,16 +382,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1794352394,
-        "narHash": "sha256-UM+aNUJgKEnC97rGaq2UTY5YoO8bMHcCt6uRANjvuO8=",
+        "lastModified": 1794357254,
+        "narHash": "sha256-gk6RJDnpbSh+zf/BX7JM+v2P7PYe+9PdhyY1L/Lf4E8=",
         "ref": "refs/heads/main",
-        "rev": "f2cb4c6bfe9fa1c7e8306765617381949aa7a41e",
+        "rev": "579f423b564d6bb4fa5560fe6bc2c0b481371681",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "f2cb4c6bfe9fa1c7e8306765617381949aa7a41e",
+        "rev": "579f423b564d6bb4fa5560fe6bc2c0b481371681",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
