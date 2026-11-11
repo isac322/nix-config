@@ -38,7 +38,8 @@ def arguments(purpose="merged", command="wait", *extra):
 def baseline():
     return {"url": URL, "repo": "example/project", "pr": 7, "head": "head",
             "reviewer": "bot", "until": "review-response", "outcome": "pending",
-            "capturedAt": "2026-11-11T10:00:00Z", "reviewIds": [1]}
+            "capturedAt": "2026-11-11T10:00:00Z", "reviewIds": [1],
+            "reviews": [review(identifier=1, submitted_at="2026-11-11T10:00:00Z")]}
 
 
 def review(identifier=2, state="COMMENTED", **changes):

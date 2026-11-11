@@ -365,6 +365,14 @@ github-pr-wait wait "$pr_url" --until merged \
 - timeout·head 변경·merge 없는 종료·인증/통신/정책 오류는 agent가 판단한다.
   미충족 조건을 pending으로 보고하고 원인과 새 마감 시간을 정하기 전에는
   자동 재시작하지 않는다. CLI 결과는 리뷰 완료나 merge 권한을 대신하지 않는다.
+- API 호출 제한(403의 rate-limit 응답 또는 429)은 인증 실패와 구분하고 즉시
+  종료한다. 제한 해제 시각을 모른 채 일반 polling 간격으로 재시도하지 않는다.
+- 리뷰 기준선은 `snapshot`의 전체 JSON을 그대로 보관한다. 작성 중이던 리뷰가 같은
+  ID로 제출되는 전환도 추적한다. 요청과 제출 시각이 같은 초로 기록되면 순서를
+  증명할 수 없으므로 새 응답으로 인정하지 않는다.
+- 필수 workflow 규칙은 `unknown-policy`로 반환한다. 특정 앱이 지정된 필수 검사에
+  앱 ID가 없는 commit status만 있으면 통과시키지 않고 미충족 상태로 남긴다.
+  API가 명시한 필수 정책 필드가 없거나 형식이 틀려도 성공으로 처리하지 않는다.
 - merge 명령과 배포 대기를 `;`·`||` 또는 무조건 이어지는 shell 명령으로 묶지 않는다.
   merge 결과를 따로 읽고 실제 merged 상태와 비어 있지 않은 실제 merge SHA를
   확인한 뒤 그 SHA의 배포 run을 고른다. merge SHA가 null이면 배포 대상을 정할 수 없다.

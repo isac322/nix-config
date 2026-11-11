@@ -107,10 +107,14 @@ class GitHub:
             # stderr는 토큰 등 민감한 정보를 포함할 수 있어 출력하지 않는다.
             match = re.search(r"\bHTTP\s+(\d{3})\b", stderr)
             status = int(match.group(1)) if match else None
+            if status == 429 or (status == 403 and "rate limit" in stderr.lower()):
+                # 응답 헤더의 재시도 시각을 모르는 상태에서는 추가 요청을 보내지 않는다.
+                raise Failure("rate-limited", "GitHub API 요청 한도에 도달했습니다. 제한 해제 후 다시 시도하세요.",
+                              status=status)
             if status in (401, 403) or "gh auth login" in stderr or "GH_TOKEN" in stderr:
                 raise Failure("auth-error", "GitHub 인증 또는 접근 권한을 확인하세요.", status=status)
             raise Failure("transport-error", "GitHub API 요청에 실패했습니다.",
-                          transient=status is None or status == 429 or status >= 500, status=status)
+                          transient=status is None or status >= 500, status=status)
         try:
             value = json.loads(stdout)
         except ValueError:
@@ -153,25 +157,34 @@ def policy(api, root, pr):
 
     checks = classic.get("required_status_checks")
     if checks is not None:
-        if not isinstance(checks, dict):
+        if (not isinstance(checks, dict)
+                or not isinstance(checks.get("contexts"), list)
+                or not isinstance(checks.get("checks"), list)
+                or type(checks.get("strict", False)) is not bool):
             raise Failure("unknown-policy", "클래식 필수 검사 정책 형식이 올바르지 않습니다.")
         strict = checks.get("strict", False)
-        explicit = checks.get("checks", [])
+        explicit = checks["checks"]
         for check in explicit:
-            add(check.get("context"), check.get("app_id"))
+            if not isinstance(check, dict) or "app_id" not in check:
+                raise Failure("unknown-policy", "클래식 필수 검사의 앱 제한을 확인할 수 없습니다.")
+            add(check.get("context"), check["app_id"])
         named = {check.get("context") for check in explicit}
-        for context in checks.get("contexts", []):
+        for context in checks["contexts"]:
             if context not in named:
                 add(context, None)
     for rule in rules:
         kind = rule.get("type")
+        if not isinstance(kind, str) or not kind:
+            raise Failure("unknown-policy", "브랜치 규칙 종류를 확인할 수 없습니다.")
         if kind in ("workflows", "required_workflows"):
             raise Failure("unknown-policy", "필수 워크플로 정책은 지원하지 않습니다. GitHub에서 직접 확인하세요.")
         if kind == "required_status_checks":
             parameters = rule.get("parameters")
-            if not isinstance(parameters, dict) or not isinstance(parameters.get("required_status_checks"), list):
+            if (not isinstance(parameters, dict)
+                    or not isinstance(parameters.get("required_status_checks"), list)
+                    or type(parameters.get("strict_required_status_checks_policy")) is not bool):
                 raise Failure("unknown-policy", "규칙 집합의 필수 검사 정책을 해석할 수 없습니다.")
-            strict = strict or parameters.get("strict_required_status_checks_policy", False)
+            strict = strict or parameters["strict_required_status_checks_policy"]
             for check in parameters["required_status_checks"]:
                 add(check.get("context"), check.get("integration_id"))
     return {"required": [{"context": context, "appId": app}
@@ -196,7 +209,7 @@ def commit_observation(api, root, sha):
     checks = api.get(f"{root}/commits/{ref}/check-runs?per_page=100&filter=all", pages=True, key="check_runs")
     statuses = api.get(f"{root}/commits/{ref}/statuses?per_page=100", pages=True)
     return {"sha": sha, "checks": latest(checks, lambda row: (row.get("name"), (row.get("app") or {}).get("id"))),
-            "statuses": latest(statuses, lambda row: row.get("context"))}
+            "statuses": latest(statuses, lambda row: row["context"].lower())}
 
 
 def evaluate_checks(required, observed):
@@ -205,7 +218,7 @@ def evaluate_checks(required, observed):
         context, app = requirement["context"], requirement["appId"]
         checks = [row for row in observed["checks"] if row.get("name") == context
                   and (app is None or (row.get("app") or {}).get("id") == app)]
-        statuses = [row for row in observed["statuses"] if row.get("context") == context]
+        statuses = [row for row in observed["statuses"] if row["context"].lower() == context.lower()]
         label = {"context": context, "appId": app}
         if not checks and (not statuses or app is not None):
             missing.append({**label, "condition": "missing"})
@@ -244,7 +257,15 @@ def validate_baseline(args, selected):
     ids = baseline.get("reviewIds")
     if not isinstance(ids, list) or not all(type(value) is int for value in ids):
         raise Failure("invalid-input", "기준 스냅샷에 전체 리뷰 ID 목록이 필요합니다.")
-    args.baseline_ids = set(ids)
+    reviews = baseline.get("reviews")
+    if (not isinstance(reviews, list)
+            or not all(isinstance(row, dict) and type(row.get("id")) is int for row in reviews)
+            or {row["id"] for row in reviews} != set(ids)):
+        raise Failure("invalid-input", "기준 스냅샷에 전체 리뷰 상태가 필요합니다.")
+    # 작성 중인 리뷰는 같은 ID로 제출된다. 이미 제출된 응답만 제외한다.
+    drafts = {row["id"] for row in reviews
+              if row.get("state") == "PENDING" and not row.get("submitted_at")}
+    args.baseline_ids = set(ids) - drafts
     args.requested_time = requested
 
 
