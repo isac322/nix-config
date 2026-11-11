@@ -267,23 +267,26 @@ let
   rustdeskDirectHost = tcc.writeLaunchdScript "rustdesk-direct-host" ''
     set -u
 
-    app=/Applications/RustDesk.app/Contents/MacOS/RustDesk
+    app=/Applications/RustDesk.app
     marker=/var/run/rustdesk-firewall-ready
 
-    while [ ! -x "$app" ] || [ ! -s "$marker" ]; do
+    while [ ! -x "$app/Contents/MacOS/RustDesk" ] || [ ! -s "$marker" ]; do
       /bin/sleep 2
     done
     markerIdentity=$(/usr/bin/stat -f '%d:%i' "$marker") || exit 1
 
-    "$app" --server &
-    serverPid=$!
+    # Launch Services reuses an existing GUI and its embedded host. A separate
+    # --server takes over its IPC socket by closing the connected GUI.
+    /usr/bin/open -g -W -a "$app" &
+    waiterPid=$!
     cleanup() {
-      /bin/kill "$serverPid" >/dev/null 2>&1 || true
-      wait "$serverPid" >/dev/null 2>&1 || true
+      # Stop only our waiter; the firewall owns access across generations.
+      /bin/kill "$waiterPid" >/dev/null 2>&1 || true
+      wait "$waiterPid" >/dev/null 2>&1 || true
     }
     trap 'cleanup; exit 143' TERM INT
 
-    while /bin/kill -0 "$serverPid" 2>/dev/null; do
+    while /bin/kill -0 "$waiterPid" 2>/dev/null; do
       currentIdentity=$(/usr/bin/stat -f '%d:%i' "$marker" 2>/dev/null || true)
       if [ "$currentIdentity" != "$markerIdentity" ]; then
         echo "rustdesk-direct-host: firewall generation changed; restarting." >&2
@@ -293,7 +296,7 @@ let
       /bin/sleep 1
     done
 
-    wait "$serverPid"
+    wait "$waiterPid"
     status=$?
     [ "$status" -ne 0 ] || status=1
     exit "$status"

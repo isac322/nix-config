@@ -617,13 +617,19 @@ Docker container는 없다.
 TCP 21118만 허용하고, 다른 IPv4 interface와 모든 IPv6 연결은 차단한다.
 firewall daemon은 WireGuard를 기다리기 전에 deny 규칙부터 적재한다. Home Manager의
 `rustdesk-direct-host` LaunchAgent도 firewall ready marker가 생길 때까지
-`RustDesk --server`를 시작하지 않는다. vendor LaunchAgent는 비활성화한다.
+RustDesk 앱을 시작하지 않는다. `open -g -W -a`로 기존 앱과 내장 host를 재사용하고,
+앱 종료 후에는 launchd가 다시 실행한다. 별도 `--server`는 GUI와 IPC 소켓을
+경쟁하며 기존 연결을 종료하므로 실행하지 않는다. vendor LaunchAgent는 비활성화한다.
 
 ```sh
 sudo launchctl print system/org.nixos.rustdesk-firewall
 sudo pfctl -a com.apple/rustdesk -sr
 launchctl print gui/$(id -u)/org.nix-community.home.rustdesk-direct-host
 ```
+
+수동 확인: 원격 연결 중 LaunchAgent를 재시작해도 RustDesk PID와 연결이
+유지되어야 한다. 연결을 사용하지 않을 때 RustDesk 앱을 종료하면 launchd가
+다시 실행하고 TCP 21118에서 접속을 받아야 한다.
 
 클라이언트에서는 ID가 아니라 다음 주소를 원격 ID 입력란에 그대로 넣는다.
 
