@@ -179,22 +179,25 @@
        };
      case 'camofox_scroll':
        return {
-@@ -301,19 +301,19 @@
+@@ -631,7 +631,7 @@
          path: `/tabs/${args.tabId}/scroll`,
          auth: 'accessKey',
          responseKind: 'json',
 -        body: { ...without(args), userId },
 +        body: { ...without(args), userId, sessionKey },
        };
-     case 'camofox_screenshot':
+     case 'camofox_upload':
+       return {
+@@ -644,7 +644,7 @@
+     case 'camofox_screenshot': {
+-      const params = new URLSearchParams({ userId });
++      const params = new URLSearchParams({ userId, sessionKey });
+       if (args.fullPage === true || args.fullPage === 'true') params.set('fullPage', 'true');
        return {
          method: 'GET',
--        path: `/tabs/${args.tabId}/screenshot?${new URLSearchParams({ userId })}`,
-+        path: `/tabs/${args.tabId}/screenshot?${new URLSearchParams({ userId, sessionKey })}`,
+         path: `/tabs/${args.tabId}/screenshot?${params}`,
          auth: 'accessKey',
-         responseKind: 'image',
-       };
-     case 'camofox_close_tab':
+@@ -655,7 +655,7 @@
        return {
          method: 'DELETE',
 -        path: `/tabs/${args.tabId}?${new URLSearchParams({ userId })}`,
@@ -202,15 +205,17 @@
          auth: 'accessKey',
          responseKind: 'json',
        };
-@@ -323,12 +323,12 @@
+     case 'camofox_evaluate':
+@@ -664,7 +664,7 @@
          path: `/tabs/${args.tabId}/evaluate`,
          auth: 'accessKey',
          responseKind: 'json',
--        body: { userId, expression: args.expression },
-+        body: { userId, sessionKey, expression: args.expression },
+-        body: { userId, expression: args.expression, ...(args.timeoutMs != null ? { timeoutMs: args.timeoutMs } : {}) },
++        body: { userId, sessionKey, expression: args.expression, ...(args.timeoutMs != null ? { timeoutMs: args.timeoutMs } : {}) },
        };
-     case 'camofox_list_tabs':
+     case 'camofox_activate':
        return {
+@@ -773,5 +773,5 @@
          method: 'GET',
 -        path: `/tabs?${new URLSearchParams({ userId })}`,
 +        path: `/tabs?${new URLSearchParams({ userId, sessionKey })}`,

@@ -84,18 +84,9 @@ buildNpmPackage {
   # when the click already landed, keeping the fallback for pages where the
   # event never arrives.
   #
-  # Upstream ships a POST /tabs/:tabId/select route for native <select>
-  # dropdowns but never exposes it through the MCP/OpenClaw tool contracts,
-  # so agents must fall back to synthetic clicks that many dropdowns ignore.
-  # Add camofox_select to the canonical tool list and forward sessionKey on
-  # the select route's findTab so it honors the same session isolation as
-  # every other MCP-exposed operation.
-  #
-  # Upstream also ships POST /tabs/:tabId/press without an MCP tool, so agents
-  # cannot activate a focused control by keyboard. Mouse dispatch on this stack
-  # can deliver a second click ~130ms later, which lands on whatever replaced
-  # the button and submits an unintended write. Expose camofox_press and honor
-  # sessionKey on that route so a keyboard activation is available.
+  # Upstream 1.19.0 exposes native select and keyboard press tools. Retain
+  # their canonical definitions and request options, adding only sessionKey
+  # forwarding and enforcement to preserve isolation between MCP clients.
   #
   # Camoufox humanizes every cursor path, which costs seconds per click and is
   # unwanted while measuring UI latency. Keep it on by default and allow

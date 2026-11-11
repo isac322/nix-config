@@ -61,6 +61,6 @@
 +        body: { ...rest, userId, sessionKey },
        };
 +    }
-     case 'camofox_press':
+     case 'camofox_navigate':
        return {
          method: 'POST',
