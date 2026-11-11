@@ -298,6 +298,79 @@ generated policy skill 이름은 `SKILLCLAW_SYNC_SKIP_PULL`로 pull에서 보호
 push에는 포함한다. `~/.claude/skills`는 Nix가 같은 canonical source에서 다시 만드는
 Claude 전용 배포본이며 별도 sync source가 아니다.
 
+## GitHub PR 대기 (모든 노드)
+
+`github-pr-wait`는 PR 상태를 읽기만 하는 공통 CLI다. `home.packages`로 설치하고
+flake의 `github-pr-wait` package로도 제공한다. GitHub 인증은 `gh` 설정을 사용한다.
+새 설정을 각 노드에서 switch한 뒤 사용한다. 실행 중인 이전 agent 세션의 지침이나
+이미 시작한 watcher job은 자동으로 바뀌지 않는다. 기존 job의 대상과 소유자를
+확인하고, 필요한 세션은 새로 시작한다. OMP 확장·scheduler·daemon을 바꾸지 않는다.
+
+부모 agent에 `OWNER/REPO`, head branch, 실제 PR URL, head SHA를 명시적으로 넘긴다.
+PR 생성 전에는 저장소와 head branch를 먼저 넘기고 생성 후 실제 URL을 보완한다.
+대상이 없거나 모호하면 미해결이다. `Closes` 문구나 이슈 번호를 훑어 다른 PR을
+고르거나 작업을 완료 처리하지 않는다.
+
+아래 URL·SHA·경로·시각은 설명용 값이다. 실제 PR과 해당 요청의 값으로 바꾼다.
+baseline은 **리뷰 요청 전**에 성공적으로 수집한 JSON이어야 한다.
+
+```sh
+pr_url='https://github.com/OWNER/REPO/pull/123'
+head='0123456789abcdef0123456789abcdef01234567'
+baseline='/absolute/path/pr-123-review-baseline.json'
+github-pr-wait snapshot "$pr_url" --until review-response \
+  --reviewer runbear-bot > "$baseline"
+```
+
+baseline 수집 성공을 확인한 다음 기존 승인·리뷰 절차에 따라 실제 요청을 보낸다.
+그 요청 시점의 UTC 시각을 기록한다. 아래 시각도 예시이며, snapshot 시각이나
+대기를 시작한 시각으로 대신하지 않는다.
+
+```sh
+requested_after='2026-11-11T12:00:00Z'
+github-pr-wait wait "$pr_url" --until review-response \
+  --reviewer runbear-bot --expected-head "$head" \
+  --baseline "$baseline" --requested-after "$requested_after" \
+  --timeout 1800 --interval 30 --api-timeout 20
+```
+
+요청 이후의 새 `COMMENTED`·`CHANGES_REQUESTED`·`APPROVED` 리뷰 중 첫 유효 응답에서
+agent로 돌아온다. 응답 내용을 검토하고 각 스레드에 답한 뒤 기존 재요청 규칙을
+따른다. head 변경으로 대기가 무효화되면 three-dot diff를 비교한다. 문서만 바뀌거나
+충돌 없는 base 반영으로 리뷰 관련 diff가 그대로인 경우의 재요청 예외는 유지한다.
+
+필수 check가 아직 진행 중일 때는 다음 명령을 독립 job으로 실행한다.
+
+```sh
+github-pr-wait wait "$pr_url" --until required-checks \
+  --expected-head "$head" --timeout 1800
+```
+
+외부에서 수행하는 승인된 merge를 명시적으로 기다려야 할 때만 다음 명령을 별도
+job으로 실행한다. CI 성공 뒤 자동으로 이어 실행하지 않는다. 이 명령은 merge를
+수행하지 않는다.
+
+```sh
+github-pr-wait wait "$pr_url" --until merged \
+  --expected-head "$head" --timeout 1800
+```
+
+- 각 PR·목적마다 job 하나와 유한한 마감 시간을 정한다. PR A의 지연이 PR B를 막지
+  않게 한다. OMP에서는 CLI 자체의 `--timeout`이 있으므로 `bash`의 `async: true`,
+  `timeout: 0`으로 실행할 수 있다. 다른 일이 없으면 자동 결과 전달이나 `wait`를 쓴다.
+  임시 polling script를 만들거나 모델이 API 조회를 반복하지 않는다.
+- `wait`의 exit 0은 선택한 조건의 성공만 뜻한다. `snapshot`의 exit 0은 수집 성공이며
+  조건은 pending일 수 있다. JSON의 outcome·reason·evidence와 마지막 성공 관측,
+  미충족 조건을 읽는다. 누락된 필수 check는 통과가 아니고 알 수 없는 정책은 미해결이다.
+- timeout·head 변경·merge 없는 종료·인증/통신/정책 오류는 agent가 판단한다.
+  미충족 조건을 pending으로 보고하고 원인과 새 마감 시간을 정하기 전에는
+  자동 재시작하지 않는다. CLI 결과는 리뷰 완료나 merge 권한을 대신하지 않는다.
+- merge 명령과 배포 대기를 `;`·`||` 또는 무조건 이어지는 shell 명령으로 묶지 않는다.
+  merge 결과를 따로 읽고 실제 merged 상태와 비어 있지 않은 실제 merge SHA를
+  확인한 뒤 그 SHA의 배포 run을 고른다. merge SHA가 null이면 배포 대상을 정할 수 없다.
+  head SHA나 test-merge SHA로 대신하지 않는다. 이미 run ID를 아는 Actions 대기는
+  유한한 외부 timeout을 둔 독립 `gh run watch RUN_ID --repo OWNER/REPO --exit-status`를
+  쓴다. CLI는 자동 merge나 배포를 하지 않는다.
 
 ## SkillClaw 공유 스킬 (모든 노드)
 

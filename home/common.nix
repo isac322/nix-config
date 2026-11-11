@@ -655,6 +655,9 @@ in
     # writing drafts. It never initializes or synchronizes external destinations.
     pkgs.jevify-writing
 
+    # Read-only, deadline-bounded GitHub PR waits shared by all agent harnesses.
+    pkgs.github-pr-wait
+
     # BearDrive's CLI is useful on every node, but joining a project is mutable
     # per-user state: `bdrive init` selects a folder and hub, authenticates, and
     # installs the upstream login item. Nix supplies the pinned executable only

@@ -290,6 +290,7 @@
             vercel-cli
             beardrive
             jevify-writing
+            github-pr-wait
             sentry
             ntn
             slack-cli
