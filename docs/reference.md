@@ -275,26 +275,18 @@ MBP의 Direct IP host는 TCP 21118에서 화면과 입력을 제공한다.
 
 ## 코딩 에이전트 — 작업이 있는 곳에서 돈다
 
-`claude-code`, `codex`, `antigravity-cli`(`agy`), `herdr-core`(`hc`), `omp` 다섯을
+`claude-code`, `codex`, `antigravity-cli`(`agy`), `omp` 넷을
 **모든 기기**에 둔다 (`home/common.nix`). 아래 두 CLI 묶음이 이 층에 있는 이유가
 이것이라, 순서상 여기가 먼저다.
 
 `claude-code`, `codex`, `antigravity-cli`는 `llm-agents` 인풋의 캐시된 패키지를 쓴다.
-`omp`와 `herdr-core`는 공식 릴리스 바이너리를 직접 설치하므로 상류 빌드를 반복하지 않고
-macOS의 Developer ID 서명(`Herdr Core.app` 포함)도 그대로 유지한다. 버전·asset URL·SHA-256은
+`omp`는 공식 릴리스 바이너리를 직접 설치하므로 상류 빌드를 반복하지 않고
+macOS의 Developer ID 서명도 그대로 유지한다. 버전·asset URL·SHA-256은
 `pkgs/release-snapshots.json`에 고정되며 `nix run .#update-packages`가 원자적으로
 갱신한다. aarch64-darwin과 x86_64-linux·aarch64-linux를 지원한다.
 
-**Orca와 Herdr 데스크톱 앱은 여기 없다.** GUI 앱이라 cask로 오며, Orca는 맥 둘에,
-`herdr-app`(`Herdr.app`)은 클라이언트 랩탑(`modules/roles/darwin-laptop.nix`)에
-설치하며, 같은 역할의 Home Manager(`home/roles/darwin-laptop.nix`)가 `flake.lock`에
-고정된 `herdrdev/herdr-layout-examples`의 `threads` layout(`layouts/threads.json`,
-`mods/t4-*`)과 `JinJieBeWater/herdr-t3`의 `herdr-t3` layout(`layouts/herdr-t3.json`,
-`layouts/herdr-t3.svg`, `mods/t3-*`, `keys.json` 병합)을 `~/.config/herdr-app`에
-설치한다. 서버 맥(`home/roles/darwin-server.nix`)과 NixOS 서버(`home/linux.nix`,
-`modules/nixos.nix`의 `linger = true`)는 `herdr-core`(`hc`) 런타임만 띄우고
-switch 시 실행 중인 코어를 현재 세대 바이너리로 무중단 재시작(`hc server restart`)한다 —
-위 [GUI 앱](#gui-앱) 을 보라.
+**Orca 데스크톱 앱은 여기 없다.** GUI 앱이라 cask로 맥 둘에 설치한다 —
+위 [GUI 앱](#gui-앱)을 보라.
 
 `jevify-writing`은 coding agent가 목적지별 초안의 route, claim provenance, revision,
 fan-out, BearDrive semantic boundary를 외부 쓰기 없이 검사하는 로컬 validator다.

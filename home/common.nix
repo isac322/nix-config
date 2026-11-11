@@ -637,15 +637,13 @@ in
     agents.codex
     agents.antigravity-cli
 
-    # Official OMP and herdr-core standalone binaries. `nix run .#update-packages`
-    # refreshes their versions, platform assets, and sha256 digests in one
-    # snapshot. On macOS, both are installed at fixed paths under ~/.local so
-    # their Developer ID signatures keep one TCC identity across updates
-    # (home/darwin.nix).
+    # Official OMP standalone binary. `nix run .#update-packages` refreshes its
+    # version, platform assets, and sha256 digests in one snapshot. On macOS it
+    # is installed at a fixed path under ~/.local so its Developer ID signature
+    # keeps one TCC identity across updates (home/darwin.nix).
   ]
   ++ lib.optionals (!pkgs.stdenv.hostPlatform.isDarwin) [
     (import ./omp-launcher.nix { inherit (pkgs) writeText writeTextFile; } (lib.getExe pkgs.omp-bin))
-    pkgs.herdr-core
   ]
   ++ [
 

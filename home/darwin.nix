@@ -31,26 +31,6 @@ let
   # `realpath(process.execPath)`, which for `~/.local/libexec/omp/omp` is
   # `~/.local/libexec/manager.json`.
 
-  # herdr-core's macOS release ships `Herdr Core.app` signed with Developer ID
-  # (`dev.herdr.core`, team 2W9652Q7QR) and uses `responsibility_spawnattrs_setdisclaim`
-  # so the core and holder processes own TCC permissions independently of the
-  # launching app or sshd. Activation installs the signed bundle into its
-  # upstream fixed path (`~/.local/share/herdr-core/active/Herdr Core.app`) via
-  # `--hc-install-bundle`, and `herdr-core`/`hc` on PATH exec that bundle.
-  herdrCoreBase = "${config.home.homeDirectory}/.local/share/herdr-core";
-  herdrCoreEntry = "${config.home.homeDirectory}/.local/libexec/herdr-core/herdr-core";
-  herdrCoreActiveExe = "${herdrCoreBase}/active/Herdr Core.app/Contents/MacOS/herdr-core";
-  herdrCoreCurrentExe = "${herdrCoreBase}/current/Contents/MacOS/herdr-core";
-  herdrCoreStable = pkgs.runCommand "herdr-core-launcher" { } ''
-    mkdir -p "$out/bin"
-    cat > "$out/bin/herdr-core" <<'EOF'
-    #!/bin/sh
-    exec ${lib.escapeShellArg herdrCoreCurrentExe} "$@"
-    EOF
-    sed -i 's/^    //' "$out/bin/herdr-core"
-    chmod 0755 "$out/bin/herdr-core"
-    ln -s herdr-core "$out/bin/hc"
-  '';
   # One key does everything: SSH authentication, git commit signing, and the
   # PGP signing that Arch packaging needs. The GPG key's authentication subkey
   # is served to SSH by gpg-agent, so there is no separate SSH keypair to
@@ -362,23 +342,6 @@ in
     fi
   '';
 
-  home.activation.herdrCoreBundle = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    src_bundle="${pkgs.herdr-core}/share/herdr-core/bundle"
-    src="$src_bundle/Contents/MacOS/herdr-core"
-    dst=${lib.escapeShellArg herdrCoreActiveExe}
-    entry=${lib.escapeShellArg herdrCoreEntry}
-    current=${lib.escapeShellArg herdrCoreCurrentExe}
-    if [ ! -x "$current" ] || ! /usr/bin/cmp -s "$src" "$dst"; then
-      run /bin/mkdir -p "$(/usr/bin/dirname "$entry")"
-      tmp_dir=$(/usr/bin/mktemp -d "/tmp/herdr-core-bundle.XXXXXX")
-      /usr/bin/ditto "$src_bundle" "$tmp_dir/Herdr Core.app"
-      /bin/chmod -R u+w "$tmp_dir/Herdr Core.app"
-      run "${pkgs.herdr-core}/bin/herdr-core" --hc-install-bundle \
-        "$tmp_dir/Herdr Core.app/Contents/MacOS/herdr-core" "$entry"
-      /bin/rm -rf "$tmp_dir"
-    fi
-  '';
-
   # Commits are signed with the same GPG key. `user.signingkey` is left unset
   # on purpose: with no key configured and the default openpgp format, git
   # passes the committer identity itself to gpg (`-u "Name <email>"`), which
@@ -422,7 +385,6 @@ in
     pkgs.golangci-lint
     gpgSshAuthorize
     pkgs.hadolint
-    herdrCoreStable
     ompStable
     pkgs.sops
     pkgs.stern

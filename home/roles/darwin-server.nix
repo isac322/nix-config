@@ -148,51 +148,6 @@ let
   # between its Homebrew activation and home-manager's user activation.
   orb = "/opt/homebrew/bin/orb";
   timeout = lib.getExe' pkgs.coreutils "timeout";
-  herdrCoreBase = "${config.home.homeDirectory}/.local/share/herdr-core";
-  herdrCoreActiveExe = "${herdrCoreBase}/active/Herdr Core.app/Contents/MacOS/herdr-core";
-  herdrCoreCurrentExe = "${herdrCoreBase}/current/Contents/MacOS/herdr-core";
-
-  herdrCoreStart = pkgs.writeShellScript "herdr-core-start" ''
-    set -u
-
-    # Start or refresh herdr-core inside the logged-in Aqua session with the
-    # server's full PATH rather than letting the first incoming non-login SSH
-    # `hc connect` spawn it inside sshd's minimal environment.
-    export PATH=/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
-    export SSH_AUTH_SOCK=${lib.escapeShellArg "${config.programs.gpg.homedir}/S.gpg-agent.ssh"}
-    unset SSH_CONNECTION SSH_CLIENT SSH_TTY
-
-    jq=${lib.getExe pkgs.jq}
-    status_json=$(${timeout} -k 5 30 ${lib.escapeShellArg herdrCoreCurrentExe} server start --json) || exit 1
-    running=$(printf '%s\n' "$status_json" | "$jq" -r '.version // empty')
-    pid=$(printf '%s\n' "$status_json" | "$jq" -r '.pid // empty')
-    live=$(printf '%s\n' "$status_json" | "$jq" -r '.live // 0')
-    holder_pid=$(printf '%s\n' "$status_json" | "$jq" -r '.holder.pid // empty')
-    comm=""
-    if [ -n "$pid" ]; then
-      comm=$(/bin/ps -p "$pid" -o comm= 2>/dev/null || true)
-    fi
-    holder_comm=""
-    if [ -n "$holder_pid" ]; then
-      holder_comm=$(/bin/ps -p "$holder_pid" -o comm= 2>/dev/null || true)
-    fi
-
-    if [ "$running" = ${lib.escapeShellArg pkgs.herdr-core.version} ] \
-      && [ "$comm" = ${lib.escapeShellArg herdrCoreActiveExe} ] \
-      && { [ -z "$holder_pid" ] || [ "$holder_comm" = ${lib.escapeShellArg herdrCoreActiveExe} ]; }; then
-      exit 0
-    fi
-
-    if [ "$live" = "0" ] && [ -n "$holder_pid" ] && [ "$holder_comm" != ${lib.escapeShellArg herdrCoreActiveExe} ]; then
-      echo "herdr-core-start: replacing idle pre-bundle holder (''${holder_comm:-unknown}) with ${herdrCoreActiveExe}." >&2
-      ${timeout} -k 5 30 ${lib.escapeShellArg herdrCoreCurrentExe} server stop --json >/dev/null || true
-      ${timeout} -k 5 30 ${lib.escapeShellArg herdrCoreCurrentExe} server start --json >/dev/null
-      exit 0
-    fi
-
-    echo "herdr-core-start: serving ''${running:-unknown} (''${comm:-unknown}), installed ${pkgs.herdr-core.version} — restarting the core (terminals kept)." >&2
-    ${timeout} -k 5 30 ${lib.escapeShellArg herdrCoreCurrentExe} server restart --json >/dev/null
-  '';
   orbstackDockerConfig = pkgs.writeText "orbstack-docker.json" (
     builtins.toJSON {
       "log-driver" = "local";
@@ -619,29 +574,6 @@ in
       run ${orcaServeRefresh} || warnEcho "Orca server was not moved to the installed version; see above."
     ''
   );
-
-  # Ensure herdr-core is started in the Aqua session at login and smoothly
-  # restarted into the current Nix store generation on switch while keeping
-  # running terminal holder processes alive.
-  launchd.agents.herdr-core = {
-    enable = true;
-    config = {
-      ProgramArguments = [ "${herdrCoreStart}" ];
-      RunAtLoad = true;
-      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/herdr-core-start.log";
-      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/herdr-core-start.log";
-    };
-  };
-
-  home.activation.herdrCoreRefresh =
-    lib.hm.dag.entryAfter
-      [
-        "setupLaunchAgents"
-        "herdrCoreBundle"
-      ]
-      ''
-        run ${herdrCoreStart} || warnEcho "herdr-core server was not moved to the installed version; see ~/Library/Logs/herdr-core-start.log."
-      '';
 
   # A pinentry that can both remember and ask.
   #

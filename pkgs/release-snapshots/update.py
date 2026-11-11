@@ -285,42 +285,6 @@ def ntn_release() -> dict[str, Any]:
     return {"assets": assets, "draft": False, "prerelease": False, "tag_name": tag}
 
 
-
-def herdr_core_release() -> dict[str, Any]:
-    # herdr-core publishes signed release tarballs and SHA-256 digests through
-    # releases.herdr.dev rather than GitHub Releases. The macOS archive includes
-    # the Developer ID signed and notarized `Herdr Core.app` bundle.
-    manifest = fetch_json("https://releases.herdr.dev/core/latest.json")
-    if not isinstance(manifest, dict):
-        raise RuntimeError("invalid herdr-core release manifest")
-    version = manifest.get("version")
-    targets = manifest.get("targets")
-    if not isinstance(version, str) or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) is None:
-        raise RuntimeError(f"unexpected herdr-core latest version: {version!r}")
-    if not isinstance(targets, dict):
-        raise RuntimeError("herdr-core manifest is missing targets")
-    assets = []
-    for target in (
-        "macos-aarch64",
-        "linux-aarch64",
-        "linux-x86_64",
-    ):
-        entry = targets.get(target)
-        name = f"herdr-core-{target}.tar.gz"
-        if not isinstance(entry, dict):
-            raise RuntimeError(f"herdr-core manifest is missing target {target}")
-        url = entry.get("url")
-        sha256 = entry.get("sha256")
-        if (
-            not isinstance(url, str)
-            or not url.endswith(f"/{version}/{name}")
-            or not isinstance(sha256, str)
-            or re.fullmatch(r"[0-9a-f]{64}", sha256) is None
-        ):
-            raise RuntimeError(f"unexpected herdr-core asset metadata for {target}")
-        assets.append({"browser_download_url": url, "digest": f"sha256:{sha256}", "name": name})
-    return {"assets": assets, "draft": False, "prerelease": False, "tag_name": f"v{version}"}
-
 def build_snapshot(previous_snapshot: dict[str, Any] | None) -> dict[str, Any]:
     previous_releases = (previous_snapshot or {}).get("releaseManifests", {})
 
@@ -372,7 +336,6 @@ def build_snapshot(previous_snapshot: dict[str, Any] | None) -> dict[str, Any]:
             "v",
             lambda version: [f"displayplacer-apple-v{version.replace('.', '')}"],
         ),
-        "herdrCore": herdr_core_release(),
         "langfuse": npm_latest("langfuse-cli", include_dependencies=True),
         "ntn": ntn_release(),
         "omo": latest(

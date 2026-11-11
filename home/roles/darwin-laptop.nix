@@ -14,106 +14,6 @@ let
   # Follow upstream through flake.lock rather than pinning an unrelated source
   # hash in this module.
   zshAutoNotify = inputs.zsh-auto-notify-source;
-  herdrThreads = "${inputs.herdr-layout-examples-source}/threads";
-  herdrT3 = inputs.herdr-t3-source;
-
-  # Herdr App loads layouts and mods from ~/.config/herdr-app. Mods must be real
-  # writable copies rather than Nix store symlinks because Herdr App does not
-  # resolve a mod's own SVG assets through symlinks, and layout/key JSON files
-  # are updated live by the app when switching themes, stacks, or keybindings.
-  herdrLayoutsInstall = pkgs.writeShellScript "herdr-layouts-install" ''
-    set -eu
-
-    app="''${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
-    threads_src=${lib.escapeShellArg herdrThreads}
-    t3_src=${lib.escapeShellArg herdrT3}
-    jq=${lib.getExe pkgs.jq}
-    rsync=${lib.getExe pkgs.rsync}
-    coreutils=${pkgs.coreutils}/bin
-
-    "$coreutils/mkdir" -p "$app/layouts" "$app/mods"
-
-    for f in "$app/layouts/threads.json" "$app/layouts/herdr-t3.json" "$app/keys.json"; do
-      if [ -e "$f" ] && ! "$jq" empty "$f" >/dev/null 2>&1; then
-        echo "herdr-layouts-install: invalid JSON in $f; leaving Herdr layouts untouched." >&2
-        exit 1
-      fi
-    done
-
-    for d in "$threads_src"/mods/t4-*/; do
-      target="$app/mods/$("$coreutils/basename" "$d")"
-      if [ -L "$target" ] || [ -f "$target" ]; then
-        "$coreutils/rm" -f "$target"
-      fi
-      "$coreutils/mkdir" -p "$target"
-      "$rsync" --archive --copy-links --delete "$d" "$target/"
-      "$coreutils/chmod" -R u+rwX,go+rX,go-w "$target"
-    done
-
-    threads_layout="$app/layouts/threads.json"
-    threads_old=$("$coreutils/cat" "$threads_layout" 2>/dev/null || echo '{}')
-    "$jq" --argjson old "$threads_old" \
-      'if $old.theme then .theme = $old.theme else . end' \
-      "$threads_src/layouts/threads.json" > "$threads_layout.tmp"
-    "$coreutils/chmod" 0644 "$threads_layout.tmp"
-    "$coreutils/mv" "$threads_layout.tmp" "$threads_layout"
-
-    gen_excludes="--exclude gpui-kit.d.ts --exclude jsconfig.json"
-    for d in "$t3_src"/mods/t3-*/; do
-      target="$app/mods/$("$coreutils/basename" "$d")"
-      if [ -L "$target" ] || [ -f "$target" ]; then
-        "$coreutils/rm" -f "$target"
-      fi
-      "$coreutils/mkdir" -p "$target"
-      "$rsync" --archive --copy-links --delete $gen_excludes "$d" "$target/"
-      "$coreutils/chmod" -R u+rwX,go+rX,go-w "$target"
-    done
-
-    if [ -d "$app/mods/pulls-review" ]; then
-      for m in pulls-review review; do
-        target="$app/mods/$m"
-        "$coreutils/mkdir" -p "$target"
-        "$rsync" --archive --copy-links --delete $gen_excludes --exclude config.json "$t3_src/extras/mods/$m/" "$target/"
-        "$coreutils/chmod" -R u+rwX,go+rX,go-w "$target"
-      done
-    fi
-    if [ -d "$app/mods/t3-theme-export" ]; then
-      target="$app/mods/t3-theme-export"
-      "$coreutils/mkdir" -p "$target"
-      "$rsync" --archive --copy-links --delete $gen_excludes "$t3_src/extras/mods/t3-theme-export/" "$target/"
-      "$coreutils/chmod" -R u+rwX,go+rX,go-w "$target"
-    fi
-    for t in "$t3_src"/extras/themes/*.json; do
-      theme_name=$("$coreutils/basename" "$t")
-      if [ -f "$app/themes/$theme_name" ]; then
-        "$coreutils/install" -m 0644 "$t" "$app/themes/$theme_name"
-      fi
-    done
-
-    t3_layout="$app/layouts/herdr-t3.json"
-    t3_old=$("$coreutils/cat" "$t3_layout" 2>/dev/null || echo '{}')
-    "$jq" --argjson old "$t3_old" '[$old | .. | objects | .focus? | objects | .color][0] as $c
-      | ([$old | .. | objects | select((.id | strings) and .active) | {(.id): .active}] | add // {}) as $active
-      | ([$old | .. | objects | select(.content?.mod? == "pulls-review")][0]) as $review
-      | ([$old | .. | objects | select(.content?.mod? == "t3-theme-export")][0]) as $export
-      | (if $old.theme then .theme = $old.theme else . end)
-      | (.. | objects | select((.id | strings) and $active[.id])) |= (.active = $active[.id])
-      | (.. | objects | .focus? | objects | .color) |= ($c // .)
-      | (if $review then (.. | objects | select(.id? == "tabs-row") | .children) |= (.[0:1] + [$review] + .[1:]) else . end)
-      | (if $export then (.. | objects | select(.id? == "work") | .children) |= (. + [$export]) else . end)' \
-      "$t3_src/layouts/herdr-t3.json" > "$t3_layout.tmp"
-    "$coreutils/chmod" 0644 "$t3_layout.tmp"
-    "$coreutils/mv" "$t3_layout.tmp" "$t3_layout"
-    "$coreutils/install" -m 0644 "$t3_src/layouts/herdr-t3.svg" "$app/layouts/herdr-t3.svg"
-
-    keys="$app/keys.json"
-    [ -f "$keys" ] || echo '{}' > "$keys"
-    "$jq" --slurpfile new "$t3_src/keys.json" \
-      '.["layout:herdr-t3"] = ((.["layout:herdr-t3"] // {}) + $new[0]["layout:herdr-t3"])' \
-      "$keys" > "$keys.tmp"
-    "$coreutils/chmod" 0644 "$keys.tmp"
-    "$coreutils/mv" "$keys.tmp" "$keys"
-  '';
 
   # Vorta imports this profile export once from ~/.vorta-init.json. Keep the
   # export repository-less so first launch never needs a URL, password, or
@@ -204,10 +104,6 @@ in
       $DRY_RUN_CMD ${pkgs.coreutils}/bin/cp ${lib.escapeShellArg vortaBootstrap} "$bootstrap"
       $DRY_RUN_CMD ${pkgs.coreutils}/bin/chmod 600 "$bootstrap"
     fi
-  '';
-
-  home.activation.installHerdrLayouts = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    run ${herdrLayoutsInstall}
   '';
 
   # Notifications are a desktop concern. The shared shell initialization uses

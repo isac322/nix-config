@@ -58,9 +58,6 @@ let
       ntn = final.callPackage ./ntn/package.nix {
         manifestFile = releaseManifests.ntn;
       };
-      herdr-core = final.callPackage ./herdr-core/package.nix {
-        manifestFile = releaseManifests.herdrCore;
-      };
 
       # Native Apple Silicon browser and virtual-display utilities. Camofox uses
       # the immutable Camoufox browser; DeskPad supplies the virtual display,

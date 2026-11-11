@@ -23,7 +23,6 @@ let
   );
   externalSkillSources = {
     comment-writer = "${inputs.gentle-ai}/skills/comment-writer";
-    herdr-core = "${inputs.herdr-core}/skills/herdr-core";
     humanizer = inputs.humanizer;
     writing-clearly-and-concisely = "${inputs.agent-toolkit}/skills/writing-clearly-and-concisely";
   };

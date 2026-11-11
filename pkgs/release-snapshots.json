@@ -97,28 +97,6 @@
       "prerelease": false,
       "tag_name": "v1.4.0"
     },
-    "herdrCore": {
-      "assets": [
-        {
-          "browser_download_url": "https://releases.herdr.dev/core/0.1.20/herdr-core-macos-aarch64.tar.gz",
-          "digest": "sha256:e58985d3fef6e909f33d3c5a4426e4898c81564a557d4636591cec9e3a06af26",
-          "name": "herdr-core-macos-aarch64.tar.gz"
-        },
-        {
-          "browser_download_url": "https://releases.herdr.dev/core/0.1.20/herdr-core-linux-aarch64.tar.gz",
-          "digest": "sha256:5f3037379d15cc76cfc72d2fd1a4262ea1c5b24df278bf7cfd8adcff7b914862",
-          "name": "herdr-core-linux-aarch64.tar.gz"
-        },
-        {
-          "browser_download_url": "https://releases.herdr.dev/core/0.1.20/herdr-core-linux-x86_64.tar.gz",
-          "digest": "sha256:ac6b86890c451a37584620aaa438b71bc0d0bd430a2e7c1d7e095f052c414e74",
-          "name": "herdr-core-linux-x86_64.tar.gz"
-        }
-      ],
-      "draft": false,
-      "prerelease": false,
-      "tag_name": "v0.1.20"
-    },
     "langfuse": {
       "dependencies": {},
       "dist": {

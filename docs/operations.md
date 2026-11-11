@@ -257,7 +257,6 @@ rule과 Claude skill tree는 기존 registry를 cleanup seed로 사용할 수 �
 `~/.agents/skills`와 `~/.claude/skills`에 각각 복사한다.
 
 - `Gentleman-Programming/gentle-ai`: `comment-writer`
-- `herdrdev/herdr-core`: `herdr-core`
 - `blader/humanizer`: `humanizer`
 - `softaworks/agent-toolkit`: `writing-clearly-and-concisely`
 - `pbakaus/impeccable`: `impeccable` (`~/.agents/skills`에는 upstream `.agents`
@@ -278,10 +277,10 @@ design hook은 사용하지 않는다. skill launcher(`scripts/impeccable`)는 �
 directory만 설치된다.
 저장소 소유 skill은 `home/skills/<name>/SKILL.md`가 canonical source다.
 
-다섯 upstream만 갱신하고 배포하는 절차:
+네 upstream만 갱신하고 배포하는 절차:
 
 ```sh
-nix flake update gentle-ai herdr-core humanizer agent-toolkit impeccable
+nix flake update gentle-ai humanizer agent-toolkit impeccable
 nix flake check
 darwin-rebuild build --flake .#<hostname>
 sudo darwin-rebuild switch --flake .#<hostname>
@@ -674,21 +673,19 @@ bash였고, flake update로 bash가 바뀌자 RustDesk 화면 녹화 권한이 �
 갱신되어도 권한이 유지된다. script는 bash 3.2 문법만 쓴다. `camofox-browser`는 TCC
 권한이 필요 없어 Nix script를 그대로 실행한다.
 
-omp와 `herdr-core`는 Developer ID 서명이라 신원은 고정이지만 Nix store 경로가 release마다
-바뀐다. 그래서 activation이 omp는 `~/.local/libexec/omp/omp`로 복사하고, `herdr-core`는
-공식 서명 번들을 `~/.local/share/herdr-core/active/Herdr Core.app`에
-`--hc-install-bundle`로 설치하며, PATH의 `omp`·`herdr-core`·`hc`는 그 고정 경로를
-`exec`하는 `/bin/sh` script다. TCC는 실제 파일의 경로와 서명을 보고, `/bin/sh`는
-platform binary라 책임을 갖지 않으므로 권한은 그 파일과 번들에 그대로 붙는다. 다른 OMP
-agent가 띄운 `omp`(환경에 `PI_SESSION_FILE`이 있음)는 이 script가 memory를 끈 설정
-overlay를 붙여 실행한다.
+`omp`는 Developer ID 서명이라 신원은 고정이지만 Nix store 경로가 release마다
+바뀐다. 그래서 activation이 `~/.local/libexec/omp/omp`로 복사하고, PATH의 `omp`는
+그 고정 경로를 `exec`하는 `/bin/sh` script다. TCC는 실제 파일의 경로와 서명을 보고,
+`/bin/sh`는 platform binary라 책임을 갖지 않으므로 권한은 그 파일에 그대로 붙는다.
+다른 OMP agent가 띄운 `omp`(환경에 `PI_SESSION_FILE`이 있음)는 이 script가 memory를
+끈 설정 overlay를 붙여 실행한다.
 
 SIP 때문에 권한 부여는 자동화할 수 없다. 시스템 설정 > 개인정보 보호 및 보안에서
 `+`를 누르고 Cmd+Shift+G로 경로를 입력해 한 번만 추가한다.
 
 | 항목 | 대상 |
 |---|---|
-| 전체 디스크 접근 권한 | `/Applications/Orca.app`, `~/.local/libexec/omp/omp`, `~/.local/share/herdr-core/active/Herdr Core.app` |
+| 전체 디스크 접근 권한 | `/Applications/Orca.app`, `~/.local/libexec/omp/omp` |
 | 화면 및 시스템 오디오 녹음 | `/Applications/RustDesk.app` |
 | 손쉬운 사용 | `/Applications/RustDesk.app` (원격 입력) |
 

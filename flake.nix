@@ -55,10 +55,6 @@
       url = "git+https://github.com/Gentleman-Programming/gentle-ai.git?shallow=1";
       flake = false;
     };
-    herdr-core = {
-      url = "git+https://github.com/herdrdev/herdr-core.git?shallow=1";
-      flake = false;
-    };
     humanizer = {
       url = "git+https://github.com/blader/humanizer.git?shallow=1";
       flake = false;
@@ -93,14 +89,6 @@
     };
     zsh-auto-notify-source = {
       url = "git+https://github.com/MichaelAquilina/zsh-auto-notify.git?ref=master&shallow=1";
-      flake = false;
-    };
-    herdr-layout-examples-source = {
-      url = "git+https://github.com/herdrdev/herdr-layout-examples.git?ref=main&shallow=1";
-      flake = false;
-    };
-    herdr-t3-source = {
-      url = "git+https://github.com/JinJieBeWater/herdr-t3.git?ref=main&shallow=1";
       flake = false;
     };
     pi-anthropic-web-fetch-source = {
@@ -304,7 +292,6 @@
             jevify-writing
             sentry
             ntn
-            herdr-core
             slack-cli
             omp-bin
             omo

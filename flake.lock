@@ -264,59 +264,6 @@
         "url": "https://api.flakehub.com/f/pinned/cachix/git-hooks.nix/0.1.1231%2Brev-43b3c1ab9d40fb1dbb008f451988a91e375825e9/019f7135-8fdf-76f0-b1a1-d2c67e91af8d/source.tar.gz"
       }
     },
-    "herdr-core": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1794327317,
-        "narHash": "sha256-++LMCl7izwdSTO5hC/zc9Z1AENMpGaQ5bJ/bI9Jc5r0=",
-        "ref": "refs/heads/master",
-        "rev": "de97ea5ba5d6877a5e082316b4a1a5b4918e861f",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/herdrdev/herdr-core.git"
-      },
-      "original": {
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/herdrdev/herdr-core.git"
-      }
-    },
-    "herdr-layout-examples-source": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1793568532,
-        "narHash": "sha256-vrA4BkUrIVQZrOFhfzCSTjQFygjldQx9pB80tOcudzI=",
-        "ref": "main",
-        "rev": "0ec967640bf854ffb839e9af06c1e0c328bc9815",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/herdrdev/herdr-layout-examples.git"
-      },
-      "original": {
-        "ref": "main",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/herdrdev/herdr-layout-examples.git"
-      }
-    },
-    "herdr-t3-source": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1794241361,
-        "narHash": "sha256-goSz/1NQ0+QMPg1TiBhJLfrwFHEYp1J08XOftjRkCzo=",
-        "ref": "main",
-        "rev": "9e4c65de5702e448af07dc5fb505f9e43dc4c5fd",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/JinJieBeWater/herdr-t3.git"
-      },
-      "original": {
-        "ref": "main",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/JinJieBeWater/herdr-t3.git"
-      }
-    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -638,9 +585,6 @@
         "camofox-browser-source": "camofox-browser-source",
         "determinate": "determinate",
         "gentle-ai": "gentle-ai",
-        "herdr-core": "herdr-core",
-        "herdr-layout-examples-source": "herdr-layout-examples-source",
-        "herdr-t3-source": "herdr-t3-source",
         "home-manager": "home-manager",
         "humanizer": "humanizer",
         "impeccable": "impeccable",
