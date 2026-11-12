@@ -59,7 +59,7 @@ const BUILTIN_OMP_TOOLS: Record<string, true> = {
 	goal: true,
 };
 
-// Byte-for-byte contiguous sections for non-Opus `/bg` profiles from:
+// Byte-for-byte contiguous sections for GPT `/bg` profiles from:
 // - `openai/codex` (`970111f6cb62cc02fe36a82ea7d71b37a2889c97`) `codex-rs/models-manager/models.json` (`slug: "gpt-6.1-sol"`, `instructions_template`: `# When to ask the user for permission`, `# Autonomy and persistence`, `## Writing style`, `## Technical communication`, `## Rules for getting work done` tail) and `codex-rs/core/gpt_5_1_prompt.md` (`## Validating your work`)
 // - `multica-ai/andrej-karpathy-skills` (`2c606141936f1eeef17fa3043a72095b4765b9c2`) `CLAUDE.md` (`1. Think Before Coding`, `2. Simplicity First`, `3. Surgical Changes`)
 // - `home/skills/isac-decision-brief/SKILL.md` (`DBR-01`..`DBR-12`) and `references/examples.md`
@@ -792,13 +792,12 @@ export default function (pi: ExtensionAPI) {
 		syncFromSession(ctx);
 	});
 
-	// Append `SURGICAL_SCOPE` to the turn's systemPrompt only when a non-Opus main
-	// profile (`/bg sol`, `/bg astra`, or `/bg argon`) is active on the main agent,
-	// never in `/bg on` (Opus main) or inside subagents.
+	// Append `SURGICAL_SCOPE` only for a GPT main model with an active `/bg` profile,
+	// never inside subagents.
 	pi.on("before_agent_start", async (event, ctx) => {
 		if (isSubagentContext(ctx)) return;
 		syncFromSession(ctx);
-		if (!isNonOpusMainProfile(active)) return;
+		if (!active || !ctx.model?.id.startsWith("gpt-")) return;
 		const marker = "# When to ask the user for permission";
 		const sys = (event as Record<string, unknown>).systemPrompt;
 		if (Array.isArray(sys)) {
