@@ -311,33 +311,53 @@ PR 생성 전에는 저장소와 head branch를 먼저 넘기고 생성 후 실�
 대상이 없거나 모호하면 미해결이다. `Closes` 문구나 이슈 번호를 훑어 다른 PR을
 고르거나 작업을 완료 처리하지 않는다.
 
-아래 URL·SHA·경로·시각은 설명용 값이다. 실제 PR과 해당 요청의 값으로 바꾼다.
-baseline은 **리뷰 요청 전**에 성공적으로 수집한 JSON이어야 한다.
+아래 URL·SHA·경로는 설명용 값이다. 실제 PR과 해당 요청의 값으로 바꾼다.
+최초 자동 리뷰나 이미 제출된 응답을 확인할 때는 `current-response`를 쓴다.
+먼저 PR을 필수 reviewer·assignee와 함께 생성하고 실제 URL과 head를 확인한다.
+이 모드는 해당 PR·head·reviewer의 제출된 응답만 확인하며, 별도 재요청의 완료를
+증명하지 않는다. 미충족 재요청이 있다면 아래 `after-request` 절차를 따른다.
 
 ```sh
 pr_url='https://github.com/OWNER/REPO/pull/123'
 head='0123456789abcdef0123456789abcdef01234567'
+github-pr-wait wait "$pr_url" --until current-response \
+  --reviewer runbear-bot --expected-head "$head" --timeout 1800
+```
+
+기존 PR에 새 응답을 요청할 때는 요청 **전**에 baseline 전체 JSON을 수집한다.
+baseline은 같은 PR의 기존 응답 목록이다. push 전 baseline의 head와 push 후
+관찰할 head가 달라도 사용할 수 있으며, 기존 제출 응답 ID는 계속 제외한다.
+
+```sh
 baseline='/absolute/path/pr-123-review-baseline.json'
-github-pr-wait snapshot "$pr_url" --until review-response \
+github-pr-wait snapshot "$pr_url" --until after-request \
   --reviewer runbear-bot > "$baseline"
 ```
 
-baseline 수집 성공을 확인한 다음 기존 승인·리뷰 절차에 따라 실제 요청을 보낸다.
-그 요청 시점의 UTC 시각을 기록한다. 아래 시각도 예시이며, snapshot 시각이나
-대기를 시작한 시각으로 대신하지 않는다.
+수집 성공을 확인한 다음, 승인된 reviewer 요청·봇 명령 댓글·ready 전환·push의
+실행 직전에 UTC 시각을 한 번 기록한다. 초 이하 정밀도를 보존하고, snapshot이나
+대기 시작 시각으로 대체하지 않는다.
 
 ```sh
-requested_after='2026-11-11T12:00:00Z'
-github-pr-wait wait "$pr_url" --until review-response \
+requested_after=$(python3 -c 'import datetime; print(datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z"))')
+```
+
+기존 승인·리뷰 절차에 따라 실제 요청을 수행하고 성공 여부와 요청 후 head를 확인한다.
+실패하거나 성공 여부가 불명확하면 대기를 시작하기 전에 요청 결과를 판단한다.
+이후 동일한 baseline·시각·관찰할 head를 사용한다.
+
+```sh
+github-pr-wait wait "$pr_url" --until after-request \
   --reviewer runbear-bot --expected-head "$head" \
   --baseline "$baseline" --requested-after "$requested_after" \
   --timeout 1800 --interval 30 --api-timeout 20
 ```
 
-요청 이후의 새 `COMMENTED`·`CHANGES_REQUESTED`·`APPROVED` 리뷰 중 첫 유효 응답에서
-agent로 돌아온다. 응답 내용을 검토하고 각 스레드에 답한 뒤 기존 재요청 규칙을
-따른다. head 변경으로 대기가 무효화되면 three-dot diff를 비교한다. 문서만 바뀌거나
-충돌 없는 base 반영으로 리뷰 관련 diff가 그대로인 경우의 재요청 예외는 유지한다.
+두 모드 모두 유효한 `COMMENTED`·`CHANGES_REQUESTED`·`APPROVED` 응답을 확인하면
+agent로 돌아온다. `after-request`는 요청 이후의 새 응답만 인정한다. 응답 내용을
+검토하고 각 스레드에 답한 뒤 공통 리뷰 가드의 재요청 규칙을 따른다. head 변경으로
+대기가 무효화되면 three-dot diff를 비교한다. 문서만 바뀌거나 충돌 없는 base 반영으로
+리뷰 관련 diff가 그대로인 경우의 재요청 예외는 유지한다.
 
 필수 check가 아직 진행 중일 때는 다음 명령을 독립 job으로 실행한다.
 
@@ -368,8 +388,13 @@ github-pr-wait wait "$pr_url" --until merged \
 - API 호출 제한(403의 rate-limit 응답 또는 429)은 인증 실패와 구분하고 즉시
   종료한다. 제한 해제 시각을 모른 채 일반 polling 간격으로 재시도하지 않는다.
 - 리뷰 기준선은 `snapshot`의 전체 JSON을 그대로 보관한다. 작성 중이던 리뷰가 같은
-  ID로 제출되는 전환도 추적한다. 요청과 제출 시각이 같은 초로 기록되면 순서를
-  증명할 수 없으므로 새 응답으로 인정하지 않는다.
+  ID로 제출되는 전환도 추적한다. 기존 제출 ID와 잘못된 reviewer·head·상태를 제외한
+  새 후보의 시각이 요청과 같은 초라 순서를 증명할 수 없고, 더 늦은 명확한 응답도
+  없다면 `order-unproven`으로 즉시 반환한다. 시각을 꾸며 성공시키거나 중복 응답이
+  올 때까지 기다리지 않는다.
+- strict 정책에서 head가 base보다 뒤처졌다면 `needs-action`으로 반환한다.
+  체크 실패가 함께 있으면 `checks-failed`가 우선이다. 필요한 조치를 판단한 뒤
+  다시 관찰한다. missing·queued만으로는 불가능하다고 판단하지 않고 유한하게 기다린다.
 - 필수 workflow 규칙은 `unknown-policy`로 반환한다. 특정 앱이 지정된 필수 검사에
   앱 ID가 없는 commit status만 있으면 통과시키지 않고 미충족 상태로 남긴다.
   API가 명시한 필수 정책 필드가 없거나 형식이 틀려도 성공으로 처리하지 않는다.

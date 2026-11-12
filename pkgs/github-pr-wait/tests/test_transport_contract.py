@@ -199,7 +199,7 @@ class TransportContractTests(unittest.TestCase):
         rows = [{"id": 1, "user": {"login": "bot"}}, {"id": 2, "user": {"login": "other"}}]
         code, result, gh = self.cli([
             reply(PULL, PR), reply(REVIEWS, [[rows[0]], [], [rows[1]]]), reply(PULL, PR)],
-            "--reviewer", "bot", purpose="review-response")
+            "--reviewer", "bot", purpose="after-request")
         self.assertEqual(code, 0)
         self.assertEqual(result["reviewIds"], [1, 2])
         self.assertEqual(result["reviews"], rows)
@@ -211,7 +211,7 @@ class TransportContractTests(unittest.TestCase):
         # gh closes the --slurp outer array even when a later page returns an error.
         error["stdout"] = json.dumps([[{"id": 1}], json.loads(error["stdout"])])
         code, result, _ = self.cli([reply(PULL, PR), error],
-                                   "--reviewer", "bot", purpose="review-response")
+                                   "--reviewer", "bot", purpose="after-request")
         self.assertEqual((code, result["outcome"]), (1, "transport-error"))
         self.assertNotIn("reviewIds", result)
 
@@ -220,7 +220,7 @@ class TransportContractTests(unittest.TestCase):
                       [[{"id": 1}], {"message": "upstream error"}]):
             with self.subTest(pages=pages):
                 code, result, _ = self.cli([reply(PULL, PR), reply(REVIEWS, pages)],
-                                           "--reviewer", "bot", purpose="review-response")
+                                           "--reviewer", "bot", purpose="after-request")
                 self.assertEqual((code, result["outcome"]), (1, "transport-error"))
 
     def test_later_check_run_page_can_prevent_false_success(self):
@@ -305,7 +305,7 @@ class TransportContractTests(unittest.TestCase):
         code, result, _ = self.cli([
             reply(PULL, PR), reply(REVIEWS, [[{"id": 17, "user": {"login": "bot"}}]]),
             http_error(503, "Server Error", endpoint=PULL)],
-            "--reviewer", "bot", purpose="review-response")
+            "--reviewer", "bot", purpose="after-request")
         self.assertEqual((code, result["outcome"]), (1, "transport-error"))
         self.assertNotEqual(result.get("outcome"), "success")
 

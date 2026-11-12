@@ -28,16 +28,16 @@ def arguments(purpose="merged", command="wait", *extra):
     argv = [command, URL, "--until", purpose]
     if command == "wait":
         argv += ["--expected-head", "head", "--timeout", "10", "--interval", "1"]
-    if purpose == "review-response":
+    if purpose in ("current-response", "after-request"):
         argv += ["--reviewer", "bot"]
-        if command == "wait":
+        if command == "wait" and purpose == "after-request":
             argv += ["--baseline", "baseline.json", "--requested-after", REQUESTED]
     return w.parser().parse_args(argv + list(extra))
 
 
 def baseline():
     return {"url": URL, "repo": "example/project", "pr": 7, "head": "head",
-            "reviewer": "bot", "until": "review-response", "outcome": "pending",
+            "reviewer": "bot", "until": "after-request", "outcome": "pending",
             "capturedAt": "2026-11-11T10:00:00Z", "reviewIds": [1],
             "reviews": [review(identifier=1, submitted_at="2026-11-11T10:00:00Z")]}
 
@@ -97,7 +97,7 @@ def ci_api(*, checks=None, statuses=None, rules=None, classic=None, metadata=Non
 
 class ReviewTests(unittest.TestCase):
     def observe(self, reviews, args=None, pr=PR):
-        args = args or arguments("review-response")
+        args = args or arguments("after-request")
         args.baseline_ids = {1}
         args.requested_time = w.timestamp(REQUESTED)
         return w.observe(FakeAPI({PULL: pr, PULL + "/reviews?per_page=100": reviews}), w.target(URL), args)
@@ -112,20 +112,20 @@ class ReviewTests(unittest.TestCase):
     def test_pending_dismissed_baseline_wrong_actor_head_and_old_time_excluded(self):
         for item in (review(state="PENDING"), review(state="DISMISSED"), review(identifier=1),
                      review(user={"login": "someone"}), review(commit_id="other"),
-                     review(submitted_at=REQUESTED), review(submitted_at=None)):
+                     review(submitted_at="2026-11-11T10:00:00Z"), review(submitted_at=None)):
             with self.subTest(review=item):
                 self.assertEqual(self.observe([item])["outcome"], "pending")
 
     def test_snapshot_captures_all_ids_even_other_actors_and_pending(self):
         rows = [review(identifier=1), review(identifier=2, state="PENDING"), review(identifier=3, user={"login": "other"})]
-        result = self.observe(rows, arguments("review-response", "snapshot"))
+        result = self.observe(rows, arguments("after-request", "snapshot"))
         self.assertEqual(result["reviewIds"], [1, 2, 3])
         self.assertEqual(result["reviews"], rows)
         self.assertEqual(result["reviewer"], "bot")
         self.assertIsNone(result["mergeSha"])
 
     def test_closed_review_snapshot_still_collects_all_review_ids(self):
-        result = self.observe([review()], arguments("review-response", "snapshot"), pr={**PR, "state": "closed"})
+        result = self.observe([review()], arguments("after-request", "snapshot"), pr={**PR, "state": "closed"})
         self.assertEqual(result["reviewIds"], [2])
         self.assertEqual(result["outcome"], "closed")
 
@@ -134,31 +134,112 @@ class ReviewTests(unittest.TestCase):
 
     def test_head_race_prevents_success(self):
         responses = iter([PR, {**PR, "head": {"sha": "new"}}])
-        args = arguments("review-response")
+        args = arguments("after-request")
         args.baseline_ids, args.requested_time = set(), w.timestamp(REQUESTED)
         result = w.observe(FakeAPI({PULL: lambda: next(responses), PULL + "/reviews?per_page=100": [review()]}), w.target(URL), args)
         self.assertEqual(result["outcome"], "invalidated")
         self.assertEqual(result["head"], "new")
 
     def test_valid_baseline(self):
-        args = arguments("review-response")
+        args = arguments("after-request")
         with patch.object(Path, "read_text", return_value=json.dumps(baseline())):
             w.validate_baseline(args, w.target(URL))
         self.assertEqual(args.baseline_ids, {1})
 
-    def test_baseline_identity_head_reviewer_time_and_ids_validation(self):
+    def test_baseline_identity_reviewer_time_and_ids_validation(self):
         for field, value in (("url", URL + "0"), ("repo", "other/repo"), ("pr", 8),
-                             ("head", "different"), ("reviewer", "other"),
+                             ("reviewer", "other"),
                              ("capturedAt", "2026-11-11T10:00:02Z"),
                              ("reviewIds", ["1"]), ("outcome", "invalidated")):
             with self.subTest(field=field), patch.object(Path, "read_text", return_value=json.dumps({**baseline(), field: value})):
                 with self.assertRaises(w.Failure) as error:
-                    w.validate_baseline(arguments("review-response"), w.target(URL))
+                    w.validate_baseline(arguments("after-request"), w.target(URL))
                 self.assertEqual(error.exception.outcome, "invalid-input")
 
     def test_naive_request_timestamp_rejected(self):
         with self.assertRaises(w.Failure):
             w.timestamp("2026-11-11T10:00:01")
+
+    def wait_for(self, reviews, args, record=None):
+        api = FakeAPI({PULL: PR, PULL + "/reviews?per_page=100": reviews})
+        api.remaining = lambda: 10
+        clock = Mock(return_value=0.0)
+
+        def advance(seconds):
+            clock.return_value += seconds
+
+        sleep = Mock(side_effect=advance)
+        with patch.object(Path, "read_text", return_value=json.dumps(record or baseline())):
+            result, code = w.run(args, clock=clock, sleep=sleep, api_factory=lambda *a, **k: api)
+        return result, code, sleep
+
+    def test_current_response_observes_existing_latest_review_without_request(self):
+        old = review(identifier=1, submitted_at="2026-11-11T09:00:00Z", state="APPROVED")
+        latest = review(identifier=3, state="CHANGES_REQUESTED")
+        result, code, sleep = self.wait_for([latest, old, review()], arguments("current-response"))
+        self.assertEqual((result["outcome"], code), ("success", 0))
+        self.assertEqual(result["evidence"]["reviews"], [latest])
+        sleep.assert_not_called()
+
+    def test_current_response_rejects_wrong_actor_head_and_unsubmitted_reviews(self):
+        for item in (review(user={"login": "other"}), review(commit_id="old-head"),
+                     review(state="DISMISSED"), review(state="PENDING"), review(submitted_at=None)):
+            with self.subTest(review=item):
+                result, code, _ = self.wait_for([item], arguments("current-response", "wait", "--timeout", "2"))
+                self.assertEqual((result["outcome"], code), ("timeout", 1))
+                self.assertEqual(result["evidence"]["missing"], ["current-response"])
+
+    def test_review_modes_reject_mixed_or_missing_request_inputs(self):
+        for purpose, extra in (("current-response", ("--baseline", "baseline.json")),
+                               ("current-response", ("--requested-after", REQUESTED)),
+                               ("after-request", ("--baseline", "")),
+                               ("after-request", ("--requested-after", ""))):
+            with self.subTest(purpose=purpose, extra=extra), self.assertRaises(w.Failure) as error:
+                w.run(arguments(purpose, "wait", *extra))
+            self.assertEqual(error.exception.outcome, "invalid-input")
+
+    def test_request_in_same_second_returns_without_waiting(self):
+        for requested in (REQUESTED, "2026-11-11T10:00:01.500000Z"):
+            with self.subTest(requested=requested):
+                result, code, sleep = self.wait_for(
+                    [review(submitted_at=REQUESTED)],
+                    arguments("after-request", "wait", "--requested-after", requested))
+                self.assertEqual((result["outcome"], code), ("order-unproven", 1))
+                self.assertEqual(result["evidence"]["missing"], ["review-order"])
+                sleep.assert_not_called()
+
+    def test_definite_fresh_response_wins_over_ambiguous_candidate(self):
+        definite = review(identifier=3)
+        for rows in ([review(submitted_at=REQUESTED), definite],
+                     [definite, review(submitted_at=REQUESTED)]):
+            with self.subTest(rows=rows):
+                result, code, _ = self.wait_for(rows, arguments("after-request"))
+                self.assertEqual((result["outcome"], code), ("success", 0))
+                self.assertEqual(result["evidence"]["reviews"], [definite])
+
+    def test_excluded_same_second_reviews_do_not_trigger_ambiguity(self):
+        for item in (review(identifier=1, submitted_at=REQUESTED),
+                     review(user={"login": "other"}, submitted_at=REQUESTED),
+                     review(commit_id="other", submitted_at=REQUESTED),
+                     review(state="DISMISSED", submitted_at=REQUESTED)):
+            with self.subTest(review=item):
+                result, code, _ = self.wait_for([item], arguments("after-request", "wait", "--timeout", "2"))
+                self.assertEqual((result["outcome"], code), ("timeout", 1))
+
+    def test_pre_push_baseline_accepts_new_target_response(self):
+        result, code, sleep = self.wait_for(
+            [review()], arguments("after-request"), {**baseline(), "head": "pre-push-head"})
+        self.assertEqual((result["outcome"], code), ("success", 0))
+        self.assertEqual(result["evidence"]["reviews"][0]["id"], 2)
+        sleep.assert_not_called()
+
+    def test_pre_push_baseline_excludes_previous_target_response(self):
+        old_target = review(identifier=1)
+        result, code, _ = self.wait_for(
+            [old_target], arguments("after-request", "wait", "--timeout", "2"),
+            {**baseline(), "head": "pre-push-head", "reviews": [old_target]})
+        self.assertEqual((result["outcome"], code), ("timeout", 1))
+        self.assertEqual(result["evidence"]["missing"], ["after-request"])
 
 
 class ChecksTests(unittest.TestCase):
@@ -255,8 +336,22 @@ class ChecksTests(unittest.TestCase):
         self.assertEqual(result["evidence"]["ignoredTestMerge"]["sha"], "test-merge")
 
     def test_strict_policy_checks_ancestry_not_review_blocking(self):
-        self.assertEqual(self.observe(ci_api(behind=1))["outcome"], "pending")
+        self.assertEqual(self.observe(ci_api(behind=1))["outcome"], "needs-action")
         self.assertEqual(self.observe(ci_api(behind=0))["outcome"], "success")
+
+    def test_strict_behind_returns_for_action_without_sleeping(self):
+        for checks, expected in (([check()], "needs-action"),
+                                  ([check(conclusion="failure")], "checks-failed"),
+                                  ([check(status="queued", conclusion=None)], "needs-action")):
+            with self.subTest(expected=expected, checks=checks):
+                api = ci_api(behind=1, checks=checks)
+                api.remaining = lambda: 10
+                sleep = Mock()
+                result, code = w.run(arguments("required-checks"), clock=lambda: 0,
+                                     sleep=sleep, api_factory=lambda *a, **k: api)
+                self.assertEqual((result["outcome"], code), (expected, 1))
+                self.assertIn({"condition": "head-behind-base", "commits": 1}, result["evidence"]["missing"])
+                sleep.assert_not_called()
 
     def test_ci_target_race_returns_pending(self):
         api = ci_api()
@@ -289,7 +384,7 @@ class ChecksTests(unittest.TestCase):
 
 class LifecycleTests(unittest.TestCase):
     def test_head_invalidation_all_purposes(self):
-        for purpose in ("merged", "required-checks", "review-response"):
+        for purpose in ("merged", "required-checks", "after-request", "current-response"):
             with self.subTest(purpose=purpose):
                 result = w.observe(FakeAPI({PULL: {**PR, "head": {"sha": "new"}}}), w.target(URL), arguments(purpose))
                 self.assertEqual(result["outcome"], "invalidated")

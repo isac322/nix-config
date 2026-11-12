@@ -291,11 +291,10 @@ def validate_baseline(args, selected):
     if (baseline.get("url", "").lower() != selected["url"].lower()
             or baseline.get("repo", "").lower() != selected["repo"].lower()
             or baseline.get("pr") != selected["pr"]
-            or baseline.get("head") != args.expected_head
             or baseline.get("reviewer", "").lower() != args.reviewer.lower()
-            or baseline.get("until") != "review-response"
+            or baseline.get("until") != "after-request"
             or baseline.get("outcome") not in ("pending", "success")):
-        raise Failure("invalid-input", "기준 스냅샷의 PR, head 또는 리뷰어가 일치하지 않습니다.")
+        raise Failure("invalid-input", "기준 스냅샷의 PR 또는 리뷰어가 일치하지 않습니다.")
     if timestamp(baseline.get("capturedAt")) > requested:
         raise Failure("invalid-input", "기준 스냅샷은 리뷰 요청보다 먼저 수집해야 합니다.")
     ids = baseline.get("reviewIds")
@@ -341,27 +340,41 @@ def observe(api, selected, args):
     pr = api.get(endpoint)
     result = envelope(selected, args, pr)
     terminal = lifecycle(result, pr, args)
-    if terminal and not (args.command == "snapshot" and args.until == "review-response"):
+    if terminal and not (args.command == "snapshot" and args.until in ("current-response", "after-request")):
         return result
-    if args.until == "review-response":
+    if args.until in ("current-response", "after-request"):
         reviews = api.get(f"{endpoint}/reviews?per_page=100", pages=True)
         result.update(reviewer=args.reviewer, reviews=reviews, reviewIds=[row["id"] for row in reviews])
         if terminal:
             result["capturedAt"] = now()
             return result
-        result["evidence"]["missing"] = ["review-response"]
+        result["evidence"]["missing"] = [args.until]
         if args.command == "wait":
-            matching = [row for row in reviews
-                        if row["id"] not in args.baseline_ids
-                        and (row.get("user") or {}).get("login", "").lower() == args.reviewer.lower()
-                        and row.get("state") in ("COMMENTED", "CHANGES_REQUESTED", "APPROVED")
-                        and row.get("commit_id") == args.expected_head
-                        and row.get("submitted_at")
-                        and timestamp(row["submitted_at"]) > args.requested_time]
+            candidates = [(timestamp(row["submitted_at"]), row) for row in reviews
+                          if (args.until == "current-response" or row["id"] not in args.baseline_ids)
+                          and (row.get("user") or {}).get("login", "").lower() == args.reviewer.lower()
+                          and row.get("state") in ("COMMENTED", "CHANGES_REQUESTED", "APPROVED")
+                          and row.get("commit_id") == args.expected_head
+                          and row.get("submitted_at")]
+            ambiguous = []
+            if args.until == "after-request":
+                matching = [(submitted, row) for submitted, row in candidates
+                            if submitted > args.requested_time]
+                ambiguous = [row for submitted, row in candidates
+                             if submitted == args.requested_time.replace(microsecond=0)]
+            else:
+                matching = candidates
             if matching:
-                result.update(outcome="success", reason="요청 이후 제출된 리뷰 응답을 확인했습니다.")
-                result["evidence"]["reviews"] = matching
+                latest_review = max(matching, key=lambda item: (item[0], item[1]["id"]))[1]
+                result.update(outcome="success", reason=(
+                    "요청 이후 제출된 리뷰 응답을 확인했습니다." if args.until == "after-request"
+                    else "현재 head에 제출된 리뷰 응답을 확인했습니다."))
+                result["evidence"]["reviews"] = [latest_review]
                 result["evidence"]["missing"] = []
+            elif ambiguous:
+                result.update(outcome="order-unproven", reason="리뷰 제출과 요청의 같은 초 내 순서를 확인할 수 없습니다.")
+                result["evidence"]["reviews"] = ambiguous
+                result["evidence"]["missing"] = ["review-order"]
     elif args.until == "required-checks":
         requirements = policy(api, root, pr)
         result["evidence"]["policy"] = requirements
@@ -395,6 +408,8 @@ def observe(api, selected, args):
         result["evidence"].update(observation=observed, missing=missing, failed=failed)
         if failed:
             result.update(outcome="checks-failed", reason="필수 검사 실패를 확인했습니다.")
+        elif any(row["condition"] == "head-behind-base" for row in missing):
+            result.update(outcome="needs-action", reason="필수 검사 정책을 만족하려면 head를 최신 base에 반영해야 합니다.")
         elif not missing:
             result.update(outcome="success", reason="확인 가능한 모든 필수 검사가 통과했습니다.")
     else:
@@ -425,7 +440,8 @@ def parser():
     for name in ("snapshot", "wait"):
         command = commands.add_parser(name)
         command.add_argument("pr_url")
-        command.add_argument("--until", required=True, choices=("review-response", "required-checks", "merged"))
+        command.add_argument("--until", required=True,
+                             choices=("current-response", "after-request", "required-checks", "merged"))
         command.add_argument("--reviewer")
         command.add_argument("--api-timeout", type=positive, default=30.0)
         command.add_argument("--timeout", type=positive, default=120.0 if name == "snapshot" else None,
@@ -440,11 +456,13 @@ def parser():
 
 def run(args, *, clock=time.monotonic, sleep=time.sleep, api_factory=GitHub):
     selected = target(args.pr_url)
-    if args.until == "review-response" and not args.reviewer:
+    if args.until in ("current-response", "after-request") and not args.reviewer:
         raise Failure("invalid-input", "리뷰 대기와 스냅샷에는 --reviewer가 필요합니다.")
-    if args.command == "wait" and args.until == "review-response":
+    if args.command == "wait" and args.until == "current-response" and (args.baseline or args.requested_after):
+        raise Failure("invalid-input", "현재 응답 관찰에는 --baseline 또는 --requested-after를 사용할 수 없습니다.")
+    if args.command == "wait" and args.until == "after-request":
         if not args.baseline or not args.requested_after:
-            raise Failure("invalid-input", "리뷰 대기에는 --baseline과 --requested-after가 필요합니다.")
+            raise Failure("invalid-input", "요청 이후 리뷰 대기에는 --baseline과 --requested-after가 필요합니다.")
         validate_baseline(args, selected)
     deadline = clock() + args.timeout
     api = api_factory(deadline, args.api_timeout, clock=clock)

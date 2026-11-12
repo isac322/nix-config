@@ -122,7 +122,7 @@ def review_api(rows, pr=None):
 
 
 def observe_review(api, requested="2026-11-11T10:00:01Z"):
-    args = arguments("review-response")
+    args = arguments("after-request")
     args.baseline_ids = {1}
     args.requested_time = w.timestamp(requested)
     return w.observe(api, w.target(URL), args)
@@ -271,10 +271,11 @@ class OfficialReviewContracts(unittest.TestCase):
 
     def test_equal_second_is_not_proof_of_a_post_request_response(self):
         result = observe_review(review_api([review_row(submitted_at="2026-11-11T10:00:01Z")]))
-        self.assertNotEqual(result["outcome"], "success")
+        self.assertEqual(result["outcome"], "order-unproven")
+        self.assertEqual(result["evidence"]["missing"], ["review-order"])
 
     def test_baseline_precision_and_case_normalized_identity(self):
-        args = arguments("review-response", "wait", "--requested-after", "2026-11-11T10:00:01.500000Z")
+        args = arguments("after-request", "wait", "--requested-after", "2026-11-11T10:00:01.500000Z")
         for captured, valid in (("2026-11-11T12:00:01.499999+02:00", True),
                                 ("2026-11-11T10:00:01.500001Z", False)):
             record = {**baseline(), "url": URL.upper(), "repo": "EXAMPLE/PROJECT",
@@ -297,7 +298,7 @@ class OfficialReviewContracts(unittest.TestCase):
             with self.subTest(state=state):
                 api = review_api([review_row(state="PENDING")])
                 with patch.object(w, "now", return_value="2026-11-11T10:00:00Z"):
-                    snapshot, snapshot_code = w.run(arguments("review-response", "snapshot"),
+                    snapshot, snapshot_code = w.run(arguments("after-request", "snapshot"),
                                                     api_factory=lambda *a, **k: api)
                 self.assertEqual(snapshot_code, 0)
                 self.assertEqual(snapshot["reviewIds"], [10])
@@ -309,7 +310,7 @@ class OfficialReviewContracts(unittest.TestCase):
                     clock.return_value += seconds
 
                 with patch.object(Path, "read_text", return_value=json.dumps(snapshot)):
-                    result, code = w.run(arguments("review-response", "wait", "--timeout", "2"),
+                    result, code = w.run(arguments("after-request", "wait", "--timeout", "2"),
                                          clock=clock, sleep=advance, api_factory=lambda *a, **k: api)
                 self.assertEqual((result["outcome"], code), ("success", 0))
                 self.assertEqual(result["evidence"]["reviews"][0]["id"], 10)
@@ -317,22 +318,22 @@ class OfficialReviewContracts(unittest.TestCase):
     def test_already_submitted_baseline_review_is_not_a_new_response(self):
         api = review_api([review_row(submitted_at="2026-11-11T09:59:59Z")])
         with patch.object(w, "now", return_value="2026-11-11T10:00:00Z"):
-            snapshot, _ = w.run(arguments("review-response", "snapshot"), api_factory=lambda *a, **k: api)
+            snapshot, _ = w.run(arguments("after-request", "snapshot"), api_factory=lambda *a, **k: api)
         clock = Mock(return_value=0.0)
 
         def advance(seconds):
             clock.return_value += seconds
 
         with patch.object(Path, "read_text", return_value=json.dumps(snapshot)):
-            result, code = w.run(arguments("review-response", "wait", "--timeout", "2"),
+            result, code = w.run(arguments("after-request", "wait", "--timeout", "2"),
                                  clock=clock, sleep=advance, api_factory=lambda *a, **k: api)
         self.assertEqual((result["outcome"], code), ("timeout", 1))
-        self.assertEqual(result["evidence"]["missing"], ["review-response"])
+        self.assertEqual(result["evidence"]["missing"], ["after-request"])
 
 
 class OfficialPRTransitionContracts(unittest.TestCase):
     def test_final_closed_or_merged_invalidates_otherwise_ready_observation(self):
-        for purpose in ("required-checks", "review-response"):
+        for purpose in ("required-checks", "after-request", "current-response"):
             for merged, expected in ((False, "closed"), (True, "invalidated")):
                 with self.subTest(purpose=purpose, merged=merged):
                     api = contract_api(checks=[check_row()]) if purpose == "required-checks" else review_api([review_row()])
@@ -341,7 +342,7 @@ class OfficialPRTransitionContracts(unittest.TestCase):
                              "merge_commit_sha": "actual-merge" if merged else initial["merge_commit_sha"]}
                     reads = iter([initial, final])
                     api.responses[PULL] = lambda: next(reads)
-                    if purpose == "review-response":
+                    if purpose == "after-request":
                         result = observe_review(api)
                     else:
                         result = w.observe(api, w.target(URL), arguments(purpose))
