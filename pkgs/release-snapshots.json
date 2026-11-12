@@ -108,24 +108,24 @@
     "ntn": {
       "assets": [
         {
-          "browser_download_url": "https://ntn.dev/releases/v0.23.28/ntn-aarch64-apple-darwin.tar.gz",
-          "digest": "sha256:9755caf9feaaaa262b00da84d94d0571a1e7dd554c8c53192c0c39e39e0c6643",
+          "browser_download_url": "https://ntn.dev/releases/v0.23.29/ntn-aarch64-apple-darwin.tar.gz",
+          "digest": "sha256:fa0ef33ea9d0870e2de7af2c4bc9d632a68a99aa971aa15d5cbaf89f3ea6b1e5",
           "name": "ntn-aarch64-apple-darwin.tar.gz"
         },
         {
-          "browser_download_url": "https://ntn.dev/releases/v0.23.28/ntn-aarch64-unknown-linux-musl.tar.gz",
-          "digest": "sha256:c5cb2adbab714bbc0dcc83a40216fbe31cd742df97f91cb7294ad1531f752931",
+          "browser_download_url": "https://ntn.dev/releases/v0.23.29/ntn-aarch64-unknown-linux-musl.tar.gz",
+          "digest": "sha256:1e20034268daea1221b511ce74d821486191a78b9c4f99d87e59c3bde1025001",
           "name": "ntn-aarch64-unknown-linux-musl.tar.gz"
         },
         {
-          "browser_download_url": "https://ntn.dev/releases/v0.23.28/ntn-x86_64-unknown-linux-musl.tar.gz",
-          "digest": "sha256:cbbdc03117b786c31e1c9244f88d5358bef2f90916fecd9c2e0603adef02fb64",
+          "browser_download_url": "https://ntn.dev/releases/v0.23.29/ntn-x86_64-unknown-linux-musl.tar.gz",
+          "digest": "sha256:1d3911e496062146d956d18e249562d3dc8f8797e3120ff92c2f957e0dee08fa",
           "name": "ntn-x86_64-unknown-linux-musl.tar.gz"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v0.23.28"
+      "tag_name": "v0.23.29"
     },
     "omo": {
       "assets": [
@@ -152,24 +152,24 @@
     "omp": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.18.9/omp-darwin-arm64",
-          "digest": "sha256:493060f672eb152d85afeb51451b62b4acbd68b8c4071c96e9e3226e15a7251c",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.19.0/omp-darwin-arm64",
+          "digest": "sha256:d469628ae8b847617087cc987a628868e4cac53deb5f99451c8cfc4eec5e7e8d",
           "name": "omp-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.18.9/omp-linux-musl-arm64",
-          "digest": "sha256:5a3fc1e4a909e9c301845897909c5c6fb86f7e5a68ee92cfb4116534e1366736",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.19.0/omp-linux-musl-arm64",
+          "digest": "sha256:86d98b08530702466b58338bb00f4880e130ec56a74d2e60be44bc2435827327",
           "name": "omp-linux-musl-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.18.9/omp-linux-musl-x64",
-          "digest": "sha256:0478cafe0aadffea81b98ad4bf9afd45368e734499145a138c68cdf786a6fd23",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.19.0/omp-linux-musl-x64",
+          "digest": "sha256:d64e90823bd977247a079540b01ee293f92a10dc35eb4a70de6feea4ae4cf285",
           "name": "omp-linux-musl-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v18.18.9"
+      "tag_name": "v18.19.0"
     },
     "posthog": [
       {
