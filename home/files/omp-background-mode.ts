@@ -12,6 +12,7 @@
 //   quota instead of Anthropic quota.
 // - `argon`: Gemini 4 Argon main agent, which understands the problem and writes the
 //   specs while Sol implements them.
+// - `carbon`: Gemini 4 Carbon main agent with the same roles and agents as Argon.
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -34,6 +35,7 @@ type Profile = {
 const OPUS = "anthropic/claude-opus-5-5";
 const SOL = "openai-codex/gpt-6.1-sol";
 const ARGON = "google-antigravity/gemini-4-argon";
+const CARBON = "google-antigravity/gemini-4-carbon";
 const ASTRA = "openai-codex/gpt-6-astra";
 const GROK = "xai-oauth/grok-4.7-build-fast";
 const SONNET = "anthropic/claude-sonnet-5-5";
@@ -57,7 +59,7 @@ const BUILTIN_OMP_TOOLS: Record<string, true> = {
 	goal: true,
 };
 
-// Byte-for-byte contiguous sections for `/bg sol`, `/bg astra`, and `/bg argon` (non-Opus main agent) from:
+// Byte-for-byte contiguous sections for non-Opus `/bg` profiles from:
 // - `openai/codex` (`970111f6cb62cc02fe36a82ea7d71b37a2889c97`) `codex-rs/models-manager/models.json` (`slug: "gpt-6.1-sol"`, `instructions_template`: `# When to ask the user for permission`, `# Autonomy and persistence`, `## Writing style`, `## Technical communication`, `## Rules for getting work done` tail) and `codex-rs/core/gpt_5_1_prompt.md` (`## Validating your work`)
 // - `multica-ai/andrej-karpathy-skills` (`2c606141936f1eeef17fa3043a72095b4765b9c2`) `CLAUDE.md` (`1. Think Before Coding`, `2. Simplicity First`, `3. Surgical Changes`)
 // - `home/skills/isac-decision-brief/SKILL.md` (`DBR-01`..`DBR-12`) and `references/examples.md`
@@ -246,6 +248,16 @@ const PROFILES: Record<string, Profile> = {
 		},
 		agents: ON_PROFILE.agents,
 	},
+	carbon: {
+		label: "Carbon",
+		mainModel: CARBON,
+		mainThinking: "medium",
+		roles: {
+			...ON_PROFILE.roles,
+			default: `${CARBON}:medium`,
+		},
+		agents: ON_PROFILE.agents,
+	},
 };
 
 const SUBCOMMANDS = [
@@ -253,6 +265,7 @@ const SUBCOMMANDS = [
 	{ name: "sol", description: "GPT-6.1 Sol main agent, Sol implementer, roles re-curated around it" },
 	{ name: "astra", description: "GPT-6 Astra main agent, Sol implementer, roles re-curated around it" },
 	{ name: "argon", description: "Gemini 4 Argon main agent, Sol implementer, roles re-curated around it" },
+	{ name: "carbon", description: "Gemini 4 Carbon main agent, Sol implementer, roles re-curated around it" },
 	{ name: "off", description: "Restore the base config and the previous model" },
 	{ name: "status", description: "Show the active profile and key roles" },
 ];
@@ -474,6 +487,13 @@ function inferSessionBgState(entries: unknown[]): InferredBgState {
 			} else if (model === ARGON || model === "google/gemini-4-argon") {
 				if (mode !== "argon") {
 					mode = "argon";
+					profileHash = undefined;
+					savedRoles = undefined;
+					savedAgents = undefined;
+				}
+			} else if (model === CARBON || model === "google/gemini-4-carbon") {
+				if (mode !== "carbon") {
+					mode = "carbon";
 					profileHash = undefined;
 					savedRoles = undefined;
 					savedAgents = undefined;
@@ -1342,7 +1362,7 @@ export default function (pi: ExtensionAPI) {
 	} as Parameters<typeof pi.registerTool>[0]);
 
 	pi.registerCommand("bg", {
-		description: "Background profile: /bg [on|sol|astra|argon|off|status]",
+		description: "Background profile: /bg [on|sol|astra|argon|carbon|off|status]",
 		getArgumentCompletions: (prefix: string) => {
 			if (prefix.includes(" ")) return null;
 			const typed = prefix.toLowerCase();
@@ -1396,7 +1416,7 @@ export default function (pi: ExtensionAPI) {
 				savedPrevThinking = undefined;
 				pi.appendEntry(BG_ENTRY_TYPE, { mode: "off" });
 			} else if (action !== "status") {
-				ctx.ui.notify("usage: /bg [on|sol|astra|argon|off|status]", "warning");
+				ctx.ui.notify("usage: /bg [on|sol|astra|argon|carbon|off|status]", "warning");
 				return;
 			}
 
