@@ -329,16 +329,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1794443113,
-        "narHash": "sha256-06lzZk7pli8pQTNaMNa84h4fTD8n8zvzPF0/qptCk68=",
+        "lastModified": 1794445487,
+        "narHash": "sha256-bSGS08Em3NeXLYjw6Dx4w6JKitZQXrSaMQCFrRVmP+Q=",
         "ref": "refs/heads/main",
-        "rev": "0f7b7fa0f120ba84b6d3506010a4a9747002f8c6",
+        "rev": "30036391d3ffb903d85f3689f678b0a9b3df4c4f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "0f7b7fa0f120ba84b6d3506010a4a9747002f8c6",
+        "rev": "30036391d3ffb903d85f3689f678b0a9b3df4c4f",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -510,10 +510,10 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1794041552,
-        "narHash": "sha256-MVSrPp7q0OSbEsr2N8NWHrc0+MfIQS1r9TgFxnd3jXM=",
+        "lastModified": 1794158174,
+        "narHash": "sha256-IzmtpTUNYk6hfRlNwQKVxgJXHQSe1LltY+mrTUtVm8E=",
         "ref": "nixpkgs-unstable",
-        "rev": "085af13c1607f4f73ab1e7a51071faf6577a7e87",
+        "rev": "f6bf1059f02576e0b913c7b49d5e4eb6dda9cc22",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
