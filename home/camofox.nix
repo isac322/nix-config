@@ -202,9 +202,21 @@ let
       wait "$targetPid" 2>/dev/null || true
       return 0
     }
+    # Playwright starts Camoufox in its own process group, so launchd's
+    # process-group SIGTERM never reaches it and it outlives a killed server.
+    browserGroups() {
+      ownGroup=$(/bin/ps -o pgid= -p $$ | /usr/bin/tr -d '[:space:]')
+      /bin/ps -A -o pgid= -o ppid= |
+        /usr/bin/awk -v server="$browserPid" -v own="$ownGroup" '
+          $2 == server && $1 != own { print $1 }
+        ' |
+        /usr/bin/sort -u
+    }
     stopChildren() {
       trap - TERM INT
+      serverGroups=""
       if [ "$browserPid" -gt 0 ]; then
+        serverGroups=$(browserGroups)
         /bin/kill "$browserPid" 2>/dev/null || true
       fi
       if [ "$deskpadPid" -gt 0 ]; then
@@ -215,7 +227,19 @@ let
         /bin/kill "$displayAwakePid" 2>/dev/null || true
       fi
       if [ "$browserPid" -gt 0 ]; then
-        wait "$browserPid" 2>/dev/null || true
+        # A wedged browser can hold the server's graceful shutdown until its
+        # own 45s watchdog. Stop waiting well inside launchd's ExitTimeOut.
+        if ! waitForProcessExit "$browserPid" 15; then
+          echo "camofox-browser: server $browserPid did not exit after 15s; killing it." >&2
+          /bin/kill -KILL "$browserPid" 2>/dev/null || true
+          waitForProcessExit "$browserPid" 5 || true
+        fi
+        for serverGroup in $serverGroups; do
+          if /bin/kill -0 -- "-$serverGroup" 2>/dev/null; then
+            echo "camofox-browser: killing leftover browser process group $serverGroup." >&2
+            /bin/kill -KILL -- "-$serverGroup" 2>/dev/null || true
+          fi
+        done
       fi
       if [ "$deskpadPid" -gt 0 ] &&
         ! waitForProcessExit "$deskpadPid" 10; then
@@ -541,6 +565,12 @@ in
         # A core failure stays stopped rather than relaunching the browser or
         # recreating the virtual display in a loop.
         KeepAlive = false;
+
+        # launchd SIGKILLs only the wrapper after ExitTimeOut (5s here by
+        # default), which orphans any child still handling SIGTERM. Give the
+        # wrapper's bounded stop sequence (server 15s+5s, DeskPad 10s+5s,
+        # display restore) room to finish.
+        ExitTimeOut = 45;
 
         StandardOutPath = "${config.home.homeDirectory}/Library/Logs/camofox-browser.log";
         StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/camofox-browser.log";
