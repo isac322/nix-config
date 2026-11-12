@@ -1,5 +1,5 @@
 {
-  "beardriveChecksums": "deb9ec48d250ac1760eb96d278f37a5c489b23720a53b779793ec20f90c3684c  beardrive_0.18.9_darwin_amd64.tar.gz\nc3bad91a427bb2bf965bbc94b0401257a3586395ca6bc82d46e6f6b6bc631303  beardrive_0.18.9_darwin_arm64.tar.gz\nf3bf2f44d36387fc04808c1dfea3ea3f2659e4e438b038b66b0bc925dcadd965  beardrive_0.18.9_linux_amd64.tar.gz\n0da53ec58ed3c80431e7f7ea441f5325e254ba540dbb7c8eecd0cc9cd0bf7818  beardrive_0.18.9_linux_arm64.tar.gz\n",
+  "beardriveChecksums": "f27b4853bc06d64fb29240ade31911596bcf61773cc4a851479cc864f7ede579  beardrive_0.18.10_darwin_amd64.tar.gz\n5dd4f3a2a6fe72191bb1c69b81ef735aa58bd8b27919fb2596797995e278041a  beardrive_0.18.10_darwin_arm64.tar.gz\nc26273bff928ec6b14da8c1d11fd8a5133fd2dced2274b17a019636bc568d597  beardrive_0.18.10_linux_amd64.tar.gz\nf795c0793a5a6eab8216add9f7ca2167d8a50f3564a30b79fadb907a55728a4c  beardrive_0.18.10_linux_arm64.tar.gz\n",
   "npmSourceOverrides": {
     "piCodegraph": {}
   },
@@ -67,11 +67,11 @@
     },
     "cf": {
       "draft": false,
-      "hash": "sha256-UgDySjMknRZvyVD22MFFO46knsbBLeaS1OgnPqNQibo=",
-      "pnpmDepsHash": "sha256-HzpHmd95FLINOa0kAji2AQFUsFepTIpENTYoS0xsUVw=",
+      "hash": "sha256-Z5ns0JClV7VC8nFS6E/YxFOuWhMuioIVvF4iOx3tTo4=",
+      "pnpmDepsHash": "sha256-W3f93ANvZw4fPHKjqa8Hewf34gh5G9l7tjhXdxDWbbs=",
       "prerelease": false,
-      "tag_name": "cf@1.0.0-beta.29",
-      "version": "1.0.0-beta.29"
+      "tag_name": "cf@1.0.0-beta.30",
+      "version": "1.0.0-beta.30"
     },
     "deskpad": {
       "assets": [
@@ -152,24 +152,24 @@
     "omp": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.18.8/omp-darwin-arm64",
-          "digest": "sha256:8de03d5f3ef3b37470cacc12539a547ace0152da562ee74a43099ec963a129eb",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.18.9/omp-darwin-arm64",
+          "digest": "sha256:493060f672eb152d85afeb51451b62b4acbd68b8c4071c96e9e3226e15a7251c",
           "name": "omp-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.18.8/omp-linux-musl-arm64",
-          "digest": "sha256:12da156191c587d902de22320ff4d9be4bce2c280b2c404bf0ec3659dd2b3bd4",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.18.9/omp-linux-musl-arm64",
+          "digest": "sha256:5a3fc1e4a909e9c301845897909c5c6fb86f7e5a68ee92cfb4116534e1366736",
           "name": "omp-linux-musl-arm64"
         },
         {
-          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.18.8/omp-linux-musl-x64",
-          "digest": "sha256:97597768e02fdbdb7c6163a3e931ddaba3f32780378124545ef2893943011a6b",
+          "browser_download_url": "https://github.com/can1357/oh-my-pi/releases/download/v18.18.9/omp-linux-musl-x64",
+          "digest": "sha256:0478cafe0aadffea81b98ad4bf9afd45368e734499145a138c68cdf786a6fd23",
           "name": "omp-linux-musl-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v18.18.8"
+      "tag_name": "v18.18.9"
     },
     "posthog": [
       {
