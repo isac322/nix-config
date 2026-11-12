@@ -588,12 +588,11 @@ function describePendingAsyncWork(ctx: unknown): string | undefined {
 
 function updateGoalContinuationOverride(
 	scope: unknown,
-	activeMode: string | undefined,
 	pendingAsyncWork: boolean,
 ): void {
 	const contModes = lookup("goal.continuationModes");
 	if (!contModes) return;
-	if (isNonOpusMainProfile(activeMode) && pendingAsyncWork) {
+	if (pendingAsyncWork) {
 		contModes.override(scope, []);
 	} else {
 		contModes.clearOverride(scope);
@@ -655,7 +654,6 @@ export default function (pi: ExtensionAPI) {
 			active = nextMode;
 		} else {
 			active = undefined;
-			updateGoalContinuationOverride(scope, undefined, false);
 		}
 	}
 
@@ -749,7 +747,7 @@ export default function (pi: ExtensionAPI) {
 		if (needsSync) {
 			applyProfileOverrides(inferred.mode, desiredRoles, desiredAgents);
 		}
-		updateGoalContinuationOverride(scope, inferred.mode, Boolean(describePendingAsyncWork(ctx)));
+		updateGoalContinuationOverride(scope, Boolean(describePendingAsyncWork(ctx)));
 		updateStatusLineBadge(ctx, inferred, forceDiskCheck);
 
 		if (inferred.mode) {
@@ -871,11 +869,11 @@ export default function (pi: ExtensionAPI) {
 	// before the turn settles into `agent_end`, and restores it as soon as 0 jobs remain.
 	pi.on("tool_execution_start", (_event, ctx) => {
 		if (isSubagentContext(ctx)) return;
-		updateGoalContinuationOverride(scope, active, Boolean(describePendingAsyncWork(ctx)));
+		updateGoalContinuationOverride(scope, Boolean(describePendingAsyncWork(ctx)));
 	});
 	pi.on("tool_execution_end", (_event, ctx) => {
 		if (isSubagentContext(ctx)) return;
-		updateGoalContinuationOverride(scope, active, Boolean(describePendingAsyncWork(ctx)));
+		updateGoalContinuationOverride(scope, Boolean(describePendingAsyncWork(ctx)));
 	});
 	pi.on("agent_end", (event, ctx) => {
 		if (isSubagentContext(ctx)) return;
@@ -883,16 +881,15 @@ export default function (pi: ExtensionAPI) {
 		const awaiting =
 			Boolean((event as Record<string, unknown>).awaitingAsyncWork) ||
 			Boolean(describePendingAsyncWork(ctx));
-		updateGoalContinuationOverride(scope, active, awaiting);
+		updateGoalContinuationOverride(scope, awaiting);
 	});
 
 	// 1. In subagents (`ctx.agent.kind === "sub"`): block `write` to `agent://Main` /
 	//    `agent://<parentId>` / `agent://all` so subagents do not drip-feed `<irc>`
 	//    progress cards or prematurely wake `wait()`.
-	// 2. In the main agent under `/bg sol`, `/bg astra`, or `/bg argon`: block
-	//    `read(proc://...)` status polling while jobs are in flight, block
-	//    `goal(op="complete")` while background jobs are still running or queued for
-	//    delivery, and block `ask` until a decision brief appeared.
+	// 2. In every main-agent session: block status polling and goal completion while
+	//    background work is pending, regardless of model or background profile.
+	//    Non-Opus background profiles also require a decision brief before `ask`.
 	// 3. Normalize OpenAI strict-schema dummy fields on `bash` and `task` calls.
 	pi.on("tool_call", async (event, ctx) => {
 		const subagent = isSubagentContext(ctx);
@@ -918,10 +915,7 @@ export default function (pi: ExtensionAPI) {
 				};
 			}
 		}
-		if (!active) {
-			return;
-		}
-		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "goal" && rawInput.op === "complete") {
+		if (!subagent && event.toolName === "goal" && rawInput.op === "complete") {
 			const pending = describePendingAsyncWork(ctx);
 			if (pending) {
 				return {
@@ -930,7 +924,7 @@ export default function (pi: ExtensionAPI) {
 				};
 			}
 		}
-		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "read") {
+		if (!subagent && event.toolName === "read") {
 			const path = typeof rawInput.path === "string" ? rawInput.path.trim() : "";
 			if (
 				path.startsWith("proc://") &&
@@ -943,6 +937,9 @@ export default function (pi: ExtensionAPI) {
 						"Do NOT poll running background jobs via read(proc://...). Call wait to block until the next job finishes, or continue independent work.",
 				};
 			}
+		}
+		if (!active) {
+			return;
 		}
 		if (!subagent && isNonOpusMainProfile(active) && event.toolName === "ask") {
 			const askBrief = typeof rawInput.brief === "string" ? rawInput.brief.trim() : "";
