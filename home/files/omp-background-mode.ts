@@ -10,9 +10,9 @@
 //   Anthropic quota wherever a measured equal exists.
 // - `astra`: GPT-6 Astra main agent with GPT-6.1 Sol task subagents, spending ChatGPT Codex
 //   quota instead of Anthropic quota.
-// - `argon`: Gemini 4 Argon main agent, which understands the problem and writes the
+// - `hydrogen`: Gemini 4 Hydrogen high main agent, which understands the problem and writes the
 //   specs while Sol implements them.
-// - `carbon`: Gemini 4 Carbon main agent with the same roles and agents as Argon.
+// - `carbon`: Gemini 4 Carbon main agent with the same roles and agents as Hydrogen.
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -34,7 +34,7 @@ type Profile = {
 
 const OPUS = "anthropic/claude-opus-5-5";
 const SOL = "openai-codex/gpt-6.1-sol";
-const ARGON = "google-antigravity/gemini-4-argon";
+const HYDROGEN = "google-antigravity/gemini-4-hydrogen-high";
 const CARBON = "google-antigravity/gemini-4-carbon";
 const ASTRA = "openai-codex/gpt-6-astra";
 const GROK = "xai-oauth/grok-4.7-build-fast";
@@ -237,14 +237,13 @@ const PROFILES: Record<string, Profile> = {
 		},
 		agents: ON_PROFILE.agents,
 	},
-	argon: {
-		label: "Argon",
-		mainModel: ARGON,
-		// high is Argon's top thinking level.
+	hydrogen: {
+		label: "Hydrogen",
+		mainModel: HYDROGEN,
 		mainThinking: "high",
 		roles: {
 			...ON_PROFILE.roles,
-			default: `${ARGON}:high`,
+			default: `${HYDROGEN}:high`,
 		},
 		agents: ON_PROFILE.agents,
 	},
@@ -264,7 +263,7 @@ const SUBCOMMANDS = [
 	{ name: "on", description: "Opus main agent, Sol implementer, roles re-curated around it" },
 	{ name: "sol", description: "GPT-6.1 Sol main agent, Sol implementer, roles re-curated around it" },
 	{ name: "astra", description: "GPT-6 Astra main agent, Sol implementer, roles re-curated around it" },
-	{ name: "argon", description: "Gemini 4 Argon main agent, Sol implementer, roles re-curated around it" },
+	{ name: "hydrogen", description: "Gemini 4 Hydrogen high main agent, Sol implementer, roles re-curated around it" },
 	{ name: "carbon", description: "Gemini 4 Carbon main agent, Sol implementer, roles re-curated around it" },
 	{ name: "off", description: "Restore the base config and the previous model" },
 	{ name: "status", description: "Show the active profile and key roles" },
@@ -484,9 +483,9 @@ function inferSessionBgState(entries: unknown[]): InferredBgState {
 					savedRoles = undefined;
 					savedAgents = undefined;
 				}
-			} else if (model === ARGON || model === "google/gemini-4-argon") {
-				if (mode !== "argon") {
-					mode = "argon";
+			} else if (model === HYDROGEN) {
+				if (mode !== "hydrogen") {
+					mode = "hydrogen";
 					profileHash = undefined;
 					savedRoles = undefined;
 					savedAgents = undefined;
@@ -1306,7 +1305,7 @@ export default function (pi: ExtensionAPI) {
 	} as Parameters<typeof pi.registerTool>[0]);
 
 	pi.registerCommand("bg", {
-		description: "Background profile: /bg [on|sol|astra|argon|carbon|off|status]",
+		description: "Background profile: /bg [on|sol|astra|hydrogen|carbon|off|status]",
 		getArgumentCompletions: (prefix: string) => {
 			if (prefix.includes(" ")) return null;
 			const typed = prefix.toLowerCase();
@@ -1360,7 +1359,7 @@ export default function (pi: ExtensionAPI) {
 				savedPrevThinking = undefined;
 				pi.appendEntry(BG_ENTRY_TYPE, { mode: "off" });
 			} else if (action !== "status") {
-				ctx.ui.notify("usage: /bg [on|sol|astra|argon|carbon|off|status]", "warning");
+				ctx.ui.notify("usage: /bg [on|sol|astra|hydrogen|carbon|off|status]", "warning");
 				return;
 			}
 
