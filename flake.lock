@@ -306,10 +306,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1794425306,
-        "narHash": "sha256-zzVP1Q62pwASAXqgssHAl3FbagxJpcuKJ4v0FAPv3+A=",
+        "lastModified": 1794550070,
+        "narHash": "sha256-0Y4hmxEALJvJ4HbhRMYmdjdYLRqUeaNL03OBacLuqeI=",
         "ref": "refs/heads/main",
-        "rev": "b4bff1626c344067788c2679f048a20057c7cc5a",
+        "rev": "c4cd1924c389f68d37c687d9c2bbf13f12547c41",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -329,16 +329,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1794529915,
-        "narHash": "sha256-7RDIC9WIlfKgsyh+OkjeL3Ae5KvokiF5JclFFtHrLUM=",
+        "lastModified": 1794551759,
+        "narHash": "sha256-kL6q4ItZT++IjrrDlcUOL9L0XNzTLb2+4xQgpHBzx/I=",
         "ref": "refs/heads/main",
-        "rev": "60533bc9bb15b0c60c12607ecf8dfc00c87b298e",
+        "rev": "860075d959fc68c31fd405989daf85c1b1f0db38",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "60533bc9bb15b0c60c12607ecf8dfc00c87b298e",
+        "rev": "860075d959fc68c31fd405989daf85c1b1f0db38",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -446,10 +446,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1794460432,
-        "narHash": "sha256-mMb+cD5NftoxLmRtmL0P9AJScStKgY1ayIhE56mGAoA=",
+        "lastModified": 1794544188,
+        "narHash": "sha256-VmXpSAaY/bdncCuFwMOnaKa5xh/ggUzWqko4d6Nf1MY=",
         "ref": "refs/heads/main",
-        "rev": "4af8cf129a8fb8c87d6df52c66c2e05989f9c230",
+        "rev": "87939a4ff9d5d952ea814aceab4e3a2e749f59d1",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
