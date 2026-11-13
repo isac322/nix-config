@@ -179,6 +179,13 @@ let
 in
 
 {
+  # Bound Nix evaluation/build parallelism so system builds do not starve the
+  # unattended Orca runtime on this 11-core, 36 GiB host.
+  determinateNix.customSettings = {
+    max-jobs = 4;
+    cores = 4;
+  };
+
   # The way in. Everything else in this file assumes a machine nobody is sitting
   # at, and this is what makes that true rather than merely unattended.
   #

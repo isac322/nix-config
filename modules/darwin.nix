@@ -112,6 +112,7 @@ in
     command = "${nixGc}";
     serviceConfig = {
       RunAtLoad = false;
+      ProcessType = "Background";
       StartCalendarInterval = [
         {
           Hour = 3;

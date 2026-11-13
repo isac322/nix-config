@@ -342,6 +342,7 @@ in
             ProgramArguments = [ (lib.getExe sync) ];
             RunAtLoad = true;
             StartInterval = cfg.syncInterval;
+            ProcessType = "Background";
             StandardOutPath = "${config.home.homeDirectory}/Library/Logs/skillclaw-sync.log";
             StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/skillclaw-sync.log";
           };
@@ -396,6 +397,7 @@ in
             RunAtLoad = true;
             KeepAlive.SuccessfulExit = false;
             ThrottleInterval = cfg.syncInterval;
+            ProcessType = "Background";
             StandardOutPath = "${config.home.homeDirectory}/Library/Logs/skillclaw-evolve.log";
             StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/skillclaw-evolve.log";
           };

@@ -31,6 +31,46 @@ let
     ];
   };
 
+  # Unattended builds on this shared server run alongside Orca and dozens of
+  # agent sessions. Clamp Cargo and Go builds to Utility QoS, nice +10, and 4
+  # parallel jobs so compiler spikes leave P-cores and memory headroom for the
+  # runtime while still using full E/P capacity when the host is idle.
+  cargoBuildWrapper = lib.hiPrio (
+    pkgs.writeShellScriptBin "cargo" ''
+      export CARGO_BUILD_JOBS="''${CARGO_BUILD_JOBS:-4}"
+      exec /usr/bin/nice -n 10 /usr/sbin/taskpolicy -c utility ${rustToolchain}/bin/cargo "$@"
+    ''
+  );
+
+  goBuildWrapper = lib.hiPrio (
+    pkgs.writeShellScriptBin "go" ''
+      subcmd=""
+      skipNext=0
+      for arg in "$@"; do
+        if [ "$skipNext" -eq 1 ]; then
+          skipNext=0
+          continue
+        fi
+        case "$arg" in
+          -C) skipNext=1 ;;
+          -*) ;;
+          *) subcmd="$arg"; break ;;
+        esac
+      done
+
+      case "$subcmd" in
+        build | test | install | vet)
+          case " ''${GOFLAGS:-} " in
+            *" -p "* | *" -p="*) ;;
+            *) export GOFLAGS="-p=4''${GOFLAGS:+ $GOFLAGS}" ;;
+          esac
+          ;;
+      esac
+
+      exec /usr/bin/nice -n 10 /usr/sbin/taskpolicy -c utility ${pkgs.go}/bin/go "$@"
+    ''
+  );
+
   # The bill for automatic login, and the thing that pays it.
   #
   # When a person types their password at the login window, that keystroke does
@@ -559,6 +599,13 @@ in
       KeepAlive.SuccessfulExit = false;
       ThrottleInterval = 10;
 
+      # Without ProcessType, launchd classifies the agent as Standard and
+      # applies light CPU/I/O throttling plus timer coalescing. Run Orca as
+      # Interactive with uncoalesced timers so contention does not stall PTY
+      # and checkpoint loops (user agents cannot raise nice below 0).
+      ProcessType = "Interactive";
+      LegacyTimers = true;
+
       # Where the readiness line lands: `orca_server_ready` carries the bound
       # endpoint, the advertised endpoint and the pairing URL, and there is
       # nowhere else to read it on a machine with no window.
@@ -662,6 +709,8 @@ in
   # `terraform` for validation, and finds the one from home/darwin.nix.
   home.packages = [
     rustToolchain
+    cargoBuildWrapper
+    goBuildWrapper
     pkgs.terraform-ls
   ];
 }
