@@ -534,15 +534,6 @@ function isSubagentContext(ctx: unknown): boolean {
 	return agent.kind === "sub";
 }
 
-function getSubagentParentId(ctx: unknown): string {
-	if (!ctx || typeof ctx !== "object" || !("agent" in ctx)) return "Main";
-	const agent = ctx.agent;
-	if (!agent || typeof agent !== "object" || !("parentId" in agent)) return "Main";
-	return typeof agent.parentId === "string" && agent.parentId.trim() !== ""
-		? agent.parentId.trim()
-		: "Main";
-}
-
 function isOpusContextModel(ctx: unknown): boolean {
 	if (!ctx || typeof ctx !== "object" || !("model" in ctx)) return false;
 	const model = ctx.model;
@@ -884,13 +875,10 @@ export default function (pi: ExtensionAPI) {
 		updateGoalContinuationOverride(scope, awaiting);
 	});
 
-	// 1. In subagents (`ctx.agent.kind === "sub"`): block `write` to `agent://Main` /
-	//    `agent://<parentId>` / `agent://all` so subagents do not drip-feed `<irc>`
-	//    progress cards or prematurely wake `wait()`.
-	// 2. In every main-agent session: block status polling and goal completion while
+	// In every main-agent session: block status polling and goal completion while
 	//    background work is pending, regardless of model or background profile.
 	//    Non-Opus background profiles also require a decision brief before `ask`.
-	// 3. Normalize OpenAI strict-schema dummy fields on `bash` and `task` calls.
+	// Normalize OpenAI strict-schema dummy fields on `bash` and `task` calls.
 	pi.on("tool_call", async (event, ctx) => {
 		const subagent = isSubagentContext(ctx);
 		if (!subagent) {
@@ -900,21 +888,6 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 		const rawInput = event.input as Record<string, unknown>;
-		if (subagent && event.toolName === "write") {
-			const path = typeof rawInput.path === "string" ? rawInput.path.trim() : "";
-			const parentId = getSubagentParentId(ctx);
-			if (
-				path === "agent://Main" ||
-				path === `agent://${parentId}` ||
-				path === "agent://all"
-			) {
-				return {
-					block: true,
-					reason:
-						"Do not send progress or findings to Main via write(agent://Main); finish your work and end your turn without a tool call so your final result is delivered to Main automatically.",
-				};
-			}
-		}
 		if (!subagent && event.toolName === "goal" && rawInput.op === "complete") {
 			const pending = describePendingAsyncWork(ctx);
 			if (pending) {
@@ -1247,10 +1220,6 @@ export default function (pi: ExtensionAPI) {
 		},
 	} as Parameters<typeof pi.registerTool>[0]);
 
-	const waitRendererWithDescribe = waitToolRenderer as typeof waitToolRenderer & {
-		describeCall?: (args: unknown, options?: unknown) => ToolDescription;
-		describeResult?: (result: unknown, options?: unknown, args?: unknown) => ToolDescription;
-	};
 	function isWaitPollTimeoutResult(result: unknown): boolean {
 		if (!result || typeof result !== "object") return false;
 		const r = result as {
@@ -1306,8 +1275,6 @@ export default function (pi: ExtensionAPI) {
 		interruptible: true,
 		handlesToolInterrupt: true,
 		intent: "optional",
-		inline: true,
-		mergeCallAndResult: true,
 		description: [
 			"Wait only when blocked with nothing else to do.",
 			"Blocks on background jobs/services you started, or on the answer to a question you sent this run.",
@@ -1320,28 +1287,9 @@ export default function (pi: ExtensionAPI) {
 		parameters: z.object({
 			i: z.string().optional().describe("Capitalized 2-6 word present-participle intent"),
 		}),
-		activitySummary() {
-			return waitToolRenderer.activitySummary();
-		},
-		describeCall(args: unknown, options: unknown) {
-			return waitRendererWithDescribe.describeCall?.(args, options) ?? {};
-		},
-		describeResult(result: unknown, options: unknown, args: unknown) {
-			return waitRendererWithDescribe.describeResult?.(result, options, args) ?? {};
-		},
-		renderCall(args, options, theme) {
-			return waitToolRenderer.renderCall(
-				args as Parameters<typeof waitToolRenderer.renderCall>[0],
-				options,
-				theme,
-			);
-		},
-		renderResult(result, options, theme) {
-			return waitToolRenderer.renderResult(
-				result as Parameters<typeof waitToolRenderer.renderResult>[0],
-				options,
-				theme,
-			);
+		...waitToolRenderer,
+		describeResult(result, options) {
+			return waitToolRenderer.describeResult(result, options) ?? {};
 		},
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
 			if (typeof ctx.invokeTool !== "function") {

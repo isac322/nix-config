@@ -285,6 +285,11 @@ macOS의 Developer ID 서명도 그대로 유지한다. 버전·asset URL·SHA-2
 `pkgs/release-snapshots.json`에 고정되며 `nix run .#update-packages`가 원자적으로
 갱신한다. aarch64-darwin과 x86_64-linux·aarch64-linux를 지원한다.
 
+`home/files/omp-background-mode.ts`는 하위 에이전트의 부모 세션 질문·메시지를
+허용하고, 전달·깨우기 정책은 OMP 내장 동작에 맡긴다. `wait` 표시는 내장 renderer를
+재사용하며, 기존 idle 알림 억제와 비동기 작업·결과 전달 대기 중 `/goal` 자동
+재개·완료 차단은 유지한다. GitHub 대기용 shared observer도 그대로 사용한다.
+
 **Orca 데스크톱 앱은 여기 없다.** GUI 앱이라 cask로 맥 둘에 설치한다 —
 위 [GUI 앱](#gui-앱)을 보라.
 
