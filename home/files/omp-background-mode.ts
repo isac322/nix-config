@@ -37,8 +37,6 @@ const SOL = "openai-codex/gpt-6.1-sol";
 const HYDROGEN = "google-antigravity/gemini-4-hydrogen-high";
 const CARBON = "google-antigravity/gemini-4-carbon";
 const ASTRA = "openai-codex/gpt-6-astra";
-const GROK = "xai-oauth/grok-4.7-build-fast";
-const SONNET = "anthropic/claude-sonnet-5-5";
 const PROC_STREAMS_PATH_RE = /^proc:\/\/[^/]+\/streams(?:\/.*)?$/;
 const WAIT_POLL_TIMEOUT_RE =
 	/(?:^|\n\n)(?:No job finished|No reply|No service finished) within (?:\d+(?:\.\d+)?s|\d+m); a back-to-back wait allows up to (?:\d+(?:\.\d+)?s|\d+m)\.(?: Read proc:\/\/ for status\.)?$/;
@@ -201,17 +199,15 @@ const ON_PROFILE: Profile = {
 	mainThinking: "medium",
 	roles: {
 		default: `${OPUS}:medium`,
-		// Planning inherits the base Argon plan role, so a different model family still
-		// drafts plans for the Sol implementer; escalations go to Astra.
-		slow: `${ASTRA}:xhigh`,
-		task: `${SOL}:high`,
+		// Planning and slow escalations inherit the base Carbon high and Fable 5.2 high
+		// roles; task omits the effort suffix so bundled `task` keeps `thinkingLevel: auto`.
+		task: SOL,
 	},
-	// Codex-authored work gets a review from Grok 4.7 first, falling back to Sonnet 5.5 in
-	// another model family when Grok quota is depleted; advisor and lightweight roles/agents
-	// (browser, smol, scout, sonic, tiny, commit) inherit the base config.
+	// Codex-authored work gets reviewed by Gemini 4 Carbon in another non-Anthropic model
+	// family, falling back to Sol; security-reviewer and lightweight roles/agents inherit
+	// the base config.
 	agents: {
-		reviewer: `${GROK}:low, ${SONNET}:high`,
-		"security-reviewer": `${SOL}:max`,
+		reviewer: `${CARBON}:high, ${SOL}:high`,
 	},
 };
 

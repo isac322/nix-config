@@ -1,11 +1,34 @@
 retry:
   fallbackChains:
-    anthropic/claude-opus-5-5:
-      - google-antigravity/claude-opus-5-5
-    anthropic/claude-haiku-5-5:
-      - google-vertex/gemini-3.8-flash:low
+    default:
+      - google-antigravity/claude-opus-5-5:medium
+      - openai-codex/gpt-6.1-sol:high
+    task:
+      - google-antigravity/claude-opus-5-5:high
+      - openai-codex/gpt-6.1-sol:high
+      - google-antigravity/gemini-4-carbon:high
+    plan:
+      - anthropic/claude-fable-5-2:high
+      - openai-codex/gpt-6.1-sol:high
+    slow:
+      - anthropic/claude-opus-5-5:xhigh
+      - openai-codex/gpt-6.1-sol:max
+    advisor:
+      - openai-codex/gpt-6.1-sol:high
+      - google-antigravity/gemini-4-carbon:high
+    browser:
+      - google-antigravity/gemini-4-hydrogen-high:high
+      - openai-codex/gpt-6.1-terra:medium
+    smol:
+      - anthropic/claude-sonnet-5-5:low
+      - openai-codex/gpt-6.1-terra:low
     vision:
-      - google-antigravity/gemini-4-argon:medium
+      - anthropic/claude-sonnet-5-5:medium
+      - openai-codex/gpt-6.1-terra:medium
+    tiny:
+      - openai-codex/gpt-6.1-terra:low
+    commit:
+      - openai-codex/gpt-6.1-terra:low
 setupVersion: 3
 extendedContext: true
 statusLine:
@@ -75,22 +98,22 @@ task:
   agentAdvisor:
     task: "off"
   agentModelOverrides:
-    reviewer: openai-codex/gpt-6.1-terra:medium, xai-oauth/grok-4.7-build-fast:low
-    scout: xai-oauth/grok-4.7-build-fast:low, anthropic/claude-sonnet-5-5:high
-    sonic: anthropic/claude-haiku-5-5:low, google-vertex/gemini-3.8-flash:low, openai-codex/gpt-6.1-terra:low
-    security-reviewer: openai-codex/gpt-6.1-sol:max
+    reviewer: openai-codex/gpt-6.1-sol:high, google-antigravity/gemini-4-carbon:high
+    scout: xai-oauth/grok-4.7-build-fast:medium, google-antigravity/gemini-4-hydrogen-high:high, anthropic/claude-sonnet-5-5:medium
+    sonic: anthropic/claude-haiku-5-5:low, openai-codex/gpt-6.1-terra:low
+    security-reviewer: openai-codex/gpt-6.1-sol:max, google-antigravity/gemini-4-carbon:high, anthropic/claude-opus-5-5:xhigh
 modelRoles:
   default: anthropic/claude-opus-5-5:medium
-  plan: google-antigravity/gemini-4-argon:high
-  slow: anthropic/claude-opus-5-5:xhigh
-  task: anthropic/claude-opus-5-5:medium
+  plan: google-antigravity/gemini-4-carbon:high
+  slow: anthropic/claude-fable-5-2:high
+  task: anthropic/claude-opus-5-5
   advisor: anthropic/claude-sonnet-5-5:high
-  browser: anthropic/claude-haiku-5-5:medium, google-vertex/gemini-3.8-flash:low, openai-codex/gpt-6.1-terra:low
-  smol: anthropic/claude-haiku-5-5:medium, google-vertex/gemini-3.8-flash:low, google-vertex/gemini-3.5-flash-lite:medium
-  vision: openai-codex/gpt-6.1-terra:low
-  tiny: anthropic/claude-haiku-5-5:low, google-vertex/gemini-3.8-flash:low, openai-codex/gpt-6.1-terra:low
-  commit: google-vertex/gemini-3.5-flash-lite:low
-  judge: typesafe/jev-preview
+  browser: anthropic/claude-sonnet-5-5:medium
+  smol: anthropic/claude-haiku-5-5:medium
+  vision: google-antigravity/gemini-4-hydrogen-high:high
+  tiny: anthropic/claude-haiku-5-5:low
+  commit: anthropic/claude-haiku-5-5:low
+  judge: typesafe/jev-1.14.0
 find:
   enabled: true
 hindsight:
