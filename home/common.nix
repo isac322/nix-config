@@ -39,8 +39,21 @@ let
   rustTarget = pkgs.stdenv.hostPlatform.rust.rustcTarget;
   rustLinker =
     if pkgs.stdenv.hostPlatform.isDarwin then "${pkgs.lld}/bin/ld64.lld" else lib.getExe pkgs.mold;
+  isDarwinServer =
+    pkgs.stdenv.hostPlatform.isDarwin && lib.attrByPath [ "local" "orca" "enable" ] false osConfig;
+  # sccache starts its local compiler daemon on demand and spawns rustc/clippy
+  # from that daemon rather than from the cargo client. Wrap sccache itself on
+  # the unattended Darwin server so the daemon and all compiler misses inherit
+  # nice +10 and Utility QoS too.
+  sccachePackage =
+    if isDarwinServer then
+      pkgs.writeShellScriptBin "sccache" ''
+        exec /usr/bin/nice -n 10 /usr/sbin/taskpolicy -c utility ${lib.getExe pkgs.sccache} "$@"
+      ''
+    else
+      pkgs.sccache;
   cargoConfig = {
-    build."rustc-wrapper" = lib.getExe pkgs.sccache;
+    build."rustc-wrapper" = lib.getExe sccachePackage;
     target.${rustTarget} = {
       linker = lib.getExe pkgs.clang;
       rustflags = [
@@ -739,7 +752,7 @@ in
     # Darwin builds use LLD's Mach-O linker; mold-unwrapped remains available
     # there for ELF work because nixpkgs' Darwin wrapper injects rejected ld64
     # flags. Linux Cargo builds use the normal mold wrapper.
-    pkgs.sccache
+    sccachePackage
     pkgs.lld
     (if pkgs.stdenv.hostPlatform.isDarwin then pkgs.mold-unwrapped else pkgs.mold)
   ];

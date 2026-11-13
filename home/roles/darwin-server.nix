@@ -32,12 +32,13 @@ let
   };
 
   # Unattended builds on this shared server run alongside Orca and dozens of
-  # agent sessions. Clamp Cargo and Go builds to Utility QoS, nice +10, and 4
-  # parallel jobs so compiler spikes leave P-cores and memory headroom for the
-  # runtime while still using full E/P capacity when the host is idle.
+  # agent sessions. Clamp Cargo and Go builds to Utility QoS, nice +10, and low
+  # parallel job counts (2 for Cargo, 4 for Go) so concurrent compiler spikes
+  # leave P-cores and memory headroom for the runtime while still using full
+  # capacity when the host is idle.
   cargoBuildWrapper = lib.hiPrio (
     pkgs.writeShellScriptBin "cargo" ''
-      export CARGO_BUILD_JOBS="''${CARGO_BUILD_JOBS:-4}"
+      export CARGO_BUILD_JOBS="''${CARGO_BUILD_JOBS:-2}"
       exec /usr/bin/nice -n 10 /usr/sbin/taskpolicy -c utility ${rustToolchain}/bin/cargo "$@"
     ''
   );
