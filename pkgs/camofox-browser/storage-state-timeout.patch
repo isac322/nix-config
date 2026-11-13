@@ -1,0 +1,51 @@
+--- a/lib/persistence.js
++++ b/lib/persistence.js
+@@ -42,6 +42,25 @@
+   }
+ }
+ 
++// Session teardown awaits this checkpoint, and every later request for the
++// same user queues behind that teardown. A storageState() call that never
++// settles must therefore give up; the previous snapshot on disk stays in place.
++const STORAGE_STATE_TIMEOUT_MS = 60_000;
++
++async function captureStorageState(context, options, timeoutMs) {
++  let timer;
++  try {
++    return await Promise.race([
++      context.storageState(options),
++      new Promise((_, reject) => {
++        timer = setTimeout(() => reject(new Error(`storageState timed out after ${timeoutMs}ms`)), timeoutMs);
++      }),
++    ]);
++  } finally {
++    clearTimeout(timer);
++  }
++}
++
+ async function persistStorageState({
+   profileDir,
+   userId,
+@@ -49,6 +68,7 @@
+   storageState,
+   logger = console,
+   indexedDB = false,
++  storageStateTimeoutMs = STORAGE_STATE_TIMEOUT_MS,
+ }) {
+   if (!profileDir || (!context && !storageState)) {
+     return { persisted: false, reason: 'disabled' };
+@@ -61,11 +81,9 @@
+ 
+   try {
+     await fs.mkdir(userDir, { recursive: true });
+-    if (storageState) {
+-      await fs.writeFile(tmpStoragePath, JSON.stringify(storageState, null, 2));
+-    } else {
+-      await context.storageState(indexedDB ? { path: tmpStoragePath, indexedDB: true } : { path: tmpStoragePath });
+-    }
++    const state = storageState
++      || await captureStorageState(context, indexedDB ? { indexedDB: true } : undefined, storageStateTimeoutMs);
++    await fs.writeFile(tmpStoragePath, JSON.stringify(state, null, 2));
+     await fs.rename(tmpStoragePath, storageStatePath);
+     await fs.writeFile(
+       tmpMetaPath,

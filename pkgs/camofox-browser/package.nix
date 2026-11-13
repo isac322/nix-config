@@ -96,6 +96,12 @@ buildNpmPackage {
   # plaintext secret into the tool-call arguments and session transcript.
   # Allow camofox_type to read the text from a local file (textFile) and
   # unlink it immediately so credentials never pass through model context.
+  #
+  # Closing a session saves its login state first, and that save has no
+  # deadline upstream. When context.storageState() stalls, the teardown never
+  # finishes and every later tab request for that user waits behind it until
+  # it returns 503. Give up on the save after a minute and keep the previous
+  # snapshot, so the teardown completes and a fresh session can be built.
   patches = [
     ./session-isolation.patch
     ./click-witness.patch
@@ -103,6 +109,7 @@ buildNpmPackage {
     ./press-tool.patch
     ./type-file.patch
     ./humanize-toggle.patch
+    ./storage-state-timeout.patch
   ];
   postPatch = ''
     # Upstream 1.17.0 omitted mcp/package.json from package.json "files",
