@@ -102,6 +102,16 @@ buildNpmPackage {
   # finishes and every later tab request for that user waits behind it until
   # it returns 503. Give up on the save after a minute and keep the previous
   # snapshot, so the teardown completes and a fresh session can be built.
+  #
+  # Upstream closes a session within a minute of its last tab closing, and the
+  # next tab restores every stored origin again by navigating to each one.
+  # With several hundred origins that is 10 to 20 seconds per first tab. Keep
+  # the empty session until SESSION_TIMEOUT_MS (30 minutes here, set on the
+  # wrapper below) and save its state when it goes idle instead of on close.
+  #
+  # Local dev and test servers produce a new loopback origin per port, and
+  # each stored origin costs a navigation on restore and on save. Leave
+  # loopback origins out of the saved state.
   patches = [
     ./session-isolation.patch
     ./click-witness.patch
@@ -110,6 +120,8 @@ buildNpmPackage {
     ./type-file.patch
     ./humanize-toggle.patch
     ./storage-state-timeout.patch
+    ./keep-empty-session.patch
+    ./persistence-skip-loopback.patch
   ];
   postPatch = ''
     # Upstream 1.17.0 omitted mcp/package.json from package.json "files",
@@ -205,6 +217,7 @@ buildNpmPackage {
       --set CAMOFOX_CRASH_REPORT_ENABLED false \
       --set-default CAMOFOX_LOCALE "en-US" \
       --set-default CAMOFOX_TIMEZONE "Asia/Seoul" \
+      --set-default SESSION_TIMEOUT_MS 1800000 \
       ${lib.optionalString stdenv.hostPlatform.isDarwin "--set CAMOFOX_INTERACTIVE desktop \\"}
       --set SENTRY_DSN ""
   '';

@@ -1,0 +1,48 @@
+--- a/server.js
++++ b/server.js
+@@ -7739,12 +7739,14 @@
+         session.tabGroups.delete(listItemId);
+       }
+     }
+-    // Clean up sessions with zero tabs remaining -- free browser context memory
+-    if (session.tabGroups.size === 0 && !hasActivePageLeases(session)) {
+-      session._closing = true;
+-      log('info', 'session empty after tab reaper, closing', { userId });
+-      closeSession(userId, session, { reason: 'tab_reaper_empty_session', clearDownloads: true, clearLocks: true }).catch(() => {});
+-      sessionsExpiredTotal.inc();
++    // An empty session stays open until SESSION_TIMEOUT_MS. Closing it here made
++    // the next tab rebuild the context and restore the whole storage state, even
++    // a minute later. Plugins get one chance to save per batch of opened pages.
++    if (session.tabGroups.size === 0 && !hasActivePageLeases(session) && !session._closing
++        && session._idleNotifiedAtPagesLeased !== session.pagesLeased) {
++      session._idleNotifiedAtPagesLeased = session.pagesLeased;
++      log('info', 'session empty after tab reaper, keeping', { userId });
++      pluginEvents.emit('session:idle', { userId });
+     }
+   }
+   if (sessions.size === 0) scheduleBrowserIdleShutdown();
+--- a/lib/page-lease.js
++++ b/lib/page-lease.js
+@@ -2,6 +2,7 @@
+ // to avoid treating a session as empty during context.newPage().
+ export function acquirePageLease(session) {
+   const leases = session.pageLeases ||= new Set();
++  session.pagesLeased = (session.pagesLeased || 0) + 1;
+   const lease = { page: null, released: false };
+   leases.add(lease);
+   return lease;
+--- a/plugins/persistence/index.js
++++ b/plugins/persistence/index.js
+@@ -151,6 +151,12 @@
+     }
+   });
+ 
++  // An empty session is kept open, so save now instead of waiting for teardown.
++  events.on('session:idle', ({ userId }) => {
++    const context = activeSessions.get(userId);
++    if (context) checkpoint(userId, context, 'session_idle').catch(() => {});
++  });
++
+   // On session destroying (pre-close): checkpoint while context is still alive
+   events.on('session:destroying', async ({ userId, reason }) => {
+     const context = activeSessions.get(userId);
