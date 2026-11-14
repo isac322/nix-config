@@ -67,11 +67,11 @@
     },
     "cf": {
       "draft": false,
-      "hash": "sha256-t2BPbglfUy//pi2r1zpYOzBkt1LmUkwQgciCYu8YrSU=",
-      "pnpmDepsHash": "sha256-CdD3e4eUWVRSoxAwMYW1x3e1qEMlhywep9GyvkFeSug=",
+      "hash": "sha256-6ik19YeOjF1wUp+61832dg1/UBRwKYE0UTcZvuLKFco=",
+      "pnpmDepsHash": "sha256-ZAA8UPS3mlxla7JcWacueXUCPRzXcfj8cs0LIBkQcXg=",
       "prerelease": false,
-      "tag_name": "cf@1.0.0-beta.31",
-      "version": "1.0.0-beta.31"
+      "tag_name": "cf@1.0.0-beta.32",
+      "version": "1.0.0-beta.32"
     },
     "deskpad": {
       "assets": [
@@ -225,45 +225,45 @@
     "slack": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.13.0/slack_cli_4.13.0_macOS_arm64.tar.gz",
-          "digest": "sha256:ff9c8f85396c0bb0caf0928fddb6636cdd79dbdaf1a8b51ab729d67de3d151c3",
-          "name": "slack_cli_4.13.0_macOS_arm64.tar.gz"
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.14.0/slack_cli_4.14.0_macOS_arm64.tar.gz",
+          "digest": "sha256:b93806166c66cefa8cb3c8142cf1fa97888f47fce439f83676a8a8091bd4fedc",
+          "name": "slack_cli_4.14.0_macOS_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.13.0/slack_cli_4.13.0_linux_arm64.tar.gz",
-          "digest": "sha256:540184d8162af1dce2412f13a521dff2dad6678973f00adff177a83bf6cfcbe5",
-          "name": "slack_cli_4.13.0_linux_arm64.tar.gz"
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.14.0/slack_cli_4.14.0_linux_arm64.tar.gz",
+          "digest": "sha256:09b6e99187b42d28f5540783263de3a671424bbc8199712459ea70bc495fb172",
+          "name": "slack_cli_4.14.0_linux_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.13.0/slack_cli_4.13.0_linux_amd64.tar.gz",
-          "digest": "sha256:2a1cb67b49649f85ec0da6fc4cb1d74a702dfb9e12088c8301776a69b0a8f072",
-          "name": "slack_cli_4.13.0_linux_amd64.tar.gz"
+          "browser_download_url": "https://github.com/slackapi/slack-cli/releases/download/v4.14.0/slack_cli_4.14.0_linux_amd64.tar.gz",
+          "digest": "sha256:180a564df41ba1de5c98f62b5470ea101e83ba6eae46dfdbf231b10ff42e66d4",
+          "name": "slack_cli_4.14.0_linux_amd64.tar.gz"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v4.13.0"
+      "tag_name": "v4.14.0"
     },
     "vercelDarwinArm64": {
       "dist": {
-        "integrity": "sha512-Xy7VXOWq9+vLNNbbv3IJKJuCJsf1McK8+1mS+0yHzuzisFXKk2g8DHgpayfxRGzxXBIkGQwHt2zsjM3PsynCVQ==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-65.15.0.tgz"
+        "integrity": "sha512-tNDUZ84QFa+GO09ebAXaTT3OzoF96ntz51PKhHjjIQYlBIJKNkKg8DeAmT5IxiGXa63+KKib/uuaTVQorrXGWg==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-65.16.0.tgz"
       },
-      "version": "65.15.0"
+      "version": "65.16.0"
     },
     "vercelLinuxArm64": {
       "dist": {
-        "integrity": "sha512-qCIqyLu5Fv5hmDBntrnj60GV9rn3+EmZTi7epKoXt9ybze0zwK6xBZU7mBKhXGRI04IxzwGiIHBJr7jNkSL7bA==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-65.15.0.tgz"
+        "integrity": "sha512-iWIkcOtIikH797V42RJRl1JGacKU0aeck/tRzNKi86x0SJF0+PVurc42Jj2kO5Zqr8j4XxdKIFggKn1yQs0mdw==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-65.16.0.tgz"
       },
-      "version": "65.15.0"
+      "version": "65.16.0"
     },
     "vercelLinuxX64": {
       "dist": {
-        "integrity": "sha512-7CrNURzu8O1HytJvUAbTIWNj+JcIhcABZn28/EsPYq++3WjxtRZz7tN9aaKaJslNCDprwUSgJ9m3WPEPttIoLA==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-65.15.0.tgz"
+        "integrity": "sha512-ALGl5nis4LaGDzms+EBoQ6eaSP3ckhonyM035Eq1KYaRNnYOF7s+5xUb2fQt8EQrlPPe8MXeU0iCHKXlyp/a9g==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-65.16.0.tgz"
       },
-      "version": "65.15.0"
+      "version": "65.16.0"
     }
   },
   "schema": 1
