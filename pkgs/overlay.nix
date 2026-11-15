@@ -60,6 +60,25 @@ let
         manifestFile = releaseManifests.ntn;
       };
 
+      # gws keeps the AES key for ~/.config/gws/credentials.enc in the login
+      # keychain by default, through Security.framework. nixpkgs builds it from
+      # source, so the binary is ad-hoc signed and the keychain item trusts one
+      # cdhash: any rebuild, even at the same version, leaves the item trusting
+      # a store path that no longer exists, and the next read draws a keychain
+      # dialog that blocks gws until someone answers it. The file backend keeps
+      # the key in ~/.config/gws/.encryption_key (0600) instead. A wrapper
+      # rather than a session variable, so that every caller gets it, including
+      # agent sandboxes that drop variables whose names contain KEY.
+      # docs/decisions/0033.
+      gws = final.symlinkJoin {
+        inherit (prev.gws) pname version meta;
+        paths = [ prev.gws ];
+        nativeBuildInputs = [ final.makeWrapper ];
+        postBuild = ''
+          wrapProgram "$out/bin/gws" --set-default GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND file
+        '';
+      };
+
       # Native Apple Silicon browser and virtual-display utilities. Camofox uses
       # the immutable Camoufox browser; DeskPad supplies the virtual display,
       # and displayplacer fixes its layout.

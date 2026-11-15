@@ -350,9 +350,30 @@ in
   # changes on rotation — has to appear in the configuration. The catch is that
   # the key's user id must be created to match: `Byeonghoon Yoo
   # <bhyoo@bhyoo.com>`, exactly the name and email set in home/common.nix.
+  #
+  # GitHub over HTTPS takes its credential from gh rather than from the
+  # osxkeychain helper that nixpkgs' git turns on in its system gitconfig.
+  # That helper is a Nix build, so it is ad-hoc signed, and the keychain items
+  # it creates trust exactly one cdhash. Every git update moves it to a new
+  # store path, the items stop recognising it, and the next fetch draws a
+  # keychain password dialog — on the server, on a console nobody watches,
+  # while the fetch hangs. gh keeps its token through /usr/bin/security, whose
+  # Apple signature survives every update. The leading "" clears the inherited
+  # helper for these URLs only. docs/decisions/0033.
   programs.git.settings = {
     commit.gpgsign = true;
     tag.gpgsign = true;
+    credential =
+      let
+        helper = [
+          ""
+          "!${lib.getExe pkgs.gh} auth git-credential"
+        ];
+      in
+      {
+        "https://github.com" = { inherit helper; };
+        "https://gist.github.com" = { inherit helper; };
+      };
   };
 
   # gpg-ssh-authorize is on PATH as well as wired into activation, so a key
