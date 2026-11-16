@@ -1,39 +1,4 @@
-"""GitHub state contracts, exercised through JSON bodies at the gh boundary.
-
-Primary contracts (read 2026-11-11):
-- https://docs.github.com/en/rest/checks/runs#create-a-check-run
-  Six statuses; only completed has a terminal conclusion. Nonterminal
-  conclusion is null. GitHub alone can assign stale.
-- https://docs.github.com/en/rest/commits/statuses#create-a-commit-status
-  error/failure/pending/success; context is case-insensitive. The list endpoint
-  returns newest first, and combined status uses the latest per context.
-- https://docs.github.com/en/rest/pulls/reviews#list-reviews-for-a-pull-request
-  Chronological list; user and commit_id may be null. Pending reviews omit
-  submitted_at (see create-a-review on the same page).
-- https://docs.github.com/en/graphql/reference/pulls#pullrequestreviewstate---enum
-  APPROVED/CHANGES_REQUESTED/COMMENTED/DISMISSED/PENDING. This inventory is
-  corroborating vocabulary, not a substitution of GraphQL response shape.
-- https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
-  merged is the fact; an open PR's merge_commit_sha is only a test merge.
-- https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks
-  Test-merge observations take precedence; no observations means head fallback.
-  success/skipped/neutral pass, same-name check/status both must pass.
-- https://docs.github.com/en/rest/branches/branch-protection#get-branch-protection
-- https://docs.github.com/en/rest/repos/rules#get-rules-for-a-branch
-  Policy schema is the basis for the separately labelled malformed fixtures.
-
-Fixtures preserve REST envelopes and null/absent distinctions. Unused expansive
-repository/user/app metadata is projected out; these are not recorded live
-responses. Popen alone is replaced: parsing, policy, selection, lifecycle, and
-wait logic remain real. Synthetic robustness cases are not claims that GitHub
-normally sends schema-invalid HTTP-200 bodies.
-
-Timestamp limitation: the reviews API specifies date-time, not an ordering token
-relative to a local review-request timestamp. Equal-second timestamps cannot
-prove before/after; the equality test asserts conservative non-success, NOT that
-GitHub guarantees strictly exclusive matching. Fractional cases verify arithmetic
-with ISO date-time inputs, not a claim GitHub emits microseconds.
-"""
+"""GitHub state contracts at the REST and GraphQL subprocess boundaries."""
 import copy
 import json
 import unittest
@@ -41,12 +6,13 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from test_github_pr_wait import (
-    FakeAPI, PR, PULL, ROOT, URL, arguments, baseline, check, review, w,
+    FakeAPI, PR, PULL, ROOT, URL, arguments, baseline, check_node, review, rollup_page,
+    status_node, w,
 )
 
 
 class RESTBodies(FakeAPI):
-    """Feed REST bodies through gh --slurp decoding, rather than parsed lists."""
+    """Feed policy and review JSON through the real REST decoder."""
 
     def remaining(self):
         return 100
@@ -59,24 +25,41 @@ class RESTBodies(FakeAPI):
         with patch.object(w.subprocess, "Popen", return_value=process):
             return w.GitHub(100, 10, clock=lambda: 0).get(endpoint, **kwargs)
 
+    def graphql(self, query, variables):
+        body = super().graphql(query, variables)
+        process = Mock(returncode=0)
+        process.communicate.return_value = (json.dumps({"data": body}), "")
+        with patch.object(w.subprocess, "Popen", return_value=process):
+            return w.GitHub(100, 10, clock=lambda: 0).graphql(query, variables)
 
-def status_row(identifier=10, state="pending", context="ci"):
-    return {"id": identifier, "node_id": f"status-{identifier}", "state": state,
-            "context": context, "description": None, "target_url": None,
-            "avatar_url": None, "url": f"https://api.github.com/{ROOT}/statuses/{identifier}",
-            "created_at": "2026-11-11T10:00:02Z", "updated_at": "2026-11-11T10:00:02Z"}
+
+def check_row(status="COMPLETED", conclusion="SUCCESS", identifier=10,
+              name="ci", required=True):
+    return check_node(identifier, name, status, conclusion, required)
 
 
-def check_row(status="completed", conclusion="success", identifier=10, **changes):
-    return check(identifier=identifier, name="ci", status=status, conclusion=conclusion,
-                 head_sha="head", node_id=f"check-{identifier}", external_id=None,
-                 url=f"https://api.github.com/{ROOT}/check-runs/{identifier}",
-                 html_url=None, details_url=None, completed_at=(
-                     "2026-11-11T10:00:02Z" if status == "completed" else None),
-                 check_suite={"id": 90}, pull_requests=[], output={
-                     "title": None, "summary": None, "text": None,
-                     "annotations_count": 0, "annotations_url": "https://api.github.com/annotations"},
-                 **changes)
+def status_row(state="PENDING", context="ci", required=True):
+    return status_node(context=context, state=state, required=required)
+
+
+def contract_api(*, checks=None, statuses=None, pr=None, classic=None, rules=None,
+                 rollup_pages=None):
+    checks = checks if checks is not None else []
+    statuses = statuses if statuses is not None else []
+    nodes = [*checks, *statuses]
+    if rollup_pages is None:
+        rollup_pages = [rollup_page(nodes)]
+    responses = {
+        PULL: copy.deepcopy(pr if pr is not None else {**PR, "merge_commit_sha": None}),
+        ROOT + "/branches/main": {"name": "main", "protected": True,
+                                  "commit": {"sha": "base"}},
+        ROOT + "/branches/main/protection": classic if classic is not None else {
+            "required_status_checks": {"strict": False, "contexts": ["ci"],
+                                       "checks": [{"context": "ci", "app_id": None}]}},
+        ROOT + "/rules/branches/main?per_page=100": rules if rules is not None else [],
+        ROOT + "/compare/base...head": {"status": "identical", "ahead_by": 0, "behind_by": 0},
+    }
+    return RESTBodies(responses, rollup_pages)
 
 
 def review_row(identifier=10, state="COMMENTED", **changes):
@@ -89,31 +72,6 @@ def review_row(identifier=10, state="COMMENTED", **changes):
         row.pop("submitted_at")
     row.update(changes)
     return row
-
-
-def contract_api(*, checks=None, statuses=None, pr=None, classic=None, rules=None):
-    """An independent protected-branch scenario; no inferred classic 404."""
-    responses = {
-        PULL: copy.deepcopy(pr if pr is not None else {**PR, "merge_commit_sha": None}),
-        ROOT + "/branches/main": {"name": "main", "protected": True,
-                                  "commit": {"sha": "base"}},
-        ROOT + "/branches/main/protection": classic if classic is not None else {
-            "required_status_checks": {"strict": False, "contexts": ["ci"],
-                                       "checks": [{"context": "ci", "app_id": None}]}},
-        ROOT + "/rules/branches/main?per_page=100": rules if rules is not None else [],
-        ROOT + "/commits/head/check-runs?per_page=100&filter=all": {
-            "total_count": len(checks or []), "check_runs": checks or []},
-        ROOT + "/commits/head/statuses?per_page=100": statuses or [],
-        ROOT + "/compare/base...head": {"status": "identical", "ahead_by": 0, "behind_by": 0},
-    }
-    for row in checks or []:
-        if (row.get("app") or {}).get("id") == 15368:
-            suite_id = row["check_suite"]["id"]
-            responses[ROOT + f"/actions/runs?check_suite_id={suite_id}&per_page=100"] = {
-                "total_count": 1,
-                "workflow_runs": [{"id": suite_id, "check_suite_id": suite_id,
-                                   "event": "pull_request"}]}
-    return RESTBodies(responses)
 
 
 def review_api(rows, pr=None):
@@ -130,37 +88,39 @@ def observe_review(api, requested="2026-11-11T10:00:01Z"):
 
 class OfficialCheckStateContracts(unittest.TestCase):
     def test_every_documented_nonterminal_status_stays_pending(self):
-        for state in ("queued", "requested", "waiting", "pending", "in_progress"):
+        for state in ("QUEUED", "REQUESTED", "WAITING", "PENDING", "IN_PROGRESS"):
             with self.subTest(state=state):
-                api = contract_api(checks=[check_row(status=state, conclusion=None)])
-                result = w.observe(api, w.target(URL), arguments("required-checks"))
+                result = w.observe(contract_api(
+                    checks=[check_row(status=state, conclusion=None)]),
+                    w.target(URL), arguments("required-checks"))
                 self.assertEqual(result["outcome"], "pending")
                 self.assertEqual(result["evidence"]["failed"], [])
                 self.assertEqual(result["evidence"]["missing"][0]["condition"], "check-pending")
 
-    def test_wait_progresses_across_real_check_status_bodies(self):
-        states = iter(("queued", "requested", "waiting", "pending", "in_progress", "completed"))
+    def test_wait_progresses_across_check_states(self):
+        states = iter(("QUEUED", "REQUESTED", "WAITING", "PENDING", "IN_PROGRESS", "COMPLETED"))
         api = contract_api()
         observations = []
         clock = Mock(return_value=0.0)
 
-        def advance(_seconds=0):
+        def advance(seconds=0):
             state = next(states)
             observations.append(state)
-            row = check_row(status=state, conclusion="success" if state == "completed" else None)
-            api.responses[ROOT + "/commits/head/check-runs?per_page=100&filter=all"] = {
-                "total_count": 1, "check_runs": [row]}
-            api.responses[ROOT + "/actions/runs?check_suite_id=90&per_page=100"] = {
-                "total_count": 1,
-                "workflow_runs": [{"id": 90, "check_suite_id": 90, "event": "pull_request"}]}
-            clock.return_value += _seconds
+            api.graphql_responses = [rollup_page([
+                check_row(status=state, conclusion="SUCCESS" if state == "COMPLETED" else None)])]
+            clock.return_value += seconds
 
         advance()
         result, code = w.run(arguments("required-checks"), clock=clock, sleep=advance,
                              api_factory=lambda *a, **k: api)
         self.assertEqual((result["outcome"], code), ("success", 0))
-        self.assertEqual(observations, ["queued", "requested", "waiting", "pending", "in_progress", "completed"])
-        self.assertEqual(sum(endpoint == PULL for endpoint, _ in api.calls), 12)
+        self.assertEqual(observations, ["QUEUED", "REQUESTED", "WAITING", "PENDING",
+                                        "IN_PROGRESS", "COMPLETED"])
+
+    def test_null_app_is_valid_for_unpinned_check(self):
+        result = w.observe(contract_api(checks=[check_row()]), w.target(URL),
+                           arguments("required-checks"))
+        self.assertEqual(result["outcome"], "success")
 
     def test_loose_policy_does_not_require_up_to_date_head(self):
         api = contract_api(checks=[check_row()])
@@ -169,77 +129,75 @@ class OfficialCheckStateContracts(unittest.TestCase):
         self.assertEqual(result["outcome"], "success")
         self.assertNotIn(ROOT + "/compare/base...head", [endpoint for endpoint, _ in api.calls])
 
-    def test_null_app_is_valid_for_unpinned_check(self):
-        result = w.observe(contract_api(checks=[check_row(app=None)]), w.target(URL), arguments("required-checks"))
-        self.assertEqual(result["outcome"], "success")
-
-    def test_empty_and_absent_test_merge_observations_fall_back_to_head(self):
-        for unavailable in ("empty", "commit-404", "null-sha"):
-            with self.subTest(unavailable=unavailable):
-                api = contract_api(checks=[check_row()], pr=PR)
-                api.responses.update({
-                    ROOT + "/commits/test-merge": {"sha": "test-merge", "parents": [{"sha": "base"}, {"sha": "head"}]},
-                    ROOT + "/commits/test-merge/check-runs?per_page=100&filter=all": {"total_count": 0, "check_runs": []},
-                    ROOT + "/commits/test-merge/statuses?per_page=100": [],
-                })
-                if unavailable == "commit-404":
-                    api.responses[ROOT + "/commits/test-merge"] = w.Failure("transport-error", "404", status=404)
-                elif unavailable == "null-sha":
-                    api.responses[PULL]["merge_commit_sha"] = None
-                result = w.observe(api, w.target(URL), arguments("required-checks"))
-                self.assertEqual(result["outcome"], "success")
-                self.assertEqual(result["evidence"]["observation"]["sha"], "head")
-
-    def test_status_only_test_merge_overrides_successful_head_check(self):
-        api = contract_api(checks=[check_row()], pr=PR)
-        api.responses.update({
-            ROOT + "/commits/test-merge": {"sha": "test-merge", "parents": [{"sha": "base"}, {"sha": "head"}]},
-            ROOT + "/commits/test-merge/check-runs?per_page=100&filter=all": {"total_count": 0, "check_runs": []},
-            ROOT + "/commits/test-merge/statuses?per_page=100": [status_row(state="pending")],
-        })
-        result = w.observe(api, w.target(URL), arguments("required-checks"))
+    def test_check_names_are_case_sensitive(self):
+        result = w.observe(contract_api(checks=[check_row(name="CI")]),
+                           w.target(URL), arguments("required-checks"))
         self.assertEqual(result["outcome"], "pending")
-        self.assertEqual(result["evidence"]["observation"]["sha"], "test-merge")
+        self.assertEqual(result["evidence"]["missing"][0]["condition"], "missing")
+
+    def test_nonrequired_failures_do_not_block_required_success(self):
+        nodes = [check_row(), check_row(identifier=11, conclusion="FAILURE", required=False),
+                 status_row(state="ERROR", required=False)]
+        result = w.observe(contract_api(rollup_pages=[rollup_page(nodes)]),
+                           w.target(URL), arguments("required-checks"))
+        self.assertEqual(result["outcome"], "success")
+        self.assertEqual(result["evidence"]["failed"], [])
+
+    def test_null_rollup_leaves_policy_requirement_missing(self):
+        page = {"repository": {"object": {"statusCheckRollup": None}}}
+        result = w.observe(contract_api(rollup_pages=[page]), w.target(URL),
+                           arguments("required-checks"))
+        self.assertEqual(result["outcome"], "pending")
+        self.assertEqual(result["evidence"]["observation"]["contexts"], [])
+        self.assertEqual(result["evidence"]["missing"][0]["condition"], "missing")
+
+    def test_required_false_same_name_does_not_satisfy_policy(self):
+        result = w.observe(contract_api(checks=[check_row(required=False)]),
+                           w.target(URL), arguments("required-checks"))
+        self.assertEqual(result["outcome"], "pending")
+        self.assertEqual(result["evidence"]["missing"][0]["condition"], "missing")
+
+    def test_later_rollup_page_failure_is_terminal(self):
+        pages = [rollup_page([check_row(name="build")], has_next=True, end_cursor="cursor"),
+                 rollup_page([check_row(identifier=11, name="test", conclusion="FAILURE")])]
+        rules = [{"type": "required_status_checks", "parameters": {
+            "required_status_checks": [{"context": "build", "integration_id": 15368},
+                                       {"context": "test", "integration_id": 15368}],
+            "strict_required_status_checks_policy": False}}]
+        result = w.observe(contract_api(classic={}, rules=rules, rollup_pages=pages),
+                           w.target(URL), arguments("required-checks"))
+        self.assertEqual(result["outcome"], "checks-failed")
 
 
 class OfficialStatusContracts(unittest.TestCase):
     def test_status_only_error_and_failure_are_terminal(self):
-        for state in ("error", "failure"):
+        for state in ("ERROR", "FAILURE"):
             with self.subTest(state=state):
                 result, code = w.run(arguments("required-checks"),
-                                     api_factory=lambda *a, **k: contract_api(statuses=[status_row(state=state)]))
+                                     api_factory=lambda *a, state=state, **k:
+                                     contract_api(checks=[], statuses=[status_row(state=state)]))
                 self.assertEqual((result["outcome"], code), ("checks-failed", 1))
                 self.assertEqual(result["evidence"]["failed"][0]["state"], state)
 
     def test_status_only_pending_transitions_to_success(self):
-        api = contract_api(statuses=[status_row()])
+        api = contract_api(checks=[], statuses=[status_row()])
         clock = Mock(return_value=0.0)
 
         def complete(seconds):
-            api.responses[ROOT + "/commits/head/statuses?per_page=100"] = [status_row(11, "success"), status_row()]
+            api.graphql_responses = [rollup_page([status_row(state="SUCCESS")])]
             clock.return_value += seconds
 
         result, code = w.run(arguments("required-checks"), clock=clock, sleep=complete,
                              api_factory=lambda *a, **k: api)
         self.assertEqual((result["outcome"], code), ("success", 0))
-        self.assertEqual(result["evidence"]["observation"]["statuses"][0]["id"], 11)
 
     def test_context_matching_is_case_insensitive(self):
-        for state, expected in (("success", "success"), ("error", "checks-failed")):
+        for state, expected in (("SUCCESS", "success"), ("ERROR", "checks-failed")):
             with self.subTest(state=state):
-                result = w.observe(contract_api(statuses=[status_row(state=state, context="CI")]),
-                                   w.target(URL), arguments("required-checks"))
+                result = w.observe(contract_api(checks=[], statuses=[
+                    status_row(state=state, context="CI")]), w.target(URL),
+                    arguments("required-checks"))
                 self.assertEqual(result["outcome"], expected)
-
-    def test_newer_different_case_failure_supersedes_old_success(self):
-        api = contract_api(statuses=[status_row(2, "failure", "CI"), status_row(1, "success", "ci")])
-        result = w.observe(api, w.target(URL), arguments("required-checks"))
-        self.assertEqual(result["outcome"], "checks-failed")
-
-    def test_newer_different_case_success_supersedes_old_failure(self):
-        api = contract_api(statuses=[status_row(2, "success", "CI"), status_row(1, "failure", "ci")])
-        result = w.observe(api, w.target(URL), arguments("required-checks"))
-        self.assertEqual(result["outcome"], "success")
 
 
 class OfficialReviewContracts(unittest.TestCase):
@@ -288,7 +246,6 @@ class OfficialReviewContracts(unittest.TestCase):
                     with self.assertRaises(w.Failure) as error:
                         w.validate_baseline(args, w.target(URL))
                     self.assertEqual(error.exception.outcome, "invalid-input")
-
 
     def test_snapshot_pending_review_can_be_submitted_after_request_with_same_id(self):
         # POST .../reviews/{review_id}/events submits the existing draft; it
@@ -366,7 +323,8 @@ class OfficialPRTransitionContracts(unittest.TestCase):
         reads = iter([initial, updated, updated, updated])
         api.responses[PULL] = lambda: next(reads)
         for suffix in ("", "/protection"):
-            api.responses[ROOT + "/branches/release" + suffix] = copy.deepcopy(api.responses[ROOT + "/branches/main" + suffix])
+            api.responses[ROOT + "/branches/release" + suffix] = copy.deepcopy(
+                api.responses[ROOT + "/branches/main" + suffix])
         api.responses[ROOT + "/rules/branches/release?per_page=100"] = []
         clock = Mock(return_value=0.0)
         sleeps = []
@@ -380,10 +338,12 @@ class OfficialPRTransitionContracts(unittest.TestCase):
         self.assertEqual((result["outcome"], code), ("success", 0))
         self.assertEqual((result["base"], result["baseSha"]), ("release", "release-base"))
         self.assertEqual(len(sleeps), 1)
-        self.assertIn(ROOT + "/branches/release/protection", [endpoint for endpoint, _ in api.calls])
+        self.assertIn(ROOT + "/branches/release/protection",
+                      [endpoint for endpoint, _ in api.calls])
 
-    def test_open_merge_commit_sha_never_means_actually_merged(self):
-        api = RESTBodies({PULL: {**PR, "mergeable": True, "merge_commit_sha": "computed-test-merge"}})
+    def test_open_merge_sha_never_means_actually_merged(self):
+        api = RESTBodies({PULL: {**PR, "mergeable": True,
+                                 "merge_commit_sha": "computed-merge"}})
         result = w.observe(api, w.target(URL), arguments("merged"))
         self.assertEqual(result["outcome"], "pending")
         self.assertFalse(result["merged"])
@@ -391,8 +351,6 @@ class OfficialPRTransitionContracts(unittest.TestCase):
 
 
 class SyntheticMalformedPolicyContracts(unittest.TestCase):
-    """HTTP-200 schema violations must not be interpreted as an empty policy."""
-
     def assert_policy_fails_closed(self, api):
         result, code = w.run(arguments("required-checks"), api_factory=lambda *a, **k: api)
         self.assertNotEqual(result["outcome"], "success")
@@ -400,7 +358,6 @@ class SyntheticMalformedPolicyContracts(unittest.TestCase):
         self.assertIn(result["outcome"], ("unknown-policy", "transport-error"))
 
     def test_classic_required_arrays_cannot_be_absent_or_wrong_types(self):
-        # contexts and checks are required arrays in the response schema.
         for required in ({}, {"contexts": [], "checks": {}}, {"contexts": "", "checks": []}):
             with self.subTest(required=required):
                 self.assert_policy_fails_closed(contract_api(classic={"required_status_checks": required}))
@@ -416,11 +373,30 @@ class SyntheticMalformedPolicyContracts(unittest.TestCase):
 
     def test_ruleset_required_strict_boolean_cannot_be_missing_null_or_numeric(self):
         for parameters in ({"required_status_checks": [{"context": "ci"}]},
-                           {"required_status_checks": [{"context": "ci"}], "strict_required_status_checks_policy": None},
-                           {"required_status_checks": [{"context": "ci"}], "strict_required_status_checks_policy": 0}):
+                           {"required_status_checks": [{"context": "ci"}],
+                            "strict_required_status_checks_policy": None},
+                           {"required_status_checks": [{"context": "ci"}],
+                            "strict_required_status_checks_policy": 0}):
             with self.subTest(parameters=parameters):
                 self.assert_policy_fails_closed(contract_api(checks=[check_row()], classic={}, rules=[
                     {"type": "required_status_checks", "parameters": parameters}]))
 
     def test_rule_without_required_type_is_not_an_empty_policy(self):
         self.assert_policy_fails_closed(contract_api(classic={}, rules=[{}]))
+
+    def test_required_flag_must_be_boolean(self):
+        for value in (None, 0, 1, "true"):
+            with self.subTest(value=value):
+                self.assert_policy_fails_closed(contract_api(
+                    rollup_pages=[rollup_page([check_row(required=value)])]))
+        node = check_row()
+        node.pop("isRequired")
+        self.assert_policy_fails_closed(contract_api(rollup_pages=[rollup_page([node])]))
+
+    def test_unknown_context_kind_fails_closed(self):
+        node = {"__typename": "FutureContext", "isRequired": True}
+        self.assert_policy_fails_closed(contract_api(rollup_pages=[rollup_page([node])]))
+
+
+if __name__ == "__main__":
+    unittest.main()

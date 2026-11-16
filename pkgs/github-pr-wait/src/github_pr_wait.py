@@ -14,12 +14,28 @@ import time
 from urllib.parse import quote
 
 
-# 이 CLI는 github.com만 지원한다. slug가 생략돼도 Actions 앱을 식별한다.
-GITHUB_ACTIONS_APP_ID = 15368
-PR_ACTION_EVENTS = frozenset((
-    "push", "pull_request", "pull_request_review", "pull_request_target",
-    "deployment", "deployment_status",
-))
+# GitHub가 PR별로 계산한 필수 여부(isRequired)와 상태로 판정한다. 앱 고정, check run과 commit status,
+# 재실행 대체를 직접 해석하면 GitHub의 머지 판단과 어긋나 끝나지 않는 대기를 만든다.
+ROLLUP_QUERY = """
+query($owner: String!, $name: String!, $sha: GitObjectID!, $pr: Int!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    object(oid: $sha) {
+      ... on Commit {
+        statusCheckRollup {
+          contexts(first: 100, after: $after) {
+            pageInfo { hasNextPage endCursor }
+            nodes {
+              __typename
+              ... on CheckRun { databaseId name status conclusion isRequired(pullRequestNumber: $pr) }
+              ... on StatusContext { context state isRequired(pullRequestNumber: $pr) }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
 
 
 class Failure(Exception):
@@ -89,12 +105,8 @@ class GitHub:
             pass
         process.communicate()
 
-    def get(self, endpoint, *, pages=False, key=None):
+    def run(self, command):
         remaining = self.remaining()
-        command = ["gh", "api", "--hostname", "github.com", "--method", "GET",
-                   "-H", "Accept: application/vnd.github+json", endpoint]
-        if pages:
-            command += ["--paginate", "--slurp"]
         process = None
         try:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -124,9 +136,16 @@ class GitHub:
             raise Failure("transport-error", "GitHub API 요청에 실패했습니다.",
                           transient=status is None or status >= 500, status=status)
         try:
-            value = json.loads(stdout)
+            return json.loads(stdout)
         except ValueError:
             raise Failure("transport-error", "GitHub API가 올바른 JSON을 반환하지 않았습니다.") from None
+
+    def get(self, endpoint, *, pages=False):
+        command = ["gh", "api", "--hostname", "github.com", "--method", "GET",
+                   "-H", "Accept: application/vnd.github+json", endpoint]
+        if pages:
+            command += ["--paginate", "--slurp"]
+        value = self.run(command)
         if not pages:
             if not isinstance(value, dict):
                 raise Failure("transport-error", "GitHub API 객체 응답이 필요합니다.")
@@ -134,20 +153,21 @@ class GitHub:
         if not isinstance(value, list):
             raise Failure("transport-error", "GitHub API 페이지 목록 응답이 필요합니다.")
         result = []
-        totals = set()
         for page in value:
-            rows = page.get(key) if key and isinstance(page, dict) else page
-            if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
+            if not isinstance(page, list) or not all(isinstance(row, dict) for row in page):
                 raise Failure("transport-error", "GitHub API 페이지 형식을 해석할 수 없습니다.")
-            result.extend(rows)
-            if key == "workflow_runs":
-                total = page.get("total_count")
-                if type(total) is not int or total < 0:
-                    raise Failure("unknown-policy", "워크플로 실행 목록의 전체 개수를 확인할 수 없습니다.")
-                totals.add(total)
-        if key == "workflow_runs" and totals != {len(result)}:
-            raise Failure("unknown-policy", "워크플로 실행 목록이 불완전하거나 조회 중 변경되었습니다.")
+            result.extend(page)
         return result
+
+    def graphql(self, query, variables):
+        command = ["gh", "api", "graphql", "--hostname", "github.com", "-f", f"query={query}"]
+        for key, value in variables.items():
+            # 정수는 -F로 타입을 유지하고 문자열은 -f로 그대로 전달한다.
+            command += ["-F" if type(value) is int else "-f", f"{key}={value}"]
+        value = self.run(command)
+        if not isinstance(value, dict) or value.get("errors") or not isinstance(value.get("data"), dict):
+            raise Failure("transport-error", "GitHub GraphQL 응답을 해석할 수 없습니다.")
+        return value["data"]
 
 
 def policy(api, root, pr):
@@ -208,75 +228,68 @@ def policy(api, root, pr):
             "strict": bool(strict), "classic": classic, "rules": rules}
 
 
-def latest(rows, identity):
-    result = {}
-    for row in rows:
-        key = identity(row)
-        # 증가하는 ID로 재실행을 구별한다. 아직 시작하지 않은 새 실행도 이전 성공보다 우선한다.
-        rank = (row.get("id", 0), row.get("created_at") or row.get("started_at") or "")
-        previous = result.get(key)
-        if previous is None or rank > previous[0]:
-            result[key] = (rank, row)
-    return [entry[1] for entry in result.values()]
+def commit_observation(api, selected, sha):
+    owner, name = selected["repo"].split("/")
+    contexts = []
+    after = None
+    while True:
+        variables = {"owner": owner, "name": name, "sha": sha, "pr": selected["pr"]}
+        if after is not None:
+            variables["after"] = after
+        commit = (api.graphql(ROLLUP_QUERY, variables).get("repository") or {}).get("object")
+        if not isinstance(commit, dict):
+            raise Failure("transport-error", "PR head 커밋을 조회할 수 없습니다.")
+        rollup = commit.get("statusCheckRollup")
+        if rollup is None:
+            if after is not None:
+                raise Failure("transport-error", "검사 목록이 조회 도중 사라졌습니다.")
+            break
+        page = rollup["contexts"]
+        for node in page["nodes"]:
+            if type(node.get("isRequired")) is not bool:
+                raise Failure("unknown-policy", "GitHub가 계산한 필수 여부를 확인할 수 없습니다.")
+            if node.get("__typename") == "CheckRun":
+                contexts.append({"kind": "check", "name": node["name"], "id": node.get("databaseId"),
+                                 "status": node["status"], "conclusion": node.get("conclusion"),
+                                 "required": node["isRequired"]})
+            elif node.get("__typename") == "StatusContext":
+                contexts.append({"kind": "status", "name": node["context"], "state": node["state"],
+                                 "required": node["isRequired"]})
+            else:
+                raise Failure("unknown-policy", "알 수 없는 검사 종류입니다.")
+        if not page["pageInfo"]["hasNextPage"]:
+            break
+        after = page["pageInfo"]["endCursor"]
+        if not isinstance(after, str) or not after:
+            raise Failure("transport-error", "검사 목록의 다음 페이지를 확인할 수 없습니다.")
+    return {"sha": sha, "contexts": contexts}
 
 
-def eligible_checks(api, root, checks):
-    events = {}
-    eligible = []
-    for check in checks:
-        if (check.get("app") or {}).get("id") != GITHUB_ACTIONS_APP_ID:
-            eligible.append(check)
-            continue
-        suite = (check.get("check_suite") or {}).get("id")
-        if type(suite) is not int or suite <= 0:
-            raise Failure("unknown-policy", "Actions 검사의 check suite를 확인할 수 없습니다.")
-        if suite not in events:
-            runs = api.get(f"{root}/actions/runs?check_suite_id={suite}&per_page=100",
-                           pages=True, key="workflow_runs")
-            if not runs or any(
-                    type(run.get("check_suite_id")) is not int or run["check_suite_id"] != suite
-                    or not isinstance(run.get("event"), str) or not run["event"]
-                    for run in runs):
-                raise Failure("unknown-policy", "Actions 검사의 실행 이벤트를 확인할 수 없습니다.")
-            suite_events = {run["event"] for run in runs}
-            if len(suite_events) != 1:
-                raise Failure("unknown-policy", "동일 check suite의 실행 이벤트가 일치하지 않습니다.")
-            events[suite] = suite_events.pop()
-        if events[suite] in PR_ACTION_EVENTS:
-            eligible.append(check)
-    return eligible
-
-
-def commit_observation(api, root, sha):
-    ref = quote(sha, safe="")
-    checks = api.get(f"{root}/commits/{ref}/check-runs?per_page=100&filter=all", pages=True, key="check_runs")
-    statuses = api.get(f"{root}/commits/{ref}/statuses?per_page=100", pages=True)
-    return {"sha": sha, "checks": latest(eligible_checks(api, root, checks),
-                                        lambda row: (row.get("name"), (row.get("app") or {}).get("id"))),
-            "statuses": latest(statuses, lambda row: row["context"].lower())}
+def same_context(row, context):
+    # commit status context는 대소문자를 구별하지 않고, check run 이름은 구별한다.
+    return row["name"].lower() == context.lower() if row["kind"] == "status" else row["name"] == context
 
 
 def evaluate_checks(required, observed):
     missing, failed = [], []
+    gated = [row for row in observed["contexts"] if row["required"]]
+    # 정책에 있지만 GitHub가 필수로 인정한 결과가 아직 없으면 보고되지 않은 검사다.
+    # 다른 앱이 보낸 같은 이름의 결과는 isRequired가 거짓이라 대신하지 못한다.
     for requirement in required:
-        context, app = requirement["context"], requirement["appId"]
-        checks = [row for row in observed["checks"] if row.get("name") == context
-                  and (app is None or (row.get("app") or {}).get("id") == app)]
-        statuses = [row for row in observed["statuses"] if row["context"].lower() == context.lower()]
-        label = {"context": context, "appId": app}
-        if not checks and (not statuses or app is not None):
-            missing.append({**label, "condition": "missing"})
-        # 같은 이름의 check와 status는 모두 통과해야 한다. 고정 app의 대리로 status를 사용하지 않는다.
-        for check in checks:
-            if check.get("status") != "completed":
-                missing.append({**label, "condition": "check-pending", "id": check.get("id")})
-            elif check.get("conclusion") not in ("success", "neutral", "skipped"):
-                failed.append({**label, "condition": "check-failed", "id": check.get("id"), "conclusion": check.get("conclusion")})
-        for status in statuses:
-            if status.get("state") == "pending":
-                missing.append({**label, "condition": "status-pending", "id": status.get("id")})
-            elif status.get("state") != "success":
-                failed.append({**label, "condition": "status-failed", "id": status.get("id"), "state": status.get("state")})
+        if not any(same_context(row, requirement["context"]) for row in gated):
+            missing.append({"context": requirement["context"], "appId": requirement["appId"], "condition": "missing"})
+    for row in gated:
+        label = {"context": row["name"], "kind": row["kind"]}
+        if row["kind"] == "check":
+            label["id"] = row["id"]
+            if row["status"] != "COMPLETED":
+                missing.append({**label, "condition": "check-pending"})
+            elif row["conclusion"] not in ("SUCCESS", "NEUTRAL", "SKIPPED"):
+                failed.append({**label, "condition": "check-failed", "conclusion": row["conclusion"]})
+        elif row["state"] in ("PENDING", "EXPECTED"):
+            missing.append({**label, "condition": "status-pending"})
+        elif row["state"] != "SUCCESS":
+            failed.append({**label, "condition": "status-failed", "state": row["state"]})
     return missing, failed
 
 
@@ -379,25 +392,7 @@ def observe(api, selected, args):
         requirements = policy(api, root, pr)
         result["evidence"]["policy"] = requirements
         head = pr["head"]["sha"]
-        merge = pr.get("merge_commit_sha")
-        observed = None
-        if merge and merge != head:
-            try:
-                merge_commit = api.get(f"{root}/commits/{quote(merge, safe='')}")
-            except Failure as error:
-                if error.status != 404:
-                    raise
-            else:
-                parents = {parent["sha"] for parent in merge_commit["parents"]}
-                # mergeable 재계산 중 남아 있는 이전 test merge의 성공을 재사용하지 않는다.
-                if {head, pr["base"]["sha"]}.issubset(parents):
-                    observed = commit_observation(api, root, merge)
-                else:
-                    result["evidence"]["ignoredTestMerge"] = {"sha": merge, "reason": "parents-do-not-match"}
-            if observed is not None and not observed["checks"] and not observed["statuses"]:
-                observed = None
-        if observed is None:
-            observed = commit_observation(api, root, head)
+        observed = commit_observation(api, selected, head)
         missing, failed = evaluate_checks(requirements["required"], observed)
         if requirements["strict"] and requirements["required"]:
             comparison = api.get(f"{root}/compare/{quote(pr['base']['sha'], safe='')}...{quote(head, safe='')}")
@@ -424,10 +419,9 @@ def observe(api, selected, args):
         final.update(outcome="invalidated", reason="관찰 중 PR head가 변경되었습니다.")
         final["evidence"]["lastObservation"] = result
         return final
-    # CI 정책/검사 기준 base 또는 임시 merge commit이 바뀐 경우도 재관찰한다.
+    # 필수 검사 정책과 strict 비교 기준인 base가 바뀌면 재관찰한다.
     if args.until == "required-checks" and (final_pr["base"]["ref"] != pr["base"]["ref"]
-                                             or final_pr["base"]["sha"] != pr["base"]["sha"]
-                                             or final_pr.get("merge_commit_sha") != pr.get("merge_commit_sha")):
+                                             or final_pr["base"]["sha"] != pr["base"]["sha"]):
         result.update(outcome="pending", reason="관찰 중 CI 기준이 변경되어 재확인이 필요합니다.")
         result["evidence"]["missing"] = ["stable-ci-target"]
     result["capturedAt"] = now()

@@ -85,9 +85,14 @@ class ScriptedGh:
             raise AssertionError("Unexpected extra gh invocation: " + repr(command))
         response = self.responses.pop(0)
         endpoint = response["endpoint"]
-        if command[:2] != ["gh", "api"] or endpoint not in command:
+        if command[:2] != ["gh", "api"] or (endpoint != "graphql" and endpoint not in command):
             raise AssertionError((endpoint, command))
-        if command[command.index("--method") + 1] != "GET":
+        if command[2] == "graphql":
+            if endpoint != "graphql":
+                raise AssertionError("GraphQL response requires graphql endpoint marker")
+            if "-f" not in command or not any(value.startswith("query=") for value in command):
+                raise AssertionError("GraphQL query was not supplied")
+        elif command[command.index("--method") + 1] != "GET":
             raise AssertionError("Read-only contract violated")
         self.calls.append((command, self.clock() if self.clock else None))
         owner = self
@@ -223,29 +228,62 @@ class TransportContractTests(unittest.TestCase):
                                            "--reviewer", "bot", purpose="after-request")
                 self.assertEqual((code, result["outcome"]), (1, "transport-error"))
 
-    def test_later_check_run_page_can_prevent_false_success(self):
+    def test_later_rollup_page_can_prevent_false_success(self):
         required = [{"context": name, "app_id": 15368} for name in ("build", "test")]
-        checks = [{"id": identifier, "name": name, "app": {"id": 15368},
-                   "status": "completed", "conclusion": conclusion, "check_suite": {"id": 90}}
-                  for identifier, name, conclusion in ((1, "build", "success"), (2, "test", "failure"))]
+        nodes = [
+            {"__typename": "CheckRun", "databaseId": 1, "name": "build",
+             "status": "COMPLETED", "conclusion": "SUCCESS", "isRequired": True},
+            {"__typename": "CheckRun", "databaseId": 2, "name": "test",
+             "status": "COMPLETED", "conclusion": "FAILURE", "isRequired": True},
+        ]
+        first = {"repository": {"object": {"statusCheckRollup": {
+            "contexts": {"pageInfo": {"hasNextPage": True, "endCursor": "cursor"},
+                         "nodes": [nodes[0]]}}}}}
+        second = {"repository": {"object": {"statusCheckRollup": {
+            "contexts": {"pageInfo": {"hasNextPage": False, "endCursor": None},
+                         "nodes": [nodes[1]]}}}}}
         code, result, gh = self.cli([
             reply(PULL, PR), reply(ROOT + "/branches/main", {"protected": True}),
             reply(ROOT + "/branches/main/protection", {"required_status_checks": {
                 "checks": required, "contexts": ["build", "test"], "strict": False}}),
             reply(ROOT + "/rules/branches/main?per_page=100", [[]]),
-            reply(ROOT + "/commits/head/check-runs?per_page=100&filter=all",
-                  [{"total_count": 2, "check_runs": [checks[0]]},
-                   {"total_count": 2, "check_runs": [checks[1]]}]),
-            reply(ROOT + "/commits/head/statuses?per_page=100", [[]]),
-            reply(ROOT + "/actions/runs?check_suite_id=90&per_page=100",
-                  [{"total_count": 1, "workflow_runs": [
-                      {"id": 90, "check_suite_id": 90, "event": "pull_request"}]}]),
+            reply("graphql", {"data": first}),
+            reply("graphql", {"data": second}),
             reply(PULL, PR)],
             purpose="required-checks")
         self.assertEqual((code, result["outcome"]), (0, "checks-failed"))
         self.assertEqual(result["evidence"]["failed"][0]["context"], "test")
-        self.assertEqual(len(result["evidence"]["observation"]["checks"]), 2)
-        self.assertIn("--slurp", gh.calls[4][0])
+        self.assertEqual(len(result["evidence"]["observation"]["contexts"]), 2)
+        self.assertIn("graphql", gh.calls[4][0])
+
+    def check_policy_replies(self):
+        return [
+            reply(PULL, PR),
+            reply(ROOT + "/branches/main", {"protected": True}),
+            reply(ROOT + "/branches/main/protection", {"required_status_checks": {
+                "checks": [{"context": "ci", "app_id": 15368}],
+                "contexts": ["ci"], "strict": False}}),
+            reply(ROOT + "/rules/branches/main?per_page=100", [[]]),
+        ]
+
+    def test_graphql_auth_failure_is_terminal_and_redacted(self):
+        response = reply("graphql", {"data": {}}, code=1,
+                         stderr="gh: HTTP 401 " + SECRET)
+        code, result, gh = self.cli(self.check_policy_replies() + [response],
+                                    purpose="required-checks")
+        self.assertEqual((code, result["outcome"]), (1, "auth-error"))
+        self.assertEqual(len(gh.calls), 5)
+
+    def test_graphql_errors_with_partial_success_data_never_succeed(self):
+        node = {"__typename": "CheckRun", "databaseId": 1, "name": "ci",
+                "status": "COMPLETED", "conclusion": "SUCCESS", "isRequired": True}
+        data = {"repository": {"object": {"statusCheckRollup": {"contexts": {
+            "pageInfo": {"hasNextPage": False, "endCursor": None}, "nodes": [node]}}}}}
+        response = reply("graphql", {
+            "data": data, "errors": [{"message": "Permission denied " + SECRET}]})
+        code, result, _ = self.cli(self.check_policy_replies() + [response],
+                                   purpose="required-checks")
+        self.assertEqual((code, result["outcome"]), (1, "transport-error"))
 
     def test_last_complete_observation_survives_later_transport_errors(self):
         code, result, _, _ = self.wait([

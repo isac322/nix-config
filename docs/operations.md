@@ -395,15 +395,14 @@ github-pr-wait wait "$pr_url" --until merged \
 - strict 정책에서 head가 base보다 뒤처졌다면 `needs-action`으로 반환한다.
   체크 실패가 함께 있으면 `checks-failed`가 우선이다. 필요한 조치를 판단한 뒤
   다시 관찰한다. missing·queued만으로는 불가능하다고 판단하지 않고 유한하게 기다린다.
-- 필수 workflow 규칙은 `unknown-policy`로 반환한다. 특정 앱이 지정된 필수 검사에
-  앱 ID가 없는 commit status만 있으면 통과시키지 않고 미충족 상태로 남긴다.
-  API가 명시한 필수 정책 필드가 없거나 형식이 틀려도 성공으로 처리하지 않는다.
-- Actions 검사는 check suite로 실행 이벤트를 조회하고, 일반 PR에 인정되는
-  `push`, `pull_request`, `pull_request_review`, `pull_request_target`, `deployment`,
-  `deployment_status` 실행 중에서 최신 결과를 고른다. `workflow_dispatch`·`schedule`·
-  `merge_group` 같은 실행은 필수 체크를 대신하지 않는다. 외부 GitHub App 검사와
-  commit status에는 이 이벤트 필터를 적용하지 않는다. 실행을 특정할 수 없거나
-  조회 목록이 불완전하면 성공으로 처리하지 않는다.
+- 필수 workflow 규칙은 `unknown-policy`로 반환한다. API가 명시한 필수 정책 필드가
+  없거나 형식이 틀려도 성공으로 처리하지 않는다.
+- 필수 여부는 직접 해석하지 않고 GitHub가 PR별로 계산한 값(GraphQL `isRequired`)을
+  쓴다. PR head 커밋의 check run과 commit status 중 GitHub가 필수로 인정한 결과만
+  판정한다. 앱이 지정된 필수 검사를 그 앱이 commit status로 보고해도(예: Vercel)
+  GitHub 판단대로 통과하고, 다른 앱이 보낸 같은 이름의 결과는 대신하지 못한다.
+  정책에 있는 검사를 GitHub가 필수로 인정한 결과가 아직 없으면 누락으로 기다린다.
+  check의 `SUCCESS`·`NEUTRAL`·`SKIPPED`, status의 `SUCCESS`만 통과다.
 - merge 명령과 배포 대기를 `;`·`||` 또는 무조건 이어지는 shell 명령으로 묶지 않는다.
   merge 결과를 따로 읽고 실제 merged 상태와 비어 있지 않은 실제 merge SHA를
   확인한 뒤 그 SHA의 배포 run을 고른다. merge SHA가 null이면 배포 대상을 정할 수 없다.

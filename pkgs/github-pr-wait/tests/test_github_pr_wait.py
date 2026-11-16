@@ -19,7 +19,7 @@ URL = "https://github.com/example/project/pull/7"
 ROOT = "repos/example/project"
 PULL = ROOT + "/pulls/7"
 PR = {"head": {"sha": "head"}, "base": {"ref": "main", "sha": "base"},
-      "merged": False, "merge_commit_sha": "test-merge", "state": "open", "mergeable": None,
+      "merged": False, "merge_commit_sha": None, "state": "open", "mergeable": None,
       "mergeable_state": "blocked"}
 REQUESTED = "2026-11-11T10:00:01Z"
 
@@ -47,15 +47,27 @@ def review(identifier=2, state="COMMENTED", **changes):
             "submitted_at": "2026-11-11T10:00:02Z", "commit_id": "head", **changes}
 
 
-def check(identifier=1, name="test", app=15368, conclusion="success", **changes):
-    return {"id": identifier, "name": name, "app": {"id": app}, "status": "completed",
-            "conclusion": conclusion, "started_at": "2026-11-11T10:00:00Z",
-            "check_suite": {"id": identifier}, **changes}
+def check_node(identifier=1, name="test", status="COMPLETED", conclusion="SUCCESS",
+               required=True):
+    return {"__typename": "CheckRun", "databaseId": identifier, "name": name,
+            "status": status, "conclusion": conclusion, "isRequired": required}
+
+
+def status_node(context="test", state="SUCCESS", required=True):
+    return {"__typename": "StatusContext", "context": context, "state": state,
+            "isRequired": required}
+
+
+def rollup_page(nodes, *, has_next=False, end_cursor=None):
+    return {"repository": {"object": {"statusCheckRollup": {
+        "contexts": {"pageInfo": {"hasNextPage": has_next, "endCursor": end_cursor},
+                     "nodes": copy.deepcopy(nodes)}}}}}
 
 
 class FakeAPI:
-    def __init__(self, responses):
+    def __init__(self, responses, graphql_responses=None):
         self.responses = responses
+        self.graphql_responses = graphql_responses or [rollup_page([])]
         self.calls = []
 
     def get(self, endpoint, **kwargs):
@@ -69,30 +81,39 @@ class FakeAPI:
             raise response
         return copy.deepcopy(response)
 
+    def graphql(self, query, variables):
+        self.calls.append(("graphql", {"query": query, **variables}))
+        response = self.graphql_responses
+        if callable(response):
+            response = response(query, variables)
+        elif isinstance(response, list):
+            cursors = [None, *[
+                page["repository"]["object"]["statusCheckRollup"]["contexts"]["pageInfo"]["endCursor"]
+                for page in response[:-1]]]
+            response = response[cursors.index(variables.get("after"))]
+        if isinstance(response, BaseException):
+            raise response
+        return copy.deepcopy(response)
 
-def ci_api(*, checks=None, statuses=None, rules=None, classic=None, metadata=None,
-           merge_checks=None, merge_statuses=None, behind=0):
-    checks = checks if checks is not None else [check()]
-    merge_checks = merge_checks or []
-    responses = {PULL: PR,
-        ROOT + "/branches/main": metadata if metadata is not None else {"protected": True, "protection": {"enabled": False}},
-        ROOT + "/branches/main/protection": classic if classic is not None else w.Failure("transport-error", "404", status=404),
-        ROOT + "/rules/branches/main?per_page=100": rules if rules is not None else [{"type": "required_status_checks", "parameters": {
-            "required_status_checks": [{"context": "test", "integration_id": 15368}],
-            "strict_required_status_checks_policy": True}}],
-        ROOT + "/commits/head/check-runs?per_page=100&filter=all": checks,
-        ROOT + "/commits/head/statuses?per_page=100": statuses or [],
-        ROOT + "/commits/test-merge": {"sha": "test-merge", "parents": [{"sha": "base"}, {"sha": "head"}]},
-        ROOT + "/commits/test-merge/check-runs?per_page=100&filter=all": merge_checks,
-        ROOT + "/commits/test-merge/statuses?per_page=100": merge_statuses or [],
-        ROOT + "/compare/base...head": {"behind_by": behind}}
-    for row in checks + merge_checks:
-        if (row.get("app") or {}).get("id") == 15368:
-            suite_id = (row.get("check_suite") or {}).get("id")
-            if type(suite_id) is int and suite_id > 0:
-                responses[ROOT + f"/actions/runs?check_suite_id={suite_id}&per_page=100"] = [
-                    {"id": suite_id, "check_suite_id": suite_id, "event": "pull_request"}]
-    return FakeAPI(responses)
+
+def ci_api(*, checks=None, rules=None, classic=None, metadata=None,
+           rollup_pages=None, behind=0):
+    checks = checks if checks is not None else [check_node()]
+    if rollup_pages is None:
+        rollup_pages = [rollup_page(checks)]
+    responses = {
+        PULL: PR,
+        ROOT + "/branches/main": metadata if metadata is not None else {
+            "protected": True, "protection": {"enabled": False}},
+        ROOT + "/branches/main/protection": classic if classic is not None else
+            w.Failure("transport-error", "404", status=404),
+        ROOT + "/rules/branches/main?per_page=100": rules if rules is not None else
+            [{"type": "required_status_checks", "parameters": {
+                "required_status_checks": [{"context": "test", "integration_id": 15368}],
+                "strict_required_status_checks_policy": True}}],
+        ROOT + "/compare/base...head": {"behind_by": behind},
+    }
+    return FakeAPI(responses, rollup_pages)
 
 
 class ReviewTests(unittest.TestCase):
@@ -173,12 +194,12 @@ class ReviewTests(unittest.TestCase):
             result, code = w.run(args, clock=clock, sleep=sleep, api_factory=lambda *a, **k: api)
         return result, code, sleep
 
-    def test_current_response_observes_existing_latest_review_without_request(self):
+    def test_current_response_observes_newest_review_without_request(self):
         old = review(identifier=1, submitted_at="2026-11-11T09:00:00Z", state="APPROVED")
-        latest = review(identifier=3, state="CHANGES_REQUESTED")
-        result, code, sleep = self.wait_for([latest, old, review()], arguments("current-response"))
+        newest = review(identifier=3, state="CHANGES_REQUESTED")
+        result, code, sleep = self.wait_for([newest, old, review()], arguments("current-response"))
         self.assertEqual((result["outcome"], code), ("success", 0))
-        self.assertEqual(result["evidence"]["reviews"], [latest])
+        self.assertEqual(result["evidence"]["reviews"], [newest])
         sleep.assert_not_called()
 
     def test_current_response_rejects_wrong_actor_head_and_unsubmitted_reviews(self):
@@ -255,7 +276,7 @@ class ChecksTests(unittest.TestCase):
 
     def test_classic_and_rules_are_combined_without_unpinned_duplicate(self):
         classic = {"required_status_checks": {"contexts": ["lint"], "checks": [{"context": "lint", "app_id": 7}], "strict": False}}
-        api = ci_api(classic=classic, checks=[check(), check(identifier=2, name="lint", app=7)])
+        api = ci_api(classic=classic, checks=[check_node(), check_node(identifier=2, name="lint")])
         result = self.observe(api)
         self.assertEqual(result["outcome"], "success")
         self.assertEqual(len(result["evidence"]["policy"]["required"]), 2)
@@ -278,71 +299,128 @@ class ChecksTests(unittest.TestCase):
             self.assertEqual(error.exception.outcome, "unknown-policy")
 
     def test_missing_and_wrong_app_never_pass(self):
-        for checks in ([], [check(app=999)]):
-            with self.subTest(checks=checks):
-                result = self.observe(ci_api(checks=checks))
+        for nodes in ([], [check_node(required=False)]):
+            with self.subTest(nodes=nodes):
+                result = self.observe(ci_api(rollup_pages=[rollup_page(nodes)]))
                 self.assertEqual(result["outcome"], "pending")
                 self.assertEqual(result["evidence"]["missing"][0]["condition"], "missing")
 
-    def test_status_cannot_impersonate_pinned_app(self):
-        result = self.observe(ci_api(checks=[], statuses=[{"id": 1, "context": "test", "state": "success"}]))
-        self.assertEqual(result["outcome"], "pending")
-
-    def test_check_status_collision_requires_both_successes(self):
-        for state, outcome in (("failure", "checks-failed"), ("pending", "pending"), ("success", "success")):
-            with self.subTest(state=state):
-                result = self.observe(ci_api(statuses=[{"id": 2, "context": "test", "state": state}]))
-                self.assertEqual(result["outcome"], outcome)
-
-    def test_unpinned_status_only_is_supported(self):
-        classic = {"required_status_checks": {"contexts": ["legacy"], "checks": [], "strict": False}}
-        result = self.observe(ci_api(classic=classic, rules=[], checks=[], statuses=[{"id": 1, "context": "legacy", "state": "success"}]))
+    def test_required_status_context_can_satisfy_pinned_requirement(self):
+        classic = {"required_status_checks": {
+            "contexts": ["test"], "checks": [{"context": "test", "app_id": 15368}],
+            "strict": False}}
+        result = self.observe(ci_api(classic=classic, rules=[],
+                                     rollup_pages=[rollup_page([status_node()])]))
         self.assertEqual(result["outcome"], "success")
 
-    def test_latest_rerun_by_identity_supersedes_success_even_before_start(self):
-        rows = [check(identifier=2, status="queued", conclusion=None, started_at=None), check(identifier=1)]
-        result = self.observe(ci_api(checks=rows))
-        self.assertEqual(result["outcome"], "pending")
-        self.assertEqual(result["evidence"]["observation"]["checks"][0]["id"], 2)
+    def test_pending_and_expected_status_contexts_stay_pending(self):
+        for state in ("PENDING", "EXPECTED"):
+            with self.subTest(state=state):
+                classic = {"required_status_checks": {
+                    "contexts": ["test"], "checks": [{"context": "test", "app_id": None}],
+                    "strict": False}}
+                result = self.observe(ci_api(classic=classic, rules=[],
+                                             rollup_pages=[rollup_page([status_node(state=state)])]))
+                self.assertEqual(result["outcome"], "pending")
+                self.assertEqual(result["evidence"]["missing"][0]["condition"], "status-pending")
 
-    def test_latest_status_supersedes_old_failure(self):
-        statuses = [{"id": 9, "context": "test", "state": "success"}, {"id": 8, "context": "test", "state": "failure"}]
-        self.assertEqual(self.observe(ci_api(statuses=statuses))["outcome"], "success")
+    def test_status_context_names_are_case_insensitive(self):
+        classic = {"required_status_checks": {
+            "contexts": ["test"], "checks": [{"context": "test", "app_id": None}],
+            "strict": False}}
+        result = self.observe(ci_api(classic=classic, rules=[],
+                                     rollup_pages=[rollup_page([status_node(context="TEST")])]))
+        self.assertEqual(result["outcome"], "success")
 
     def test_required_check_terminal_failure_and_accepted_conclusions(self):
-        for conclusion in ("success", "neutral", "skipped", "failure", "cancelled", "timed_out", "action_required", "stale"):
+        for conclusion in ("success", "neutral", "skipped", "failure", "cancelled",
+                           "timed_out", "action_required", "stale"):
             with self.subTest(conclusion=conclusion):
                 expected = "success" if conclusion in ("success", "neutral", "skipped") else "checks-failed"
-                self.assertEqual(self.observe(ci_api(checks=[check(conclusion=conclusion)]))["outcome"], expected)
+                self.assertEqual(self.observe(ci_api(checks=[
+                    check_node(conclusion=conclusion.upper())]))["outcome"], expected)
 
-    def test_test_merge_observations_take_precedence_even_unrelated(self):
-        result = self.observe(ci_api(merge_checks=[check(conclusion="failure")]))
+    def test_required_check_status_collision_requires_both_successes(self):
+        for state, expected in (("FAILURE", "checks-failed"), ("PENDING", "pending"),
+                                ("SUCCESS", "success")):
+            with self.subTest(state=state):
+                result = self.observe(ci_api(rollup_pages=[
+                    rollup_page([check_node(), status_node(state=state)])]))
+                self.assertEqual(result["outcome"], expected)
+
+    def test_later_rollup_page_failure_prevents_false_success(self):
+        pages = [rollup_page([check_node(identifier=1, name="build")],
+                             has_next=True, end_cursor="cursor"),
+                 rollup_page([check_node(identifier=2, name="test", conclusion="FAILURE")])]
+        rules = [{"type": "required_status_checks", "parameters": {
+            "required_status_checks": [{"context": "build", "integration_id": 15368},
+                                       {"context": "test", "integration_id": 15368}],
+            "strict_required_status_checks_policy": False}}]
+        result = self.observe(ci_api(rules=rules, rollup_pages=pages))
         self.assertEqual(result["outcome"], "checks-failed")
-        self.assertEqual(result["evidence"]["observation"]["sha"], "test-merge")
-        result = self.observe(ci_api(merge_checks=[check(name="unrelated")]))
+        self.assertEqual(result["evidence"]["failed"][0]["context"], "test")
+
+    def pr_8828(self, vercel_required=True):
+        url = "https://github.com/runbear-io/plugbear/pull/8828"
+        root = "repos/runbear-io/plugbear"
+        head = "60da3a93fd0d122a5a4a7748016859cb8291494d"
+        vercel = ("Vercel – runbear-app", "Vercel – runbear-docs",
+                  "Vercel – runbear-landing")
+        actions = ("Build Worker", "Detect Prisma Changes", "Lint (Biome)",
+                   "Prisma Migration Check", "Test")
+        required = ([{"context": name, "app_id": 8329} for name in vercel]
+                    + [{"context": name, "app_id": 15368} for name in actions])
+        nodes = [status_node(context=name, required=vercel_required) for name in vercel]
+        nodes.extend(check_node(identifier=index, name=name,
+                                 conclusion="SKIPPED" if name == "Prisma Migration Check" else "SUCCESS")
+                     for index, name in enumerate(actions, 1))
+        nodes.extend(status_node(context=name, required=False) for name in
+                     ("Vercel – runbear-storybook", "Vercel – runbear-studio", "Totoro PR Review"))
+        nodes.extend([
+            check_node(identifier=6, name="Push Revalidation", conclusion="SKIPPED", required=False),
+            check_node(identifier=7, name="Crawler Integration Tests", required=False),
+        ])
+        api = FakeAPI({
+            root + "/pulls/8828": {**PR, "head": {"sha": head}},
+            root + "/branches/main": {"protected": True},
+            root + "/branches/main/protection": {"required_status_checks": {
+                "contexts": [row["context"] for row in required],
+                "checks": required, "strict": False}},
+            root + "/rules/branches/main?per_page=100": [],
+        }, [rollup_page(nodes)])
+        args = w.parser().parse_args([
+            "wait", url, "--until", "required-checks", "--expected-head", head,
+            "--timeout", "10"])
+        return w.observe(api, w.target(url), args), api
+
+    def test_pr_8828_vercel_status_contexts_and_skipped_prisma_pass(self):
+        result, api = self.pr_8828()
+        self.assertEqual(result["outcome"], "success")
+        self.assertEqual(result["head"], "60da3a93fd0d122a5a4a7748016859cb8291494d")
+        self.assertEqual(result["evidence"]["missing"], [])
+        self.assertEqual(result["evidence"]["failed"], [])
+        graphql_calls = [variables for endpoint, variables in api.calls if endpoint == "graphql"]
+        self.assertEqual((graphql_calls[0]["owner"], graphql_calls[0]["name"],
+                          graphql_calls[0]["pr"], graphql_calls[0]["sha"]),
+                         ("runbear-io", "plugbear", 8828, result["head"]))
+
+    def test_pr_8828_nonrequired_same_names_remain_missing(self):
+        result, _ = self.pr_8828(vercel_required=False)
         self.assertEqual(result["outcome"], "pending")
-
-    def test_absent_test_merge_falls_back_to_head(self):
-        api = ci_api()
-        api.responses[ROOT + "/commits/test-merge"] = w.Failure("transport-error", "404", status=404)
-        self.assertEqual(self.observe(api)["evidence"]["observation"]["sha"], "head")
-
-    def test_stale_test_merge_is_not_used_for_current_head(self):
-        api = ci_api(checks=[check(conclusion="failure")], merge_checks=[check()])
-        api.responses[ROOT + "/commits/test-merge"]["parents"] = [{"sha": "base"}, {"sha": "old-head"}]
-        result = self.observe(api)
-        self.assertEqual(result["outcome"], "checks-failed")
-        self.assertEqual(result["evidence"]["observation"]["sha"], "head")
-        self.assertEqual(result["evidence"]["ignoredTestMerge"]["sha"], "test-merge")
+        self.assertEqual({row["context"] for row in result["evidence"]["missing"]},
+                         {"Vercel – runbear-app", "Vercel – runbear-docs",
+                          "Vercel – runbear-landing"})
+        self.assertTrue(all(row["condition"] == "missing"
+                            for row in result["evidence"]["missing"]))
 
     def test_strict_policy_checks_ancestry_not_review_blocking(self):
         self.assertEqual(self.observe(ci_api(behind=1))["outcome"], "needs-action")
         self.assertEqual(self.observe(ci_api(behind=0))["outcome"], "success")
 
     def test_strict_behind_returns_for_action_without_sleeping(self):
-        for checks, expected in (([check()], "needs-action"),
-                                  ([check(conclusion="failure")], "checks-failed"),
-                                  ([check(status="queued", conclusion=None)], "needs-action")):
+        for checks, expected in (([check_node()], "needs-action"),
+                                 ([check_node(conclusion="FAILURE")], "checks-failed"),
+                                 ([check_node(status="QUEUED", conclusion=None)], "needs-action")):
             with self.subTest(expected=expected, checks=checks):
                 api = ci_api(behind=1, checks=checks)
                 api.remaining = lambda: 10
@@ -353,18 +431,13 @@ class ChecksTests(unittest.TestCase):
                 self.assertIn({"condition": "head-behind-base", "commits": 1}, result["evidence"]["missing"])
                 sleep.assert_not_called()
 
-    def test_ci_target_race_returns_pending(self):
-        api = ci_api()
-        values = iter([PR, {**PR, "merge_commit_sha": "new-test-merge"}])
-        api.responses[PULL] = lambda: next(values)
-        self.assertEqual(self.observe(api)["evidence"]["missing"], ["stable-ci-target"])
 
     def test_base_repository_metadata_change_preserves_check_outcome(self):
         initial = {**PR, "base": {**PR["base"], "repo": {"pushed_at": "2026-11-11T10:00:00Z"}}}
         final = {**PR, "base": {**PR["base"], "repo": {"pushed_at": "2026-11-11T10:00:01Z"}}}
         for conclusion, outcome in (("success", "success"), ("failure", "checks-failed")):
             with self.subTest(conclusion=conclusion):
-                api = ci_api(checks=[check(conclusion=conclusion)])
+                api = ci_api(checks=[check_node(conclusion=conclusion.upper())])
                 values = iter([initial, final])
                 api.responses[PULL] = lambda: next(values)
                 result = self.observe(api)
@@ -467,35 +540,41 @@ class TransportTests(unittest.TestCase):
     def api(self, **kwargs):
         return w.GitHub(time.monotonic() + 10, kwargs.pop("api_timeout", 1), **kwargs)
 
-    def test_paginated_lists_and_objects_merge_all_pages(self):
-        for key, payload in ((None, [[{"id": 1}], [{"id": 2}]]),
-                             ("check_runs", [{"check_runs": [{"id": 1}]}, {"check_runs": [{"id": 2}]}])):
-            process = Mock(returncode=0)
-            process.communicate.return_value = (json.dumps(payload), "")
-            with self.subTest(key=key), patch.object(w.subprocess, "Popen", return_value=process) as popen:
-                self.assertEqual(self.api().get("repos/example/project/items?per_page=100", pages=True, key=key), [{"id": 1}, {"id": 2}])
-                command = popen.call_args.args[0]
-                self.assertIn("--paginate", command)
-                self.assertIn("--slurp", command)
-                self.assertNotIn("--jq", command)
-                self.assertEqual(command[command.index("--method") + 1], "GET")
+    def test_graphql_command_preserves_typed_variables(self):
+        process = Mock(returncode=0)
+        process.communicate.return_value = (json.dumps({"data": {"repository": {}}}), "")
+        with patch.object(w.subprocess, "Popen", return_value=process) as popen:
+            self.assertEqual(self.api().graphql("query", {
+                "owner": "example", "name": "project", "sha": "head", "pr": 7}),
+                             {"repository": {}})
+        command = popen.call_args.args[0]
+        self.assertEqual(command[:3], ["gh", "api", "graphql"])
+        self.assertIn("-f", command)
+        self.assertIn("-F", command)
+        self.assertIn("pr=7", command)
 
-    def test_auth_errors_do_not_retry_or_disclose_stderr(self):
-        for stderr in ("gh: HTTP 401 secret-token", "gh: HTTP 403 secret-token", "Please run gh auth login secret-token"):
-            process = Mock(returncode=1)
-            process.communicate.return_value = ("", stderr)
-            with self.subTest(stderr=stderr), patch.object(w.subprocess, "Popen", return_value=process), self.assertRaises(w.Failure) as error:
-                self.api().get(PULL)
-            self.assertEqual(error.exception.outcome, "auth-error")
-            self.assertFalse(error.exception.transient)
-            self.assertNotIn("secret-token", error.exception.reason)
+    def test_graphql_auth_errors_do_not_retry_or_disclose_stderr(self):
+        process = Mock(returncode=1)
+        process.communicate.return_value = ("", "gh: HTTP 401 " + "secret-token")
+        with patch.object(w.subprocess, "Popen", return_value=process), self.assertRaises(w.Failure) as error:
+            self.api().graphql("query", {})
+        self.assertEqual(error.exception.outcome, "auth-error")
+        self.assertNotIn("secret-token", error.exception.reason)
 
-    def test_malformed_pagination_and_json_fail_closed(self):
-        for stdout in ("not-json", '{}', '[{"unexpected": []}]'):
+    def test_graphql_errors_array_fails_closed(self):
+        process = Mock(returncode=0)
+        process.communicate.return_value = (json.dumps({
+            "data": {"repository": {}}, "errors": [{"message": "forbidden"}]}), "")
+        with patch.object(w.subprocess, "Popen", return_value=process), self.assertRaises(w.Failure) as error:
+            self.api().graphql("query", {})
+        self.assertEqual(error.exception.outcome, "transport-error")
+
+    def test_malformed_graphql_json_fails_closed(self):
+        for stdout in ("not-json", "{}", '{"data": null}', '{"errors": []}'):
             process = Mock(returncode=0)
             process.communicate.return_value = (stdout, "")
             with self.subTest(stdout=stdout), patch.object(w.subprocess, "Popen", return_value=process), self.assertRaises(w.Failure):
-                self.api().get(PULL, pages=True, key="check_runs")
+                self.api().graphql("query", {})
 
     def test_subprocess_budget_is_minimum_of_call_and_total_remaining(self):
         process = Mock(returncode=0)
