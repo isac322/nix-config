@@ -22,7 +22,7 @@
 - [0032. 맥의 기본 로케일과 SSH 세션을 한국어 UTF-8로](0032-macos-locale-over-ssh.md) — `011-locale.conf`, `SetEnv`, 클라이언트 `SendEnv`
 - [0029. 서버 맥의 WireGuard 는 앱이 아니라 루트 데몬](0029-wireguard-as-a-daemon-on-the-server-mac.md) — 앱은 콘솔 로그인이 있어야 한다
 - [0030. 콘솔 없는 맥에서 GPG passphrase 를](0030-gpg-passphrase-without-a-console.md) — pinentry-mac 을 빼고 키체인을 직접 읽는다
-- [0033. Nix 빌드가 업데이트될 때마다 키체인 창이 뜨지 않게](0033-keychain-items-owned-by-stable-signatures.md) — ACL 은 한 번, 파티션은 switch 마다
+- [0033. Nix 빌드가 업데이트될 때마다 키체인 창이 뜨지 않게](0033-keychain-items-owned-by-stable-signatures.md) — 키체인은 바뀌지 않는 `/usr/bin/security` 만 읽는다
 
 ## 전원 · 하드웨어
 

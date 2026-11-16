@@ -131,83 +131,6 @@ let
     fi
   '';
 
-  # Keychain items that a Nix-built program reads through Security.framework,
-  # kept readable across rebuilds without a dialog.
-  #
-  # macOS gates a legacy keychain item twice. Its ACL names the programs that
-  # may read it, and its partition list names the code-signing identities.
-  # securityd derives a Developer ID program's partition from its team, which
-  # survives updates, but an ad-hoc signed Nix build gets `cdhash:<hash>`, and
-  # any rebuild — even at the same version — changes the hash. The next read
-  # then draws a keychain password dialog on a console nobody watches, and the
-  # program waits on it.
-  #
-  # So each item is made readable by any program (`-A`) once by hand, which
-  # takes care of the first gate for good (docs/decisions/0033), and every
-  # activation rewrites the partition list to the cdhash of the program being
-  # installed. Rewriting a partition list needs only the keychain password —
-  # no dialog — and this machine already holds that password for automatic
-  # login. `apple-tool:` stays on the list so /usr/bin/security can still read
-  # the item.
-  #
-  # Only for items whose owner is a Nix build. Programs with a Developer ID
-  # (ntn) or ones that go through /usr/bin/security (gh) are already stable.
-  keychainPrograms = [
-    {
-      # gws keeps the AES key for ~/.config/gws/credentials.enc here.
-      service = "gws-cli";
-      account = config.home.username;
-      program = lib.getExe pkgs.gws;
-    }
-  ];
-
-  authorizeKeychainPrograms = pkgs.writeShellScript "authorize-keychain-programs" ''
-    set -u
-
-    pwFile=${lib.escapeShellArg autoLogin.passwordFile}
-    keychain="$HOME/Library/Keychains/login.keychain-db"
-
-    [ -r "$pwFile" ] || exit 0
-    [ -f "$keychain" ] || exit 0
-
-    status=0
-    authorize() {
-      service=$1 account=$2 program=$3
-
-      # Metadata only, so no dialog. An item that was never created has
-      # nothing to authorize.
-      /usr/bin/security find-generic-password -s "$service" -a "$account" "$keychain" \
-        >/dev/null 2>&1 || return 0
-
-      cdhash=$(/usr/bin/codesign -dvvv "$program" 2>&1 | /usr/bin/sed -n 's/^CDHash=//p')
-      if [ -z "$cdhash" ]; then
-        echo "authorize-keychain-programs: no code signature on $program" >&2
-        status=1
-        return 0
-      fi
-
-      # Through `security -i`'s standard input, as in unlock-login-keychain
-      # above, so the password never reaches an argument list.
-      if ! /usr/bin/perl -e '
-        my ($service, $account, $partitions, $kc) = @ARGV;
-        my $pw = <STDIN>;
-        $pw = "" unless defined $pw;
-        $pw =~ s/\r?\n\z//;
-        for ($pw, $service, $account, $kc) { s/(["\\])/\\$1/g }
-        print qq{set-generic-password-partition-list -S "$partitions" -k "$pw" -s "$service" -a "$account" "$kc"\n};
-      ' "$service" "$account" "apple-tool:,cdhash:$cdhash" "$keychain" < "$pwFile" |
-        /usr/bin/security -i >/dev/null 2>&1; then
-        echo "authorize-keychain-programs: could not authorize $program for keychain item $service." >&2
-        status=1
-      fi
-    }
-
-    ${lib.concatMapStrings (item: ''
-      authorize ${lib.escapeShellArg item.service} ${lib.escapeShellArg item.account} ${lib.escapeShellArg item.program}
-    '') keychainPrograms}
-    exit "$status"
-  '';
-
   # 1Password CLI session keeper for unattended server SSH sessions.
   # Caches a session token in ~/.config/op/session.env (valid for 30 minutes).
   # Sourcing the cached file takes 0ms. When missing or older than 25 minutes,
@@ -743,14 +666,6 @@ in
       StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/unlock-login-keychain.log";
     };
   };
-
-  # Every switch is when a rebuilt program can arrive, so that is when its new
-  # cdhash goes into the partition lists. See authorizeKeychainPrograms above.
-  home.activation.authorizeKeychainPrograms = lib.mkIf autoLogin.enable (
-    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      run ${authorizeKeychainPrograms} || warnEcho "A Nix-built program will ask for the keychain password; see above."
-    ''
-  );
 
   # Unattended server sessions over SSH or interactive zsh sessions get their own
   # security context, separate from the Aqua GUI session. Unlock the login keychain

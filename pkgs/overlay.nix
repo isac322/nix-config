@@ -60,6 +60,15 @@ let
         manifestFile = releaseManifests.ntn;
       };
 
+      # On macOS gws reads its keychain key only through Apple-signed
+      # /usr/bin/security, so a rebuilt gws never draws a keychain dialog
+      # (docs/decisions/0033). Linux keeps the upstream package.
+      gws =
+        if final.stdenv.hostPlatform.isDarwin then
+          final.callPackage ./gws/package.nix { gws = prev.gws; }
+        else
+          prev.gws;
+
       # Native Apple Silicon browser and virtual-display utilities. Camofox uses
       # the immutable Camoufox browser; DeskPad supplies the virtual display,
       # and displayplacer fixes its layout.
