@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1794783254,
-        "narHash": "sha256-ScSpOWdp93wsSt8bjG1Nq3o7mFXdE1jNCZb9IynZmiQ=",
+        "lastModified": 1794801595,
+        "narHash": "sha256-mOeB498i3VcN2xrVw9Lb7u2ka3VajEfoS3Kxx2af7Go=",
         "ref": "refs/heads/main",
-        "rev": "3ccb9458f0c04cc77fa34f4b6c7ddc5cfc38b0c4",
+        "rev": "0238463ab73ec194cc8b9ce97f353fc9dfc9cb7a",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -306,10 +306,10 @@
     "impeccable": {
       "flake": false,
       "locked": {
-        "lastModified": 1794707522,
-        "narHash": "sha256-WYlj2ird7aoC6cUKPLyikxIaCJcVA2PaUPGvik+/xkI=",
+        "lastModified": 1794789710,
+        "narHash": "sha256-N9DtrYmL59JZ59sbTxeWYkB20lcX28eB/ioF15XNH5E=",
         "ref": "refs/heads/main",
-        "rev": "2b86d9c07b97d4bed7de23583e1bd1e58dd2baae",
+        "rev": "d41d9860b0094dcb68030657da63461212835aaa",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
@@ -446,10 +446,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1794715896,
-        "narHash": "sha256-qf1vJbDkh8DfUGxnNy3jpdqqoBHz6kHJ4ak9BuQ/C9E=",
+        "lastModified": 1794802226,
+        "narHash": "sha256-/JDBm+w9bp6gmSYY9Tx+512AbQm8eXxXwsb+QCB0QWA=",
         "ref": "refs/heads/main",
-        "rev": "2f07e785c8438206bf81ecc59d937dde8f5a0ffc",
+        "rev": "b2d2d99e29ffe393b3456fd9cd1d10dc15fddaa7",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
