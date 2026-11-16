@@ -694,6 +694,13 @@ in
     pkgs.axiom-cli
     pkgs.langfuse-cli
 
+    # Runbear's internal endpoints (tempo, thanos-query, grafana, argocd) sit
+    # behind Cloudflare Access with WARP-only admission disabled, so the CLIs
+    # above need a per-user Access JWT: `cloudflared access login <url>` caches
+    # it in ~/.cloudflared, and `cloudflared access token -app=<url>` supplies
+    # the `cf-access-token` header.
+    pkgs.cloudflared
+
     # The services those same agents have to act on rather than just read.
     # `gws` is Google's Workspace CLI — @googleworkspace/cli upstream — and
     # `stripe-cli` installs `stripe`. The overlay makes `pkgs.slack-cli` the
