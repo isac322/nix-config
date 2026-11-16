@@ -85,6 +85,13 @@ in
     // {
       description = "Require the isacbear Slack user token and user approval for Slack mutations outside approved test conversations.";
     };
+  slack-message-completeness =
+    (segment ./files/agent-instructions/segments/slack-message-completeness.md "critical" allHarnesses
+      250
+    )
+    // {
+      description = "Read every attachment, image, file, and block of a Slack message before replying to, summarizing, or acting on it.";
+    };
   temporary-resource-cleanup =
     (segment ./files/agent-instructions/segments/temporary-resource-cleanup.md "critical" allHarnesses
       300
