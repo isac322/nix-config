@@ -394,7 +394,15 @@ github-pr-wait wait "$pr_url" --until merged \
   올 때까지 기다리지 않는다.
 - strict 정책에서 head가 base보다 뒤처졌다면 `needs-action`으로 반환한다.
   체크 실패가 함께 있으면 `checks-failed`가 우선이다. 필요한 조치를 판단한 뒤
-  다시 관찰한다. missing·queued만으로는 불가능하다고 판단하지 않고 유한하게 기다린다.
+  다시 관찰한다.
+- 필수 검사가 남았어도 GitHub에서 진행 중인 일이 없으면 기다리지 않는다. 진행 중인
+  check run, `PENDING` commit status, 끝나지 않은 Actions check suite(또는 남은 필수
+  검사를 맡은 앱의 suite)가 하나도 없는 상태가 `--settle`(기본 120초) 이상 이어지면
+  `needs-action`으로 반환한다. 설치만 되고 쓰이지 않는 앱의 suite는 영원히 `QUEUED`로
+  남으므로 진행 중으로 보지 않는다. `evidence.activity.blockers`에 원인을 남긴다:
+  `merge-conflict`(충돌로 `pull_request` workflow가 시작되지 않음),
+  `workflow-approval-required`, `deployment-approval-required`, 그 밖에는
+  `checks-stalled`. check suite 목록을 다 읽지 못하면 정체로 판단하지 않는다.
 - 필수 workflow 규칙은 `unknown-policy`로 반환한다. API가 명시한 필수 정책 필드가
   없거나 형식이 틀려도 성공으로 처리하지 않는다.
 - 필수 여부는 직접 해석하지 않고 GitHub가 PR별로 계산한 값(GraphQL `isRequired`)을

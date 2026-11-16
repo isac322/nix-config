@@ -678,5 +678,113 @@ sys.exit(w.main(["wait", {URL!r}, "--until", "merged", "--expected-head", "head"
         self.assertIs(signal.getsignal(signal.SIGTERM), previous)
 
 
+NOW = w.timestamp("2026-11-16T05:00:00Z")
+OLD = "2026-11-16T04:09:04Z"
+
+
+def suite(app, status="COMPLETED", conclusion="SUCCESS", updated=OLD):
+    return {"status": status, "conclusion": conclusion, "updatedAt": updated, "app": {"databaseId": app}}
+
+
+def activity_page(nodes, suites):
+    page = rollup_page(nodes)
+    page["repository"]["object"]["checkSuites"] = {"pageInfo": {"hasNextPage": False}, "nodes": suites}
+    return page
+
+
+def dated(node, at=OLD):
+    return {**node, "createdAt": at} if node["__typename"] == "StatusContext" else {**node, "completedAt": at}
+
+
+class StalledChecksTests(unittest.TestCase):
+    """필수 검사가 남았지만 GitHub에서 더 진행될 일이 없으면 기다리지 않고 needs-action을 반환한다."""
+
+    def observe(self, page, pr=PR, *extra):
+        api = ci_api(rollup_pages=[page])
+        api.responses[PULL] = pr
+        with patch.object(w, "utcnow", return_value=NOW):
+            return w.observe(api, w.target(URL), arguments("required-checks", "snapshot", *extra))
+
+    def test_unused_app_queued_suites_do_not_keep_a_finished_ci_waiting(self):
+        # PR #8831: 충돌로 pull_request workflow가 시작되지 않았고, 설치만 된 앱 suite는 QUEUED로 남는다.
+        page = activity_page([dated(status_node("Vercel – runbear-app", required=False))],
+                             [suite(8329), suite(999, "QUEUED", None), suite(15368, conclusion="SKIPPED")])
+        for pr, blocker in (({**PR, "mergeable": False}, "merge-conflict"), (PR, "checks-stalled")):
+            with self.subTest(blocker=blocker):
+                result = self.observe(page, pr)
+                self.assertEqual(result["outcome"], "needs-action")
+                self.assertEqual(result["evidence"]["missing"][0]["context"], "test")
+                self.assertEqual([row["condition"] for row in result["evidence"]["activity"]["blockers"]], [blocker])
+
+    def test_suite_of_the_app_owning_a_missing_requirement_keeps_waiting(self):
+        api = ci_api(rollup_pages=[activity_page([], [suite(999, "QUEUED", None)])], rules=[
+            {"type": "required_status_checks", "parameters": {
+                "required_status_checks": [{"context": "external", "integration_id": 999}],
+                "strict_required_status_checks_policy": False}}])
+        with patch.object(w, "utcnow", return_value=NOW):
+            result = w.observe(api, w.target(URL), arguments("required-checks", "snapshot"))
+        self.assertEqual(result["outcome"], "pending")
+        self.assertEqual(result["evidence"]["activity"]["inFlight"][0]["appId"], 999)
+
+    def test_work_still_in_flight_keeps_waiting(self):
+        cases = {
+            "actions-suite-queued": activity_page([], [suite(15368, "QUEUED", None)]),
+            "required-check-running": activity_page([dated(check_node(status="IN_PROGRESS", conclusion=None))], []),
+            "other-check-queued": activity_page(
+                [check_node(name="lint", status="QUEUED", conclusion=None, required=False)], []),
+            "status-pending": activity_page([dated(status_node("deploy", "PENDING", required=False))], []),
+            "suites-unobserved": rollup_page([dated(status_node("deploy", required=False))]),
+        }
+        for name, page in cases.items():
+            with self.subTest(name):
+                result = self.observe(page)
+                self.assertEqual(result["outcome"], "pending")
+                self.assertTrue(result["evidence"]["activity"]["inFlight"])
+
+    def test_recent_activity_waits_for_the_settle_window(self):
+        page = activity_page([dated(status_node("deploy", required=False), "2026-11-16T04:59:30Z")], [])
+        result = self.observe(page)
+        self.assertEqual(result["outcome"], "pending")
+        self.assertTrue(result["evidence"]["activity"]["idle"])
+        self.assertEqual(self.observe(page, PR, "--settle", "20")["outcome"], "needs-action")
+
+    def test_approval_waits_are_reported_as_needing_action(self):
+        cases = {
+            "deployment-approval-required": activity_page(
+                [{**check_node(status="WAITING", conclusion=None), "startedAt": OLD}], [suite(15368, "WAITING", None)]),
+            "workflow-approval-required": activity_page([], [suite(15368, conclusion="ACTION_REQUIRED")]),
+        }
+        for condition, page in cases.items():
+            with self.subTest(condition):
+                result = self.observe(page)
+                self.assertEqual(result["outcome"], "needs-action")
+                self.assertIn(condition, [row["condition"] for row in result["evidence"]["activity"]["blockers"]])
+
+    def test_wait_without_any_github_timestamp_stops_after_local_settle(self):
+        clock = Mock(return_value=0.0)
+        api = ci_api(rollup_pages=[activity_page([], [])])
+        api.remaining = lambda: None
+        def sleep(seconds):
+            clock.return_value += seconds
+        result, code = w.run(arguments("required-checks", "wait", "--settle", "3"), clock=clock, sleep=sleep,
+                             api_factory=lambda *a, **k: api)
+        self.assertEqual((result["outcome"], code), ("needs-action", 1))
+        self.assertEqual(clock.return_value, 3.0)
+        self.assertEqual(result["evidence"]["activity"]["blockers"], [{"condition": "checks-stalled"}])
+
+    def test_new_activity_restarts_the_local_settle_window(self):
+        clock = Mock(return_value=0.0)
+        times = iter("2026-11-16T04:59:%02dZ" % second for second in range(30, 60))
+        api = ci_api(rollup_pages=lambda *_: activity_page(
+            [dated(status_node("deploy", required=False), next(times))], []))
+        api.remaining = lambda: None
+        def sleep(seconds):
+            clock.return_value += seconds
+        with patch.object(w, "utcnow", return_value=w.timestamp("2026-11-16T04:59:30Z")):
+            result, _ = w.run(arguments("required-checks", "wait", "--settle", "3"), clock=clock, sleep=sleep,
+                              api_factory=lambda *a, **k: api)
+        self.assertEqual(result["outcome"], "timeout")
+
+
 if __name__ == "__main__":
     unittest.main()

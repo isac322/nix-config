@@ -16,18 +16,25 @@ from urllib.parse import quote
 
 # GitHub가 PR별로 계산한 필수 여부(isRequired)와 상태로 판정한다. 앱 고정, check run과 commit status,
 # 재실행 대체를 직접 해석하면 GitHub의 머지 판단과 어긋나 끝나지 않는 대기를 만든다.
+# check suite와 시각은 GitHub에서 아직 진행 중인 일이 남았는지 판단하는 데만 쓴다.
 ROLLUP_QUERY = """
 query($owner: String!, $name: String!, $sha: GitObjectID!, $pr: Int!, $after: String) {
   repository(owner: $owner, name: $name) {
     object(oid: $sha) {
       ... on Commit {
+        checkSuites(first: 100) {
+          pageInfo { hasNextPage }
+          nodes { status conclusion updatedAt app { databaseId } }
+        }
         statusCheckRollup {
           contexts(first: 100, after: $after) {
             pageInfo { hasNextPage endCursor }
             nodes {
               __typename
-              ... on CheckRun { databaseId name status conclusion isRequired(pullRequestNumber: $pr) }
-              ... on StatusContext { context state isRequired(pullRequestNumber: $pr) }
+              ... on CheckRun {
+                databaseId name status conclusion startedAt completedAt isRequired(pullRequestNumber: $pr)
+              }
+              ... on StatusContext { context state createdAt isRequired(pullRequestNumber: $pr) }
             }
           }
         }
@@ -36,6 +43,9 @@ query($owner: String!, $name: String!, $sha: GitObjectID!, $pr: Int!, $after: St
   }
 }
 """
+GITHUB_ACTIONS_APP_ID = 15368
+# 진행 중인 일이 없는 상태가 이 시간 동안 이어지면 GitHub에서 더 보고될 검사가 없다고 본다.
+DEFAULT_SETTLE_SECONDS = 120.0
 
 
 class Failure(Exception):
@@ -61,8 +71,12 @@ def timestamp(value):
         raise Failure("invalid-input", "시간은 시간대가 있는 ISO 8601 형식이어야 합니다.") from None
 
 
+def utcnow():
+    return dt.datetime.now(dt.timezone.utc)
+
+
 def now():
-    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+    return utcnow().isoformat().replace("+00:00", "Z")
 
 
 def positive(value):
@@ -231,6 +245,8 @@ def policy(api, root, pr):
 def commit_observation(api, selected, sha):
     owner, name = selected["repo"].split("/")
     contexts = []
+    # 조회하지 못한 suite가 있으면 진행 여부를 모르는 것이므로 정체로 판단하지 않는다.
+    suites = None
     after = None
     while True:
         variables = {"owner": owner, "name": name, "sha": sha, "pr": selected["pr"]}
@@ -239,6 +255,8 @@ def commit_observation(api, selected, sha):
         commit = (api.graphql(ROLLUP_QUERY, variables).get("repository") or {}).get("object")
         if not isinstance(commit, dict):
             raise Failure("transport-error", "PR head 커밋을 조회할 수 없습니다.")
+        if after is None:
+            suites = check_suites(commit.get("checkSuites"))
         rollup = commit.get("statusCheckRollup")
         if rollup is None:
             if after is not None:
@@ -251,10 +269,11 @@ def commit_observation(api, selected, sha):
             if node.get("__typename") == "CheckRun":
                 contexts.append({"kind": "check", "name": node["name"], "id": node.get("databaseId"),
                                  "status": node["status"], "conclusion": node.get("conclusion"),
-                                 "required": node["isRequired"]})
+                                 "required": node["isRequired"],
+                                 "activityAt": node.get("completedAt") or node.get("startedAt")})
             elif node.get("__typename") == "StatusContext":
                 contexts.append({"kind": "status", "name": node["context"], "state": node["state"],
-                                 "required": node["isRequired"]})
+                                 "required": node["isRequired"], "activityAt": node.get("createdAt")})
             else:
                 raise Failure("unknown-policy", "알 수 없는 검사 종류입니다.")
         if not page["pageInfo"]["hasNextPage"]:
@@ -262,7 +281,60 @@ def commit_observation(api, selected, sha):
         after = page["pageInfo"]["endCursor"]
         if not isinstance(after, str) or not after:
             raise Failure("transport-error", "검사 목록의 다음 페이지를 확인할 수 없습니다.")
-    return {"sha": sha, "contexts": contexts}
+    return {"sha": sha, "contexts": contexts, "suites": suites}
+
+
+def check_suites(connection):
+    if not isinstance(connection, dict) or not isinstance(connection.get("nodes"), list):
+        return None
+    if (connection.get("pageInfo") or {}).get("hasNextPage") is not False:
+        return None
+    suites = []
+    for node in connection["nodes"]:
+        if not isinstance(node, dict) or not isinstance(node.get("status"), str):
+            return None
+        suites.append({"appId": (node.get("app") or {}).get("databaseId"), "status": node["status"],
+                       "conclusion": node.get("conclusion"), "activityAt": node.get("updatedAt")})
+    return suites
+
+
+def activity_time(value):
+    try:
+        return timestamp(value) if isinstance(value, str) else None
+    except Failure:
+        return None
+
+
+def progress(missing, observed, pr):
+    """필수 조건이 남았을 때 GitHub 쪽에서 아직 진행 중인 일과 사람 조치가 필요한 이유를 모은다."""
+    pinned = {row.get("appId") for row in missing if row.get("appId") is not None}
+    in_flight, blockers = [], []
+    for row in observed["contexts"]:
+        if row["kind"] == "check" and row["status"] == "WAITING":
+            blockers.append({"condition": "deployment-approval-required", "context": row["name"]})
+        elif row["kind"] == "check" and row["status"] != "COMPLETED":
+            in_flight.append({"context": row["name"], "kind": "check", "status": row["status"]})
+        elif row["kind"] == "status" and row["state"] == "PENDING":
+            in_flight.append({"context": row["name"], "kind": "status", "state": row["state"]})
+    suites = observed.get("suites")
+    if suites is None:
+        in_flight.append({"condition": "check-suites-unobserved"})
+    for suite in suites or []:
+        if suite["conclusion"] == "ACTION_REQUIRED":
+            blockers.append({"condition": "workflow-approval-required", "appId": suite["appId"]})
+        elif suite["status"] == "WAITING":
+            blockers.append({"condition": "deployment-approval-required", "appId": suite["appId"]})
+        # 설치만 되고 쓰이지 않는 앱의 suite는 영원히 QUEUED로 남으므로 Actions와
+        # 미충족 필수 검사를 맡은 앱의 suite만 진행 중으로 본다.
+        elif suite["status"] != "COMPLETED" and (suite["appId"] == GITHUB_ACTIONS_APP_ID or suite["appId"] in pinned):
+            in_flight.append({"kind": "suite", "appId": suite["appId"], "status": suite["status"]})
+    # 충돌이 있으면 pull_request workflow가 시작되지 않는다.
+    if pr.get("mergeable") is False:
+        blockers.append({"condition": "merge-conflict"})
+    times = [activity_time(row.get("activityAt")) for row in observed["contexts"] + (suites or [])]
+    times = [value for value in times if value is not None]
+    last = max(times).isoformat().replace("+00:00", "Z") if times else None
+    return {"inFlight": in_flight, "blockers": blockers, "lastActivityAt": last}
 
 
 def same_context(row, context):
@@ -407,6 +479,17 @@ def observe(api, selected, args):
             result.update(outcome="needs-action", reason="필수 검사 정책을 만족하려면 head를 최신 base에 반영해야 합니다.")
         elif not missing:
             result.update(outcome="success", reason="확인 가능한 모든 필수 검사가 통과했습니다.")
+        else:
+            # GitHub에서 더 진행될 일이 없는데 필수 검사가 남았으면 기다려도 끝나지 않는다.
+            # push 직후에는 검사가 아직 등록되지 않았을 수 있어 조용한 시간이 settle 이상일 때만 판단한다.
+            activity = progress(missing, observed, pr)
+            result["evidence"]["activity"] = activity
+            if not activity["inFlight"]:
+                last = activity["lastActivityAt"]
+                if last and (utcnow() - timestamp(last)).total_seconds() >= args.settle:
+                    stalled(result)
+                else:
+                    activity["idle"] = True
     else:
         result["evidence"]["missing"] = ["merged"]
     # 수집 도중 push/닫힘/머지가 발생하면 이전 관찰로 성공을 반환하지 않는다.
@@ -424,8 +507,18 @@ def observe(api, selected, args):
                                              or final_pr["base"]["sha"] != pr["base"]["sha"]):
         result.update(outcome="pending", reason="관찰 중 CI 기준이 변경되어 재확인이 필요합니다.")
         result["evidence"]["missing"] = ["stable-ci-target"]
+        result["evidence"].pop("activity", None)
     result["capturedAt"] = now()
     return result
+
+
+def stalled(result):
+    blockers = result["evidence"]["activity"]["blockers"]
+    result.update(outcome="needs-action", reason=(
+        "진행 중인 검사가 없고 필수 검사를 진행하려면 조치가 필요합니다." if blockers
+        else "진행 중인 검사가 없어 남은 필수 검사가 보고되지 않습니다."))
+    if not blockers:
+        blockers.append({"condition": "checks-stalled"})
 
 
 def parser():
@@ -441,6 +534,8 @@ def parser():
         command.add_argument("--timeout", type=positive, default=120.0 if name == "snapshot" else None,
                              required=name == "wait")
         command.add_argument("--interval", type=positive, default=15.0)
+        command.add_argument("--settle", type=positive, default=DEFAULT_SETTLE_SECONDS,
+                             help="필수 검사가 남았는데 진행 중인 검사가 없는 상태를 이 초만큼 보면 needs-action으로 끝냅니다.")
         if name == "wait":
             command.add_argument("--expected-head", required=True)
             command.add_argument("--baseline")
@@ -462,6 +557,8 @@ def run(args, *, clock=time.monotonic, sleep=time.sleep, api_factory=GitHub):
     api = api_factory(deadline, args.api_timeout, clock=clock)
     last = None
     failures = 0
+    # GitHub 시각이 없을 때(push 직후 아무 결과도 없음) 쓰는 대기 내부의 조용한 시간 기준.
+    idle_since = idle_key = None
 
     def cancelled():
         return {**selected, "until": args.until, "outcome": "cancelled", "reason": "사용자가 대기를 취소했습니다.",
@@ -474,6 +571,14 @@ def run(args, *, clock=time.monotonic, sleep=time.sleep, api_factory=GitHub):
             api.remaining()
             last = observation
             failures = 0
+            activity = observation.get("evidence", {}).get("activity") or {}
+            if observation["outcome"] == "pending" and activity.get("idle"):
+                if idle_since is None or idle_key != activity.get("lastActivityAt"):
+                    idle_since, idle_key = clock(), activity.get("lastActivityAt")
+                elif clock() - idle_since >= args.settle:
+                    stalled(observation)
+            else:
+                idle_since = idle_key = None
             if args.command == "snapshot" or observation["outcome"] != "pending":
                 return observation, 0 if args.command == "snapshot" or observation["outcome"] == "success" else 1
         except Failure as error:
