@@ -2,9 +2,13 @@
 
 When inspecting runtime metrics, agent traces, errors, billing, cloud resources, or Kubernetes clusters for Runbear services, or reading or writing Notion content:
 
-## Network pre-requisite: Cloudflare WARP
-- Internal endpoints such as Thanos (`https://thanos-query.runbear.io`) and Tempo (`tempo.runbear.io`) require Cloudflare WARP.
-- If queries to internal endpoints fail with network timeouts, connection refused, or DNS resolution errors, it is likely a Cloudflare WARP connection or login issue. Verify with `warp-cli status`.
+## Internal endpoints: Cloudflare Access
+- Internal HTTP endpoints under `runbear.io`, including Tempo (`https://tempo.runbear.io`), Thanos (`https://thanos-query.runbear.io`), Grafana, and Argo CD, sit behind Cloudflare Access. A connected WARP client does not admit a request by itself; every request needs a per-user Access JWT in the `cf-access-token` header.
+- Get the JWT with `t=$(timeout 60 cloudflared access login --no-verbose --auto-close <https-url>)`. It prints only the token and reuses the caches in `~/.cloudflared` without a browser while the organization session (about 30 days) is valid; per-host tokens last 24 hours and are renewed the same way.
+- If that command times out or returns no JWT, the organization session expired. Run `cloudflared access login --auto-close <https-url>` in the background, write the login URL it prints to a mode-`0600` temporary file, have the `browser` subagent approve it as `isac@runbear.io`, then fetch the JWT again.
+- Pass the JWT through each tool's native header option (see the routing table); for any other HTTP API use `cloudflared access curl <https-url> [curl args]`. Never print, log, or store the JWT elsewhere; `~/.cloudflared` is its only store.
+- A redirect to `runbear.cloudflareaccess.com`, an HTML "Cloudflare Access" sign-in page, or a CLI error such as `invalid character '<'` means a missing or expired Access JWT. Network timeouts, connection refused, or DNS resolution errors still point to WARP; verify with `warp-cli status`.
+- Read macOS Keychain items only through the absolute path `/usr/bin/security`. Its Apple signature stays stable across Nix rebuilds, so macOS does not ask for approval again (nix-config ADR 0033).
 
 ## PostgreSQL access
 
@@ -33,9 +37,9 @@ If a proxy is not accepting connections, restart only the affected environment:
 
 | Target | Tool | Command / Pattern | Key rules |
 |---|---|---|---|
-| K8s cluster metrics | `promtool` | `promtool query instant https://thanos-query.runbear.io '<promql>'` | Requires CF WARP. Example: `'up'` |
+| K8s cluster metrics | `promtool` | `promtool query instant --http.config.file=<(printf 'http_headers:\n  cf-access-token:\n    secrets: ["%s"]\n' "$t") https://thanos-query.runbear.io '<promql>'` | `$t` is the Access JWT for `https://thanos-query.runbear.io` (see above). Example: `'up'` |
 | Agent traces (Langfuse) | `langfuse` | `langfuse api observations list ...` | Retrieve keys from macOS Keychain (see below) |
-| Agent traces (Tempo) | `tempo-cli` | `tempo-cli query api search-tags tempo.runbear.io --org-id=single-tenant --secure` | Requires CF WARP |
+| Agent traces (Tempo) | `tempo-cli` | `tempo-cli query api search-tags tempo.runbear.io --org-id=product-prod --secure --header=cf-access-token=$t` | `$t` is the Access JWT for `https://tempo.runbear.io`. Product traces use tenant `product-prod` (Prod) or `product-staging` (Staging) |
 | Errors & stack traces | `sentry` | `sentry issues list ...` | Authenticate with `skill://sentry-cli-login` when required |
 | Billing & customers | `stripe` | `stripe ...` / `stripe --live ...` | Default is Test. Use `--live` only when investigating Prod |
 | Secrets & credentials | `op` | `op item get ...` / `op read ...` | Source session cache or sign in via Keychain (see below) |
@@ -44,11 +48,11 @@ If a proxy is not accepting connections, restart only the affected environment:
 ### Langfuse credentials
 Keys differ between Dev and Prod. Retrieve them from macOS Keychain without committing secrets:
 - Dev environments (local, dev, staging):
-  - Public Key: `security find-generic-password -s "langfuse-dev-public-key" -w`
-  - Secret Key: `security find-generic-password -s "langfuse-dev-secret-key" -w`
+  - Public Key: `/usr/bin/security find-generic-password -s "langfuse-dev-public-key" -w`
+  - Secret Key: `/usr/bin/security find-generic-password -s "langfuse-dev-secret-key" -w`
 - Prod environment:
-  - Public Key: `security find-generic-password -s "langfuse-prod-public-key" -w`
-  - Secret Key: `security find-generic-password -s "langfuse-prod-secret-key" -w`
+  - Public Key: `/usr/bin/security find-generic-password -s "langfuse-prod-public-key" -w`
+  - Secret Key: `/usr/bin/security find-generic-password -s "langfuse-prod-secret-key" -w`
 Pass via `--public-key` / `--secret-key` flags or export as `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY`.
 
 ### 1Password CLI credentials

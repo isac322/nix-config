@@ -414,6 +414,14 @@ endpoint, bucket, region과 S3 자격증명은
 `langfuse` 는 nixpkgs 에 없어서 직접 담았다. nixpkgs 의 `langfuse` attribute 는
 파이썬 SDK 이고 그 안에는 실행 파일이 없다 — 아래 [`pkgs/`](#pkgs) 를 보라.
 
+`cloudflared` 도 같은 목록에 둔다. Runbear 의 Tempo, Thanos, Grafana, Argo CD 는
+Cloudflare Access 뒤에 있고, 11/14 사고 뒤로 WARP 연결만으로는 통과하지 못한다.
+`cloudflared access login` 이 사용자별 Access JWT 를 `~/.cloudflared` 에 캐시하고,
+`tempo-cli` 와 `promtool` 은 그 JWT 를 `cf-access-token` 헤더로 보낸다. 토큰은
+파일에만 두고 키체인에 넣지 않으므로 키체인 승인 창이 뜰 일이 없다. 호출 방법은
+에이전트 지침의 Runbear 세그먼트(`home/files/agent-instructions/segments/runbear.md`)
+에 있다.
+
 ## 서비스 CLI — 읽는 것에서 하는 것으로
 
 `cf`, `wrangler`, `stripe`, `gws`는 모든 노드의 같은 자리에 둔다(`home/common.nix`).
