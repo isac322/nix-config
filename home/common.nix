@@ -442,10 +442,20 @@ in
   imports = [
     ./agent-instructions.nix
     ./agent-skills.nix
+    ./agy.nix
     ./cloud-sql-proxy.nix
     ./github-nix-access-token.nix
     ./skillclaw.nix
   ];
+
+  # agy's main agent sees the same services as Claude Code. Camofox belongs to
+  # its browser subagent alone, so the main agent never holds a browser tool.
+  local.agy = {
+    mcpServers = remoteMcpServers // {
+      codegraph = codegraphMcpServer;
+    };
+    camofoxMcpServer = if camofoxCfg.enable then camofoxMcpServer "agy" else null;
+  };
 
   # Every node runs a local SkillClaw client and synchronizes the shared
   # ~/.agents/skills tree used by OMP and Codex. Claude receives a Nix-generated
@@ -650,10 +660,11 @@ in
     agents.codex
     agents.antigravity-cli
 
-    # Official OMP standalone binary. `nix run .#update-packages` refreshes its
-    # version, platform assets, and sha256 digests in one snapshot. On macOS it
-    # is installed at a fixed path under ~/.local so its Developer ID signature
-    # keeps one TCC identity across updates (home/darwin.nix).
+    # Official OMP and herdr-core standalone binaries. `nix run .#update-packages`
+    # refreshes their versions, platform assets, and sha256 digests in one
+    # snapshot. On macOS, both are installed at fixed paths under ~/.local so
+    # their Developer ID signatures keep one TCC identity across updates
+    # (home/darwin.nix).
   ]
   ++ lib.optionals (!pkgs.stdenv.hostPlatform.isDarwin) [
     (import ./omp-launcher.nix {
@@ -661,6 +672,7 @@ in
       inherit (pkgs.stdenv.hostPlatform) isDarwin;
       sops = lib.getExe pkgs.sops;
     } (lib.getExe pkgs.omp-bin))
+    pkgs.herdr-core
   ]
   ++ [
 
@@ -674,6 +686,9 @@ in
 
     # Read-only, deadline-bounded GitHub PR waits shared by all agent harnesses.
     pkgs.github-pr-wait
+
+    # Observe-only local review gate; it never blocks or mutates the triggering tool.
+    pkgs.pr-gate
 
     # BearDrive's CLI is useful on every node, but joining a project is mutable
     # per-user state: `bdrive init` selects a folder and hub, authenticates, and
@@ -743,6 +758,11 @@ in
     # OrbStack's own cluster tracks its bundled version, so the gap is worth
     # watching if that cluster is the one being used.
     pkgs.kubectl
+
+    # Argo CD's client, for the same reason k9s and kubectl are everywhere.
+    # nixpkgs trails upstream by a minor release, so pkgs/overlay.nix installs
+    # the official release binary instead.
+    pkgs.argocd
 
     # Workflow files are edited from whichever machine the work is on, and a
     # broken one is only found by pushing it. actionlint reads them statically —
