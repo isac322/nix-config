@@ -635,6 +635,7 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `sentry` | GitHub release binary | getsentry/cli의 현재 platform binary |
 | `slack-cli` | GitHub release binary | nixpkgs의 동명 attribute를 갈아끼운다 |
 | `ntn` | ntn.dev release archive | Notion CLI; 상류 설치 스크립트와 같은 target별 archive·`.sha256` |
+| `supabase-cli` | GitHub release binary | nixpkgs보다 최신인 상류 릴리스를 따라간다. 바이너리 이름은 `supabase` |
 | `bun` | GitHub release binary override | 잠긴 nixpkgs보다 최신인 동안만 override |
 | `cf` | GitHub release source override | `cloudflare/cf`의 최신 릴리스 태그와 `pnpmDeps` 해시를 추적 |
 | `tempo-cli` | nixpkgs override | `subPackages`를 하나로 줄인다 |

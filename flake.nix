@@ -294,6 +294,7 @@
             sentry
             ntn
             slack-cli
+            supabase-cli
             omp-bin
             omo
             tempo-cli

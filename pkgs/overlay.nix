@@ -59,6 +59,9 @@ let
       ntn = final.callPackage ./ntn/package.nix {
         manifestFile = releaseManifests.ntn;
       };
+      supabase-cli = final.callPackage ./supabase-cli/package.nix {
+        manifestFile = releaseManifests.supabase;
+      };
 
       # On macOS gws reads its keychain key only through Apple-signed
       # /usr/bin/security, so a rebuilt gws never draws a keychain dialog

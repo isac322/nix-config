@@ -244,6 +244,28 @@
       "prerelease": false,
       "tag_name": "v4.14.0"
     },
+    "supabase": {
+      "assets": [
+        {
+          "browser_download_url": "https://github.com/supabase/cli/releases/download/v3.2.0/supabase_3.2.0_darwin_arm64.tar.gz",
+          "digest": "sha256:c9e27cdaf848f216879df0a354fca96c7e5ac0d1527d934b730ec62ba348b86d",
+          "name": "supabase_3.2.0_darwin_arm64.tar.gz"
+        },
+        {
+          "browser_download_url": "https://github.com/supabase/cli/releases/download/v3.2.0/supabase_3.2.0_linux_arm64.tar.gz",
+          "digest": "sha256:cd9b4b6c5b04c6fb68c8bf6b35a7ed2924b6671cda263613fd8a7273b9fa167b",
+          "name": "supabase_3.2.0_linux_arm64.tar.gz"
+        },
+        {
+          "browser_download_url": "https://github.com/supabase/cli/releases/download/v3.2.0/supabase_3.2.0_linux_amd64.tar.gz",
+          "digest": "sha256:fb88b175a817563505be02c60872060bcb8d5c869a1aa5656eaeb085d4a2f1e4",
+          "name": "supabase_3.2.0_linux_amd64.tar.gz"
+        }
+      ],
+      "draft": false,
+      "prerelease": false,
+      "tag_name": "v3.2.0"
+    },
     "vercelDarwinArm64": {
       "dist": {
         "integrity": "sha512-tNDUZ84QFa+GO09ebAXaTT3OzoF96ntz51PKhHjjIQYlBIJKNkKg8DeAmT5IxiGXa63+KKib/uuaTVQorrXGWg==",

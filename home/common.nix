@@ -705,13 +705,15 @@ in
     # `gws` is Google's Workspace CLI — @googleworkspace/cli upstream — and
     # `stripe-cli` installs `stripe`. The overlay makes `pkgs.slack-cli` the
     # Slack app CLI rather than nixpkgs's unrelated webhook script, and adds
-    # Notion's `ntn`, which nixpkgs does not have.
+    # Notion's `ntn`, which nixpkgs does not have. `supabase-cli` comes from
+    # upstream release binaries because nixpkgs trails the current major.
     pkgs.slack-cli
     pkgs.ntn
     pkgs.cf
     pkgs.wrangler
     pkgs.stripe-cli
     pkgs.gws
+    pkgs.supabase-cli
 
     # Every machine, because a cluster is reached from wherever someone happens
     # to be — including the NixOS server, which is a machine that runs services

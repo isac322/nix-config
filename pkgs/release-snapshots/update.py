@@ -379,6 +379,16 @@ def build_snapshot(previous_snapshot: dict[str, Any] | None) -> dict[str, Any]:
                 f"slack_cli_{version}_linux_amd64.tar.gz",
             ],
         ),
+        "supabase": latest(
+            "supabase",
+            "supabase/cli",
+            "v",
+            lambda version: [
+                f"supabase_{version}_darwin_arm64.tar.gz",
+                f"supabase_{version}_linux_arm64.tar.gz",
+                f"supabase_{version}_linux_amd64.tar.gz",
+            ],
+        ),
         "vercelDarwinArm64": npm_latest("@vercel/vc-native-darwin-arm64"),
         "vercelLinuxArm64": npm_latest("@vercel/vc-native-linux-arm64"),
         "vercelLinuxX64": npm_latest("@vercel/vc-native-linux-x64"),
