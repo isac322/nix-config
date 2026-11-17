@@ -62,6 +62,11 @@ let
       supabase-cli = final.callPackage ./supabase-cli/package.nix {
         manifestFile = releaseManifests.supabase;
       };
+      # nixpkgs trails Argo CD by a minor release; the upstream CLI binary
+      # follows the latest stable tag.
+      argocd = final.callPackage ./argocd/package.nix {
+        manifestFile = releaseManifests.argocd;
+      };
 
       # On macOS gws reads its keychain key only through Apple-signed
       # /usr/bin/security, so a rebuilt gws never draws a keychain dialog

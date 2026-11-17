@@ -426,7 +426,7 @@ server 에서는 이 흐름이 통하지 않는다. 호출 방법은 에이전�
 
 ## 서비스 CLI — 읽는 것에서 하는 것으로
 
-`cf`, `wrangler`, `stripe`, `gws`는 모든 노드의 같은 자리에 둔다(`home/common.nix`).
+`cf`, `wrangler`, `stripe`, `gws`, `argocd`는 모든 노드의 같은 자리에 둔다(`home/common.nix`).
 관측 CLI가 "무슨 일이 있었는지"를 읽는 쪽이라면 이쪽은 에이전트가 실제로
 **손을 대는** 쪽이다 — Worker를 배포하고, 결제 이벤트를 찾고, 캘린더를 읽는다.
 브라우저 자동화는 별도 CLI가 아니라 모든 호스트의 Camofox MCP가 담당한다.
@@ -636,6 +636,7 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `slack-cli` | GitHub release binary | nixpkgs의 동명 attribute를 갈아끼운다 |
 | `ntn` | ntn.dev release archive | Notion CLI; 상류 설치 스크립트와 같은 target별 archive·`.sha256` |
 | `supabase-cli` | GitHub release binary | nixpkgs보다 최신인 상류 릴리스를 따라간다. 바이너리 이름은 `supabase` |
+| `argocd` | GitHub release binary | nixpkgs보다 최신인 Argo CD 릴리스의 공식 CLI 바이너리 |
 | `bun` | GitHub release binary override | 잠긴 nixpkgs보다 최신인 동안만 override |
 | `cf` | GitHub release source override | `cloudflare/cf`의 최신 릴리스 태그와 `pnpmDeps` 해시를 추적 |
 | `tempo-cli` | nixpkgs override | `subPackages`를 하나로 줄인다 |

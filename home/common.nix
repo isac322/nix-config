@@ -740,6 +740,11 @@ in
     # watching if that cluster is the one being used.
     pkgs.kubectl
 
+    # Argo CD's client, for the same reason k9s and kubectl are everywhere.
+    # nixpkgs trails upstream by a minor release, so pkgs/overlay.nix installs
+    # the official release binary instead.
+    pkgs.argocd
+
     # Workflow files are edited from whichever machine the work is on, and a
     # broken one is only found by pushing it. actionlint reads them statically —
     # it parses the workflow schema, checks `runs-on` labels and `${{ }}`

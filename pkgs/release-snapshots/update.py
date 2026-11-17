@@ -302,6 +302,16 @@ def build_snapshot(previous_snapshot: dict[str, Any] | None) -> dict[str, Any]:
         )
 
     releases = {
+        "argocd": latest(
+            "argocd",
+            "argoproj/argo-cd",
+            "v",
+            lambda _version: [
+                "argocd-darwin-arm64",
+                "argocd-linux-arm64",
+                "argocd-linux-amd64",
+            ],
+        ),
         "axiom": latest(
             "axiom",
             "axiomhq/cli",

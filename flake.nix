@@ -295,6 +295,7 @@
             ntn
             slack-cli
             supabase-cli
+            argocd
             omp-bin
             omo
             tempo-cli
