@@ -76,7 +76,7 @@ def default_observation(**changes: object) -> dict:
         "threads_open": 0, "new_findings": 0, "escalations": 0, "wall_s": 0.0,
         "input_tokens": None, "cached_input_tokens": None, "output_tokens": None,
         "run_dir": None, "gate_version": None, "model": DEFAULT_MODEL, "effort": DEFAULT_EFFORT,
-        "would_block": False, "would_escalate": False, "agent_kind": "local-codex",
+        "would_block": False, "would_escalate": False, "agent_kind": os.environ.get("PR_GATE_AGENT_KIND") or "unknown",
     }
     row.update(changes)
     return row
