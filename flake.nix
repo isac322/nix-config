@@ -55,6 +55,10 @@
       url = "git+https://github.com/Gentleman-Programming/gentle-ai.git?shallow=1";
       flake = false;
     };
+    herdr-core = {
+      url = "git+https://github.com/herdrdev/herdr-core.git?shallow=1";
+      flake = false;
+    };
     humanizer = {
       url = "git+https://github.com/blader/humanizer.git?shallow=1";
       flake = false;
@@ -293,6 +297,7 @@
             github-pr-wait
             pr-gate
             ntn
+            herdr-core
             slack-cli
             supabase-cli
             argocd
@@ -301,6 +306,9 @@
             tempo-cli
             cf
             ;
+        }
+        // nixpkgs.lib.optionalAttrs (system == "aarch64-linux" || system == "x86_64-linux") {
+          inherit (pkgs) herdr-app;
         }
         // nixpkgs.lib.optionalAttrs (system == "aarch64-darwin") {
           inherit (pkgs)

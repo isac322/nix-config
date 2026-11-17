@@ -174,6 +174,11 @@ in
       # RustDesk is installed on both Macs; only the server role enables
       # Direct IP services.
       "rustdesk"
+
+      # Herdr desktop GUI client on both Macs (laptop and server Mac).
+      # Its persistent terminal daemon (`herdr-core`) is packaged separately in
+      # home/darwin.nix and kept running on the server Mac via launchd.
+      "herdr-app"
     ];
   };
 

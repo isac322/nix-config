@@ -285,6 +285,37 @@ def ntn_release() -> dict[str, Any]:
     return {"assets": assets, "draft": False, "prerelease": False, "tag_name": tag}
 
 
+def herdr_release(channel: str, package_prefix: str, targets: tuple[str, ...]) -> dict[str, Any]:
+    # Herdr publishes signed release tarballs and SHA-256 digests through
+    # releases.herdr.dev rather than GitHub Releases.
+    manifest = fetch_json(f"https://releases.herdr.dev/{channel}/latest.json")
+    if not isinstance(manifest, dict):
+        raise RuntimeError(f"invalid {package_prefix} release manifest")
+    version = manifest.get("version")
+    manifest_targets = manifest.get("targets")
+    if not isinstance(version, str) or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) is None:
+        raise RuntimeError(f"unexpected {package_prefix} latest version: {version!r}")
+    if not isinstance(manifest_targets, dict):
+        raise RuntimeError(f"{package_prefix} manifest is missing targets")
+    assets = []
+    for target in targets:
+        entry = manifest_targets.get(target)
+        name = f"{package_prefix}-{target}.tar.gz"
+        if not isinstance(entry, dict):
+            raise RuntimeError(f"{package_prefix} manifest is missing target {target}")
+        url = entry.get("url")
+        sha256 = entry.get("sha256")
+        if (
+            not isinstance(url, str)
+            or not url.endswith(f"/{version}/{name}")
+            or not isinstance(sha256, str)
+            or re.fullmatch(r"[0-9a-f]{64}", sha256) is None
+        ):
+            raise RuntimeError(f"unexpected {package_prefix} asset metadata for {target}")
+        assets.append({"browser_download_url": url, "digest": f"sha256:{sha256}", "name": name})
+    return {"assets": assets, "draft": False, "prerelease": False, "tag_name": f"v{version}"}
+
+
 def build_snapshot(previous_snapshot: dict[str, Any] | None) -> dict[str, Any]:
     previous_releases = (previous_snapshot or {}).get("releaseManifests", {})
 
@@ -345,6 +376,23 @@ def build_snapshot(previous_snapshot: dict[str, Any] | None) -> dict[str, Any]:
             "jakehilborn/displayplacer",
             "v",
             lambda version: [f"displayplacer-apple-v{version.replace('.', '')}"],
+        ),
+        "herdrApp": herdr_release(
+            "app",
+            "herdr-app",
+            (
+                "linux-aarch64",
+                "linux-x86_64",
+            ),
+        ),
+        "herdrCore": herdr_release(
+            "core",
+            "herdr-core",
+            (
+                "macos-aarch64",
+                "linux-aarch64",
+                "linux-x86_64",
+            ),
         ),
         "langfuse": npm_latest("langfuse-cli", include_dependencies=True),
         "ntn": ntn_release(),

@@ -119,6 +119,45 @@
       "prerelease": false,
       "tag_name": "v1.4.0"
     },
+    "herdrApp": {
+      "assets": [
+        {
+          "browser_download_url": "https://releases.herdr.dev/app/0.1.16/herdr-app-linux-aarch64.tar.gz",
+          "digest": "sha256:efeef4f1759b0e8900f205c2c22b14287a112f874406539b4ea1b3be24b73631",
+          "name": "herdr-app-linux-aarch64.tar.gz"
+        },
+        {
+          "browser_download_url": "https://releases.herdr.dev/app/0.1.16/herdr-app-linux-x86_64.tar.gz",
+          "digest": "sha256:282d2632196b238206cfe66bfb61c0faf299ca1c91843bd076521bbe36571216",
+          "name": "herdr-app-linux-x86_64.tar.gz"
+        }
+      ],
+      "draft": false,
+      "prerelease": false,
+      "tag_name": "v0.1.16"
+    },
+    "herdrCore": {
+      "assets": [
+        {
+          "browser_download_url": "https://releases.herdr.dev/core/0.1.21/herdr-core-macos-aarch64.tar.gz",
+          "digest": "sha256:1ab38dd9270f63a8f794d6d60e8702eb0d1c85a72bda85d735e5eea43f05ffed",
+          "name": "herdr-core-macos-aarch64.tar.gz"
+        },
+        {
+          "browser_download_url": "https://releases.herdr.dev/core/0.1.21/herdr-core-linux-aarch64.tar.gz",
+          "digest": "sha256:e844a2bfab48a226097679d076bc83042fe57fccef5387ef802e5b24e78b529a",
+          "name": "herdr-core-linux-aarch64.tar.gz"
+        },
+        {
+          "browser_download_url": "https://releases.herdr.dev/core/0.1.21/herdr-core-linux-x86_64.tar.gz",
+          "digest": "sha256:78424755c10a40dde38a0bdb55c20ac19706e9ae05ed68fc2acf1fcff0d941c1",
+          "name": "herdr-core-linux-x86_64.tar.gz"
+        }
+      ],
+      "draft": false,
+      "prerelease": false,
+      "tag_name": "v0.1.21"
+    },
     "langfuse": {
       "dependencies": {},
       "dist": {
@@ -290,24 +329,24 @@
     },
     "vercelDarwinArm64": {
       "dist": {
-        "integrity": "sha512-tNDUZ84QFa+GO09ebAXaTT3OzoF96ntz51PKhHjjIQYlBIJKNkKg8DeAmT5IxiGXa63+KKib/uuaTVQorrXGWg==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-65.16.0.tgz"
+        "integrity": "sha512-g2Z9an3xZWzoWvtWIx79aQD9qI60KRxcGFD044W9oqNLLF5QhriMGshjZNtEJAvU9xWuk46G8UqGYich2Hzbxw==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-darwin-arm64/-/vc-native-darwin-arm64-65.17.0.tgz"
       },
-      "version": "65.16.0"
+      "version": "65.17.0"
     },
     "vercelLinuxArm64": {
       "dist": {
-        "integrity": "sha512-iWIkcOtIikH797V42RJRl1JGacKU0aeck/tRzNKi86x0SJF0+PVurc42Jj2kO5Zqr8j4XxdKIFggKn1yQs0mdw==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-65.16.0.tgz"
+        "integrity": "sha512-Aim7NZe4wuBoafYRkqV0szd0b9PnP01PQohlRmbs0gZigEw3Nz1/7Aa9f7+Ev0dub6JAT1siO5LCSoBWXYmsJQ==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-arm64/-/vc-native-linux-arm64-65.17.0.tgz"
       },
-      "version": "65.16.0"
+      "version": "65.17.0"
     },
     "vercelLinuxX64": {
       "dist": {
-        "integrity": "sha512-ALGl5nis4LaGDzms+EBoQ6eaSP3ckhonyM035Eq1KYaRNnYOF7s+5xUb2fQt8EQrlPPe8MXeU0iCHKXlyp/a9g==",
-        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-65.16.0.tgz"
+        "integrity": "sha512-e9ZHUS9sI5lC3g1pcPycwoQsPrjmtSwn/gt4yDcUwHEXNV4D18F6PZLMgHfGnZ2BgSCOJPJIs+wwpo5xsPiMcg==",
+        "tarball": "https://registry.npmjs.org/@vercel/vc-native-linux-x64/-/vc-native-linux-x64-65.17.0.tgz"
       },
-      "version": "65.16.0"
+      "version": "65.17.0"
     }
   },
   "schema": 1

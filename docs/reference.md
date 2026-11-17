@@ -275,13 +275,13 @@ MBP의 Direct IP host는 TCP 21118에서 화면과 입력을 제공한다.
 
 ## 코딩 에이전트 — 작업이 있는 곳에서 돈다
 
-`claude-code`, `codex`, `antigravity-cli`(`agy`), `omp` 넷을
+`claude-code`, `codex`, `antigravity-cli`(`agy`), `herdr-core`(`hc`), `omp` 다섯을
 **모든 기기**에 둔다 (`home/common.nix`). 아래 두 CLI 묶음이 이 층에 있는 이유가
 이것이라, 순서상 여기가 먼저다.
 
 `claude-code`, `codex`, `antigravity-cli`는 `llm-agents` 인풋의 캐시된 패키지를 쓴다.
-`omp`는 공식 릴리스 바이너리를 직접 설치하므로 상류 빌드를 반복하지 않고
-macOS의 Developer ID 서명도 그대로 유지한다. 버전·asset URL·SHA-256은
+`omp`와 `herdr-core`는 공식 릴리스 바이너리를 직접 설치하므로 상류 빌드를 반복하지 않고
+macOS의 Developer ID 서명(`Herdr Core.app` 포함)도 그대로 유지한다. 버전·asset URL·SHA-256은
 `pkgs/release-snapshots.json`에 고정되며 `nix run .#update-packages`가 원자적으로
 갱신한다. aarch64-darwin과 x86_64-linux·aarch64-linux를 지원한다.
 
@@ -290,8 +290,16 @@ macOS의 Developer ID 서명도 그대로 유지한다. 버전·asset URL·SHA-2
 재사용하며, 기존 idle 알림 억제와 비동기 작업·결과 전달 대기 중 `/goal` 자동
 재개·완료 차단은 유지한다. GitHub 대기용 shared observer도 그대로 사용한다.
 
-**Orca 데스크톱 앱은 여기 없다.** GUI 앱이라 cask로 맥 둘에 설치한다 —
-위 [GUI 앱](#gui-앱)을 보라.
+**Orca와 Herdr 데스크톱 앱은 여기 없다.**
+- **Orca**는 cask로 맥 둘에 설치한다 — 위 [GUI 앱](#gui-앱)을 보라.
+- **Herdr (`herdr-app`)** GUI 앱은 세 관리 대상 전체에 설치한다: 두 Mac(랩탑·서버)은
+  공통 Darwin 구성(`modules/darwin.nix`)의 Homebrew `herdr-app` cask로 `/Applications/Herdr.app`과
+  `herdr-app` CLI를 설치하며, NixOS 서버(`home/linux.nix`)는 `pkgs/herdr-app`으로
+  공식 Linux 바이너리(`aarch64-linux`)를 설치한다.
+- **`herdr-core` (`hc`) 서버 데몬**은 서버 역할의 MBP(`home/roles/darwin-server.nix`)가
+  로그인된 Aqua 세션에서 LaunchAgent(`herdr-core`)로 상시 실행하고, NixOS 서버(`home/linux.nix`,
+  `modules/nixos.nix`의 `linger = true`)는 systemd 사용자 서비스(`herdr-core`)로 띄운다.
+  switch 시에는 실행 중인 코어를 현재 세대 바이너리로 무중단 재시작(`hc server restart`)한다.
 
 `jevify-writing`은 coding agent가 목적지별 초안의 route, claim provenance, revision,
 fan-out, BearDrive semantic boundary를 외부 쓰기 없이 검사하는 로컬 validator다.

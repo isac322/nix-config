@@ -61,6 +61,12 @@ let
       ntn = final.callPackage ./ntn/package.nix {
         manifestFile = releaseManifests.ntn;
       };
+      herdr-core = final.callPackage ./herdr-core/package.nix {
+        manifestFile = releaseManifests.herdrCore;
+      };
+      herdr-app = final.callPackage ./herdr-app/package.nix {
+        manifestFile = releaseManifests.herdrApp;
+      };
       supabase-cli = final.callPackage ./supabase-cli/package.nix {
         manifestFile = releaseManifests.supabase;
       };
