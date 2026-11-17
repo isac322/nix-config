@@ -68,6 +68,33 @@ class Base(unittest.TestCase):
         return str(path)
 
 
+class Request(Base):
+    def sent_headers(self, env):
+        cfg = h.Config({"AGY_HINDSIGHT_API_URL": "http://hs", **env})
+        sent = []
+
+        class Response(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+        def urlopen(req, timeout):
+            sent.append({k.lower(): v for k, v in req.header_items()})
+            return Response(b"{}")
+
+        with patch.object(h.urllib.request, "urlopen", urlopen):
+            h._request(cfg, "GET", "/config", None, 1)
+        return sent[0]
+
+    def test_sends_the_hindsight_token_as_a_bearer_credential(self):
+        self.assertEqual(self.sent_headers({"HINDSIGHT_API_TOKEN": "tok"})["authorization"], "Bearer tok")
+
+    def test_sends_no_credential_without_a_token(self):
+        self.assertNotIn("authorization", self.sent_headers({}))
+
+
 class ProjectLabel(Base):
     def test_linked_worktree_shares_primary_checkout_tag(self):
         main = self.root / "My-Repo"

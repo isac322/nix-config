@@ -68,6 +68,8 @@ class Config:
     def __init__(self, env: dict[str, str]):
         self.api_url = env.get("AGY_HINDSIGHT_API_URL", "").rstrip("/")
         self.bank = env.get("AGY_HINDSIGHT_BANK", "omp")
+        # Same variable OMP reads; the wrapper fills it from the machine's secret store.
+        self.token = env.get("HINDSIGHT_API_TOKEN", "")
         self.global_scope = env.get("AGY_HINDSIGHT_GLOBAL_SCOPE") == "1"
         self.state_dir = Path(
             env.get("AGY_HINDSIGHT_STATE_DIR")
@@ -128,11 +130,14 @@ def _request(cfg: Config, method: str, path: str, body: dict | None, timeout: fl
     if not cfg.api_url:
         raise HindsightError("AGY_HINDSIGHT_API_URL is not set")
     data = None if body is None else json.dumps(body).encode()
+    headers = {"content-type": "application/json", "accept": "application/json"}
+    if cfg.token:
+        headers["authorization"] = f"Bearer {cfg.token}"
     req = urllib.request.Request(
         f"{cfg.api_url}/v1/default/banks/{urllib.request.quote(cfg.bank, safe='')}{path}",
         data=data,
         method=method,
-        headers={"content-type": "application/json", "accept": "application/json"},
+        headers=headers,
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:

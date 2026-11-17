@@ -11,4 +11,14 @@
   bank = "omp";
   scoping = "per-project-tagged";
   globalScope = true;
+
+  # Prints this machine's API token: the login Keychain on macOS, a user-owned
+  # SOPS file elsewhere. Clients read it at launch so it never reaches a config
+  # file or the Nix store.
+  tokenCommand =
+    { isDarwin, sops }:
+    if isDarwin then
+      ''/usr/bin/security find-generic-password -s "hindsight-api.bhyoo.com" -a "$USER" -w''
+    else
+      ''${sops} --decrypt --extract '["apiToken"]' "$HOME/.config/hindsight/token.sops.yaml"'';
 }

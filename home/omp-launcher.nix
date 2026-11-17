@@ -32,11 +32,7 @@ let
     memory:
       backend: "off"
   '';
-  tokenCommand =
-    if isDarwin then
-      ''/usr/bin/security find-generic-password -s "hindsight-api.bhyoo.com" -a "$USER" -w''
-    else
-      ''${sops} --decrypt --extract '["apiToken"]' "$HOME/.config/hindsight/token.sops.yaml"'';
+  tokenCommand = (import ../lib/hindsight.nix).tokenCommand { inherit isDarwin sops; };
 in
 writeTextFile {
   name = "omp-launcher";

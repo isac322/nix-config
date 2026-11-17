@@ -19,7 +19,14 @@ let
 
   # The bridge reads its scope from the environment so the one definition in
   # lib/hindsight.nix configures OMP and agy alike; defaults rather than fixed
-  # values let a test point a session at a scratch server or bank.
+  # values let a test point a session at a scratch server or bank. The token is
+  # read at each call, as the omp launcher does, so it stays out of the plugin
+  # files and the Nix store. A missing token leaves memory to fail open: agy
+  # still runs and the bridge logs the rejected request.
+  hindsightTokenCommand = hindsight.tokenCommand {
+    inherit (pkgs.stdenv.hostPlatform) isDarwin;
+    sops = lib.getExe pkgs.sops;
+  };
   hindsightBridge =
     pkgs.runCommand "agy-hindsight-configured"
       {
@@ -30,7 +37,10 @@ let
         makeWrapper ${lib.getExe pkgs.agy-hindsight} $out/bin/agy-hindsight \
           --set-default AGY_HINDSIGHT_API_URL ${lib.escapeShellArg hindsight.apiUrl} \
           --set-default AGY_HINDSIGHT_BANK ${lib.escapeShellArg hindsight.bank} \
-          --set-default AGY_HINDSIGHT_GLOBAL_SCOPE ${if hindsight.globalScope then "1" else "0"}
+          --set-default AGY_HINDSIGHT_GLOBAL_SCOPE ${if hindsight.globalScope then "1" else "0"} \
+          --run ${
+            lib.escapeShellArg ''if [ -z "''${HINDSIGHT_API_TOKEN:-}" ]; then HINDSIGHT_API_TOKEN=$(${hindsightTokenCommand} 2>/dev/null) || HINDSIGHT_API_TOKEN=; export HINDSIGHT_API_TOKEN; fi''
+          }
       '';
   bridge = lib.getExe hindsightBridge;
 

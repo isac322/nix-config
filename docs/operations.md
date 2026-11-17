@@ -37,7 +37,14 @@ OMP는 `HINDSIGHT_API_TOKEN` 환경 변수로 Bearer token을 받는다. `apiTok
 generic password(`service=hindsight-api.bhyoo.com`, `account=$USER`)를 읽고,
 Linux에서는 `~/.config/hindsight/token.sops.yaml`의 `apiToken`을 SOPS로 복호화한다.
 Linux 파일은 user-owned `0600`으로 두고 해당 사용자의 age identity만 복호화할 수
-있게 한다. Keychain 항목은 Keychain Access에서 등록한다.
+있게 한다. Keychain 항목은 Keychain Access에서 등록한다. 읽는 명령은
+`lib/hindsight.nix`의 `tokenCommand` 하나이고, agy의 Hindsight bridge
+(`home/agy.nix`)도 같은 명령으로 같은 `HINDSIGHT_API_TOKEN`을 채운다. agy는
+token이 없어도 실행되고, bridge가 거부된 요청을
+`~/.local/state/agy-hindsight/errors.log`에 남긴다.
+
+server token의 원본은 homelab Terraform이 만든 SSM `/homelab/cluster/backbone/token/hindsight/api`이고,
+cluster에서는 `hindsight/hindsight-secrets`의 `HINDSIGHT_API_TENANT_API_KEY`로 보인다.
 
 서버의 token source가 준비되면 각 기기에 동일한 token을 먼저 배포하고 switch한다.
 명시한 `HINDSIGHT_API_TOKEN`은 저장소 조회보다 우선하며, nested OMP의 기본
