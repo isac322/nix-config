@@ -316,13 +316,13 @@ project를 고르고 로그인한 뒤 agent hook과 로그인 시 재개할 사�
 `home/agent-instruction-segments.nix`가 body마다 class, harness scope, order,
 description을 선언하고 `home/agent-instructions.nix`가 다음처럼 compile한다.
 
-| class | OMP | Claude Code | Codex |
-|---|---|---|---|
-| `context` | `AGENTS.md` | `CLAUDE.md` | `AGENTS.md` |
-| `persistent` | `RULES.md` | user rule | `AGENTS.md` fallback |
-| `onDemand` | ordinary rule | personal skill | personal skill |
-| `critical` | `alwaysApply` rule | user rule | `AGENTS.md` fallback |
-| `personality` | `PERSONALITY.md` | 미지원 | 미지원 |
+| class | OMP | Claude Code | Codex | agy |
+|---|---|---|---|---|
+| `context` | `AGENTS.md` | `CLAUDE.md` | `AGENTS.md` | `always_on` rule |
+| `persistent` | `RULES.md` | user rule | `AGENTS.md` fallback | `always_on` rule |
+| `onDemand` | ordinary rule | personal skill | personal skill | `model_decision` rule |
+| `critical` | `alwaysApply` rule | user rule | `AGENTS.md` fallback | `always_on` rule |
+| `personality` | `PERSONALITY.md` | 미지원 | 미지원 | `always_on` rule |
 
 `onDemand`는 생략되어도 필수 prerequisite, 상태 유효성, 대기, 승인, 완료 조건을
 우회하지 않는 절차에만 사용한다. 형식상 workflow 단계여도 누락 시 작업을 잘못
@@ -334,6 +334,25 @@ frontmatter와 fallback copy는 Nix가 생성한다. canonical body에는 target
 metadata를 넣지 않으며, workflow와 critical guard는 의미가 겹치지 않는 segment로
 나눈다. OMP는 generated policy skill 이름을 무시하고 native rule만 사용하므로 같은
 지침이 rule과 skill로 동시에 노출되지 않는다.
+
+agy는 `~/.gemini/config/plugins/nix-managed/` plugin 하나로 받는다
+(`home/agy.nix`). rule은 `rules/<순서>-<segment>.md`로 생성하고, agy가 rule 파일을
+24,000 byte에서 자르므로 이를 넘으면 평가가 실패한다. skill은
+`~/.gemini/config/skills.json`이 `~/.agents/skills`를 직접 가리키므로 SkillClaw가 받은
+skill도 OMP와 똑같이 보이고, rule로 들어간 policy skill만 `exclude`로 뺀다. MCP는
+Claude Code와 같은 목록에 Hindsight bridge를 더한다. Camofox는 `browser` subagent의
+frontmatter `mcpServers`에만 있어 main agent는 browser 도구를 갖지 않는다. 이
+subagent의 절차는 OMP `agents/browser.md`에서 도구 이름만 바꿔 생성한다. agy는
+plugin 밖을 가리키는 symlink를 거부하므로 activation이 tree를 복사한다.
+
+Hindsight 범위는 `lib/hindsight.nix` 하나로 정하고 OMP 설정과 agy bridge
+(`pkgs/agy-hindsight`)가 같이 읽는다. bank 하나에 project write는
+`project:<primary checkout 이름 소문자>` 태그를 붙이고, recall은 그 태그와 태그 없는
+전역 memory를 함께 읽는다. bridge는 대화의 첫 model 호출 때 mental model과 recall을
+system message로 넣고, 사용자 turn 3번마다 대화 전체를 대화 id를 document id로 저장하며,
+MCP `recall`/`retain`/`reflect`는 client의 MCP root로 project를 정한다. subagent
+대화와 다른 agent가 띄운 실행(`PI_SESSION_FILE` 또는 `ANTIGRAVITY_AGENT=1`)에서는
+memory를 끄고, 필요하면 `AGY_NESTED_MEMORY=1`로 켠다.
 
 OMP·Claude rule과 shared·Claude skill의 managed-name registry는 기본 XDG state
 경로인 `~/.local/state/nix-managed-agent/` 아래 target별 파일에 저장한다.

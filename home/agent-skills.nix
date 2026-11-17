@@ -169,6 +169,21 @@ in
     builtins.attrNames sharedSkillSources
   );
 
+  # agy reads the live shared tree, so skills SkillClaw pulls reach it as they
+  # reach OMP. Its on-demand policies already arrive as plugin rules
+  # (home/agent-instructions.nix), so their generated skill copies are skipped.
+  home.file.".gemini/config/skills.json" = {
+    force = true;
+    text = builtins.toJSON {
+      entries = [
+        {
+          path = sharedSkillsDir;
+          exclude = builtins.attrNames sharedPolicySkillSources;
+        }
+      ];
+    };
+  };
+
   home.activation.installNixManagedAgentSkills = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
     managedStateDir=${lib.escapeShellArg managedStateDir}
     ${pkgs.coreutils}/bin/install -d -m 0700 "$managedStateDir"

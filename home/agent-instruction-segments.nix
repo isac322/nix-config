@@ -3,6 +3,7 @@ let
     "omp"
     "claude"
     "codex"
+    "agy"
   ];
   segment = source: class: harnesses: order: {
     inherit
@@ -24,6 +25,7 @@ in
   ] 900;
   codex-tools = segment ./files/agent-instructions/segments/codex-tools.md "context" [ "codex" ] 900;
   omp-tools = segment ./files/agent-instructions/segments/omp-tools.md "context" [ "omp" ] 900;
+  agy-tools = segment ./files/agent-instructions/segments/agy-tools.md "context" [ "agy" ] 900;
 
   guardrails =
     segment ./files/agent-instructions/segments/guardrails.md "persistent" allHarnesses
@@ -66,9 +68,12 @@ in
     };
 
   task-intent-boundary =
-    (segment ./files/agent-instructions/segments/task-intent-boundary.md "critical" [ "omp" ] 100)
+    (segment ./files/agent-instructions/segments/task-intent-boundary.md "critical" [
+      "omp"
+      "agy"
+    ] 100)
     // {
-      description = "Prevent OMP from turning analysis, investigation, review, reporting, confirmation, or dry-run requests into unauthorized implementation.";
+      description = "Prevent the agent from turning analysis, investigation, review, reporting, confirmation, or dry-run requests into unauthorized implementation.";
     };
   application-code-change-approval =
     (segment ./files/agent-instructions/segments/application-code-change-approval.md "critical"
@@ -131,5 +136,6 @@ in
 
   response-style = segment ./files/agent-instructions/segments/response-style.md "personality" [
     "omp"
+    "agy"
   ] 100;
 }

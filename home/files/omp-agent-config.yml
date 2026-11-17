@@ -116,10 +116,6 @@ modelRoles:
   judge: typesafe/jev-1.14.0
 find:
   enabled: true
-hindsight:
-  apiUrl: https://hindsight-api.bhyoo.com
-  scoping: per-project-tagged
-  globalScope: true
 compaction:
   idleEnabled: true
   idleThresholdTokens: 300000

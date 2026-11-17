@@ -19,9 +19,9 @@ writeShellApplication {
   text = ''
     client="''${1-}"
     case "$client" in
-      omp | claude | codex) ;;
+      omp | claude | codex | agy) ;;
       *)
-        echo "usage: camofox-browser-mcp-session {omp|claude|codex}" >&2
+        echo "usage: camofox-browser-mcp-session {omp|claude|codex|agy}" >&2
         exit 64
         ;;
     esac
@@ -40,6 +40,11 @@ writeShellApplication {
           # subprocesses. Releases that do not expose either variable fall
           # back to a process-local namespace below.
           session_id="''${CODEX_THREAD_ID-''${CODEX_SESSION_ID-}}"
+          ;;
+        agy)
+          # agy (1.5.9) passes no conversation identifier to MCP subprocesses,
+          # including those a subagent owns, so each server process gets the
+          # process-local namespace below.
           ;;
         omp)
           session_id="''${OMP_SESSION_ID-}"

@@ -442,10 +442,20 @@ in
   imports = [
     ./agent-instructions.nix
     ./agent-skills.nix
+    ./agy.nix
     ./cloud-sql-proxy.nix
     ./github-nix-access-token.nix
     ./skillclaw.nix
   ];
+
+  # agy's main agent sees the same services as Claude Code. Camofox belongs to
+  # its browser subagent alone, so the main agent never holds a browser tool.
+  local.agy = {
+    mcpServers = remoteMcpServers // {
+      codegraph = codegraphMcpServer;
+    };
+    camofoxMcpServer = if camofoxCfg.enable then camofoxMcpServer "agy" else null;
+  };
 
   # Every node runs a local SkillClaw client and synchronizes the shared
   # ~/.agents/skills tree used by OMP and Codex. Claude receives a Nix-generated
