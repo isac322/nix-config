@@ -298,6 +298,47 @@ generated policy skill 이름은 `SKILLCLAW_SYNC_SKIP_PULL`로 pull에서 보호
 push에는 포함한다. `~/.claude/skills`는 Nix가 같은 canonical source에서 다시 만드는
 Claude 전용 배포본이며 별도 sync source가 아니다.
 
+## 로컬 PR Gate 관찰 (모든 노드)
+
+`pr-gate`는 review-bound push와 PR 생성·ready 전환을 감지해 로컬
+`codex exec` read-only gate를 실행하는 관찰 도구다. 첫 1주일은 **observe-only**로
+운영하므로 gate의 verdict는 기록만 하며 fixer의 push를 차단하거나 수정하지 않는다.
+`pr-gate status`로 현재 관찰·실행 상태를 보고, 기간별 결합 결과는 다음처럼 확인한다.
+
+```sh
+pr-gate status
+pr-gate report --since 2026-11-17  # YYYY-MM-DD (UTC)
+```
+
+확장 소스는 `home/files/omp-pr-gate-observer.ts`이고
+`home/agent-instructions.nix`가 `~/.omp/agent/extensions/pr-gate-observer.ts`로
+배포한다. 상태는 `${XDG_STATE_HOME:-~/.local/state}/pr-gate/` 아래에 저장된다.
+`observations.jsonl`에는 trigger별 요약이, `runs/<owner>__<repo>/<pr>/<head_sha>/`
+아래에는 packet·events·result·stderr가 기록된다. `pr-gate report`는 이 기록과
+같은 SHA의 `haechibot` review를 결합한다. 이 도구는 GitHub에 write하지 않는다.
+
+이번 주의 frozen decision rule은 gate run 중 `status=ok`이면서 해당 head가
+`haechibot` review를 받은 run을 denominator로 한다. 그중 gate가 **BLOCKING**이고
+blind adjudication에서 `haechibot`도 같은 mechanism을 지적한 run이 numerator다.
+`n >= 20`이고 numerator 비율이 `>= 9%`면 inline enforcement로 전환하고,
+그렇지 않으면 관찰 기간을 연장하거나 중단한다.
+
+다음 경로는 현재 범위 밖이므로 자동 관찰하지 않는다: `gh api`를 통한 push,
+`git push`를 감싼 Makefile·script, git alias, 다른 프로그램 내부의 nested shell,
+eval prelude의 host call. `eval` tool 자체의 code text는 위 trigger 규칙으로
+regex-scan한다.
+
+관찰을 끄려면 OMP를 시작하는 환경에 다음을 지정한다.
+
+```sh
+export PR_GATE_DISABLE=1
+```
+
+privacy를 위해 전달하는 원본 command text는 최대 2,000자로 잘라 로컬 gate에
+넘긴다. command에 token이나 기타 민감한 값이 포함될 수 있고 branch·PR·SHA와
+command 일부가 로컬 state에 남을 수 있으므로, 공유 디렉터리나 로그를 외부에
+복사하기 전에 내용을 확인한다.
+
 ## GitHub PR 대기 (모든 노드)
 
 `github-pr-wait`는 PR 상태를 읽기만 하는 공통 CLI다. `home.packages`로 설치하고

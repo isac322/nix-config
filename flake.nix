@@ -291,7 +291,7 @@
             beardrive
             jevify-writing
             github-pr-wait
-            sentry
+            pr-gate
             ntn
             slack-cli
             supabase-cli

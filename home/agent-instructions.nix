@@ -244,6 +244,12 @@ in
     force = true;
   };
 
+  # Observe review-bound pushes and PR transitions without blocking the agent.
+  home.file.".omp/agent/extensions/pr-gate-observer.ts" = {
+    source = ./files/omp-pr-gate-observer.ts;
+    force = true;
+  };
+
   # Lifts the omp 18.18.4 Google Antigravity pause. See the file header.
   home.file.".omp/agent/extensions/antigravity-unpause.ts" = {
     source = ./files/omp-antigravity-unpause.ts;

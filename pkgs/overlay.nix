@@ -50,6 +50,7 @@ let
       };
       jevify-writing = final.callPackage ./jevify-writing/package.nix { };
       github-pr-wait = final.callPackage ./github-pr-wait/package.nix { };
+      pr-gate = final.callPackage ./pr-gate/package.nix { };
       beardrive = final.callPackage ./beardrive/package.nix {
         checksumsFile = beardriveChecksums;
       };

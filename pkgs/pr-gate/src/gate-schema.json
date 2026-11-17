@@ -1,0 +1,50 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "threads", "new_findings", "reason"],
+  "properties": {
+    "verdict": {"enum": ["GREEN", "BLOCKING"]},
+    "threads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["thread_id", "assumptions", "invariant", "status", "counterexamples", "decision"],
+        "properties": {
+          "thread_id": {"type": "string"},
+          "assumptions": {"type": "array", "items": {"type": "string"}},
+          "invariant": {"type": "string"},
+          "status": {"enum": ["closed", "open"]},
+          "counterexamples": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mechanism", "evidence", "severity"],
+              "properties": {
+                "mechanism": {"type": "string"},
+                "evidence": {"type": "string"},
+                "severity": {"enum": ["P0", "P1", "P2", "P3"]}
+              }
+            }
+          },
+          "decision": {"enum": ["NONE", "KEEP_PATCHING", "ESCALATE_CONTRACT"]}
+        }
+      }
+    },
+    "new_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["mechanism", "evidence", "severity"],
+        "properties": {
+          "mechanism": {"type": "string"},
+          "evidence": {"type": "string"},
+          "severity": {"enum": ["P0", "P1", "P2", "P3"]}
+        }
+      }
+    },
+    "reason": {"type": "string"}
+  }
+}

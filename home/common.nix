@@ -671,6 +671,9 @@ in
     # Read-only, deadline-bounded GitHub PR waits shared by all agent harnesses.
     pkgs.github-pr-wait
 
+    # Observe-only local review gate; it never blocks or mutates the triggering tool.
+    pkgs.pr-gate
+
     # BearDrive's CLI is useful on every node, but joining a project is mutable
     # per-user state: `bdrive init` selects a folder and hub, authenticates, and
     # installs the upstream login item. Nix supplies the pinned executable only
