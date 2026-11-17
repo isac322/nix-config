@@ -1,5 +1,5 @@
 # The `omp` on PATH: starts the real binary, with memory turned off when
-# another OMP agent is the one starting it.
+# another coding agent (OMP or agy) is the one starting it.
 #
 # Agents launch `omp` themselves to reproduce bugs and run prompt experiments,
 # usually from a scratch directory and often resuming a copied session. With
@@ -11,9 +11,11 @@
 #
 # OMP hands PI_SESSION_FILE to every command its bash tool and eval kernels
 # run, and never sets it in its own process environment, so its presence means
-# "an OMP agent started this". Such runs get a one-process settings overlay
-# that turns memory off; an `omp` started from a terminal or an app is
-# unchanged. A nested run that really needs memory sets OMP_NESTED_MEMORY=1.
+# "an OMP agent started this". agy marks the commands it runs the same way
+# with ANTIGRAVITY_AGENT=1, and both agents write the same Hindsight bank.
+# Such runs get a one-process settings overlay that turns memory off; an `omp`
+# started from a terminal or an app is unchanged. A nested run that really
+# needs memory sets OMP_NESTED_MEMORY=1.
 #
 # The script runs under /bin/sh and execs the binary, so on macOS no
 # non-platform executable sits in front of omp and TCC still charges omp's own
@@ -32,7 +34,8 @@ writeTextFile {
   executable = true;
   text = ''
     #!/bin/sh
-    if [ -n "''${PI_SESSION_FILE+set}" ] && [ "''${OMP_NESTED_MEMORY:-}" != 1 ]; then
+    if { [ -n "''${PI_SESSION_FILE+set}" ] || [ "''${ANTIGRAVITY_AGENT:-}" = 1 ]; } \
+      && [ "''${OMP_NESTED_MEMORY:-}" != 1 ]; then
       exec "${target}" --config ${noMemory} "$@"
     fi
     exec "${target}" "$@"
