@@ -24,7 +24,11 @@ let
   # (home/omp-launcher.nix) execs that file, so one grant keeps matching the
   # next release too.
   ompStablePath = "${config.home.homeDirectory}/.local/libexec/omp/omp";
-  ompStable = import ./omp-launcher.nix { inherit (pkgs) writeText writeTextFile; } ompStablePath;
+  ompStable = import ./omp-launcher.nix {
+    inherit (pkgs) writeText writeTextFile;
+    inherit (pkgs.stdenv.hostPlatform) isDarwin;
+    sops = lib.getExe pkgs.sops;
+  } ompStablePath;
   # Moving the binary out of /nix/store hides Nix ownership from OMP's path
   # check (`update-cli.ts`), making OMP treat the copy as a self-updating
   # standalone install. OMP also checks `<prefix>/manager.json` two levels above

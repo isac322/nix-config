@@ -30,6 +30,27 @@ determinateNixd.builder = {
 };
 ```
 
+## Hindsight API 인증
+
+OMP는 `HINDSIGHT_API_TOKEN` 환경 변수로 Bearer token을 받는다. `apiToken` 값을
+`config.yml`이나 Nix 선언에 쓰지 않는다. launcher는 macOS에서 login Keychain의
+generic password(`service=hindsight-api.bhyoo.com`, `account=$USER`)를 읽고,
+Linux에서는 `~/.config/hindsight/token.sops.yaml`의 `apiToken`을 SOPS로 복호화한다.
+Linux 파일은 user-owned `0600`으로 두고 해당 사용자의 age identity만 복호화할 수
+있게 한다. Keychain 항목은 Keychain Access에서 등록한다.
+
+서버의 token source가 준비되면 각 기기에 동일한 token을 먼저 배포하고 switch한다.
+명시한 `HINDSIGHT_API_TOKEN`은 저장소 조회보다 우선하며, nested OMP의 기본
+memory-off 경로는 token을 요구하지 않는다. 나머지 실행은 credential이 없거나
+비어 있으면 중단한다. 모든 기기의 새 OMP에서 recall이 되는 것을 확인한 뒤에만
+서버의 token 인증을 켠다. 이미 실행 중인 OMP는 설정을 다시 읽도록 재시작해야 한다.
+서버 인증 전환을 먼저 해서 기존 세션의 기억 읽기·보존을 끊지 않는다.
+
+launcher 회귀 검사는 `python3 home/test_omp_launcher.py --scratch-dir <scratch-dir>`로
+실행한다. 합성 token으로 env 우선순위, SOPS 성공·실패·빈 값, nested 실행을 검사하며
+fixture는 지정한 directory에 남긴다. 실제 macOS Keychain 읽기와 authenticated recall은
+token 배포 뒤에 별도로 확인한다.
+
 ## 패키지 릴리스 갱신
 
 선언된 패키지를 전체 갱신할 때는 다음 명령을 한 기기에서만 실행한다.

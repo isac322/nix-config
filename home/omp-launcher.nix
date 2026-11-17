@@ -20,13 +20,23 @@
 # The script runs under /bin/sh and execs the binary, so on macOS no
 # non-platform executable sits in front of omp and TCC still charges omp's own
 # grant (see tcc-responsible.nix).
-{ writeText, writeTextFile }:
+{
+  writeText,
+  writeTextFile,
+  isDarwin,
+  sops,
+}:
 target:
 let
   noMemory = writeText "omp-nested-no-memory.yml" ''
     memory:
       backend: "off"
   '';
+  tokenCommand =
+    if isDarwin then
+      ''/usr/bin/security find-generic-password -s "hindsight-api.bhyoo.com" -a "$USER" -w''
+    else
+      ''${sops} --decrypt --extract '["apiToken"]' "$HOME/.config/hindsight/token.sops.yaml"'';
 in
 writeTextFile {
   name = "omp-launcher";
@@ -37,6 +47,15 @@ writeTextFile {
     if { [ -n "''${PI_SESSION_FILE+set}" ] || [ "''${ANTIGRAVITY_AGENT:-}" = 1 ]; } \
       && [ "''${OMP_NESTED_MEMORY:-}" != 1 ]; then
       exec "${target}" --config ${noMemory} "$@"
+    fi
+    # OMP supports a token environment variable, not a credential command.
+    # Read it at launch so it never enters config.yml or the Nix store.
+    if [ -z "''${HINDSIGHT_API_TOKEN:-}" ]; then
+      if ! HINDSIGHT_API_TOKEN=$(${tokenCommand}) || [ -z "$HINDSIGHT_API_TOKEN" ]; then
+        echo "omp: Hindsight token is missing or inaccessible; provision this machine's credential before starting memory-enabled OMP." >&2
+        exit 1
+      fi
+      export HINDSIGHT_API_TOKEN
     fi
     exec "${target}" "$@"
   '';
