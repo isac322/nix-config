@@ -89,11 +89,11 @@
     },
     "cf": {
       "draft": false,
-      "hash": "sha256-qWNyigh7N8dFWtvVOMxmCVM9EEJoKjmoCvADGVRe15g=",
-      "pnpmDepsHash": "sha256-Dddv6avf+gQYmbBV99Hyff8ipuNDkQv3WGZUqVNPWBo=",
+      "hash": "sha256-FAYvxP+D0xqFq9Xs/sDLjCArPQDYE++oFSm2C5edIEA=",
+      "pnpmDepsHash": "sha256-g70U5V6SOZrUlOIld9xwP9FXzMwd44KV5VjSiR3LkJQ=",
       "prerelease": false,
-      "tag_name": "cf@1.0.0-rc.0",
-      "version": "1.0.0-rc.0"
+      "tag_name": "cf@1.0.0-rc.1",
+      "version": "1.0.0-rc.1"
     },
     "deskpad": {
       "assets": [
