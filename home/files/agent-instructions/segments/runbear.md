@@ -1,6 +1,6 @@
 # Runbear infrastructure and telemetry
 
-When inspecting runtime metrics, agent traces, errors, billing, cloud resources, Supabase projects, or Kubernetes clusters for Runbear services, or reading or writing Notion content:
+When inspecting runtime metrics, agent traces, errors, billing, cloud resources, Cloudflare resources, Supabase projects, or Kubernetes clusters for Runbear services, or reading or writing Notion content:
 
 ## Internal endpoints: Cloudflare Access
 - Internal HTTP endpoints under `runbear.io`, including Tempo (`https://tempo.runbear.io`), Thanos (`https://thanos-query.runbear.io`), Grafana, and Argo CD, sit behind Cloudflare Access. For people and interactive agents, the policy admits a request only from a WARP-connected device signed in as a Runbear Google account, with that user's Access JWT in the `cf-access-token` header.
@@ -46,6 +46,7 @@ If a proxy is not accepting connections, restart only the affected environment:
 | Secrets & credentials | `op` | `op item get ...` / `op read ...` | Source session cache or sign in via Keychain (see below) |
 | Notion pages, data sources & files | `ntn` | `ntn pages ...` / `ntn datasources ...` / `ntn files ...` / `ntn api v1/...` | Use for all Notion work instead of browser automation or web fetching. Check `ntn whoami`; authenticate with `ntn login` when required. Discover endpoints with `ntn api ls` and read request shapes with `ntn api <path> -X <METHOD> --spec` or `--docs` instead of guessing or fetching web docs |
 | Supabase projects | `supabase` | `supabase projects list --output-format json` / `supabase logs ...` / `supabase db ...` | Authenticate with `supabase login --no-browser` when required; look up a shared Runbear login in 1Password before asking the user. Hosted changes only proceed with `--yes` or `SUPABASE_YES`; never pass either without the user's explicit approval |
+| Cloudflare resources (zones, DNS, Workers, Access, R2, ...) | `cf` | `cf cli search "<task>"`, then `<discovered command> --help`; `cf docs search "<question>"` for documentation | Use `cf` before the Cloudflare dashboard; use the browser only for an operation `cf` cannot perform. Check `cf auth whoami`; authenticate with `cf auth login` when required. Keep search queries anonymous: no names, domains, emails, or IDs |
 
 ### Langfuse credentials
 Keys differ between Dev and Prod. Retrieve them from macOS Keychain without committing secrets:
