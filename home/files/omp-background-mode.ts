@@ -11,9 +11,9 @@
 // - `astra`: GPT-6.2 Astra main agent with GPT-6.2 Sol task subagents, spending ChatGPT Codex
 //   quota instead of Anthropic quota.
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join, posix } from "node:path";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
 import { type Component, Container, Markdown, Spacer } from "@oh-my-pi/pi-tui";
@@ -311,12 +311,384 @@ const OMP_AGENT_DIR = join(homedir(), ".omp/agent");
 const NIX_DARWIN_HOME_DIR = "/etc/nix-darwin/home";
 const OMP_HASH_TTL_MS = 5_000;
 
+const SEGMENT_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
+const IDENT_START_RE = /[A-Za-z_]/;
+const IDENT_CONT_RE = /[A-Za-z0-9_'-]/;
+const PATH_CHAR_RE = /[A-Za-z0-9._/-]/;
+const DIGIT_RE = /[0-9]/;
+const WHITESPACE_RE = /\s/;
+const LINE_SPLIT_RE = /\r?\n/;
+
+export type ManifestSegmentClass =
+	| "context"
+	| "persistent"
+	| "onDemand"
+	| "critical"
+	| "personality";
+
+export type ManifestSegment = {
+	name: string;
+	relPath: string;
+	segClass: ManifestSegmentClass;
+	harnesses: string[];
+	order: number;
+	description?: string;
+};
+
+type ManifestToken =
+	| { kind: "ident"; value: string }
+	| { kind: "str"; value: string }
+	| { kind: "path"; value: string }
+	| { kind: "int"; value: number }
+	| { kind: "punct"; value: string };
+
+const CLASS_RANK: Record<ManifestSegmentClass, number> = {
+	context: 10,
+	persistent: 20,
+	onDemand: 30,
+	critical: 40,
+	personality: 50,
+};
+
+const VALID_HARNESSES = new Set(["omp", "claude", "codex", "agy"]);
+const INHERIT_FIELDS = new Set(["class", "harnesses", "order", "source"]);
+const RESERVED_LET_NAMES = new Set(["let", "in", "inherit", "segment"]);
+const SINGLE_PUNCT = new Set([";", "=", ":", "[", "]", "{", "}", "(", ")"]);
+
 function readTextSafe(filePath: string): string | undefined {
 	try {
 		return readFileSync(filePath, "utf8");
 	} catch {
 		return undefined;
 	}
+}
+
+function asciiCompare(a: string, b: string): number {
+	return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function removeTrailingNewline(text: string): string {
+	return text.endsWith("\n") ? text.slice(0, -1) : text;
+}
+
+/** Resolve the Nix-managed OMP rules registry path, respecting XDG_STATE_HOME when absolute. */
+export function defaultOmpRulesPath(): string {
+	const envState = process.env.XDG_STATE_HOME;
+	const stateHome = envState && isAbsolute(envState) ? envState : join(homedir(), ".local/state");
+	return join(stateHome, "nix-managed-agent/omp-rules");
+}
+
+function tokenizeManifest(source: string): ManifestToken[] | undefined {
+	const tokens: ManifestToken[] = [];
+	const len = source.length;
+	let i = 0;
+
+	while (i < len) {
+		const ch = source[i];
+		if (WHITESPACE_RE.test(ch)) {
+			i++;
+			continue;
+		}
+		if (ch === "#") {
+			while (i < len && source[i] !== "\n") i++;
+			continue;
+		}
+		if (ch === "/" && source[i + 1] === "*") {
+			i += 2;
+			while (i + 1 < len && !(source[i] === "*" && source[i + 1] === "/")) i++;
+			if (i + 1 >= len) return undefined;
+			i += 2;
+			continue;
+		}
+		if (ch === "'" && source[i + 1] === "'") {
+			return undefined;
+		}
+		if (ch === '"') {
+			i++;
+			let buf = "";
+			let closed = false;
+			while (i < len) {
+				const c = source[i];
+				if (c === '"') {
+					i++;
+					closed = true;
+					break;
+				}
+				if (c === "$" && source[i + 1] === "{") {
+					return undefined;
+				}
+				if (c === "\\") {
+					i++;
+					if (i >= len) return undefined;
+					const esc = source[i++];
+					if (esc === "n") buf += "\n";
+					else if (esc === "r") buf += "\r";
+					else if (esc === "t") buf += "\t";
+					else buf += esc;
+					continue;
+				}
+				buf += c;
+				i++;
+			}
+			if (!closed) return undefined;
+			tokens.push({ kind: "str", value: buf });
+			continue;
+		}
+		if (ch === "." && source[i + 1] === "/") {
+			const start = i;
+			i += 2;
+			while (i < len && PATH_CHAR_RE.test(source[i])) i++;
+			const raw = source.slice(start, i);
+			if (raw.length <= 2 || raw.includes("//")) return undefined;
+			const normalized = posix.normalize(raw.slice(2));
+			if (
+				!normalized.startsWith("files/") ||
+				normalized.endsWith("/") ||
+				normalized.split("/").includes("..")
+			) {
+				return undefined;
+			}
+			tokens.push({ kind: "path", value: normalized });
+			continue;
+		}
+		if (ch === "/" && source[i + 1] === "/") {
+			i += 2;
+			tokens.push({ kind: "punct", value: "//" });
+			continue;
+		}
+		if (SINGLE_PUNCT.has(ch)) {
+			i++;
+			tokens.push({ kind: "punct", value: ch });
+			continue;
+		}
+		if (DIGIT_RE.test(ch)) {
+			const start = i;
+			while (i < len && DIGIT_RE.test(source[i])) i++;
+			if (i < len && IDENT_CONT_RE.test(source[i])) {
+				while (i < len && IDENT_CONT_RE.test(source[i])) i++;
+				const word = source.slice(start, i);
+				if (!SEGMENT_NAME_RE.test(word)) return undefined;
+				tokens.push({ kind: "ident", value: word });
+			} else {
+				tokens.push({ kind: "int", value: Number.parseInt(source.slice(start, i), 10) });
+			}
+			continue;
+		}
+		if (IDENT_START_RE.test(ch)) {
+			const start = i;
+			while (i < len && IDENT_CONT_RE.test(source[i])) i++;
+			tokens.push({ kind: "ident", value: source.slice(start, i) });
+			continue;
+		}
+		return undefined;
+	}
+
+	return tokens;
+}
+
+/**
+ * Parse `home/agent-instruction-segments.nix` strictly, returning segments sorted identically to
+ * `home/agent-instructions.nix`, or `undefined` on any unrecognized or invalid manifest construct.
+ */
+export function parseManifestSegments(manifestText: string): ManifestSegment[] | undefined {
+	const tokens = tokenizeManifest(manifestText);
+	if (!tokens) return undefined;
+
+	let pos = 0;
+	const peek = (): ManifestToken | undefined => tokens[pos];
+	const isPunct = (val: string): boolean => {
+		const tok = tokens[pos];
+		return tok?.kind === "punct" && tok.value === val;
+	};
+	const isIdent = (val: string): boolean => {
+		const tok = tokens[pos];
+		return tok?.kind === "ident" && tok.value === val;
+	};
+	const consumePunct = (val: string): boolean => {
+		if (!isPunct(val)) return false;
+		pos++;
+		return true;
+	};
+	const consumeIdent = (expected?: string): string | undefined => {
+		const tok = tokens[pos];
+		if (tok?.kind !== "ident") return undefined;
+		if (expected !== undefined && tok.value !== expected) return undefined;
+		pos++;
+		return tok.value;
+	};
+	const consumeStr = (): string | undefined => {
+		const tok = tokens[pos];
+		if (tok?.kind !== "str") return undefined;
+		pos++;
+		return tok.value;
+	};
+	const parseStringList = (): string[] | undefined => {
+		if (!consumePunct("[")) return undefined;
+		const items: string[] = [];
+		while (!isPunct("]")) {
+			const item = consumeStr();
+			if (item === undefined) return undefined;
+			items.push(item);
+		}
+		if (!consumePunct("]")) return undefined;
+		return items;
+	};
+
+	if (!consumeIdent("let")) return undefined;
+	const bindings = new Map<string, string[]>();
+	let sawSegmentDef = false;
+
+	while (!isIdent("in")) {
+		const name = consumeIdent();
+		if (!name || !consumePunct("=")) return undefined;
+		if (name === "segment") {
+			if (sawSegmentDef) return undefined;
+			if (
+				!consumeIdent("source") ||
+				!consumePunct(":") ||
+				!consumeIdent("class") ||
+				!consumePunct(":") ||
+				!consumeIdent("harnesses") ||
+				!consumePunct(":") ||
+				!consumeIdent("order") ||
+				!consumePunct(":") ||
+				!consumePunct("{") ||
+				!consumeIdent("inherit")
+			) {
+				return undefined;
+			}
+			const seenFields = new Set<string>();
+			for (let k = 0; k < 4; k++) {
+				const field = consumeIdent();
+				if (!field || !INHERIT_FIELDS.has(field) || seenFields.has(field)) return undefined;
+				seenFields.add(field);
+			}
+			if (!consumePunct(";") || !consumePunct("}") || !consumePunct(";")) return undefined;
+			sawSegmentDef = true;
+			continue;
+		}
+		if (RESERVED_LET_NAMES.has(name) || bindings.has(name)) return undefined;
+		const values = parseStringList();
+		if (!values || !consumePunct(";")) return undefined;
+		bindings.set(name, values);
+	}
+	if (!consumeIdent("in") || !sawSegmentDef) return undefined;
+
+	const parseSegmentCall = ():
+		| { relPath: string; segClass: ManifestSegmentClass; harnesses: string[]; order: number }
+		| undefined => {
+		if (!consumeIdent("segment")) return undefined;
+		const pathTok = tokens[pos];
+		if (pathTok?.kind !== "path") return undefined;
+		pos++;
+		const rawClass = consumeStr();
+		if (!rawClass || !(rawClass in CLASS_RANK)) return undefined;
+		let harnesses: string[] | undefined;
+		if (isPunct("[")) {
+			harnesses = parseStringList();
+		} else {
+			const bindingName = consumeIdent();
+			if (bindingName) harnesses = bindings.get(bindingName);
+		}
+		if (!harnesses || harnesses.length === 0 || harnesses.some((h) => !VALID_HARNESSES.has(h))) {
+			return undefined;
+		}
+		const orderTok = tokens[pos];
+		if (orderTok?.kind !== "int") return undefined;
+		pos++;
+		const order = orderTok.value;
+		if (!Number.isInteger(order) || order < 100 || order > 999) return undefined;
+		return {
+			relPath: pathTok.value,
+			segClass: rawClass as ManifestSegmentClass,
+			harnesses,
+			order,
+		};
+	};
+
+	const parseDescriptionOverlay = (): string | undefined => {
+		if (!consumePunct("//") || !consumePunct("{")) return undefined;
+		const keyTok = peek();
+		if (!keyTok || (keyTok.kind !== "ident" && keyTok.kind !== "str") || keyTok.value !== "description") {
+			return undefined;
+		}
+		pos++;
+		if (!consumePunct("=")) return undefined;
+		const desc = consumeStr();
+		if (desc === undefined || !consumePunct(";") || !consumePunct("}")) return undefined;
+		return desc;
+	};
+
+	if (!consumePunct("{")) return undefined;
+	const segments: ManifestSegment[] = [];
+	const seenNames = new Set<string>();
+	const seenPaths = new Set<string>();
+
+	while (!isPunct("}")) {
+		const nameTok = peek();
+		if (!nameTok || (nameTok.kind !== "ident" && nameTok.kind !== "str")) return undefined;
+		const name = nameTok.value;
+		pos++;
+		if (!SEGMENT_NAME_RE.test(name) || seenNames.has(name)) return undefined;
+		seenNames.add(name);
+		if (!consumePunct("=")) return undefined;
+
+		let call: ReturnType<typeof parseSegmentCall>;
+		let description: string | undefined;
+		if (consumePunct("(")) {
+			call = parseSegmentCall();
+			if (!call) return undefined;
+			if (isPunct("//")) {
+				description = parseDescriptionOverlay();
+				if (description === undefined) return undefined;
+			}
+			if (!consumePunct(")")) return undefined;
+			if (isPunct("//")) {
+				if (description !== undefined) return undefined;
+				description = parseDescriptionOverlay();
+				if (description === undefined) return undefined;
+			}
+		} else {
+			call = parseSegmentCall();
+			if (!call) return undefined;
+			if (isPunct("//")) {
+				description = parseDescriptionOverlay();
+				if (description === undefined) return undefined;
+			}
+		}
+		if (!consumePunct(";")) return undefined;
+
+		if (seenPaths.has(call.relPath)) return undefined;
+		seenPaths.add(call.relPath);
+		if (description !== undefined && (description.length === 0 || description.includes("\n"))) {
+			return undefined;
+		}
+		if ((call.segClass === "onDemand" || call.segClass === "critical") && description === undefined) {
+			return undefined;
+		}
+		if (call.segClass === "personality" && call.harnesses.some((h) => h !== "omp" && h !== "agy")) {
+			return undefined;
+		}
+
+		segments.push({
+			name,
+			relPath: call.relPath,
+			segClass: call.segClass,
+			harnesses: [...call.harnesses],
+			order: call.order,
+			...(description !== undefined ? { description } : {}),
+		});
+	}
+
+	if (!consumePunct("}") || pos !== tokens.length) return undefined;
+
+	segments.sort(
+		(left, right) =>
+			CLASS_RANK[left.segClass] - CLASS_RANK[right.segClass] ||
+			left.order - right.order ||
+			asciiCompare(left.name, right.name),
+	);
+	return segments;
 }
 
 function computeDeployedOmpHash(ompDir = OMP_AGENT_DIR): string {
@@ -350,49 +722,109 @@ function computeDeployedOmpHash(ompDir = OMP_AGENT_DIR): string {
 	return hash.digest("hex").slice(0, 4);
 }
 
-function checkRepoUnswitched(ompDir = OMP_AGENT_DIR, nixHomeDir = NIX_DARWIN_HOME_DIR): boolean {
+/**
+ * Return `true` when the local `/etc/nix-darwin/home` checkout has unswitched OMP-affecting
+ * changes relative to `~/.omp/agent`, failing closed if the manifest cannot be parsed.
+ */
+export function checkRepoUnswitched(
+	ompDir = OMP_AGENT_DIR,
+	nixHomeDir = NIX_DARWIN_HOME_DIR,
+	ompRulesPath = defaultOmpRulesPath(),
+): boolean {
+	if (!existsSync(nixHomeDir)) return false;
+
 	const repoExt = readTextSafe(join(nixHomeDir, "files/omp-background-mode.ts"));
 	const depExt = readTextSafe(join(ompDir, "extensions/background-mode.ts"));
-	if (repoExt !== undefined && depExt !== undefined && repoExt.trim() !== depExt.trim()) {
+	if (repoExt === undefined || depExt === undefined || repoExt.trim() !== depExt.trim()) {
 		return true;
 	}
-	const repoCfg = readTextSafe(join(nixHomeDir, "files/omp-agent-config.yml"));
-	const depCfg = readTextSafe(join(ompDir, "config.yml"));
-	if (
-		repoCfg !== undefined &&
-		depCfg !== undefined &&
-		!depCfg.trimStart().startsWith(repoCfg.trim())
-	) {
-		return true;
-	}
+
 	const repoBrowser = readTextSafe(join(nixHomeDir, "files/agent-instructions/agents/browser.md"));
 	const depBrowser = readTextSafe(join(ompDir, "agents/browser.md"));
-	if (repoBrowser !== undefined && depBrowser !== undefined && repoBrowser.trim() !== depBrowser.trim()) {
+	if (repoBrowser === undefined || depBrowser === undefined || repoBrowser.trim() !== depBrowser.trim()) {
 		return true;
 	}
-	try {
-		const segmentsDir = join(nixHomeDir, "files/agent-instructions/segments");
-		const segmentFiles = readdirSync(segmentsDir).filter(
-			(name) => name.endsWith(".md") && name !== "claude-tools.md" && name !== "codex-tools.md",
-		);
-		const deployedBodies: string[] = [];
-		for (const rel of ["AGENTS.md", "PERSONALITY.md", "RULES.md"]) {
-			const text = readTextSafe(join(ompDir, rel));
-			if (text !== undefined) deployedBodies.push(text);
+
+	const manifestText = readTextSafe(join(nixHomeDir, "agent-instruction-segments.nix"));
+	if (manifestText === undefined) return true;
+	const sortedSegments = parseManifestSegments(manifestText);
+	if (sortedSegments === undefined) return true;
+
+	const repoCfg = readTextSafe(join(nixHomeDir, "files/omp-agent-config.yml"));
+	const depCfg = readTextSafe(join(ompDir, "config.yml"));
+	if (repoCfg === undefined || depCfg === undefined) return true;
+	const policySkillNames = sortedSegments
+		.filter((seg) => seg.segClass === "onDemand")
+		.map((seg) => seg.name);
+	const expectedCfgPrefix = `${removeTrailingNewline(repoCfg)}\nskills:\n  ignoredSkills:\n${policySkillNames.map((name) => `    - ${JSON.stringify(name)}\n`).join("")}hindsight:\n`;
+	if (!depCfg.trimStart().startsWith(expectedCfgPrefix.trimStart())) {
+		return true;
+	}
+
+	const ompSegments = sortedSegments.filter((seg) => seg.harnesses.includes("omp"));
+	const composedTargets: Array<{ relTarget: string; segClass: ManifestSegmentClass }> = [
+		{ relTarget: "AGENTS.md", segClass: "context" },
+		{ relTarget: "PERSONALITY.md", segClass: "personality" },
+		{ relTarget: "RULES.md", segClass: "persistent" },
+	];
+	for (const { relTarget, segClass } of composedTargets) {
+		const bodies: string[] = [];
+		for (const seg of ompSegments) {
+			if (seg.segClass !== segClass) continue;
+			const body = readTextSafe(join(nixHomeDir, seg.relPath));
+			if (body === undefined || body.startsWith("---\n")) return true;
+			bodies.push(removeTrailingNewline(body));
 		}
-		const rulesDir = join(ompDir, "rules");
-		for (const name of readdirSync(rulesDir).filter((n) => n.endsWith(".md"))) {
-			const text = readTextSafe(join(rulesDir, name));
-			if (text !== undefined) deployedBodies.push(text);
+		const expected = `${bodies.join("\n\n")}\n`;
+		const depText = readTextSafe(join(ompDir, relTarget));
+		if (depText === undefined || depText !== expected) {
+			return true;
 		}
-		const combinedDeployed = deployedBodies.join("\n\n");
-		for (const name of segmentFiles) {
-			const segText = readTextSafe(join(segmentsDir, name))?.trim();
-			if (segText && !combinedDeployed.includes(segText)) {
+	}
+
+	const ompRuleSegments = ompSegments.filter(
+		(seg) => seg.segClass === "onDemand" || seg.segClass === "critical",
+	);
+	for (const seg of ompRuleSegments) {
+		const body = readTextSafe(join(nixHomeDir, seg.relPath));
+		if (body === undefined || body.startsWith("---\n")) return true;
+		const alwaysApplyLine = seg.segClass === "critical" ? "alwaysApply: true\n" : "";
+		const expectedRule = `---\ndescription: ${JSON.stringify(seg.description ?? "")}\n${alwaysApplyLine}---\n\n${removeTrailingNewline(body)}\n`;
+		const depRule = readTextSafe(join(ompDir, "rules", `${seg.name}.md`));
+		if (depRule === undefined || depRule !== expectedRule) {
+			return true;
+		}
+	}
+
+	const expectedRuleFiles = ompRuleSegments.map((seg) => `${seg.name}.md`).sort(asciiCompare);
+	const registryText = readTextSafe(ompRulesPath);
+	if (registryText !== undefined) {
+		const deployedManagedRules = registryText
+			.split(LINE_SPLIT_RE)
+			.filter((line) => line.length > 0 && !line.startsWith(".") && !line.includes("/"))
+			.sort(asciiCompare);
+		if (
+			deployedManagedRules.length !== expectedRuleFiles.length ||
+			deployedManagedRules.some((name, idx) => name !== expectedRuleFiles[idx])
+		) {
+			return true;
+		}
+	} else {
+		try {
+			const installedRules = readdirSync(join(ompDir, "rules"))
+				.filter((name) => name.endsWith(".md"))
+				.sort(asciiCompare);
+			if (
+				installedRules.length !== expectedRuleFiles.length ||
+				installedRules.some((name, idx) => name !== expectedRuleFiles[idx])
+			) {
 				return true;
 			}
+		} catch {
+			if (expectedRuleFiles.length > 0) return true;
 		}
-	} catch {}
+	}
+
 	return false;
 }
 

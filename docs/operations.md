@@ -282,6 +282,9 @@ rule과 Claude skill tree는 기존 registry를 cleanup seed로 사용할 수 �
 도입 전 OMP `rsync --delete` 상태는 명시적인 마지막 구형 이름 목록을 fallback으로
 사용한다.
 
+OMP 상태줄 미반영(`⚠switch`) 감지기와 세그먼트 매니페스트 파서 회귀 검사는
+`OMP_BG_TEST_SCRATCH=<scratch-dir> bun --no-install test home/test_omp_background_mode.ts`로 실행한다.
+
 검토한 공개 skill은 `skills update`가 아니라 `flake.lock`으로 버전을 고정한다.
 `home/agent-skills.nix`가 regular skill과 generated `onDemand` policy skill을
 `~/.agents/skills`와 `~/.claude/skills`에 각각 복사한다.
