@@ -353,6 +353,14 @@ frontmatter `mcpServers`에만 있어 main agent는 browser 도구를 갖지 않
 subagent의 절차는 OMP `agents/browser.md`에서 도구 이름만 바꿔 생성한다. agy는
 plugin 밖을 가리키는 symlink를 거부하므로 activation이 tree를 복사한다.
 
+CLI 사용자 설정(`~/.gemini/antigravity-cli/settings.json`)은 `home/agy.nix`에서
+Home Manager의 `programs.antigravity-cli`(`mutableSettings = true`)로 병합 관리한다.
+공유 UI와 자율 실행 기본값(`altScreenMode = "default"`, `notifications = true`,
+`agentMode = "accept-edits"`, `toolPermission = "always-proceed"`,
+`allowNonWorkspaceAccess = true`)만 덮어써서 실행 중 선택하는 `model`과
+`trustedWorkspaces`를 유지하며, `altScreenMode = "default"`로 대체 화면 전용 휠 가속을
+피하고 대화창 스크롤을 터미널 기본 스크롤백에 맡긴다.
+
 Hindsight 범위는 `lib/hindsight.nix` 하나로 정하고 OMP 설정과 agy bridge
 (`pkgs/agy-hindsight`)가 같이 읽는다. bank 하나에 project write는
 `project:<primary checkout 이름 소문자>` 태그를 붙이고, recall은 그 태그와 태그 없는

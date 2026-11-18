@@ -1,9 +1,11 @@
 # agy (the Antigravity CLI) receives the same agent harness as OMP through a
-# single plugin under ~/.gemini/config/plugins. Other modules contribute its
-# rules, skills and MCP servers through `local.agy`; this module adds the
-# Hindsight memory bridge and the Camofox browser subagent, then installs the
-# whole tree by copy, because agy refuses plugin symlinks that point outside
-# the plugin.
+# single plugin under ~/.gemini/config/plugins and shared CLI preferences merged
+# into ~/.gemini/antigravity-cli/settings.json via Home Manager's
+# `programs.antigravity-cli` (`mutableSettings = true`). Other modules
+# contribute its rules, skills and MCP servers through `local.agy`; this module
+# adds the Hindsight memory bridge and the Camofox browser subagent, then
+# installs the plugin tree by copy, because agy refuses plugin symlinks that
+# point outside the plugin.
 {
   config,
   lib,
@@ -38,9 +40,7 @@ let
           --set-default AGY_HINDSIGHT_API_URL ${lib.escapeShellArg hindsight.apiUrl} \
           --set-default AGY_HINDSIGHT_BANK ${lib.escapeShellArg hindsight.bank} \
           --set-default AGY_HINDSIGHT_GLOBAL_SCOPE ${if hindsight.globalScope then "1" else "0"} \
-          --run ${
-            lib.escapeShellArg ''if [ -z "''${HINDSIGHT_API_TOKEN:-}" ]; then HINDSIGHT_API_TOKEN=$(${hindsightTokenCommand} 2>/dev/null) || HINDSIGHT_API_TOKEN=; export HINDSIGHT_API_TOKEN; fi''
-          }
+          --run ${lib.escapeShellArg ''if [ -z "''${HINDSIGHT_API_TOKEN:-}" ]; then HINDSIGHT_API_TOKEN=$(${hindsightTokenCommand} 2>/dev/null) || HINDSIGHT_API_TOKEN=; export HINDSIGHT_API_TOKEN; fi''}
       '';
   bridge = lib.getExe hindsightBridge;
 
@@ -198,5 +198,24 @@ in
         --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r \
         ${pluginTree}/ ${lib.escapeShellArg pluginTarget}/
     '';
+
+    programs.antigravity-cli = {
+      enable = true;
+      mutableSettings = true;
+      # Merge only shared UI and execution defaults over
+      # ~/.gemini/antigravity-cli/settings.json so runtime `/model` choices
+      # and Orca/agy `trustedWorkspaces` entries survive a switch.
+      # `altScreenMode = "default"` keeps conversation scrolling in the
+      # terminal's native scrollback, avoiding agy's hardcoded alt-screen
+      # wheel acceleration (`1 + floor(sqrt(streak))` within 150 ms).
+      settings = {
+        "$schema" = "https://antigravity.google/schemas/v1/settings.json";
+        altScreenMode = "default";
+        notifications = true;
+        agentMode = "accept-edits";
+        toolPermission = "always-proceed";
+        allowNonWorkspaceAccess = true;
+      };
+    };
   };
 }

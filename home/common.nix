@@ -456,6 +456,7 @@ in
     };
     camofoxMcpServer = if camofoxCfg.enable then camofoxMcpServer "agy" else null;
   };
+  programs.antigravity-cli.package = agents.antigravity-cli;
 
   # Every node runs a local SkillClaw client and synchronizes the shared
   # ~/.agents/skills tree used by OMP and Codex. Claude receives a Nix-generated
@@ -656,9 +657,9 @@ in
 
     # llm-agents tracks these upstreams daily and supplies matching cached
     # outputs for every platform this configuration manages.
+    # `antigravity-cli` is installed via `programs.antigravity-cli.package` above.
     agents.claude-code
     agents.codex
-    agents.antigravity-cli
 
     # Official OMP and herdr-core standalone binaries. `nix run .#update-packages`
     # refreshes their versions, platform assets, and sha256 digests in one

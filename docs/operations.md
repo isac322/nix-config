@@ -262,7 +262,8 @@ cat /var/run/wireguard-addresses   # 데몬이 발행한 주소. Orca·RustDesk 
 - Claude Code: `CLAUDE.md`, `~/.claude/rules`, `~/.claude/skills`
 - Codex: `AGENTS.md`, `~/.agents/skills`
 - agy: `~/.gemini/config/plugins/nix-managed/` (rules, MCP, Hindsight hook,
-  `browser` subagent), `~/.gemini/config/skills.json` → `~/.agents/skills`
+  `browser` subagent), `~/.gemini/config/skills.json` → `~/.agents/skills`,
+  `~/.gemini/antigravity-cli/settings.json` (`programs.antigravity-cli` 병합 관리)
 
 지원하지 않는 rule class는 다른 canonical copy를 만들지 않고 context나 generated
 skill로 fallback한다. 새 segment를 추가하거나 class를 바꿀 때는
