@@ -102,7 +102,7 @@ in
       300
     )
     // {
-      description = "Record every temporary resource you create in an append-only cleanup ledger under ~/.cache/cleanup-ledgers, sweep every workspace ledger and unrecorded leftovers when cleaning up, and delete only after the user declares the task finished or requests cleanup.";
+      description = "Record every temporary resource in a per-session append-only JSONL cleanup-resource ledger under ~/.cache/cleanup-ledgers, link child and takeover ledgers, sweep for unrecorded candidates before reporting, and delete only proven-owned resources after the user declares the task finished or requests cleanup.";
     };
 
   pull-request-creation-approval =
