@@ -97,21 +97,18 @@ buildNpmPackage {
   # Allow camofox_type to read the text from a local file (textFile) and
   # unlink it immediately so credentials never pass through model context.
   #
-  # Closing a session saves its login state first, and that save has no
-  # deadline upstream. When context.storageState() stalls, the teardown never
-  # finishes and every later tab request for that user waits behind it until
-  # it returns 503. Give up on the save after a minute and keep the previous
-  # snapshot, so the teardown completes and a fresh session can be built.
+  # Upstream closes a session within a minute of its last tab closing. Keep the
+  # empty session until SESSION_TIMEOUT_MS (30 minutes here, set on the wrapper
+  # below) and save its state when it goes idle instead of tearing down early.
   #
-  # Upstream closes a session within a minute of its last tab closing, and the
-  # next tab restores every stored origin again by navigating to each one.
-  # With several hundred origins that is 10 to 20 seconds per first tab. Keep
-  # the empty session until SESSION_TIMEOUT_MS (30 minutes here, set on the
-  # wrapper below) and save its state when it goes idle instead of on close.
-  #
-  # Local dev and test servers produce a new loopback origin per port, and
-  # each stored origin costs a navigation on restore and on save. Leave
-  # loopback origins out of the saved state.
+  # Playwright Firefox has no protocol API for offline per-origin localStorage,
+  # so both newContext({ storageState }) and context.storageState() open a
+  # synthetic browser window and navigate through every stored origin with no
+  # timeout. Restore cookies over IPC (origins: []), seed saved top-level
+  # localStorage lazily via a disposable Juggler-sandbox init script, capture
+  # top-level localStorage in-place on live pages before navigation/close/idle,
+  # and filter out loopback/private/local origins, expired cookies, and
+  # oversized cache blobs.
   patches = [
     ./session-isolation.patch
     ./click-witness.patch
@@ -119,9 +116,8 @@ buildNpmPackage {
     ./press-tool.patch
     ./type-file.patch
     ./humanize-toggle.patch
-    ./storage-state-timeout.patch
     ./keep-empty-session.patch
-    ./persistence-skip-loopback.patch
+    ./lazy-storage-persistence.patch
   ];
   postPatch = ''
     # Upstream 1.17.0 omitted mcp/package.json from package.json "files",

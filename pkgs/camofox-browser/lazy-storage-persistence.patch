@@ -1,0 +1,2207 @@
+diff --git a/lib/persistence.js b/lib/persistence.js
+index c8c6ffc..1ba27c1 100644
+--- a/lib/persistence.js
++++ b/lib/persistence.js
+@@ -1,7 +1,37 @@
+ import crypto from 'node:crypto';
+ import fs from 'node:fs/promises';
++import net from 'node:net';
+ import path from 'node:path';
+ 
++const COOKIES_TIMEOUT_MS = 5_000;
++const STORAGE_STATE_TIMEOUT_MS = 60_000;
++const MAX_COOKIE_EXPIRES_SECONDS = 253_402_300_799;
++const MAX_LOCAL_STORAGE_ENTRY_BYTES = 256 * 1024;
++const MAX_ORIGIN_STORAGE_BYTES = 1024 * 1024;
++const MAX_PERSISTED_ORIGINS = 0; // 0 = unlimited; never evict unvisited public origins
++
++const ALLOWED_COOKIE_FIELDS = [
++  'name',
++  'value',
++  'domain',
++  'url',
++  'path',
++  'expires',
++  'httpOnly',
++  'secure',
++  'sameSite',
++  'partitionKey',
++];
++
++const NON_PERSISTABLE_DOMAIN_SUFFIXES = [
++  '.localhost',
++  '.local',
++  '.internal',
++  '.lan',
++  '.home.arpa',
++  '.invalid',
++];
++
+ function getUserPersistencePaths(profileDir, userId) {
+   const rootDir = path.resolve(profileDir);
+   const safeUserDir = crypto
+@@ -19,7 +49,271 @@ function getUserPersistencePaths(profileDir, userId) {
+   };
+ }
+ 
+-async function loadPersistedStorageState(profileDir, userId, logger = console) {
++function isNonPublicIpv4Octets(a, b) {
++  if (a === 0 || a === 10 || a === 127 || a >= 224) return true;
++  if (a === 100 && b >= 64 && b <= 127) return true; // RFC 6598 CGNAT 100.64.0.0/10
++  if (a === 169 && b === 254) return true; // RFC 3927 link-local
++  if (a === 172 && b >= 16 && b <= 31) return true; // RFC 1918 172.16.0.0/12
++  if (a === 192 && b === 168) return true; // RFC 1918 192.168.0.0/16
++  return false;
++}
++
++function isNonPublicIpv4(host) {
++  const parts = host.split('.');
++  if (parts.length !== 4) return true;
++  const nums = parts.map((p) => Number(p));
++  if (nums.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return true;
++  return isNonPublicIpv4Octets(nums[0], nums[1]);
++}
++
++function parseIpv6Groups(host) {
++  let normalized = host.toLowerCase();
++  const zoneIdx = normalized.indexOf('%');
++  if (zoneIdx !== -1) normalized = normalized.slice(0, zoneIdx);
++
++  // Convert trailing dotted IPv4 (e.g. ::ffff:127.0.0.1) into two hex groups
++  const lastColon = normalized.lastIndexOf(':');
++  if (lastColon !== -1 && normalized.slice(lastColon + 1).includes('.')) {
++    const ipv4Part = normalized.slice(lastColon + 1);
++    const octets = ipv4Part.split('.').map((p) => Number(p));
++    if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) {
++      return null;
++    }
++    const hi = ((octets[0] << 8) | octets[1]).toString(16);
++    const lo = ((octets[2] << 8) | octets[3]).toString(16);
++    normalized = `${normalized.slice(0, lastColon + 1)}${hi}:${lo}`;
++  }
++
++  const halves = normalized.split('::');
++  if (halves.length > 2) return null;
++  const left = halves[0] ? halves[0].split(':') : [];
++  const right = halves.length === 2 && halves[1] ? halves[1].split(':') : [];
++  const missing = halves.length === 2 ? 8 - (left.length + right.length) : 0;
++  if ((halves.length === 1 && left.length !== 8) || missing < 0) return null;
++
++  const full = [...left, ...Array(missing).fill('0'), ...right];
++  if (full.length !== 8) return null;
++  const groups = full.map((g) => parseInt(g, 16));
++  if (groups.some((n) => !Number.isInteger(n) || n < 0 || n > 0xffff)) return null;
++  return groups;
++}
++
++function isNonPublicIpv6(host) {
++  const g = parseIpv6Groups(host);
++  if (!g) return true;
++  const allZeroPrefix = g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 && g[4] === 0;
++  // :: (unspecified) or ::1 (loopback)
++  if (allZeroPrefix && g[5] === 0 && g[6] === 0 && (g[7] === 0 || g[7] === 1)) return true;
++  // ::ffff:0:0/96 (IPv4-mapped IPv6)
++  if (allZeroPrefix && g[5] === 0xffff) {
++    const a = (g[6] >> 8) & 0xff;
++    const b = g[6] & 0xff;
++    return isNonPublicIpv4Octets(a, b);
++  }
++  // fc00::/7 (Unique Local), fe80::/10 (Link-Local), ff00::/8 (Multicast)
++  if ((g[0] & 0xfe00) === 0xfc00) return true;
++  if ((g[0] & 0xffc0) === 0xfe80) return true;
++  if ((g[0] & 0xff00) === 0xff00) return true;
++  return false;
++}
++
++function isPersistableOrigin(origin) {
++  if (typeof origin !== 'string' || !origin) return false;
++  let parsed;
++  try {
++    parsed = new URL(origin);
++  } catch {
++    return false;
++  }
++  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
++  if (parsed.origin !== origin || parsed.username || parsed.password) return false;
++
++  const rawHost = parsed.hostname.toLowerCase().replace(/\.$/, '');
++  if (!rawHost) return false;
++  const bareHost = rawHost.startsWith('[') && rawHost.endsWith(']')
++    ? rawHost.slice(1, -1)
++    : rawHost;
++
++  const ipVersion = net.isIP(bareHost);
++  if (ipVersion === 4) return !isNonPublicIpv4(bareHost);
++  if (ipVersion === 6) return !isNonPublicIpv6(bareHost);
++
++  if (bareHost === 'localhost' || !bareHost.includes('.')) return false;
++  if (NON_PERSISTABLE_DOMAIN_SUFFIXES.some((suffix) => bareHost.endsWith(suffix))) {
++    return false;
++  }
++  return true;
++}
++
++function sanitizeCookies(cookies, { nowMs = Date.now() } = {}) {
++  if (!Array.isArray(cookies)) return [];
++  const out = [];
++  for (const c of cookies) {
++    if (!c || typeof c !== 'object') continue;
++    if (typeof c.name !== 'string' || !c.name) continue;
++    if (typeof c.value !== 'string') continue;
++    const hasDomain = typeof c.domain === 'string' && c.domain.length > 0;
++    const hasUrl = typeof c.url === 'string' && c.url.length > 0;
++    if (!hasDomain && !hasUrl) continue;
++
++    let expires = c.expires;
++    if (expires === undefined || expires === null || expires === 0 || expires === -1) {
++      expires = -1;
++    } else {
++      if (typeof expires !== 'number' || !Number.isFinite(expires)) continue;
++      if (expires < 0 || expires > MAX_COOKIE_EXPIRES_SECONDS) continue;
++      if (expires * 1000 <= nowMs) continue;
++    }
++
++    const clean = {};
++    for (const field of ALLOWED_COOKIE_FIELDS) {
++      if (c[field] !== undefined) clean[field] = c[field];
++    }
++    if (hasDomain && (typeof clean.path !== 'string' || !clean.path)) {
++      clean.path = '/';
++    }
++    clean.expires = expires;
++    out.push(clean);
++  }
++  return out;
++}
++
++function sanitizeLocalStorageEntries(entries, {
++  maxEntryBytes = MAX_LOCAL_STORAGE_ENTRY_BYTES,
++  maxOriginBytes = MAX_ORIGIN_STORAGE_BYTES,
++} = {}) {
++  if (!Array.isArray(entries)) return [];
++  const valid = [];
++  let totalBytes = 0;
++  for (let idx = 0; idx < entries.length; idx++) {
++    const entry = entries[idx];
++    if (!entry || typeof entry !== 'object') continue;
++    if (typeof entry.name !== 'string' || !entry.name || typeof entry.value !== 'string') continue;
++    const bytes = Buffer.byteLength(entry.name, 'utf8') + Buffer.byteLength(entry.value, 'utf8');
++    if (bytes > maxEntryBytes) continue;
++    valid.push({ idx, name: entry.name, value: entry.value, bytes });
++    totalBytes += bytes;
++  }
++  if (totalBytes <= maxOriginBytes) {
++    return valid.map(({ name, value }) => ({ name, value }));
++  }
++  // Prefer smaller entries (such as auth tokens) over large cache payloads when trimming
++  const bySize = [...valid].sort((a, b) => a.bytes - b.bytes || a.idx - b.idx);
++  const keptIndices = new Set();
++  let usedBytes = 0;
++  for (const item of bySize) {
++    if (usedBytes + item.bytes > maxOriginBytes) continue;
++    keptIndices.add(item.idx);
++    usedBytes += item.bytes;
++  }
++  return valid
++    .filter((item) => keptIndices.has(item.idx))
++    .map(({ name, value }) => ({ name, value }));
++}
++
++function sanitizeOrigins(origins, {
++  maxEntryBytes = MAX_LOCAL_STORAGE_ENTRY_BYTES,
++  maxOriginBytes = MAX_ORIGIN_STORAGE_BYTES,
++  maxOrigins = MAX_PERSISTED_ORIGINS,
++  keepEmptyWithIndexedDB = false,
++} = {}) {
++  if (!Array.isArray(origins)) return [];
++  const byOrigin = new Map();
++  for (const item of origins) {
++    if (!item || typeof item !== 'object' || !isPersistableOrigin(item.origin)) continue;
++    const localStorage = sanitizeLocalStorageEntries(item.localStorage, { maxEntryBytes, maxOriginBytes });
++    const hasIdb = keepEmptyWithIndexedDB && Array.isArray(item.indexedDB) && item.indexedDB.length > 0;
++    if (localStorage.length === 0 && !hasIdb) {
++      byOrigin.delete(item.origin);
++      continue;
++    }
++    byOrigin.delete(item.origin);
++    const clean = { origin: item.origin, localStorage };
++    if (Array.isArray(item.indexedDB) && keepEmptyWithIndexedDB) {
++      clean.indexedDB = item.indexedDB;
++    }
++    byOrigin.set(item.origin, clean);
++  }
++  const all = [...byOrigin.values()];
++  return maxOrigins > 0 && all.length > maxOrigins ? all.slice(-maxOrigins) : all;
++}
++
++function sanitizeStorageState(state, {
++  nowMs = Date.now(),
++  indexedDB = false,
++  maxEntryBytes = MAX_LOCAL_STORAGE_ENTRY_BYTES,
++  maxOriginBytes = MAX_ORIGIN_STORAGE_BYTES,
++  maxOrigins = MAX_PERSISTED_ORIGINS,
++} = {}) {
++  return {
++    cookies: sanitizeCookies(state?.cookies, { nowMs }),
++    origins: sanitizeOrigins(state?.origins, {
++      maxEntryBytes,
++      maxOriginBytes,
++      maxOrigins,
++      keepEmptyWithIndexedDB: indexedDB,
++    }),
++  };
++}
++
++function mergeOriginStorageStates(baseOrigins = [], dirtyMap = new Map(), {
++  indexedDB = false,
++  maxEntryBytes = MAX_LOCAL_STORAGE_ENTRY_BYTES,
++  maxOriginBytes = MAX_ORIGIN_STORAGE_BYTES,
++  maxOrigins = MAX_PERSISTED_ORIGINS,
++} = {}) {
++  const byOrigin = new Map();
++  if (Array.isArray(baseOrigins)) {
++    for (const item of baseOrigins) {
++      if (item && typeof item === 'object' && isPersistableOrigin(item.origin)) {
++        byOrigin.set(item.origin, item);
++      }
++    }
++  }
++  if (dirtyMap && typeof dirtyMap.entries === 'function') {
++    for (const [origin, entries] of dirtyMap.entries()) {
++      if (!isPersistableOrigin(origin)) {
++        byOrigin.delete(origin);
++        continue;
++      }
++      const prev = byOrigin.get(origin);
++      byOrigin.delete(origin);
++      if (!Array.isArray(entries) || entries.length === 0) {
++        if (indexedDB && Array.isArray(prev?.indexedDB) && prev.indexedDB.length > 0) {
++          byOrigin.set(origin, { origin, localStorage: [], indexedDB: prev.indexedDB });
++        }
++        continue;
++      }
++      const next = { origin, localStorage: entries };
++      if (indexedDB && Array.isArray(prev?.indexedDB) && prev.indexedDB.length > 0) {
++        next.indexedDB = prev.indexedDB;
++      }
++      byOrigin.set(origin, next);
++    }
++  }
++  return sanitizeOrigins([...byOrigin.values()], {
++    maxEntryBytes,
++    maxOriginBytes,
++    maxOrigins,
++    keepEmptyWithIndexedDB: indexedDB,
++  });
++}
++
++function raceWithTimeout(promise, timeoutMs, label) {
++  const guarded = Promise.resolve(promise);
++  guarded.catch(() => {});
++  let timer;
++  return Promise.race([
++    guarded,
++    new Promise((_, reject) => {
++      timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
++    }),
++  ]).finally(() => {
++    clearTimeout(timer);
++  });
++}
++
++async function loadPersistedStorageStateData(profileDir, userId, logger = console, options = {}) {
+   if (!profileDir) return undefined;
+ 
+   const { storageStatePath } = getUserPersistencePaths(profileDir, userId);
+@@ -30,7 +324,8 @@ async function loadPersistedStorageState(profileDir, userId, logger = console) {
+     if (!parsed || typeof parsed !== 'object') return undefined;
+     if (!Array.isArray(parsed.cookies)) return undefined;
+     if (parsed.origins !== undefined && !Array.isArray(parsed.origins)) return undefined;
+-    return storageStatePath;
++    const state = sanitizeStorageState(parsed, { indexedDB: options.indexedDB === true });
++    return { storageStatePath, state };
+   } catch (err) {
+     if (err?.code === 'ENOENT') return undefined;
+     logger?.warn?.('failed to load persisted storage state', {
+@@ -42,13 +337,21 @@ async function loadPersistedStorageState(profileDir, userId, logger = console) {
+   }
+ }
+ 
++async function loadPersistedStorageState(profileDir, userId, logger = console) {
++  const loaded = await loadPersistedStorageStateData(profileDir, userId, logger);
++  return loaded?.storageStatePath;
++}
++
+ async function persistStorageState({
+   profileDir,
+   userId,
+   context,
+   storageState,
++  origins,
+   logger = console,
+   indexedDB = false,
++  cookiesTimeoutMs = COOKIES_TIMEOUT_MS,
++  storageStateTimeoutMs = STORAGE_STATE_TIMEOUT_MS,
+ }) {
+   if (!profileDir || (!context && !storageState)) {
+     return { persisted: false, reason: 'disabled' };
+@@ -61,11 +364,44 @@ async function persistStorageState({
+ 
+   try {
+     await fs.mkdir(userDir, { recursive: true });
++    let finalState;
+     if (storageState) {
+-      await fs.writeFile(tmpStoragePath, JSON.stringify(storageState, null, 2));
++      finalState = sanitizeStorageState(storageState, { indexedDB: true });
++    } else if (indexedDB) {
++      const captured = await raceWithTimeout(
++        context.storageState({ indexedDB: true }),
++        storageStateTimeoutMs,
++        'storageState'
++      );
++      const mergedByOrigin = new Map();
++      if (Array.isArray(origins)) {
++        for (const item of origins) {
++          if (item?.origin) mergedByOrigin.set(item.origin, item);
++        }
++      }
++      if (Array.isArray(captured?.origins)) {
++        for (const item of captured.origins) {
++          if (item?.origin) {
++            mergedByOrigin.delete(item.origin);
++            mergedByOrigin.set(item.origin, item);
++          }
++        }
++      }
++      finalState = sanitizeStorageState(
++        { cookies: captured?.cookies || [], origins: [...mergedByOrigin.values()] },
++        { indexedDB: true }
++      );
+     } else {
+-      await context.storageState(indexedDB ? { path: tmpStoragePath, indexedDB: true } : { path: tmpStoragePath });
++      const cookies = typeof context.cookies === 'function'
++        ? await raceWithTimeout(context.cookies(), cookiesTimeoutMs, 'cookies')
++        : (await raceWithTimeout(context.storageState(), storageStateTimeoutMs, 'storageState'))?.cookies || [];
++      finalState = sanitizeStorageState(
++        { cookies, origins: Array.isArray(origins) ? origins : [] },
++        { indexedDB: false }
++      );
+     }
++
++    await fs.writeFile(tmpStoragePath, JSON.stringify(finalState));
+     await fs.rename(tmpStoragePath, storageStatePath);
+     await fs.writeFile(
+       tmpMetaPath,
+@@ -80,7 +416,7 @@ async function persistStorageState({
+       )
+     );
+     await fs.rename(tmpMetaPath, metaPath);
+-    return { persisted: true, userDir, storageStatePath, metaPath };
++    return { persisted: true, userDir, storageStatePath, metaPath, state: finalState };
+   } catch (err) {
+     await fs.unlink(tmpStoragePath).catch(() => {});
+     await fs.unlink(tmpMetaPath).catch(() => {});
+@@ -93,8 +429,245 @@ async function persistStorageState({
+   }
+ }
+ 
++function parseHttpOrigin(url) {
++  if (typeof url !== 'string' || !url) return null;
++  try {
++    const parsed = new URL(url);
++    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
++    if (!parsed.origin || parsed.origin === 'null') return null;
++    return parsed.origin;
++  } catch {
++    return null;
++  }
++}
++
++function seedTopLevelLocalStorageInitScript(originsMap) {
++  try {
++    if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
++    if (window !== window.top) return;
++    const spec = originsMap[location.origin];
++    if (!spec || typeof spec !== 'object') return;
++    const entries = spec.entries;
++    if (!Array.isArray(entries)) return;
++    if (spec.replace) {
++      try {
++        localStorage.clear();
++      } catch {}
++      for (let i = 0; i < entries.length; i++) {
++        const item = entries[i];
++        try {
++          localStorage.setItem(item.name, item.value);
++        } catch {}
++      }
++      return;
++    }
++    for (let i = 0; i < entries.length; i++) {
++      const item = entries[i];
++      try {
++        if (localStorage.getItem(item.name) === null) {
++          localStorage.setItem(item.name, item.value);
++        }
++      } catch {}
++    }
++  } catch {}
++}
++
++function probeTopLevelLocalStorageOrigin() {
++  try {
++    if (location.protocol !== 'http:' && location.protocol !== 'https:') return null;
++    if (window !== window.top) return null;
++    const origin = location.origin;
++    if (!origin || origin === 'null') return null;
++    void localStorage.length;
++    return origin;
++  } catch {
++    return null;
++  }
++}
++
++const contextLocalStorageSeeders = new WeakMap();
++
++const noopContextSeeder = Object.freeze({
++  attachPage() {},
++  setPendingOrigin() {},
++  markOriginVisited: () => false,
++  hasPendingOrigin: () => false,
++  sync: () => Promise.resolve(),
++  close: () => Promise.resolve(),
++});
++
++function getContextLocalStorageSeeder(context) {
++  if (!context || typeof context !== 'object') return noopContextSeeder;
++  const existing = contextLocalStorageSeeders.get(context);
++  if (existing) return existing;
++
++  const pendingOrigins = new Map(); // origin -> { entries: [{ name, value }], replace: boolean }
++  const observedPages = new WeakSet();
++  let initScriptDisposable = null;
++  let seedSyncChain = Promise.resolve();
++  let closed = false;
++
++  function sync() {
++    if (typeof context.addInitScript !== 'function') {
++      return Promise.resolve();
++    }
++    seedSyncChain = seedSyncChain.catch(() => {}).then(async () => {
++      const previousDisposable = initScriptDisposable;
++      initScriptDisposable = null;
++
++      if (!closed && pendingOrigins.size > 0) {
++        const payload = Object.fromEntries(pendingOrigins.entries());
++        try {
++          initScriptDisposable = await context.addInitScript(
++            seedTopLevelLocalStorageInitScript,
++            payload
++          );
++        } catch {
++          // Context may be closing concurrently; ignore.
++        }
++      }
++      if (previousDisposable && typeof previousDisposable.dispose === 'function') {
++        await previousDisposable.dispose().catch(() => {});
++      }
++    });
++    return seedSyncChain;
++  }
++
++  function markOriginVisited(origin, { syncNow = true } = {}) {
++    if (!origin) return false;
++    const removed = pendingOrigins.delete(origin);
++    if (removed && syncNow) {
++      sync().catch(() => {});
++    }
++    return removed;
++  }
++
++  function attachPage(page) {
++    if (!page || typeof page !== 'object' || observedPages.has(page)) return;
++    observedPages.add(page);
++    if (typeof page.on !== 'function') return;
++    page.on('framenavigated', (frame) => {
++      try {
++        if (typeof page.mainFrame === 'function' && frame !== page.mainFrame()) return;
++        const origin = parseHttpOrigin(frame?.url?.());
++        if (!origin || !pendingOrigins.has(origin)) return;
++        if (typeof page.evaluate !== 'function') {
++          markOriginVisited(origin);
++          return;
++        }
++        if (page.isClosed?.()) return;
++        raceWithTimeout(
++          page.evaluate(probeTopLevelLocalStorageOrigin),
++          1_500,
++          'probe localStorage origin'
++        ).then((probedOrigin) => {
++          if (typeof probedOrigin === 'string' && probedOrigin === origin) {
++            markOriginVisited(probedOrigin);
++          }
++        }).catch(() => {});
++      } catch {}
++    });
++  }
++
++  function setPendingOrigin(origin, entries, { replace = false } = {}) {
++    if (closed) return;
++    const parsedOrigin = parseHttpOrigin(origin);
++    if (!parsedOrigin || parsedOrigin !== origin) return;
++    const normalized = Array.isArray(entries)
++      ? entries
++        .filter((e) => e && typeof e.name === 'string' && e.name.length > 0 && typeof e.value === 'string')
++        .map(({ name, value }) => ({ name, value }))
++      : [];
++
++    if (replace) {
++      pendingOrigins.set(origin, { entries: normalized, replace: true });
++      return;
++    }
++    if (normalized.length > 0) {
++      pendingOrigins.set(origin, { entries: normalized, replace: false });
++    } else {
++      pendingOrigins.delete(origin);
++    }
++  }
++
++  function close() {
++    closed = true;
++    pendingOrigins.clear();
++    return sync();
++  }
++
++  if (typeof context.on === 'function') {
++    context.on('page', (page) => attachPage(page));
++  }
++  const currentPages = typeof context.pages === 'function' ? context.pages() : [];
++  if (Array.isArray(currentPages)) {
++    for (const page of currentPages) attachPage(page);
++  }
++
++  const seeder = {
++    attachPage,
++    setPendingOrigin,
++    markOriginVisited,
++    hasPendingOrigin: (origin) => pendingOrigins.has(origin),
++    sync,
++    close,
++  };
++  contextLocalStorageSeeders.set(context, seeder);
++  return seeder;
++}
++
++async function applyLocalStorageImportToContext(context, origins) {
++  if (!context || !Array.isArray(origins) || origins.length === 0) return;
++  const seeder = getContextLocalStorageSeeder(context);
++  const openPages = typeof context.pages === 'function' ? context.pages() : [];
++  if (Array.isArray(openPages)) {
++    for (const page of openPages) seeder.attachPage(page);
++  }
++
++  for (const item of origins) {
++    if (!item || typeof item.origin !== 'string' || !Array.isArray(item.localStorage)) continue;
++    let appliedInPlace = false;
++    if (Array.isArray(openPages)) {
++      for (const page of openPages) {
++        if (!page || page.isClosed?.() || typeof page.evaluate !== 'function') continue;
++        const pageOrigin = parseHttpOrigin(page.url?.());
++        if (pageOrigin !== item.origin) continue;
++        try {
++          await page.evaluate((localStorageEntries) => {
++            localStorage.clear();
++            for (const { name, value } of localStorageEntries) localStorage.setItem(name, value);
++          }, item.localStorage);
++          appliedInPlace = true;
++        } catch {}
++      }
++    }
++    if (appliedInPlace) {
++      seeder.markOriginVisited(item.origin, { syncNow: false });
++    } else {
++      seeder.setPendingOrigin(item.origin, item.localStorage, { replace: true });
++    }
++  }
++
++  await seeder.sync();
++}
++
+ export {
++  COOKIES_TIMEOUT_MS,
++  MAX_LOCAL_STORAGE_ENTRY_BYTES,
++  MAX_ORIGIN_STORAGE_BYTES,
++  MAX_PERSISTED_ORIGINS,
++  STORAGE_STATE_TIMEOUT_MS,
++  applyLocalStorageImportToContext,
++  getContextLocalStorageSeeder,
+   getUserPersistencePaths,
++  isPersistableOrigin,
+   loadPersistedStorageState,
++  loadPersistedStorageStateData,
++  mergeOriginStorageStates,
++  parseHttpOrigin,
+   persistStorageState,
++  raceWithTimeout,
++  sanitizeCookies,
++  sanitizeOrigins,
++  sanitizeStorageState,
+ };
+diff --git a/lib/storage-state.js b/lib/storage-state.js
+index a452cb1..174294f 100644
+--- a/lib/storage-state.js
++++ b/lib/storage-state.js
+@@ -8,10 +8,11 @@ export function createStorageStateExportHandler({
+   sessions,
+   normalizeUserId = String,
+   getStorageStateOptions = () => undefined,
++  exportStorageState,
+   events,
+   log,
+ }) {
+-  return async function exportStorageState(req, res) {
++  return async function exportStorageStateRoute(req, res) {
+     const userId = normalizeUserId(req.params.userId);
+     try {
+       const session = sessions.get(userId);
+@@ -19,7 +20,9 @@ export function createStorageStateExportHandler({
+         return res.status(404).json({ error: `No active session for userId="${userId}"` });
+       }
+ 
+-      const state = await session.context.storageState(getStorageStateOptions());
++      const state = typeof exportStorageState === 'function'
++        ? await exportStorageState(userId, session)
++        : await session.context.storageState(getStorageStateOptions());
+       const cookies = Array.isArray(state.cookies) ? state.cookies.length : 0;
+       const origins = Array.isArray(state.origins) ? state.origins.length : 0;
+ 
+diff --git a/plugins/persistence/index.js b/plugins/persistence/index.js
+index 1e058a9..dd1d2fb 100644
+--- a/plugins/persistence/index.js
++++ b/plugins/persistence/index.js
+@@ -1,41 +1,41 @@
+ /**
+  * Persistence plugin for camofox-browser.
+  *
+- * Saves and restores per-user browser storage state (cookies + localStorage
+- * + IndexedDB) across session restarts using Playwright's storageState API.
++ * Saves and restores per-user browser storage state (cookies + localStorage,
++ * and opt-in IndexedDB) across session restarts without opening synthetic
++ * Playwright `forStorageState` browser windows:
+  *
+- * Configuration (camofox.config.json):
+- *   {
+- *     "plugins": {
+- *       "persistence": {
+- *         "enabled": true,
+- *         "profileDir": "/data/profiles",
+- *         "indexedDB": true
+- *       }
+- *     }
+- *   }
+- *
+- * The profile directory can also be set via environment variable:
+- *   CAMOFOX_PROFILE_DIR=/data/profiles
+- *
+- * Each userId gets a deterministic SHA256-hashed subdirectory under profileDir.
+- * Storage state is checkpointed on cookie import, session close, and shutdown.
+- * On session creation, saved state is restored into the new Playwright context
+- * via the session:creating hook (mutates contextOptions.storageState).
+- *
+- * indexedDB (default: false): opt in to capturing all serializable IndexedDB
+- * records in storageState(). This can preserve IndexedDB-backed logins, but
+- * may make snapshots significantly larger and checkpoints slower.
++ * 1. On session:creating, cookies are passed via `contextOptions.storageState =
++ *    { cookies, origins: [] }` (pure IPC, 0 windows, 0 navigations).
++ * 2. On session:created, saved per-origin localStorage is seeded lazily on
++ *    top-level documents via a disposable `context.addInitScript` (isolated in
++ *    Camoufox's Juggler sandbox world, running synchronously before page scripts)
++ *    and removed per-origin once visited so subsequent clears/logouts are never
++ *    overwritten.
++ * 3. On page navigation/close/idle/teardown, top-level frame localStorage is
++ *    captured in-place (`page.evaluate`) and combined with `context.cookies()`,
++ *    avoiding `context.storageState()`'s multi-origin navigation loop.
+  */
+ 
+ import fs from 'node:fs/promises';
+ import {
++  COOKIES_TIMEOUT_MS,
++  STORAGE_STATE_TIMEOUT_MS,
++  applyLocalStorageImportToContext,
++  getContextLocalStorageSeeder,
+   getUserPersistencePaths,
+-  loadPersistedStorageState,
++  isPersistableOrigin,
++  loadPersistedStorageStateData,
++  mergeOriginStorageStates,
++  parseHttpOrigin,
+   persistStorageState,
++  raceWithTimeout,
++  sanitizeStorageState,
+ } from '../../lib/persistence.js';
+ import { importBootstrapCookies } from '../../lib/cookies.js';
+ 
++const PAGE_STORAGE_CAPTURE_TIMEOUT_MS = 1_500;
++
+ async function removeIfExists(p) {
+   try {
+     await fs.unlink(p);
+@@ -46,6 +46,31 @@ async function removeIfExists(p) {
+   }
+ }
+ 
++function safeOriginFromUrl(url) {
++  const origin = parseHttpOrigin(url);
++  return origin && isPersistableOrigin(origin) ? origin : null;
++}
++
++function readTopLevelLocalStorageInPage() {
++  try {
++    if (location.protocol !== 'http:' && location.protocol !== 'https:') return null;
++    if (window !== window.top) return null;
++    const origin = location.origin;
++    if (!origin || origin === 'null') return null;
++    const entries = [];
++    for (let i = 0; i < localStorage.length; i++) {
++      const name = localStorage.key(i);
++      if (name !== null) {
++        const value = localStorage.getItem(name);
++        if (value !== null) entries.push({ name, value });
++      }
++    }
++    return { origin, entries };
++  } catch {
++    return null;
++  }
++}
++
+ export async function register(app, ctx, pluginConfig = {}) {
+   const { events, config, log } = ctx;
+ 
+@@ -69,77 +94,347 @@ export async function register(app, ctx, pluginConfig = {}) {
+ 
+   // Track active sessions and serialize checkpoints per user. Resetting users
+   // skip new checkpoints until their live context and saved state are gone.
+-  const activeSessions = new Map(); // userId -> context
++  const userStates = new Map(); // userId -> SessionPersistenceState
++  const statesByContext = new WeakMap(); // Playwright BrowserContext -> SessionPersistenceState
++  const preloadedStates = new Map(); // userId -> loaded result from session:creating
++  const observedPages = new WeakSet();
+   const checkpointPromises = new Map(); // userId -> latest queued checkpoint
+   const resettingUsers = new Set();
+ 
++  function recordCapturedOrigin(state, origin, entries) {
++    if (!state) return;
++    state.seeder?.markOriginVisited(origin);
++    if (!isPersistableOrigin(origin)) return;
++    if (Array.isArray(entries) && entries.length > 0) {
++      const copy = entries.map(({ name, value }) => ({ name: String(name), value: String(value) }));
++      state.dirtyOrigins.delete(origin);
++      state.dirtyOrigins.set(origin, copy);
++      return;
++    }
++    // Record an explicit [] tombstone only when this origin previously held data
++    const hadPrevious = state.dirtyOrigins.has(origin)
++      || state.persistedOrigins.some((item) => item?.origin === origin);
++    if (hadPrevious) {
++      state.dirtyOrigins.delete(origin);
++      state.dirtyOrigins.set(origin, []);
++    }
++  }
++
++  function capturePageOrigin(state, page) {
++    if (!state || state.closed || resettingUsers.has(state.userId)) {
++      return Promise.resolve();
++    }
++    if (!page || page.isClosed?.() || typeof page.evaluate !== 'function') {
++      return Promise.resolve();
++    }
++    // Synchronously register the capture promise before the first await so an
++    // unawaited safePageClose() followed immediately by session:idle waits for it.
++    let tracked;
++    tracked = (async () => {
++      try {
++        const snapshot = await raceWithTimeout(
++          page.evaluate(readTopLevelLocalStorageInPage),
++          PAGE_STORAGE_CAPTURE_TIMEOUT_MS,
++          'page localStorage capture'
++        );
++        if (snapshot && typeof snapshot === 'object' && typeof snapshot.origin === 'string') {
++          recordCapturedOrigin(state, snapshot.origin, snapshot.entries);
++        }
++      } catch {
++        // Closed, crashed, or non-DOM page (about:blank, PDF viewer, etc.) — ignore.
++      }
++    })().finally(() => {
++      state.inFlightCaptures.delete(tracked);
++    });
++    state.inFlightCaptures.add(tracked);
++    return tracked;
++  }
++
++  function captureOpenPagesForUser(userId) {
++    if (userId === undefined || userId === null) return;
++    const key = ctx.normalizeUserId(userId);
++    const state = userStates.get(key);
++    if (!state || state.closed || resettingUsers.has(key)) return;
++    const openPages = typeof state.context?.pages === 'function' ? state.context.pages() : [];
++    if (!Array.isArray(openPages)) return;
++    for (const page of openPages) {
++      capturePageOrigin(state, page).catch(() => {});
++    }
++  }
++
++  function attachPageListeners(state, page) {
++    if (!page || typeof page !== 'object') return;
++    state.seeder?.attachPage(page);
++    if (observedPages.has(page)) return;
++    observedPages.add(page);
++    if (typeof page.on !== 'function') return;
++
++    let lastMainFrameOrigin = safeOriginFromUrl(page?.url?.());
++
++    page.on('framenavigated', (frame) => {
++      try {
++        if (typeof page.mainFrame === 'function' && frame !== page.mainFrame()) return;
++        const rawOrigin = parseHttpOrigin(frame?.url?.());
++        const persistableOrigin = rawOrigin && isPersistableOrigin(rawOrigin) ? rawOrigin : null;
++        const wasSameOrigin = Boolean(persistableOrigin && lastMainFrameOrigin === persistableOrigin);
++        lastMainFrameOrigin = persistableOrigin;
++        if (wasSameOrigin) {
++          capturePageOrigin(state, page).catch(() => {});
++        }
++      } catch {}
++    });
++
++    page.on('load', () => {
++      lastMainFrameOrigin = safeOriginFromUrl(page?.url?.()) || lastMainFrameOrigin;
++      capturePageOrigin(state, page).catch(() => {});
++    });
++  }
++
++  async function collectMergedOriginsWithSnapshot(state) {
++    if (!state) return { origins: [], dirtySnapshot: null };
++    if (state.inFlightCaptures.size > 0) {
++      await Promise.allSettled([...state.inFlightCaptures]);
++    }
++    const openPages = typeof state.context?.pages === 'function' ? state.context.pages() : [];
++    if (Array.isArray(openPages) && openPages.length > 0) {
++      await Promise.allSettled(openPages.map((p) => capturePageOrigin(state, p)));
++    }
++    const dirtySnapshot = new Map(state.dirtyOrigins);
++    const origins = mergeOriginStorageStates(state.persistedOrigins, dirtySnapshot, { indexedDB });
++    return { origins, dirtySnapshot };
++  }
++
++  async function exportLiveStorageState(userId, session) {
++    const key = ctx.normalizeUserId(userId);
++    const state = userStates.get(key);
++    const context = session?.context || state?.context;
++    if (!context) {
++      throw new Error(`No active browser context for userId="${key}"`);
++    }
++    const { origins: mergedOrigins } = await collectMergedOriginsWithSnapshot(state);
++    if (indexedDB) {
++      const captured = await raceWithTimeout(
++        context.storageState({ indexedDB: true }),
++        STORAGE_STATE_TIMEOUT_MS,
++        'storageState'
++      );
++      const byOrigin = new Map(mergedOrigins.map((item) => [item.origin, item]));
++      if (Array.isArray(captured?.origins)) {
++        for (const item of captured.origins) {
++          if (item?.origin) {
++            byOrigin.delete(item.origin);
++            byOrigin.set(item.origin, item);
++          }
++        }
++      }
++      return sanitizeStorageState(
++        { cookies: captured?.cookies || [], origins: [...byOrigin.values()] },
++        { indexedDB: true }
++      );
++    }
++    const cookies = typeof context.cookies === 'function'
++      ? await raceWithTimeout(context.cookies(), COOKIES_TIMEOUT_MS, 'cookies')
++      : (await raceWithTimeout(context.storageState(), STORAGE_STATE_TIMEOUT_MS, 'storageState'))?.cookies || [];
++    return sanitizeStorageState({ cookies, origins: mergedOrigins }, { indexedDB: false });
++  }
++
++  ctx.setStorageStateExporter?.(exportLiveStorageState);
++
+   /**
+    * Checkpoint storage state to disk for a userId.
+    */
+-  async function checkpoint(userId, context, reason, storageState) {
+-    if ((!context && !storageState) || resettingUsers.has(userId)) return;
++  async function checkpoint(userId, context, reason, explicitStorageState) {
++    const key = ctx.normalizeUserId(userId);
++    if ((!context && !explicitStorageState) || resettingUsers.has(key)) return;
+ 
+-    const previous = checkpointPromises.get(userId) || Promise.resolve();
++    const previous = checkpointPromises.get(key) || Promise.resolve();
+     const current = previous.catch(() => {}).then(async () => {
+-      if (resettingUsers.has(userId)) return;
++      if (resettingUsers.has(key)) return;
++      const state = userStates.get(key);
++      let origins;
++      let dirtySnapshot = null;
++      if (explicitStorageState) {
++        dirtySnapshot = state ? new Map(state.dirtyOrigins) : null;
++      } else {
++        const collected = await collectMergedOriginsWithSnapshot(state);
++        origins = collected.origins;
++        dirtySnapshot = collected.dirtySnapshot;
++      }
+       const result = await persistStorageState({
+         profileDir,
+-        userId,
++        userId: key,
+         context,
+-        storageState,
++        storageState: explicitStorageState,
++        origins,
+         logger,
+         indexedDB,
+       });
+       if (result.persisted) {
+-        log('info', 'storage state persisted', { userId, reason, path: result.storageStatePath });
++        if (state && result.state?.origins) {
++          state.persistedOrigins = result.state.origins;
++          if (dirtySnapshot) {
++            for (const [origin, snapEntries] of dirtySnapshot.entries()) {
++              if (state.dirtyOrigins.get(origin) === snapEntries) {
++                state.dirtyOrigins.delete(origin);
++              }
++            }
++          }
++        }
++        log('info', 'storage state persisted', { userId: key, reason, path: result.storageStatePath });
+       }
+       return result;
+     });
+-    checkpointPromises.set(userId, current);
++    checkpointPromises.set(key, current);
+     try {
+       return await current;
+     } finally {
+-      if (checkpointPromises.get(userId) === current) checkpointPromises.delete(userId);
++      if (checkpointPromises.get(key) === current) checkpointPromises.delete(key);
+     }
+   }
+ 
+   // --- Lifecycle hooks ---
+ 
+-  // Before session context is created: inject storageState if we have one saved
++  // Before session context is created: restore cookies via IPC (origins: [])
++  // so Playwright never opens a synthetic multi-origin `forStorageState` window.
+   events.on('session:creating', async ({ userId, contextOptions }) => {
+-    if (resettingUsers.has(userId)) return;
+-    const storageStatePath = await loadPersistedStorageState(profileDir, userId, logger);
+-    if (storageStatePath) {
+-      contextOptions.storageState = storageStatePath;
+-      log('info', 'restoring persisted storage state', { userId, storageStatePath });
++    const key = ctx.normalizeUserId(userId);
++    if (resettingUsers.has(key)) return;
++    const loaded = await loadPersistedStorageStateData(profileDir, key, logger, { indexedDB });
++    if (loaded) {
++      preloadedStates.set(key, loaded);
++      contextOptions.storageState = {
++        cookies: loaded.state.cookies,
++        origins: [],
++      };
++      log('info', 'restoring persisted storage state', {
++        userId: key,
++        storageStatePath: loaded.storageStatePath,
++        cookies: loaded.state.cookies.length,
++        lazyOrigins: loaded.state.origins.length,
++      });
++    } else {
++      preloadedStates.delete(key);
+     }
+   });
+ 
+-  // After session is created: import bootstrap cookies if no persisted state,
+-  // and track the context for later checkpointing
++  // After session is created: install lazy top-level origin seeder or bootstrap cookies
+   events.on('session:created', async ({ userId, context }) => {
+-    activeSessions.set(userId, context);
++    const key = ctx.normalizeUserId(userId);
++    let loaded = preloadedStates.get(key);
++    preloadedStates.delete(key);
++    if (!loaded && !resettingUsers.has(key)) {
++      loaded = await loadPersistedStorageStateData(profileDir, key, logger, { indexedDB });
++    }
++
++    const persistedOrigins = loaded?.state?.origins || [];
++    const seeder = getContextLocalStorageSeeder(context);
++    let hasSeededOrigins = false;
++    for (const item of persistedOrigins) {
++      if (Array.isArray(item.localStorage) && item.localStorage.length > 0) {
++        seeder.setPendingOrigin(item.origin, item.localStorage, { replace: false });
++        hasSeededOrigins = true;
++      }
++    }
++
++    const state = {
++      userId: key,
++      context,
++      seeder,
++      persistedOrigins,
++      dirtyOrigins: new Map(),
++      inFlightCaptures: new Set(),
++      closed: false,
++    };
++    userStates.set(key, state);
++    if (context && typeof context === 'object') {
++      statesByContext.set(context, state);
++    }
++
++    if (typeof context?.on === 'function') {
++      context.on('page', (page) => attachPageListeners(state, page));
++    }
++    const existingPages = typeof context?.pages === 'function' ? context.pages() : [];
++    if (Array.isArray(existingPages)) {
++      for (const page of existingPages) attachPageListeners(state, page);
++    }
+ 
+-    // If no persisted state was restored, try bootstrap cookies
+-    const existingState = await loadPersistedStorageState(profileDir, userId, logger);
+-    if (!existingState) {
++    if (hasSeededOrigins) {
++      await seeder.sync();
++    }
++
++    if (!loaded && !resettingUsers.has(key)) {
+       const result = await importBootstrapCookies({
+         cookiesDir: config.cookiesDir,
+         context,
+         logger,
+       });
+       if (result.imported > 0) {
+-        log('info', 'bootstrap cookies imported', { userId, count: result.imported, source: result.source });
+-        await checkpoint(userId, context, 'bootstrap_cookies');
++        log('info', 'bootstrap cookies imported', { userId: key, count: result.imported, source: result.source });
++        await checkpoint(key, context, 'bootstrap_cookies');
+       }
+     }
+   });
+ 
++  events.on('page:before-navigate', async ({ page, targetUrl }) => {
++    const context = page?.context?.();
++    const state = context ? statesByContext.get(context) : null;
++    if (!state) return;
++    const currentOrigin = safeOriginFromUrl(page?.url?.());
++    const nextOrigin = safeOriginFromUrl(targetUrl);
++    if (currentOrigin && currentOrigin !== nextOrigin) {
++      await capturePageOrigin(state, page);
++    }
++  });
++
++  events.on('page:closing', async ({ page }) => {
++    const context = page?.context?.();
++    const state = context ? statesByContext.get(context) : null;
++    if (!state) return;
++    await capturePageOrigin(state, page);
++  });
++
++  // Capture post-load SPA writes before or after interactive tab actions
++  events.on('tab:snapshot', ({ userId }) => captureOpenPagesForUser(userId));
++  events.on('tab:click', ({ userId }) => captureOpenPagesForUser(userId));
++  events.on('tab:press', ({ userId }) => captureOpenPagesForUser(userId));
++  events.on('tab:evaluated', ({ userId }) => captureOpenPagesForUser(userId));
++
+   // On cookie import: checkpoint
+   events.on('session:cookies:import', async ({ userId }) => {
+-    const context = activeSessions.get(userId);
+-    if (context) {
+-      await checkpoint(userId, context, 'cookie_import');
++    const key = ctx.normalizeUserId(userId);
++    const state = userStates.get(key);
++    if (state?.context) {
++      await checkpoint(key, state.context, 'cookie_import');
++    }
++  });
++
++  // On explicit localStorage API import: update seeder (if not already applied by server.js)
++  // and persist only persistable origins to disk.
++  events.on('session:local-storage:import', async ({ userId, origins, appliedToContext }) => {
++    const key = ctx.normalizeUserId(userId);
++    const state = userStates.get(key);
++    if (!state || !Array.isArray(origins)) return;
++
++    if (!appliedToContext) {
++      await applyLocalStorageImportToContext(state.context, origins);
++    }
++
++    let mutatedPersistable = false;
++    for (const item of origins) {
++      if (!item || !isPersistableOrigin(item.origin) || !Array.isArray(item.localStorage)) continue;
++      mutatedPersistable = true;
++      state.dirtyOrigins.delete(item.origin);
++      if (item.localStorage.length === 0) {
++        state.dirtyOrigins.set(item.origin, []);
++      } else {
++        state.dirtyOrigins.set(
++          item.origin,
++          item.localStorage.map(({ name, value }) => ({ name: String(name), value: String(value) }))
++        );
++      }
++    }
++    if (mutatedPersistable) {
++      await checkpoint(key, state.context, 'local_storage_import');
+     }
+   });
+ 
+@@ -153,32 +448,44 @@ export async function register(app, ctx, pluginConfig = {}) {
+ 
+   // An empty session is kept open, so save now instead of waiting for teardown.
+   events.on('session:idle', ({ userId }) => {
+-    const context = activeSessions.get(userId);
+-    if (context) checkpoint(userId, context, 'session_idle').catch(() => {});
++    const key = ctx.normalizeUserId(userId);
++    const state = userStates.get(key);
++    if (state?.context) checkpoint(key, state.context, 'session_idle').catch(() => {});
+   });
+ 
+   // On session destroying (pre-close): checkpoint while context is still alive
+   events.on('session:destroying', async ({ userId, reason }) => {
+-    const context = activeSessions.get(userId);
+-    if (context) {
++    const key = ctx.normalizeUserId(userId);
++    const state = userStates.get(key);
++    if (state) {
+       if (reason !== 'storage_reset') {
+-        await checkpoint(userId, context, reason).catch(() => {});
++        await checkpoint(key, state.context, reason).catch(() => {});
+       }
+-      activeSessions.delete(userId);
++      state.closed = true;
++      await state.seeder?.close().catch(() => {});
++      userStates.delete(key);
+     }
+   });
+ 
+   // On session destroyed (post-close): cleanup tracking if not already done
+   events.on('session:destroyed', async ({ userId }) => {
+-    activeSessions.delete(userId);
++    const key = ctx.normalizeUserId(userId);
++    const state = userStates.get(key);
++    if (state) {
++      state.closed = true;
++      await state.seeder?.close().catch(() => {});
++    }
++    userStates.delete(key);
++    preloadedStates.delete(key);
+   });
+ 
+   // On shutdown: checkpoint all remaining sessions
+   events.on('server:shutdown', async () => {
+-    for (const [userId, context] of activeSessions) {
+-      await checkpoint(userId, context, 'shutdown').catch(() => {});
++    for (const [userId, state] of userStates) {
++      await checkpoint(userId, state.context, 'shutdown').catch(() => {});
++      state.closed = true;
+     }
+-    activeSessions.clear();
++    userStates.clear();
+   });
+ 
+   app.delete('/sessions/:userId/storage_state', ctx.auth(), async (req, res) => {
+@@ -191,6 +498,7 @@ export async function register(app, ctx, pluginConfig = {}) {
+     try {
+       const clearedLive = await ctx.destroySession(userId, { reason: 'storage_reset' });
+       await checkpointPromises.get(userId)?.catch(() => {});
++      preloadedStates.delete(userId);
+ 
+       const { storageStatePath, metaPath } = getUserPersistencePaths(profileDir, userId);
+       const removedPersisted = await removeIfExists(storageStatePath);
+diff --git a/plugins/persistence/persistence.test.js b/plugins/persistence/persistence.test.js
+index fc84e29..4e7ce63 100644
+--- a/plugins/persistence/persistence.test.js
++++ b/plugins/persistence/persistence.test.js
+@@ -1,11 +1,19 @@
+ import fs from 'node:fs/promises';
+ import os from 'node:os';
+ import path from 'node:path';
++import { EventEmitter } from 'node:events';
+ import { jest } from '@jest/globals';
+ import {
++  applyLocalStorageImportToContext,
++  getContextLocalStorageSeeder,
+   getUserPersistencePaths,
++  isPersistableOrigin,
+   loadPersistedStorageState,
++  loadPersistedStorageStateData,
++  mergeOriginStorageStates,
+   persistStorageState,
++  sanitizeCookies,
++  sanitizeOrigins,
+ } from '../../lib/persistence.js';
+ 
+ describe('profile persistence helpers', () => {
+@@ -33,19 +41,159 @@ describe('profile persistence helpers', () => {
+     expect(path.basename(first.userDir)).not.toContain(':');
+   });
+ 
++  test('isPersistableOrigin filters loopback, private/CGNAT/link-local/ULA IPs, bracketed IPv6, and local TLDs while keeping public origins', () => {
++    const rejected = [
++      'http://localhost:3000',
++      'http://sub.localhost:8080',
++      'http://127.0.0.1:4176',
++      'http://127.255.255.254:8080',
++      'http://0.0.0.0:5000',
++      'http://10.222.0.7:8080',
++      'http://172.16.0.1:3000',
++      'http://172.31.255.254:3000',
++      'http://192.168.219.158:4176',
++      'http://169.254.169.254',
++      'http://100.64.0.1:8080',
++      'http://100.127.255.254:8080',
++      'http://[::1]:3000',
++      'http://[::]:3000',
++      'http://[fe80::1]:8080',
++      'http://[fc00::1]:8080',
++      'http://[fd12:3456::1]:8080',
++      'http://[::ffff:127.0.0.1]:3000',
++      'http://[::ffff:192.168.1.5]:3000',
++      'http://grafana:3000',
++      'http://rock5bp.local:8080',
++      'https://svc.internal',
++      'https://router.lan',
++      'https://box.home.arpa',
++      'https://app.invalid',
++      'file:///tmp/index.html',
++      'about:blank',
++      'https://user:pass@example.com',
++      'https://example.com/path-not-origin',
++      'not-a-url',
++    ];
++    for (const origin of rejected) {
++      expect(isPersistableOrigin(origin)).toBe(false);
++    }
++
++    const accepted = [
++      'https://app.runbear.io',
++      'https://linear.app',
++      'https://teams.cloud.microsoft',
++      'http://100.63.255.254',
++      'http://100.128.0.1',
++      'http://172.15.255.254',
++      'http://172.32.0.1',
++      'http://[2606:4700:4700::1111]',
++    ];
++    for (const origin of accepted) {
++      expect(isPersistableOrigin(origin)).toBe(true);
++    }
++  });
++
++  test('sanitizeCookies normalizes session expires=0 to -1, drops expired and malformed cookies, and keeps valid ones', () => {
++    const nowMs = 1_800_000_000_000; // 1,800,000,000s
++    const raw = [
++      { name: 'sess_zero', value: 'v0', domain: '.example.com', path: '/', expires: 0 },
++      { name: 'sess_undef', value: 'vu', domain: '.example.com' },
++      { name: 'sess_neg1', value: 'vn', domain: '.example.com', path: '/', expires: -1 },
++      { name: 'valid_future', value: 'vf', domain: '.example.com', path: '/', expires: 1_800_003_600 },
++      { name: 'expired_past', value: 'vp', domain: '.example.com', path: '/', expires: 1_799_999_999 },
++      { name: 'neg_invalid', value: 'vi', domain: '.example.com', path: '/', expires: -5 },
++      { name: 'too_far_future', value: 'vt', domain: '.example.com', path: '/', expires: 253402300800 },
++      { name: '', value: 'empty_name', domain: '.example.com', path: '/' },
++      { name: 'no_domain', value: 'nd', path: '/' },
++      null,
++    ];
++
++    const cleaned = sanitizeCookies(raw, { nowMs });
++    expect(cleaned).toEqual([
++      { name: 'sess_zero', value: 'v0', domain: '.example.com', path: '/', expires: -1 },
++      { name: 'sess_undef', value: 'vu', domain: '.example.com', path: '/', expires: -1 },
++      { name: 'sess_neg1', value: 'vn', domain: '.example.com', path: '/', expires: -1 },
++      { name: 'valid_future', value: 'vf', domain: '.example.com', path: '/', expires: 1_800_003_600 },
++    ]);
++  });
++
++  test('sanitizeOrigins drops oversized cache blobs while keeping auth keys and never evicts unvisited origins by default', () => {
++    const giantBlob = 'x'.repeat(300_000); // > 256 KiB single-entry cap
++    const origins = [
++      {
++        origin: 'https://platform.openai.com',
++        localStorage: [
++          { name: 'statsig.cached.evaluations.1', value: giantBlob },
++          { name: 'oai-auth:token', value: 'jwt-123' },
++        ],
++      },
++      {
++        origin: 'http://192.168.219.158:4176',
++        localStorage: [{ name: 'dev', value: '1' }],
++      },
++    ];
++
++    const sanitized = sanitizeOrigins(origins);
++    expect(sanitized).toEqual([
++      {
++        origin: 'https://platform.openai.com',
++        localStorage: [{ name: 'oai-auth:token', value: 'jwt-123' }],
++      },
++    ]);
++
++    const manyOrigins = [
++      { origin: 'https://app.slack.com', localStorage: [{ name: 'localConfig_v2', value: 'keep_slack' }] },
++      ...Array.from({ length: 350 }, (_, i) => ({
++        origin: `https://site-${i}.example.com`,
++        localStorage: [{ name: 'k', value: String(i) }],
++      })),
++    ];
++    // Default must retain all 351 public origins without evicting app.slack.com at index 0
++    const defaultSanitized = sanitizeOrigins(manyOrigins);
++    expect(defaultSanitized).toHaveLength(351);
++    expect(defaultSanitized[0]).toEqual({
++      origin: 'https://app.slack.com',
++      localStorage: [{ name: 'localConfig_v2', value: 'keep_slack' }],
++    });
++
++    // Explicit opt-in maxOrigins still works when requested
++    const capped = sanitizeOrigins(manyOrigins, { maxOrigins: 200 });
++    expect(capped).toHaveLength(200);
++    expect(capped[199].origin).toBe('https://site-349.example.com');
++  });
++
++  test('mergeOriginStorageStates preserves unvisited origins, updates dirty origins, and applies [] tombstones on clear', () => {
++    const baseOrigins = [
++      { origin: 'https://unvisited.example.com', localStorage: [{ name: 'keep', value: '1' }] },
++      { origin: 'https://cleared.example.com', localStorage: [{ name: 'old_token', value: 'stale' }] },
++      { origin: 'https://updated.example.com', localStorage: [{ name: 'token', value: 'v1' }] },
++    ];
++    const dirtyMap = new Map([
++      ['https://cleared.example.com', []], // explicit tombstone from localStorage.clear()
++      ['https://updated.example.com', [{ name: 'token', value: 'v2' }]],
++      ['https://new.example.com', [{ name: 'fresh', value: 'yes' }]],
++    ]);
++
++    const merged = mergeOriginStorageStates(baseOrigins, dirtyMap);
++    expect(merged).toEqual([
++      { origin: 'https://unvisited.example.com', localStorage: [{ name: 'keep', value: '1' }] },
++      { origin: 'https://updated.example.com', localStorage: [{ name: 'token', value: 'v2' }] },
++      { origin: 'https://new.example.com', localStorage: [{ name: 'fresh', value: 'yes' }] },
++    ]);
++  });
++
+   test('loadPersistedStorageState returns undefined when no state exists', async () => {
+     await expect(loadPersistedStorageState(tmpDir, 'user-1')).resolves.toBeUndefined();
++    await expect(loadPersistedStorageStateData(tmpDir, 'user-1')).resolves.toBeUndefined();
+   });
+ 
+-  test('persistStorageState writes storage state and metadata, then load returns the storage path', async () => {
+-    const storageState = {
+-      cookies: [{ name: 'session', value: 'abc', domain: '.example.com', path: '/' }],
+-      origins: [{ origin: 'https://app.example.com', localStorage: [{ name: 'foo', value: 'bar' }] }],
+-    };
+-
++  test('persistStorageState writes sanitized state without calling context.storageState when indexedDB is false', async () => {
+     const context = {
+-      storageState: jest.fn(async ({ path: targetPath }) => {
+-        await fs.writeFile(targetPath, JSON.stringify(storageState, null, 2));
++      cookies: jest.fn(async () => [
++        { name: 'session', value: 'abc', domain: '.example.com', path: '/', expires: -1 },
++      ]),
++      storageState: jest.fn(async () => {
++        throw new Error('context.storageState must not be called when indexedDB is false');
+       }),
+     };
+ 
+@@ -53,15 +201,26 @@ describe('profile persistence helpers', () => {
+       profileDir: tmpDir,
+       userId: 'user-1',
+       context,
++      origins: [
++        { origin: 'https://app.example.com', localStorage: [{ name: 'foo', value: 'bar' }] },
++        { origin: 'http://127.0.0.1:3000', localStorage: [{ name: 'dev', value: 'skip' }] },
++      ],
+       logger: { warn: jest.fn() },
+     });
+ 
+     expect(result.persisted).toBe(true);
+-    expect(context.storageState).toHaveBeenCalledTimes(1);
++    expect(context.cookies).toHaveBeenCalledTimes(1);
++    expect(context.storageState).not.toHaveBeenCalled();
+ 
+     const loadedPath = await loadPersistedStorageState(tmpDir, 'user-1');
+     expect(loadedPath).toBe(result.storageStatePath);
+ 
++    const loadedData = await loadPersistedStorageStateData(tmpDir, 'user-1');
++    expect(loadedData.state).toEqual({
++      cookies: [{ name: 'session', value: 'abc', domain: '.example.com', path: '/', expires: -1 }],
++      origins: [{ origin: 'https://app.example.com', localStorage: [{ name: 'foo', value: 'bar' }] }],
++    });
++
+     const meta = JSON.parse(await fs.readFile(result.metaPath, 'utf8'));
+     expect(meta.userId).toBe('user-1');
+     expect(meta.storageStatePath).toBe(result.storageStatePath);
+@@ -77,23 +236,23 @@ describe('profile persistence helpers', () => {
+ 
+   test('a failed persist leaves the previous storage-state intact and cleans up tmp files', async () => {
+     const originalState = {
+-      cookies: [{ name: 'orig', value: 'v1', domain: '.example.com', path: '/' }],
++      cookies: [{ name: 'orig', value: 'v1', domain: '.example.com', path: '/', expires: -1 }],
++      origins: [],
+     };
+     const goodContext = {
+-      storageState: jest.fn(async ({ path: targetPath }) => {
+-        await fs.writeFile(targetPath, JSON.stringify(originalState, null, 2));
+-      }),
++      cookies: jest.fn(async () => originalState.cookies),
+     };
+     const first = await persistStorageState({
+       profileDir: tmpDir,
+       userId: 'user-3',
+       context: goodContext,
++      origins: [],
+       logger: { warn: jest.fn() },
+     });
+     expect(first.persisted).toBe(true);
+ 
+     const failingContext = {
+-      storageState: jest.fn(async () => {
++      cookies: jest.fn(async () => {
+         throw new Error('simulated crash mid-write');
+       }),
+     };
+@@ -101,6 +260,7 @@ describe('profile persistence helpers', () => {
+       profileDir: tmpDir,
+       userId: 'user-3',
+       context: failingContext,
++      origins: [],
+       logger: { warn: jest.fn() },
+     });
+     expect(second.persisted).toBe(false);
+@@ -114,4 +274,134 @@ describe('profile persistence helpers', () => {
+     const leftovers = (await fs.readdir(userDir)).filter((name) => name.includes('.tmp-'));
+     expect(leftovers).toEqual([]);
+   });
++
++  test('applyLocalStorageImportToContext seeds unopened loopback/public origins with replace semantics and disposes after main-frame navigation', async () => {
++    const contextEmitter = new EventEmitter();
++    const disposables = [];
++    const context = {
++      on: contextEmitter.on.bind(contextEmitter),
++      pages: jest.fn(() => []),
++      addInitScript: jest.fn(async () => {
++        const disposable = { dispose: jest.fn(async () => {}) };
++        disposables.push(disposable);
++        return disposable;
++      }),
++    };
++
++    await applyLocalStorageImportToContext(context, [
++      { origin: 'http://localhost:3000', localStorage: [{ name: 'dev_token', value: 'fresh' }] },
++      { origin: 'https://cleared.example.com', localStorage: [] },
++    ]);
++
++    expect(context.addInitScript).toHaveBeenCalledTimes(1);
++    const [initFn, payload] = context.addInitScript.mock.calls[0];
++    expect(payload).toEqual({
++      'http://localhost:3000': {
++        entries: [{ name: 'dev_token', value: 'fresh' }],
++        replace: true,
++      },
++      'https://cleared.example.com': {
++        entries: [],
++        replace: true,
++      },
++    });
++
++    // Verify initFn replaces pre-existing browser context keys and clears when entries === []
++    const storeByOrigin = {
++      'http://localhost:3000': new Map([['stale_key', 'old'], ['dev_token', 'old_tok']]),
++      'https://cleared.example.com': new Map([['stale_auth', 'must_clear']]),
++    };
++    const runInitInFakeTopWindow = (origin) => {
++      const store = storeByOrigin[origin];
++      const prevWin = globalThis.window;
++      const prevLoc = globalThis.location;
++      const prevLs = globalThis.localStorage;
++      const fakeWin = {};
++      fakeWin.top = fakeWin;
++      const urlObj = new URL(origin);
++      globalThis.window = fakeWin;
++      globalThis.location = { protocol: urlObj.protocol, origin: urlObj.origin };
++      globalThis.localStorage = {
++        clear: () => store.clear(),
++        getItem: (k) => (store.has(k) ? store.get(k) : null),
++        setItem: (k, v) => store.set(k, String(v)),
++      };
++      try {
++        initFn(payload);
++      } finally {
++        globalThis.window = prevWin;
++        globalThis.location = prevLoc;
++        globalThis.localStorage = prevLs;
++      }
++    };
++
++    runInitInFakeTopWindow('http://localhost:3000');
++    expect([...storeByOrigin['http://localhost:3000'].entries()]).toEqual([['dev_token', 'fresh']]);
++
++    runInitInFakeTopWindow('https://cleared.example.com');
++    expect([...storeByOrigin['https://cleared.example.com'].entries()]).toEqual([]);
++
++    // Navigating main frame to both origins removes them and disposes the initScript
++    const pageEmitter = new EventEmitter();
++    let frameUrl = 'http://localhost:3000/app';
++    const mainFrame = { url: () => frameUrl };
++    const page = {
++      on: pageEmitter.on.bind(pageEmitter),
++      mainFrame: () => mainFrame,
++    };
++    contextEmitter.emit('page', page);
++    pageEmitter.emit('framenavigated', mainFrame);
++    await getContextLocalStorageSeeder(context).sync();
++    expect(disposables[0].dispose).toHaveBeenCalledTimes(1);
++
++    frameUrl = 'https://cleared.example.com/';
++    pageEmitter.emit('framenavigated', mainFrame);
++    await getContextLocalStorageSeeder(context).sync();
++    expect(disposables.at(-1).dispose).toHaveBeenCalledTimes(1);
++  });
++
++  test('seeder retains pending origin when framenavigated lands on a sandboxed/PDF/error page without accessible localStorage', async () => {
++    const contextEmitter = new EventEmitter();
++    const disposables = [];
++    const context = {
++      on: contextEmitter.on.bind(contextEmitter),
++      pages: jest.fn(() => []),
++      addInitScript: jest.fn(async () => {
++        const disposable = { dispose: jest.fn(async () => {}) };
++        disposables.push(disposable);
++        return disposable;
++      }),
++    };
++
++    const seeder = getContextLocalStorageSeeder(context);
++    seeder.setPendingOrigin('https://app.slack.com', [{ name: 'localConfig_v2', value: 'tok' }], { replace: false });
++    await seeder.sync();
++    expect(seeder.hasPendingOrigin('https://app.slack.com')).toBe(true);
++
++    const pageEmitter = new EventEmitter();
++    let frameUrl = 'https://app.slack.com/files/preview.pdf';
++    let probeResult = null; // PDF viewer / CSP sandbox / about:neterror returns null
++    const mainFrame = { url: () => frameUrl };
++    const page = {
++      on: pageEmitter.on.bind(pageEmitter),
++      mainFrame: () => mainFrame,
++      isClosed: () => false,
++      evaluate: jest.fn(async () => probeResult),
++    };
++    contextEmitter.emit('page', page);
++
++    // 1. Navigating to PDF / CSP sandbox must NOT drop pending seed
++    pageEmitter.emit('framenavigated', mainFrame);
++    await new Promise((r) => setTimeout(r, 15));
++    expect(seeder.hasPendingOrigin('https://app.slack.com')).toBe(true);
++    expect(disposables[0].dispose).not.toHaveBeenCalled();
++
++    // 2. Navigating to real HTML app page where localStorage is accessible removes pending seed
++    frameUrl = 'https://app.slack.com/client/T123';
++    probeResult = 'https://app.slack.com';
++    pageEmitter.emit('framenavigated', mainFrame);
++    await new Promise((r) => setTimeout(r, 15));
++    expect(seeder.hasPendingOrigin('https://app.slack.com')).toBe(false);
++    expect(disposables[0].dispose).toHaveBeenCalledTimes(1);
++  });
+ });
+diff --git a/plugins/persistence/plugin.test.js b/plugins/persistence/plugin.test.js
+index 44be533..1d2e2f6 100644
+--- a/plugins/persistence/plugin.test.js
++++ b/plugins/persistence/plugin.test.js
+@@ -1,17 +1,33 @@
+ import fs from 'node:fs/promises';
+ import os from 'node:os';
+ import path from 'node:path';
++import { EventEmitter } from 'node:events';
+ import { jest } from '@jest/globals';
+ import { createPluginEvents } from '../../lib/plugins.js';
+ import { register } from './index.js';
+ 
++function createMockContext({ cookies = [], pages = [], storageStateImpl } = {}) {
++  const emitter = new EventEmitter();
++  const context = {
++    on: emitter.on.bind(emitter),
++    off: emitter.off.bind(emitter),
++    emit: emitter.emit.bind(emitter),
++    cookies: jest.fn(async () => cookies),
++    pages: jest.fn(() => pages),
++    addInitScript: jest.fn(async () => ({ dispose: jest.fn(async () => {}) })),
++    storageState: storageStateImpl || jest.fn(async () => ({ cookies, origins: [] })),
++  };
++  return context;
++}
++
+ describe('persistence plugin', () => {
+-  let tmpDir, events, ctx, mockApp;
++  let tmpDir, events, ctx, mockApp, registeredExporter;
+ 
+   beforeEach(async () => {
+     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'camofox-persist-plugin-'));
+     events = createPluginEvents();
+     mockApp = { delete: jest.fn() };
++    registeredExporter = null;
+     ctx = {
+       events,
+       config: { cookiesDir: path.join(tmpDir, 'cookies') },
+@@ -19,6 +35,7 @@ describe('persistence plugin', () => {
+       auth: () => (req, res, next) => next(),
+       normalizeUserId: (u) => String(u),
+       safeError: (err) => err.message,
++      setStorageStateExporter: (fn) => { registeredExporter = fn; },
+       destroySession: jest.fn(async (userId, { reason } = {}) => {
+         await events.emitAsync('session:destroying', { userId: String(userId), reason });
+         await events.emitAsync('session:destroyed', { userId: String(userId), reason });
+@@ -36,44 +53,156 @@ describe('persistence plugin', () => {
+     expect(ctx.log).toHaveBeenCalledWith('warn', expect.stringContaining('no profileDir'));
+   });
+ 
+-  test('restores persisted state on session:creating', async () => {
++  test('restores cookies via contextOptions.storageState with empty origins and seeds origins lazily via disposable addInitScript', async () => {
+     await register(mockApp, ctx, { profileDir: tmpDir });
+ 
+-    // Simulate a prior persisted state
+     const { getUserPersistencePaths } = await import('../../lib/persistence.js');
+     const { userDir, storageStatePath } = getUserPersistencePaths(tmpDir, 'user-1');
+     await fs.mkdir(userDir, { recursive: true });
+     await fs.writeFile(storageStatePath, JSON.stringify({
+-      cookies: [{ name: 'sid', value: 'abc', domain: '.example.com', path: '/' }],
+-      origins: [],
++      cookies: [{ name: 'sid', value: 'abc', domain: '.example.com', path: '/', expires: 0 }],
++      origins: [
++        { origin: 'https://chat.google.com', localStorage: [{ name: 'pse', value: '1' }] },
++        { origin: 'http://192.168.219.158:4176', localStorage: [{ name: 'dev', value: 'skip' }] },
++      ],
+     }));
+ 
+     const contextOptions = { viewport: { width: 1280, height: 720 } };
+     await events.emitAsync('session:creating', { userId: 'user-1', contextOptions });
+ 
+-    expect(contextOptions.storageState).toBe(storageStatePath);
++    // Never pass origins into Playwright's newContext({ storageState })!
++    expect(contextOptions.storageState).toEqual({
++      cookies: [{ name: 'sid', value: 'abc', domain: '.example.com', path: '/', expires: -1 }],
++      origins: [],
++    });
++
++    const disposeSpy = jest.fn(async () => {});
++    const mockContext = createMockContext();
++    mockContext.addInitScript = jest.fn(async () => ({ dispose: disposeSpy }));
++    await events.emitAsync('session:created', { userId: 'user-1', context: mockContext });
++
++    expect(mockContext.addInitScript).toHaveBeenCalledTimes(1);
++    const [, seededMap] = mockContext.addInitScript.mock.calls[0];
++    expect(seededMap).toEqual({
++      'https://chat.google.com': {
++        entries: [{ name: 'pse', value: '1' }],
++        replace: false,
++      },
++    });
++
++    // Simulate main-frame navigation to https://chat.google.com -> removes from pending and disposes initScript
++    const pageEmitter = new EventEmitter();
++    const mainFrame = { url: () => 'https://chat.google.com/u/0/' };
++    const mockPage = {
++      on: pageEmitter.on.bind(pageEmitter),
++      mainFrame: () => mainFrame,
++      context: () => mockContext,
++      isClosed: () => false,
++      url: () => 'https://chat.google.com/u/0/',
++      evaluate: jest.fn(async () => 'https://chat.google.com'),
++    };
++    mockContext.emit('page', mockPage);
++    pageEmitter.emit('framenavigated', mainFrame);
++    await new Promise((r) => setTimeout(r, 10));
++
++    expect(disposeSpy).toHaveBeenCalledTimes(1);
+   });
+ 
+-  test('checkpoints on session:cookies:import', async () => {
++  test('checkpoints on session:cookies:import without calling context.storageState and preserves unvisited origins', async () => {
+     await register(mockApp, ctx, { profileDir: tmpDir });
+ 
+-    const mockContext = {
+-      storageState: jest.fn(async ({ path: p }) => {
+-        await fs.writeFile(p, JSON.stringify({ cookies: [{ name: 'x', value: 'y', domain: '.test.com', path: '/' }] }));
+-      }),
+-    };
++    const { getUserPersistencePaths } = await import('../../lib/persistence.js');
++    const { userDir, storageStatePath } = getUserPersistencePaths(tmpDir, 'user-2');
++    await fs.mkdir(userDir, { recursive: true });
++    await fs.writeFile(storageStatePath, JSON.stringify({
++      cookies: [],
++      origins: [{ origin: 'https://linear.app', localStorage: [{ name: 'tok', value: 'keep_me' }] }],
++    }));
++
++    const contextOptions = {};
++    await events.emitAsync('session:creating', { userId: 'user-2', contextOptions });
+ 
+-    // Simulate session created then cookie import
++    const mockContext = createMockContext({
++      cookies: [{ name: 'x', value: 'y', domain: '.test.com', path: '/', expires: -1 }],
++    });
+     await events.emitAsync('session:created', { userId: 'user-2', context: mockContext });
+     await events.emitAsync('session:cookies:import', { userId: 'user-2' });
+ 
+-    expect(mockContext.storageState).toHaveBeenCalled();
++    expect(mockContext.cookies).toHaveBeenCalled();
++    expect(mockContext.storageState).not.toHaveBeenCalled();
+ 
+-    // Verify file was written
+-    const { getUserPersistencePaths } = await import('../../lib/persistence.js');
+-    const { storageStatePath } = getUserPersistencePaths(tmpDir, 'user-2');
+     const saved = JSON.parse(await fs.readFile(storageStatePath, 'utf8'));
+     expect(saved.cookies[0].name).toBe('x');
++    expect(saved.origins).toEqual([
++      { origin: 'https://linear.app', localStorage: [{ name: 'tok', value: 'keep_me' }] },
++    ]);
++  });
++
++  test('page:closing in-flight capture finishes before session:idle checkpoint writes, including [] tombstones', async () => {
++    await register(mockApp, ctx, { profileDir: tmpDir });
++
++    const { getUserPersistencePaths } = await import('../../lib/persistence.js');
++    const { userDir, storageStatePath } = getUserPersistencePaths(tmpDir, 'user-reaper');
++    await fs.mkdir(userDir, { recursive: true });
++    await fs.writeFile(storageStatePath, JSON.stringify({
++      cookies: [],
++      origins: [
++        { origin: 'https://cleared.example.com', localStorage: [{ name: 'old', value: 'stale' }] },
++        { origin: 'https://untouched.example.com', localStorage: [{ name: 'stay', value: 'true' }] },
++      ],
++    }));
++
++    await events.emitAsync('session:creating', { userId: 'user-reaper', contextOptions: {} });
++    const mockContext = createMockContext({ cookies: [] });
++    await events.emitAsync('session:created', { userId: 'user-reaper', context: mockContext });
++
++    let finishEval;
++    const evalGate = new Promise((r) => { finishEval = r; });
++    const closingPage = {
++      context: () => mockContext,
++      isClosed: () => false,
++      url: () => 'https://cleared.example.com/logout',
++      evaluate: jest.fn(async () => {
++        await evalGate;
++        return { origin: 'https://cleared.example.com', entries: [] }; // logged out -> cleared!
++      }),
++    };
++
++    // Unawaited page:closing (simulating tab reaper calling safePageClose unawaited right before session:idle)
++    const closingPromise = events.emitAsync('page:closing', { page: closingPage });
++    events.emit('session:idle', { userId: 'user-reaper' });
++
++    await new Promise((r) => setTimeout(r, 15));
++    finishEval();
++    await closingPromise;
++    await new Promise((r) => setTimeout(r, 30));
++
++    const saved = JSON.parse(await fs.readFile(storageStatePath, 'utf8'));
++    expect(saved.origins).toEqual([
++      { origin: 'https://untouched.example.com', localStorage: [{ name: 'stay', value: 'true' }] },
++    ]);
++  });
++
++  test('exports merged state via setStorageStateExporter without opening windows and handles session:local-storage:import', async () => {
++    await register(mockApp, ctx, { profileDir: tmpDir });
++    expect(typeof registeredExporter).toBe('function');
++
++    const mockContext = createMockContext({
++      cookies: [{ name: 'c1', value: 'v1', domain: '.runbear.io', path: '/', expires: -1 }],
++    });
++    await events.emitAsync('session:created', { userId: 'user-ls', context: mockContext });
++
++    await events.emitAsync('session:local-storage:import', {
++      userId: 'user-ls',
++      origins: [{ origin: 'https://app.runbear.io', localStorage: [{ name: 'theme', value: 'dark' }] }],
++    });
++
++    const exported = await registeredExporter('user-ls', { context: mockContext });
++    expect(exported).toEqual({
++      cookies: [{ name: 'c1', value: 'v1', domain: '.runbear.io', path: '/', expires: -1 }],
++      origins: [{ origin: 'https://app.runbear.io', localStorage: [{ name: 'theme', value: 'dark' }] }],
++    });
++    expect(mockContext.storageState).not.toHaveBeenCalled();
+   });
+ 
+   test('persists the exact state supplied by session:storage:export', async () => {
+@@ -97,16 +226,15 @@ describe('persistence plugin', () => {
+   test('checkpoints on session:destroying', async () => {
+     await register(mockApp, ctx, { profileDir: tmpDir });
+ 
+-    const mockContext = {
+-      storageState: jest.fn(async ({ path: p }) => {
+-        await fs.writeFile(p, JSON.stringify({ cookies: [], origins: [] }));
+-      }),
+-    };
++    const mockContext = createMockContext({
++      cookies: [{ name: 'k', value: 'v', domain: '.example.com', path: '/', expires: -1 }],
++    });
+ 
+     await events.emitAsync('session:created', { userId: 'user-3', context: mockContext });
+     await events.emitAsync('session:destroying', { userId: 'user-3', reason: 'test' });
+ 
+-    expect(mockContext.storageState).toHaveBeenCalled();
++    expect(mockContext.cookies).toHaveBeenCalled();
++    expect(mockContext.storageState).not.toHaveBeenCalled();
+   });
+ 
+   test('DELETE storage_state destroys the live session without checkpointing and removes persisted state', async () => {
+@@ -124,18 +252,18 @@ describe('persistence plugin', () => {
+       origins: [{
+         origin: 'https://x.com',
+         localStorage: [{ name: 'token', value: 'secret' }],
+-        indexedDB: [{ name: 'auth', version: 1, stores: [] }],
+       }],
+     }));
+     await fs.writeFile(metaPath, JSON.stringify({ userId: 'user-4' }));
+ 
+-    const mockContext = { storageState: jest.fn() };
++    const mockContext = createMockContext();
+     await events.emitAsync('session:created', { userId: 'user-4', context: mockContext });
+ 
+     const res = { json: jest.fn(), status: jest.fn(function () { return this; }) };
+     await handler({ params: { userId: 'user-4' } }, res);
+ 
+     expect(ctx.destroySession).toHaveBeenCalledWith('user-4', { reason: 'storage_reset' });
++    expect(mockContext.cookies).not.toHaveBeenCalled();
+     expect(mockContext.storageState).not.toHaveBeenCalled();
+     await expect(fs.access(storageStatePath)).rejects.toMatchObject({ code: 'ENOENT' });
+     await expect(fs.access(metaPath)).rejects.toMatchObject({ code: 'ENOENT' });
+@@ -157,13 +285,12 @@ describe('persistence plugin', () => {
+     let markCheckpointStarted;
+     const checkpointBlocked = new Promise(resolve => { finishCheckpoint = resolve; });
+     const checkpointStarted = new Promise(resolve => { markCheckpointStarted = resolve; });
+-    const mockContext = {
+-      storageState: jest.fn(async ({ path: targetPath }) => {
+-        markCheckpointStarted();
+-        await checkpointBlocked;
+-        await fs.writeFile(targetPath, JSON.stringify({ cookies: [], origins: [] }));
+-      }),
+-    };
++    const mockContext = createMockContext();
++    mockContext.cookies = jest.fn(async () => {
++      markCheckpointStarted();
++      await checkpointBlocked;
++      return [];
++    });
+     await events.emitAsync('session:created', { userId: 'user-race', context: mockContext });
+     const checkpoint = events.emitAsync('session:cookies:import', { userId: 'user-race' });
+     await checkpointStarted;
+@@ -215,14 +342,10 @@ describe('persistence plugin', () => {
+     }
+   });
+ 
+-  test('does not persist IndexedDB by default', async () => {
++  test('does not persist IndexedDB by default and avoids context.storageState()', async () => {
+     await register(mockApp, ctx, { profileDir: tmpDir });
+ 
+-    const mockContext = {
+-      storageState: jest.fn(async ({ path: p }) => {
+-        await fs.writeFile(p, JSON.stringify({ cookies: [], origins: [] }));
+-      }),
+-    };
++    const mockContext = createMockContext();
+     await events.emitAsync('session:created', { userId: 'user-no-idb', context: mockContext });
+     await events.emitAsync('session:destroying', { userId: 'user-no-idb', reason: 'test' });
+ 
+@@ -231,20 +354,36 @@ describe('persistence plugin', () => {
+       'persistence plugin enabled',
+       expect.objectContaining({ indexedDB: false })
+     );
+-    expect(mockContext.storageState).toHaveBeenCalled();
+-    for (const [arg] of mockContext.storageState.mock.calls) {
+-      expect(arg.indexedDB).toBeUndefined();
+-    }
++    expect(mockContext.cookies).toHaveBeenCalled();
++    expect(mockContext.storageState).not.toHaveBeenCalled();
+   });
+ 
+-  test('indexedDB: true opts in to IndexedDB persistence', async () => {
++  test('indexedDB: true opts in to IndexedDB persistence and merges unvisited origins', async () => {
+     await register(mockApp, ctx, { profileDir: tmpDir, indexedDB: true });
+ 
+-    const mockContext = {
+-      storageState: jest.fn(async ({ path: p }) => {
+-        await fs.writeFile(p, JSON.stringify({ cookies: [], origins: [] }));
+-      }),
+-    };
++    const { getUserPersistencePaths } = await import('../../lib/persistence.js');
++    const { userDir, storageStatePath } = getUserPersistencePaths(tmpDir, 'user-idb');
++    await fs.mkdir(userDir, { recursive: true });
++    await fs.writeFile(storageStatePath, JSON.stringify({
++      cookies: [],
++      origins: [{
++        origin: 'https://unvisited.example.com',
++        localStorage: [{ name: 'tok', value: 'v1' }],
++        indexedDB: [{ name: 'db1', version: 1, stores: [] }],
++      }],
++    }));
++
++    await events.emitAsync('session:creating', { userId: 'user-idb', contextOptions: {} });
++    const mockContext = createMockContext({
++      storageStateImpl: jest.fn(async () => ({
++        cookies: [],
++        origins: [{
++          origin: 'https://visited.example.com',
++          localStorage: [],
++          indexedDB: [{ name: 'db2', version: 1, stores: [] }],
++        }],
++      })),
++    });
+     await events.emitAsync('session:created', { userId: 'user-idb', context: mockContext });
+     await events.emitAsync('session:destroying', { userId: 'user-idb', reason: 'test' });
+ 
+@@ -256,5 +395,129 @@ describe('persistence plugin', () => {
+     expect(mockContext.storageState).toHaveBeenCalledWith(
+       expect.objectContaining({ indexedDB: true })
+     );
++    const saved = JSON.parse(await fs.readFile(storageStatePath, 'utf8'));
++    expect(saved.origins.map((o) => o.origin)).toEqual([
++      'https://unvisited.example.com',
++      'https://visited.example.com',
++    ]);
++  });
++
++  test('preserves concurrent dirtyOrigins mutations and [] tombstones captured while checkpoint I/O is in flight', async () => {
++    await register(mockApp, ctx, { profileDir: tmpDir });
++
++    const { getUserPersistencePaths } = await import('../../lib/persistence.js');
++    const { userDir, storageStatePath } = getUserPersistencePaths(tmpDir, 'user-concurrent');
++    await fs.mkdir(userDir, { recursive: true });
++    await fs.writeFile(storageStatePath, JSON.stringify({
++      cookies: [],
++      origins: [
++        { origin: 'https://auth.example.com', localStorage: [{ name: 'jwt', value: 'v1' }] },
++      ],
++    }));
++
++    await events.emitAsync('session:creating', { userId: 'user-concurrent', contextOptions: {} });
++
++    let releaseCookies;
++    let markCookiesCalled;
++    const cookiesGate = new Promise((r) => { releaseCookies = r; });
++    const cookiesCalled = new Promise((r) => { markCookiesCalled = r; });
++    let blockNextCookies = true;
++    const mockContext = createMockContext();
++    mockContext.cookies = jest.fn(async () => {
++      if (blockNextCookies) {
++        blockNextCookies = false;
++        markCookiesCalled();
++        await cookiesGate;
++      }
++      return [];
++    });
++
++    await events.emitAsync('session:created', { userId: 'user-concurrent', context: mockContext });
++
++    // Start checkpoint #1 and pause it inside persistStorageState (awaiting context.cookies())
++    const cp1 = events.emitAsync('session:cookies:import', { userId: 'user-concurrent' });
++    await cookiesCalled;
++
++    // While cp1 is in flight, auth.example.com logs out ([] tombstone) and new.example.com logs in
++    const logoutPage = {
++      context: () => mockContext,
++      isClosed: () => false,
++      url: () => 'https://auth.example.com/logout',
++      evaluate: jest.fn(async () => ({ origin: 'https://auth.example.com', entries: [] })),
++    };
++    const newPage = {
++      context: () => mockContext,
++      isClosed: () => false,
++      url: () => 'https://new.example.com/app',
++      evaluate: jest.fn(async () => ({
++        origin: 'https://new.example.com',
++        entries: [{ name: 'sid', value: 'fresh' }],
++      })),
++    };
++    await events.emitAsync('page:closing', { page: logoutPage });
++    await events.emitAsync('page:closing', { page: newPage });
++
++    // Also verify session:storage:export does not wipe newer dirtyOrigins
++    releaseCookies();
++    await cp1;
++
++    // Next checkpoint must apply the concurrent [] tombstone and new origin
++    await events.emitAsync('session:destroying', { userId: 'user-concurrent', reason: 'test' });
++    const saved = JSON.parse(await fs.readFile(storageStatePath, 'utf8'));
++    expect(saved.origins).toEqual([
++      { origin: 'https://new.example.com', localStorage: [{ name: 'sid', value: 'fresh' }] },
++    ]);
++  });
++
++  test('captures post-load SPA localStorage writes on same-origin framenavigated and tab:evaluated before cross-origin navigation', async () => {
++    await register(mockApp, ctx, { profileDir: tmpDir });
++    const { getUserPersistencePaths } = await import('../../lib/persistence.js');
++    const { storageStatePath } = getUserPersistencePaths(tmpDir, 'user-spa');
++
++    const pageEmitter = new EventEmitter();
++    let currentUrl = 'https://spa.example.com/login';
++    let currentEntries = [];
++    const mainFrame = { url: () => currentUrl };
++    const spaPage = {
++      on: pageEmitter.on.bind(pageEmitter),
++      mainFrame: () => mainFrame,
++      context: () => mockContext,
++      isClosed: () => false,
++      url: () => currentUrl,
++      evaluate: jest.fn(async () => ({
++        origin: new URL(currentUrl).origin,
++        entries: [...currentEntries],
++      })),
++    };
++    const mockContext = createMockContext({ pages: [spaPage] });
++    await events.emitAsync('session:created', { userId: 'user-spa', context: mockContext });
++
++    // Initial load has empty localStorage
++    pageEmitter.emit('framenavigated', mainFrame);
++    pageEmitter.emit('load');
++    await new Promise((r) => setTimeout(r, 10));
++
++    // SPA logs in via pushState without firing load
++    currentEntries = [{ name: 'spa_token', value: 'tok_after_pushstate' }];
++    currentUrl = 'https://spa.example.com/dashboard';
++    pageEmitter.emit('framenavigated', mainFrame);
++    await new Promise((r) => setTimeout(r, 10));
++
++    // Later, evaluate updates token, then user clicks a cross-origin link directly
++    currentEntries = [{ name: 'spa_token', value: 'tok_after_eval' }];
++    events.emit('tab:evaluated', { userId: 'user-spa', tabId: 'tab-1', result: true });
++    await new Promise((r) => setTimeout(r, 10));
++
++    currentUrl = 'https://other.example.com/landing';
++    currentEntries = [];
++    pageEmitter.emit('framenavigated', mainFrame);
++    pageEmitter.emit('load');
++    await new Promise((r) => setTimeout(r, 10));
++
++    await events.emitAsync('session:destroying', { userId: 'user-spa', reason: 'test' });
++    const saved = JSON.parse(await fs.readFile(storageStatePath, 'utf8'));
++    expect(saved.origins).toEqual([
++      { origin: 'https://spa.example.com', localStorage: [{ name: 'spa_token', value: 'tok_after_eval' }] },
++    ]);
+   });
+ });
+diff --git a/plugins/vnc/index.js b/plugins/vnc/index.js
+index e17f1ec..85a5dfa 100644
+--- a/plugins/vnc/index.js
++++ b/plugins/vnc/index.js
+@@ -144,7 +144,10 @@ export async function register(app, ctx, pluginConfig = {}) {
+         return res.status(404).json({ error: `No active session for userId="${userId}"` });
+       }
+ 
+-      const state = await session.context.storageState(ctx.persistenceStorageStateOptions);
++      const customExporter = ctx.getStorageStateExporter?.();
++      const state = customExporter
++        ? await customExporter(String(userId), session)
++        : await session.context.storageState(ctx.persistenceStorageStateOptions);
+ 
+       log('info', 'storage_state exported', {
+         reqId: req.reqId,
+diff --git a/server.js b/server.js
+index ff77485..4043084 100644
+--- a/server.js
++++ b/server.js
+@@ -15,6 +15,7 @@ import { createFlyHelpers } from './lib/fly.js';
+ import { createPluginEvents, loadPlugins, typeEventPayload } from './lib/plugins.js';
+ import { requireAuth, accessKeyMiddleware, timingSafeCompare as _timingSafeCompare, isLoopbackAddress as _isLoopbackAddress } from './lib/auth.js';
+ import { createStorageStateExportHandler } from './lib/storage-state.js';
++import { applyLocalStorageImportToContext, getContextLocalStorageSeeder } from './lib/persistence.js';
+ import { MIN_USABLE_POPUP, POPUP_RESIZE_TARGET, shouldResizePopup } from './lib/popup-sizing.js';
+ import { windowSnapshot } from './lib/snapshot.js';
+ import { extractPageStructure, extractTableRows, attachStructureRefs } from './lib/page-structure.js';
+@@ -115,6 +116,7 @@ reporter.startWatchdog(30_000, () => {
+ 
+ // --- Plugin event bus ---
+ const pluginEvents = createPluginEvents();
++let customStorageStateExporter = null;
+ 
+ // --- Shared auth middleware ---
+ const authMiddleware = () => requireAuth(CONFIG);
+@@ -522,6 +524,9 @@ app.post('/sessions/:userId/cookies', express.json({ limit: '512kb' }), async (r
+ app.get('/sessions/:userId/storage_state', authMiddleware(), (req, res) => createStorageStateExportHandler({
+   sessions,
+   normalizeUserId,
++  exportStorageState: (userId, session) => customStorageStateExporter
++    ? customStorageStateExporter(userId, session)
++    : session.context.storageState(),
+   events: pluginEvents,
+   log,
+ })(req, res));
+@@ -610,26 +615,12 @@ app.post('/sessions/:userId/local-storage', authMiddleware(), express.json({ lim
+     }
+ 
+     const session = await getSession(req.params.userId);
+-    for (const item of origins) {
+-      const lease = acquirePageLease(session);
+-      const page = setLeasedPage(lease, await session.context.newPage());
+-      try {
+-        await page.goto(item.origin, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+-        if (new URL(page.url()).origin !== item.origin) {
+-          return res.status(400).json({ error: 'Local-storage origin redirected outside its declared origin' });
+-        }
+-        const imported = await page.evaluate((localStorageEntries) => {
+-          localStorage.clear();
+-          for (const { name, value } of localStorageEntries) localStorage.setItem(name, value);
+-          return localStorageEntries.every(({ name, value }) => localStorage.getItem(name) === value)
+-            && localStorage.length === localStorageEntries.length;
+-        }, item.localStorage);
+-        if (!imported) throw new Error('Browser did not retain imported local storage');
+-      } finally {
+-        await safePageClose(page);
+-        releasePageLease(session, lease);
+-      }
+-    }
++    await applyLocalStorageImportToContext(session.context, origins);
++    await pluginEvents.emitAsync('session:local-storage:import', {
++      userId: String(req.params.userId),
++      origins,
++      appliedToContext: true,
++    });
+     const result = { ok: true, userId: String(req.params.userId), origins: origins.length, entries };
+     log('info', 'local storage imported', { reqId: req.reqId, userId: result.userId, origins: result.origins, entries });
+     res.json(result);
+@@ -884,6 +875,7 @@ async function withUserLimit(userId, operation) {
+ 
+ async function safePageClose(page) {
+   if (!page || page.isClosed()) return;
++  await pluginEvents.emitAsync('page:closing', { page }).catch(() => {});
+   try {
+     await Promise.race([
+       page.close({ runBeforeUnload: false }),
+@@ -1549,6 +1541,7 @@ async function closeSessionImpl(userId, session, {
+   }
+ 
+   await pluginEvents.emitAsync('session:destroying', { userId: key, reason });
++  await getContextLocalStorageSeeder(session.context).close().catch(() => {});
+   if (session.tracePath) {
+     try {
+       await session.context.tracing.stop({ path: session.tracePath });
+@@ -2441,6 +2434,7 @@ async function withPageLoadDuration(action, fn) {
+ }
+ 
+ async function navigatePage(page, url, { timeout = 30000 } = {}) {
++  await pluginEvents.emitAsync('page:before-navigate', { page, targetUrl: url }).catch(() => {});
+   const response = await page.goto(url, { waitUntil: 'commit', timeout });
+   const contentType = response?.headers()?.['content-type']?.toLowerCase() || '';
+   if (!contentType.startsWith('image/')) {
+@@ -3913,6 +3907,7 @@ app.post('/tabs/:tabId/navigate', async (req, res) => {
+         const navigateAmazonSearch = async () => {
+           const amazonHomeUrl = 'https://www.amazon.com/';
+           tabState.lastRequestedUrl = targetUrl;
++          await pluginEvents.emitAsync('page:before-navigate', { page: tabState.page, targetUrl: amazonHomeUrl }).catch(() => {});
+           const homeResponse = await withPageLoadDuration('navigate', () => tabState.page.goto(amazonHomeUrl, { waitUntil: 'domcontentloaded', timeout: NAVIGATE_TIMEOUT_MS }));
+           if (homeResponse && homeResponse.status() >= 500) {
+             tabState.lastSnapshot = null;
+@@ -8890,6 +8885,8 @@ const pluginCtx = {
+   metricsRegistry: getRegister,
+   createMetric,
+   registerVirtualDisplayProvider: (pluginName, factory) => virtualDisplayRegistry.register(pluginName, factory),
++  setStorageStateExporter: (fn) => { customStorageStateExporter = typeof fn === 'function' ? fn : null; },
++  getStorageStateExporter: () => customStorageStateExporter,
+   /** The upstream VirtualDisplay class -- plugins can subclass it. */
+   VirtualDisplay,
+ };
