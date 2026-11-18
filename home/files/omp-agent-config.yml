@@ -14,7 +14,7 @@ retry:
       - anthropic/claude-opus-5-5:xhigh
       - openai-codex/gpt-6.2-sol:max
     advisor:
-      - openai-codex/gpt-6.2-sol:high
+      - anthropic/claude-sonnet-5-5:high
       - google-antigravity/gemini-4-carbon:high
     browser:
       - google-antigravity/gemini-4-hydrogen-high:high
@@ -107,7 +107,7 @@ modelRoles:
   plan: google-antigravity/gemini-4-carbon:high
   slow: anthropic/claude-fable-5-2:high
   task: anthropic/claude-opus-5-5
-  advisor: anthropic/claude-sonnet-5-5:high
+  advisor: openai-codex/gpt-6.2-sol:high
   browser: anthropic/claude-sonnet-5-5:medium
   smol: anthropic/claude-haiku-5-5:medium
   vision: google-antigravity/gemini-4-hydrogen-high:high
