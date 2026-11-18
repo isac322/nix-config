@@ -1,29 +1,3 @@
-retry:
-  fallbackChains:
-    default:
-      - openai-codex/gpt-6.2-sol:high
-    task:
-      - openai-codex/gpt-6.2-sol:high
-    plan:
-      - anthropic/claude-fable-5-2:high
-      - openai-codex/gpt-6.2-sol:high
-    slow:
-      - anthropic/claude-opus-5-5:xhigh
-      - openai-codex/gpt-6.2-sol:max
-    advisor:
-      - anthropic/claude-sonnet-5-5:high
-    browser:
-      - openai-codex/gpt-6.1-terra:medium
-    smol:
-      - anthropic/claude-sonnet-5-5:low
-      - openai-codex/gpt-6.1-terra:low
-    vision:
-      - anthropic/claude-sonnet-5-5:medium
-      - openai-codex/gpt-6.1-terra:medium
-    tiny:
-      - openai-codex/gpt-6.1-terra:low
-    commit:
-      - openai-codex/gpt-6.1-terra:low
 setupVersion: 3
 extendedContext: true
 statusLine:
@@ -93,20 +67,20 @@ task:
   agentAdvisor:
     task: "off"
   agentModelOverrides:
-    reviewer: openai-codex/gpt-6.2-sol:high
-    scout: xai-oauth/grok-4.7-build-fast:medium, anthropic/claude-sonnet-5-5:medium
+    reviewer: openai-codex/gpt-6.2-sol:high, xai-oauth/grok-4.7-build-fast:low
+    scout: xai-oauth/grok-4.7-build-fast:medium, anthropic/claude-sonnet-5-5:high
     sonic: anthropic/claude-haiku-5-5:low, openai-codex/gpt-6.1-terra:low
-    security-reviewer: openai-codex/gpt-6.2-sol:max, anthropic/claude-opus-5-5:xhigh
+    security-reviewer: openai-codex/gpt-6.2-sol:max
 modelRoles:
   default: anthropic/claude-opus-5-5:medium
   plan: anthropic/claude-opus-5-5:high
   slow: anthropic/claude-fable-5-2:high
   task: anthropic/claude-opus-5-5
   advisor: openai-codex/gpt-6.2-sol:high
-  browser: anthropic/claude-sonnet-5-5:medium
+  browser: anthropic/claude-sonnet-5-5:medium, openai-codex/gpt-6.1-terra:low
   smol: anthropic/claude-haiku-5-5:medium
   vision: openai-codex/gpt-6.1-terra:low
-  tiny: anthropic/claude-haiku-5-5:low
+  tiny: anthropic/claude-haiku-5-5:low, openai-codex/gpt-6.1-terra:low
   commit: anthropic/claude-haiku-5-5:low
   judge: typesafe/jev-1.14.0
 find:
