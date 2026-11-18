@@ -4,11 +4,11 @@
 // inherits it. Overrides live in the runtime settings layer (never mutating config.yml
 // on disk) and are re-applied automatically from the session transcript on resume until `/bg off`.
 //
-// - `on` (default): Claude Opus 5.5 main agent with GPT-6.1 Sol task subagents, keeping
+// - `on` (default): Claude Opus 5.5 main agent with GPT-6.2 Sol task subagents, keeping
 //   orchestration on Opus while offloading implementation and review work from Anthropic quota.
-// - `sol`: GPT-6.1 Sol main agent and subagents, spending ChatGPT Codex quota instead of
+// - `sol`: GPT-6.2 Sol main agent and subagents, spending ChatGPT Codex quota instead of
 //   Anthropic quota wherever a measured equal exists.
-// - `astra`: GPT-6 Astra main agent with GPT-6.1 Sol task subagents, spending ChatGPT Codex
+// - `astra`: GPT-6.2 Astra main agent with GPT-6.2 Sol task subagents, spending ChatGPT Codex
 //   quota instead of Anthropic quota.
 // - `hydrogen`: Gemini 4 Hydrogen high main agent, which understands the problem and writes the
 //   specs while Sol implements them.
@@ -33,10 +33,10 @@ type Profile = {
 };
 
 const OPUS = "anthropic/claude-opus-5-5";
-const SOL = "openai-codex/gpt-6.1-sol";
+const SOL = "openai-codex/gpt-6.2-sol";
 const HYDROGEN = "google-antigravity/gemini-4-hydrogen-high";
 const CARBON = "google-antigravity/gemini-4-carbon";
-const ASTRA = "openai-codex/gpt-6-astra";
+const ASTRA = "openai-codex/gpt-6.2-astra";
 const PROC_STREAMS_PATH_RE = /^proc:\/\/[^/]+\/streams(?:\/.*)?$/;
 const WAIT_POLL_TIMEOUT_RE =
 	/(?:^|\n\n)(?:No job finished|No reply|No service finished) within (?:\d+(?:\.\d+)?s|\d+m); a back-to-back wait allows up to (?:\d+(?:\.\d+)?s|\d+m)\.(?: Read proc:\/\/ for status\.)?$/;
@@ -257,8 +257,8 @@ const PROFILES: Record<string, Profile> = {
 
 const SUBCOMMANDS = [
 	{ name: "on", description: "Opus main agent, Sol implementer, roles re-curated around it" },
-	{ name: "sol", description: "GPT-6.1 Sol main agent, Sol implementer, roles re-curated around it" },
-	{ name: "astra", description: "GPT-6 Astra main agent, Sol implementer, roles re-curated around it" },
+	{ name: "sol", description: "GPT-6.2 Sol main agent, Sol implementer, roles re-curated around it" },
+	{ name: "astra", description: "GPT-6.2 Astra main agent, Sol implementer, roles re-curated around it" },
 	{ name: "hydrogen", description: "Gemini 4 Hydrogen high main agent, Sol implementer, roles re-curated around it" },
 	{ name: "carbon", description: "Gemini 4 Carbon main agent, Sol implementer, roles re-curated around it" },
 	{ name: "off", description: "Restore the base config and the previous model" },

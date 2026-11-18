@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 VERSION = "0.1.0"
 REVIEWER = "haechibot[bot]"
 DEFAULT_REPOS = ("isac322/cc-lb", "isac322/krema", "isac322/kwin-mcp", "isac322/pillar-csi")
-DEFAULT_MODEL = "gpt-6.1-sol"
+DEFAULT_MODEL = "gpt-6.2-sol"
 DEFAULT_EFFORT = "high"
 PUSH_WAIT = 120.0
 GATE_TIMEOUT = 1500.0
