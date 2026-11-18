@@ -102,7 +102,7 @@ in
       300
     )
     // {
-      description = "Record every temporary resource you create in a cleanup ledger and delete only ledger entries after the user declares the task finished or requests cleanup.";
+      description = "Record every temporary resource you create in an append-only cleanup ledger under ~/.cache/cleanup-ledgers, sweep every workspace ledger and unrecorded leftovers when cleaning up, and delete only after the user declares the task finished or requests cleanup.";
     };
 
   pull-request-creation-approval =
