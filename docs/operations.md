@@ -56,8 +56,11 @@ memory-off 경로는 token을 요구하지 않는다. 나머지 실행은 creden
 launcher 회귀 검사는 `python3 home/test_omp_launcher.py --scratch-dir <scratch-dir>`
 및 `python3 home/test_agy_launcher.py --scratch-dir <scratch-dir>`로
 실행한다. 합성 token·설정을 사용해 env 우선순위, SOPS 성공·실패·빈 값, nested 실행과
-`agy` 세션 신뢰 병합·플래그 통과를 검사하며 fixture는 지정한 directory에 남긴다. 실제
-macOS Keychain 읽기와 authenticated recall은 token 배포 뒤에 별도로 확인한다.
+`agy` 세션 신뢰 병합·플래그 통과를 검사하며 fixture는 지정한 directory에 남긴다.
+`statusLine`·`title` 스크립트 회귀 검사는 `python3 home/test_agy_statusline.py`로
+실행하며, 빌드된 store 바이너리는 `--statusline-bin`·`--title-bin`·`--empty-path`로
+격리 환경 동작까지 함께 검증한다. 실제 macOS Keychain 읽기와 authenticated recall은
+token 배포 뒤에 별도로 확인한다.
 
 ## 패키지 릴리스 갱신
 

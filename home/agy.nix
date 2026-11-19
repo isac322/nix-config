@@ -153,6 +153,24 @@ let
   pluginTree = pkgs.linkFarm "agy-${pluginName}-plugin" (
     lib.mapAttrsToList (name: path: { inherit name path; }) pluginFiles
   );
+
+  # Bundle bash + jq via writeShellApplication so GUI/Orca/Herdr launches do
+  # not depend on an interactive PATH or macOS /bin/bash 3.2, and build checks
+  # validate both scripts with shellcheck.
+  agyStatusLine = pkgs.writeShellApplication {
+    name = "agy-statusline";
+    runtimeInputs = [ pkgs.jq ];
+    text = lib.removePrefix "#!/usr/bin/env bash\nset -euo pipefail\n" (
+      builtins.readFile ./agy/statusline.sh
+    );
+  };
+  agyTitle = pkgs.writeShellApplication {
+    name = "agy-title";
+    runtimeInputs = [ pkgs.jq ];
+    text = lib.removePrefix "#!/usr/bin/env bash\nset -euo pipefail\n" (
+      builtins.readFile ./agy/title.sh
+    );
+  };
 in
 {
   options.local.agy = {
@@ -202,12 +220,15 @@ in
     programs.antigravity-cli = {
       enable = true;
       mutableSettings = true;
-      # Merge only shared UI, default model, and execution defaults over
-      # ~/.gemini/antigravity-cli/settings.json so runtime `/model` overrides
-      # and Orca/agy `trustedWorkspaces` entries survive a switch.
+      # Merge only shared UI, default model, execution defaults, and status
+      # line/title commands over ~/.gemini/antigravity-cli/settings.json so
+      # runtime `/model` overrides and Orca/agy `trustedWorkspaces` entries
+      # survive a switch.
       # `altScreenMode = "default"` keeps conversation scrolling in the
       # terminal's native scrollback, avoiding agy's hardcoded alt-screen
       # wheel acceleration (`1 + floor(sqrt(streak))` within 150 ms).
+      # `statusLine.stack_with_default = false` replaces agy's built-in status
+      # bar with the Powerlevel10k-style line rather than stacking both.
       settings = {
         "$schema" = "https://antigravity.google/schemas/v1/settings.json";
         altScreenMode = "default";
@@ -221,6 +242,18 @@ in
         agentMode = "accept-edits";
         toolPermission = "always-proceed";
         allowNonWorkspaceAccess = true;
+        statusLine = {
+          type = "command";
+          command = lib.getExe agyStatusLine;
+          enabled = true;
+          padding = 0;
+          stack_with_default = false;
+        };
+        title = {
+          type = "command";
+          command = lib.getExe agyTitle;
+          enabled = true;
+        };
       };
       # Under `always-proceed` + `allowNonWorkspaceAccess = true`, guard only
       # raw private keys and SSH/GPG keyrings; leave `allow`/`ask` null so
