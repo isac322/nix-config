@@ -701,6 +701,37 @@ def locked_github_source(lock: dict[str, Any], input_name: str) -> tuple[str, st
     return match[1], match[2], locked["rev"]
 
 
+def valid_camoufox_snapshot(release: dict[str, Any] | None) -> bool:
+    if not isinstance(release, dict):
+        return False
+    tag_name = release.get("tag_name")
+    if not isinstance(tag_name, str) or not tag_name.startswith("v") or len(tag_name) <= 1:
+        return False
+    version = tag_name.removeprefix("v")
+    assets = release.get("assets")
+    if not isinstance(assets, list):
+        return False
+    by_name = {
+        asset["name"]: asset
+        for asset in assets
+        if isinstance(asset, dict) and isinstance(asset.get("name"), str)
+    }
+    for name in (
+        f"camoufox-{version}-mac.arm64.zip",
+        f"camoufox-{version}-lin.arm64.zip",
+    ):
+        asset = by_name.get(name)
+        if asset is None:
+            return False
+        url = asset.get("browser_download_url")
+        digest = asset.get("digest")
+        if not isinstance(url, str) or not url:
+            return False
+        if not isinstance(digest, str) or not digest.startswith("sha256:") or len(digest) <= len("sha256:"):
+            return False
+    return True
+
+
 def camoufox_release(lock: dict[str, Any], previous_release: dict[str, Any] | None) -> dict[str, Any]:
     """Select the Camoufox browser release the locked camofox-browser declares.
 
@@ -715,7 +746,24 @@ def camoufox_release(lock: dict[str, Any], previous_release: dict[str, Any] | No
     if not match:
         raise RuntimeError(f"camofox-browser {rev} declares no BUNDLED_CAMOUFOX_RELEASE")
     version = match[1]
-    release = fetch_json(f"{GITHUB_API}/daijro/camoufox/releases/tags/v{version}")
+    try:
+        release = fetch_json(f"{GITHUB_API}/daijro/camoufox/releases/tags/v{version}")
+    except RuntimeError as error:
+        if (
+            isinstance(error.__cause__, HTTPError)
+            and error.__cause__.code in (404, 410, 451)
+            and valid_camoufox_snapshot(previous_release)
+        ):
+            assert previous_release is not None
+            prev_tag = previous_release["tag_name"]
+            suffix = "" if prev_tag == f"v{version}" else f" (camofox-browser declares v{version})"
+            print(
+                f"warning: daijro/camoufox returned HTTP {error.__cause__.code}; "
+                f"keeping existing camoufox snapshot {prev_tag}{suffix}",
+                file=sys.stderr,
+            )
+            return previous_release
+        raise
     return select_assets(
         release,
         [f"camoufox-{version}-mac.arm64.zip", f"camoufox-{version}-lin.arm64.zip"],

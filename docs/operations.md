@@ -76,6 +76,11 @@ nix run .#update-packages
 바꾸어도 같은 `narHash`인지 확인한다. 의존성을 상위 lock과 무관한 최신 HEAD로
 옮기지 않는다. 누락된 npm integrity 보완 데이터도 선택한 source lock에 맞춘다.
 소스 갱신 단계가 실패하면 snapshot·`flake.nix`·`flake.lock`을 실행 전 상태로 복원한다.
+단, `daijro/camoufox` 저장소가 GitHub에서 HTTP 404/410/451을 돌려줄 때는 기존
+`pkgs/release-snapshots.json`의 `camoufox` 항목이 완전하면 stderr에 경고를 남기고
+기존 스냅샷을 유지해 나머지 갱신을 계속하며(`daijro/camoufox`가 200으로 돌아오면
+자동으로 갱신을 재개한다), 회귀 검사는 `python3 pkgs/release-snapshots/test_update.py`로
+실행한다.
 macOS에서는 그 단계가 끝난 뒤 `sudo determinate-nixd upgrade --version stable`로
 Nix 자체도 갱신한다. Nix 데몬을 재시작할 수 있어 switch 안에서는 실행하지 않는다.
 이 마지막 단계가 실패하면 명령은 실패하지만, 이미 완료한 소스 갱신과 시스템
