@@ -222,6 +222,15 @@ in
         toolPermission = "always-proceed";
         allowNonWorkspaceAccess = true;
       };
+      # Under `always-proceed` + `allowNonWorkspaceAccess = true`, guard only
+      # raw private keys and SSH/GPG keyrings; leave `allow`/`ask` null so
+      # runtime grants in mutable settings survive a switch.
+      permissions.deny = [
+        "write_file(${config.home.homeDirectory}/.ssh)"
+        "write_file(${config.home.homeDirectory}/.gnupg)"
+        "read_file(${config.home.homeDirectory}/.gnupg/private-keys-v1.d)"
+        "read_file(${config.home.homeDirectory}/.config/sops/age)"
+      ];
     };
   };
 }

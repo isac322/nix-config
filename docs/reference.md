@@ -363,7 +363,10 @@ Home Manager의 `programs.antigravity-cli`(`mutableSettings = true`)로 병합 �
 `allowNonWorkspaceAccess = true`)만 덮어써서 실행 중 바꾸는 `model` 오버라이드나
 `trustedWorkspaces`를 유지하며, `altScreenMode = "default"`와
 `clearScrollbackOnResize = false`로 대체 화면 전용 휠 가속과 리사이즈 시 스크롤백
-초기화를 피하고 대화창 스크롤을 터미널 기본 스크롤백에 맡긴다. 또한 `home/agy-launcher.nix`가
+초기화를 피하고 대화창 스크롤을 터미널 기본 스크롤백에 맡긴다. 또한
+`permissions.deny`로 `~/.ssh`·`~/.gnupg` 쓰기와 `~/.gnupg/private-keys-v1.d`·
+`~/.config/sops/age` 읽기/쓰기를 차단하되 `allow`/`ask`는 비워 런타임 허용 규칙을
+보존한다. 함께 `home/agy-launcher.nix`가
 `/bin/sh` 런처로 현재 작업 디렉터리(논리/물리)와 `--add-dir`을 세션 전용
 `--settings`의 `trustedWorkspaces`에 병합해 새 디렉터리·워크트리에서 신뢰
 확인창을 건너뛰며, `AGY_NO_AUTO_TRUST=1`로 이 동작을 끌 수 있다.
