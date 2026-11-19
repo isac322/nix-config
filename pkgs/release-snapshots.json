@@ -29,46 +29,46 @@
     "axiom": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.22.0/axiom_0.22.0_darwin_arm64.tar.gz",
-          "digest": "sha256:ddd076e25f5818bbed85c85cec5fe6d7a8c4cd93dbed2deb94d47e8b1e1f9ba8",
-          "name": "axiom_0.22.0_darwin_arm64.tar.gz"
+          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.23.0/axiom_0.23.0_darwin_arm64.tar.gz",
+          "digest": "sha256:2b788cdad555b79b782a5e9cba347e18deeba482c5e71d15f9edb5d4e93ce27f",
+          "name": "axiom_0.23.0_darwin_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.22.0/axiom_0.22.0_linux_arm64.tar.gz",
-          "digest": "sha256:1b4177040558ce9136f5b11aab6073130dbbb5f8df97dd78cbadca24d6a67a11",
-          "name": "axiom_0.22.0_linux_arm64.tar.gz"
+          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.23.0/axiom_0.23.0_linux_arm64.tar.gz",
+          "digest": "sha256:b09f211d0260b8fd827ced4a2e0156b92ddd57dce86499c023a8a8de92749766",
+          "name": "axiom_0.23.0_linux_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.22.0/axiom_0.22.0_linux_amd64.tar.gz",
-          "digest": "sha256:202163db5aceb74546c98a3a59c4c5a57811301a49b8af375403d0f3aacda1a4",
-          "name": "axiom_0.22.0_linux_amd64.tar.gz"
+          "browser_download_url": "https://github.com/axiomhq/cli/releases/download/v0.23.0/axiom_0.23.0_linux_amd64.tar.gz",
+          "digest": "sha256:9acaa769d99100823cef605946e98f9b35d9dbdf34dc57db1552d421e4851497",
+          "name": "axiom_0.23.0_linux_amd64.tar.gz"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v0.22.0"
+      "tag_name": "v0.23.0"
     },
     "bun": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-darwin-aarch64.zip",
-          "digest": "sha256:c240d7f0ccb90c263a849fcdb09b7ee62630d921348ed6aafda86b9d577bc510",
+          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.5/bun-darwin-aarch64.zip",
+          "digest": "sha256:b5d6bc2e13caf14e57c89661e89efd073ff16165b41bfe43882616410609cd10",
           "name": "bun-darwin-aarch64.zip"
         },
         {
-          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-aarch64.zip",
-          "digest": "sha256:baa6bb36f51d6e58561e02bbea825038a9df454f673d6d776e8bbf86f8c7850e",
+          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.5/bun-linux-aarch64.zip",
+          "digest": "sha256:18656a3bf0ea5641f5796ae4213b75255579a70a0fded2f337933785568cdf84",
           "name": "bun-linux-aarch64.zip"
         },
         {
-          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-x64.zip",
-          "digest": "sha256:bf8ccbfb2b0b80159e0f9a6d15c55317add8077534dbc6130a3edb52fccb395c",
+          "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.5/bun-linux-x64.zip",
+          "digest": "sha256:94559b3b528995a49452f9f2404cec74f2efd7d06e0a000a8cd214b02c3666eb",
           "name": "bun-linux-x64.zip"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "bun-v1.4.4"
+      "tag_name": "bun-v1.4.5"
     },
     "camoufox": {
       "assets": [
