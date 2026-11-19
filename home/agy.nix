@@ -211,6 +211,11 @@ in
       settings = {
         "$schema" = "https://antigravity.google/schemas/v1/settings.json";
         altScreenMode = "default";
+        clearScrollbackOnResize = false;
+        useTerminalCursor = true;
+        pickerGrouping = "grouped";
+        showFeedbackSurvey = false;
+        showTips = false;
         model = "Orchestrator (Neon)";
         notifications = true;
         agentMode = "accept-edits";
