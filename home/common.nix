@@ -456,7 +456,10 @@ in
     };
     camofoxMcpServer = if camofoxCfg.enable then camofoxMcpServer "agy" else null;
   };
-  programs.antigravity-cli.package = agents.antigravity-cli;
+  programs.antigravity-cli.package = import ./agy-launcher.nix {
+    inherit (pkgs) writeTextFile;
+    jq = lib.getExe pkgs.jq;
+  } "${agents.antigravity-cli}/bin/agy";
 
   # Every node runs a local SkillClaw client and synchronizes the shared
   # ~/.agents/skills tree used by OMP and Codex. Claude receives a Nix-generated

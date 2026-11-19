@@ -53,10 +53,11 @@ memory-off 경로는 token을 요구하지 않는다. 나머지 실행은 creden
 서버의 token 인증을 켠다. 이미 실행 중인 OMP는 설정을 다시 읽도록 재시작해야 한다.
 서버 인증 전환을 먼저 해서 기존 세션의 기억 읽기·보존을 끊지 않는다.
 
-launcher 회귀 검사는 `python3 home/test_omp_launcher.py --scratch-dir <scratch-dir>`로
-실행한다. 합성 token으로 env 우선순위, SOPS 성공·실패·빈 값, nested 실행을 검사하며
-fixture는 지정한 directory에 남긴다. 실제 macOS Keychain 읽기와 authenticated recall은
-token 배포 뒤에 별도로 확인한다.
+launcher 회귀 검사는 `python3 home/test_omp_launcher.py --scratch-dir <scratch-dir>`
+및 `python3 home/test_agy_launcher.py --scratch-dir <scratch-dir>`로
+실행한다. 합성 token·설정을 사용해 env 우선순위, SOPS 성공·실패·빈 값, nested 실행과
+`agy` 세션 신뢰 병합·플래그 통과를 검사하며 fixture는 지정한 directory에 남긴다. 실제
+macOS Keychain 읽기와 authenticated recall은 token 배포 뒤에 별도로 확인한다.
 
 ## 패키지 릴리스 갱신
 

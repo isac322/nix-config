@@ -355,11 +355,15 @@ plugin 밖을 가리키는 symlink를 거부하므로 activation이 tree를 복�
 
 CLI 사용자 설정(`~/.gemini/antigravity-cli/settings.json`)은 `home/agy.nix`에서
 Home Manager의 `programs.antigravity-cli`(`mutableSettings = true`)로 병합 관리한다.
-공유 UI와 자율 실행 기본값(`altScreenMode = "default"`, `notifications = true`,
+공유 UI, 기본 모델(`model = "Orchestrator (Neon)"`), 자율 실행 기본값
+(`altScreenMode = "default"`, `notifications = true`,
 `agentMode = "accept-edits"`, `toolPermission = "always-proceed"`,
-`allowNonWorkspaceAccess = true`)만 덮어써서 실행 중 선택하는 `model`과
+`allowNonWorkspaceAccess = true`)만 덮어써서 실행 중 바꾸는 `model` 오버라이드나
 `trustedWorkspaces`를 유지하며, `altScreenMode = "default"`로 대체 화면 전용 휠 가속을
-피하고 대화창 스크롤을 터미널 기본 스크롤백에 맡긴다.
+피하고 대화창 스크롤을 터미널 기본 스크롤백에 맡긴다. 또한 `home/agy-launcher.nix`가
+`/bin/sh` 런처로 현재 작업 디렉터리(논리/물리)와 `--add-dir`을 세션 전용
+`--settings`의 `trustedWorkspaces`에 병합해 새 디렉터리·워크트리에서 신뢰
+확인창을 건너뛰며, `AGY_NO_AUTO_TRUST=1`로 이 동작을 끌 수 있다.
 
 Hindsight 범위는 `lib/hindsight.nix` 하나로 정하고 OMP 설정과 agy bridge
 (`pkgs/agy-hindsight`)가 같이 읽는다. bank 하나에 project write는

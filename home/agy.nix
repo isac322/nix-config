@@ -202,8 +202,8 @@ in
     programs.antigravity-cli = {
       enable = true;
       mutableSettings = true;
-      # Merge only shared UI and execution defaults over
-      # ~/.gemini/antigravity-cli/settings.json so runtime `/model` choices
+      # Merge only shared UI, default model, and execution defaults over
+      # ~/.gemini/antigravity-cli/settings.json so runtime `/model` overrides
       # and Orca/agy `trustedWorkspaces` entries survive a switch.
       # `altScreenMode = "default"` keeps conversation scrolling in the
       # terminal's native scrollback, avoiding agy's hardcoded alt-screen
@@ -211,6 +211,7 @@ in
       settings = {
         "$schema" = "https://antigravity.google/schemas/v1/settings.json";
         altScreenMode = "default";
+        model = "Orchestrator (Neon)";
         notifications = true;
         agentMode = "accept-edits";
         toolPermission = "always-proceed";
