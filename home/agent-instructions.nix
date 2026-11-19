@@ -304,15 +304,13 @@ in
   # OMP reads this dotenv itself, so the Vertex settings reach OMP without
   # entering every shell. Vertex serves only the Gemini models the GCP project
   # holds Provisioned Throughput for (`google-vertex/...` in the config above);
-  # every other Gemini model stays on the Gemini API. The service-account key is
-  # a secret placed once per machine outside the store, mode 0600, from the
-  # `google_service_account_key.gcp_access` output of the `runbear-local`
-  # Terraform Cloud workspace.
+  # every other Gemini model stays on the Gemini API. Vertex authenticates through
+  # the user's Application Default Credentials (`gcloud auth application-default
+  # login`); no service-account key is placed on the machine.
   home.file.".omp/agent/.env" = {
     text = ''
       GOOGLE_CLOUD_PROJECT=runbear
       GOOGLE_VERTEX_LOCATION=global
-      GOOGLE_APPLICATION_CREDENTIALS=${homeDir}/.config/gcloud/isac-vertex.json
     '';
     force = true;
   };
