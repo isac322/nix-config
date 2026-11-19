@@ -227,8 +227,9 @@ in
       # `altScreenMode = "default"` keeps conversation scrolling in the
       # terminal's native scrollback, avoiding agy's hardcoded alt-screen
       # wheel acceleration (`1 + floor(sqrt(streak))` within 150 ms).
-      # `statusLine.stack_with_default = false` replaces agy's built-in status
-      # bar with the Powerlevel10k-style line rather than stacking both.
+      # `statusLine.stack_with_default = true` keeps agy's built-in status
+      # bar above the Powerlevel10k-style line so transient flash prompts
+      # (such as `press ctrl+d again to exit`) and shortcut hints remain visible.
       settings = {
         "$schema" = "https://antigravity.google/schemas/v1/settings.json";
         altScreenMode = "default";
@@ -247,7 +248,7 @@ in
           command = lib.getExe agyStatusLine;
           enabled = true;
           padding = 0;
-          stack_with_default = false;
+          stack_with_default = true;
         };
         title = {
           type = "command";
