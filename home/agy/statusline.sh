@@ -17,16 +17,6 @@ parsed=$(
       s(.workspace.current_dir) as $ws_cwd |
       (if $ws_cwd != "" then $ws_cwd else s(.cwd) end) as $cwd |
       s(.agent.name) as $agent |
-      s(.cycle_mode) as $cycle_mode |
-      s(.model.display_name) as $model_name |
-      s(.model.effort) as $effort |
-      (
-        if $model_name != "" and $effort != "" and (($model_name | ascii_downcase) | contains($effort | ascii_downcase) | not) then
-          "\($model_name) (\($effort))"
-        else
-          $model_name
-        end
-      ) as $model |
       s(.version) as $version |
       (
         if (.cost.total_usd | type) == "number" and .cost.total_usd >= 0.005 then
@@ -55,8 +45,6 @@ parsed=$(
       [
         $cwd,
         $agent,
-        $cycle_mode,
-        $model,
         $version,
         $cost,
         $cost_estimated,
@@ -82,7 +70,7 @@ parsed=$(
 
 sentinel=""
 IFS=$'\x01' read -r \
-  cwd agent cycle_mode model version cost cost_estimated \
+  cwd agent version cost cost_estimated \
   in_tokens out_tokens used running_subagents task_count \
   pending_input confirm_pending agent_state sandbox_on vim_mode \
   sentinel <<< "$parsed"
@@ -145,21 +133,7 @@ if [ -n "$agent" ]; then
   append_segment 55 254 "󰚩 $agent"
 fi
 
-# 3. cycle_mode — conditional (red for auto, cyan otherwise)
-if [ -n "$cycle_mode" ]; then
-  if [ "$cycle_mode" = "auto" ]; then
-    append_segment 1 254 "$cycle_mode"
-  else
-    append_segment 6 0 "$cycle_mode"
-  fi
-fi
-
-# 4. model (green) — conditional
-if [ -n "$model" ]; then
-  append_segment 2 0 "$model"
-fi
-
-# 5. version (gray) — conditional
+# 3. version (gray) — conditional
 if [ -n "$version" ]; then
   append_segment 244 0 "v${version#v}"
 fi

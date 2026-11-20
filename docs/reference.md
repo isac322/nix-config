@@ -362,8 +362,9 @@ Home Manager의 `programs.antigravity-cli`(`mutableSettings = true`)로 병합 �
 `agentMode = "accept-edits"`, `toolPermission = "always-proceed"`,
 `allowNonWorkspaceAccess = true`)과 상태 표시줄·창 제목 명령
 (`statusLine`의 `stack_with_default = true` 설정으로 기본 상태 바의 플래시·단축키
-힌트를 유지하면서 아래에 Powerlevel10k 스타일 스크립트 `home/agy/statusline.sh`를
-함께 표시하고, `title`은 에이전트 상태·디렉터리·대화 제목 스크립트
+힌트·모드·모델 표시를 유지하면서 아래에 Powerlevel10k 스타일 스크립트
+`home/agy/statusline.sh`로 중복 없는 경로·비용·토큰·컨텍스트·서브에이전트 정보를
+표시하고, `title`은 에이전트 상태·디렉터리·대화 제목 스크립트
 `home/agy/title.sh`를 실행)만 덮어써서 실행 중 바꾸는 `model` 오버라이드나
 `trustedWorkspaces`를 유지하며, `altScreenMode = "default"`와
 `clearScrollbackOnResize = false`로 대체 화면 전용 휠 가속과 리사이즈 시 스크롤백

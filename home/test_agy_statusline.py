@@ -85,8 +85,6 @@ raw_out, plain_out = run_status(full_payload)
 expected_plain = (
     " ~/etc/nix-darwin \uE0B0"
     " \U000f06a9 coordinator \uE0B0"
-    " accept-edits \uE0B0"
-    " Orchestrator (Neon) \uE0B0"
     " v1.5.11 \uE0B0"
     " $0.42 \uE0B0"
     " 88.2K/61.1K \uE0B0"
@@ -114,22 +112,15 @@ startup_payload = {
 _, plain_startup = run_status(startup_payload)
 assert plain_startup == " ~/project \uE0B0 v1.5.11 \uE0B0", plain_startup
 
-# 3. Model effort deduplication
-_, plain_argon = run_status(
+# 3. Built-in status bar fields (cycle_mode, model) are omitted to avoid duplication
+_, plain_omitted = run_status(
     {
         "cwd": "/tmp/ws",
-        "model": {"display_name": "Gemini 4 Argon (Medium)", "effort": "medium"},
-    }
-)
-assert "Gemini 4 Argon (Medium) (medium)" not in plain_argon and "Gemini 4 Argon (Medium)" in plain_argon, plain_argon
-
-_, plain_neon_high = run_status(
-    {
-        "cwd": "/tmp/ws",
+        "cycle_mode": "auto",
         "model": {"display_name": "Orchestrator (Neon)", "effort": "high"},
     }
 )
-assert "Orchestrator (Neon) (high)" in plain_neon_high, plain_neon_high
+assert plain_omitted == " /tmp/ws \uE0B0", plain_omitted
 
 # 4. Exact $HOME vs prefix boundary (/Users/bhyoo2 must NOT become ~2)
 _, p_exact = run_status({"cwd": "/Users/bhyoo"}, home="/Users/bhyoo")
@@ -188,7 +179,7 @@ assert " 1.0M/1.2M \uE0B0" in p_tok, p_tok
 assert " \U000f0f85 92% \uE0B0" in p_tok, p_tok
 assert "\033[48;5;1m\033[38;5;254m \U000f0f85 92% " in raw_tok, raw_tok
 
-# 7. Auto mode (red), confirmation pending (red), error fallback (red), sandbox & vim mode
+# 7. Confirmation pending (red), error fallback (red), sandbox & vim mode
 raw_auto, plain_auto = run_status(
     {
         "cwd": "/tmp/ws",
@@ -200,7 +191,7 @@ raw_auto, plain_auto = run_status(
         "agent_state": "reviewing",
     }
 )
-assert "\033[48;5;1m\033[38;5;254m auto " in raw_auto, raw_auto
+assert "auto" not in plain_auto, plain_auto
 assert " NORMAL \uE0B0 sandbox \uE0B0 ⏸ 2 queued · confirm \uE0B0" in plain_auto, plain_auto
 assert "\033[48;5;1m\033[38;5;254m ⏸ 2 queued · confirm " in raw_auto, raw_auto
 
