@@ -1,16 +1,18 @@
-# The `codex` on PATH: runs the real binary, injecting private proxy provider
-# definitions via runtime `-c` flags when proxy origin environment variables
-# are configured.
+# The `codex` on PATH: runs the real binary, injecting ONLY the runtime URL
+# overrides (`model_providers.*.base_url`, `experimental_realtime_ws_base_url`)
+# that Codex cannot read from environment variables.
 #
-# Codex does not interpolate environment variables in ~/.codex/config.toml,
-# ignores OPENAI_BASE_URL, and has no env-var setting for `base_url` or
-# `experimental_realtime_ws_base_url`. Injecting them at launch keeps private
-# proxy origins out of this repository, the world-readable Nix store, and
-# ~/.codex/config.toml while still covering interactive shells, headless
-# callers, launchd agents (`~/.config/agents/env.sh` fallback), and `exec`/`app-server`.
+# All static declarative settings (provider definitions, headers, capabilities,
+# `service_tier`, `web_search`, `[features]`, and `[mcp_servers.*]`) live in
+# `/etc/codex/config.toml` (modules/common.nix), leaving `~/.codex/config.toml`
+# for Codex's mutable state and per-user overrides.
 #
-# Setting `CODEX_NO_CUSTOM_PROVIDER=1` disables this wrapper and runs the
-# underlying `codex` binary unchanged.
+# Keeping private proxy origins in env / `~/.config/agents/env.sh` keeps them
+# out of this repository and the world-readable Nix store while covering
+# interactive shells, headless callers, launchd agents, and `exec`/`app-server`.
+#
+# Setting `CODEX_NO_CUSTOM_PROVIDER=1` selects `model_provider="openai"` before
+# user arguments so the default system `custom` provider is bypassed.
 #
 # The script runs under /bin/sh and execs the real binary directly so on macOS
 # no non-platform executable sits in front of `codex` and TCC still charges
@@ -25,16 +27,16 @@ writeTextFile {
   executable = true;
   text = ''
     #!/bin/sh
-    if [ "''${CODEX_NO_CUSTOM_PROVIDER:-}" = 1 ]; then
-      exec "${target}" "$@"
-    fi
-
     if [ $# -gt 0 ]; then
       case "$1" in
         -h|--help|-V|--version|help|completion)
           exec "${target}" "$@"
           ;;
       esac
+    fi
+
+    if [ "''${CODEX_NO_CUSTOM_PROVIDER:-}" = 1 ]; then
+      exec "${target}" -c 'model_provider="openai"' "$@"
     fi
 
     # Scrubbed non-interactive callers (such as launchd services) never run
@@ -88,6 +90,11 @@ writeTextFile {
           return 0
           ;;
       esac
+      case "''${_raw#*://}" in
+        ""|/*)
+          return 0
+          ;;
+      esac
       case "$_raw" in
         *" "*|*"$_tab"*|*"$_nl"*|*"$_cr"*|*"$_bs"*|*"$_dq"*)
           return 0
@@ -96,15 +103,33 @@ writeTextFile {
       printf '%s' "$_raw"
     }
 
+    extract_toml_quoted() {
+      _q="$1"
+      case "$_q" in
+        "$_dq"*)
+          _q="''${_q#?}"
+          case "$_q" in
+            *"$_dq"*)
+              printf '%s' "''${_q%%"$_dq"*}"
+              ;;
+          esac
+          ;;
+        "$_sq"*)
+          _q="''${_q#?}"
+          case "$_q" in
+            *"$_sq"*)
+              printf '%s' "''${_q%%"$_sq"*}"
+              ;;
+          esac
+          ;;
+      esac
+    }
+
     _custom_origin=$(normalize_origin "''${CODEX_CUSTOM_ORIGIN:-}")
     _cpa_origin=$(normalize_origin "''${CLIPROXYAPI_ORIGIN:-}")
 
-    if [ -z "$_custom_origin" ] && [ -z "$_cpa_origin" ]; then
-      exec "${target}" "$@"
-    fi
-
-    _user_provider=""
-    _user_realtime_set=0
+    _cli_provider=""
+    _cli_realtime_set=0
 
     record_cfg_override() {
       _kv="$1"
@@ -124,10 +149,10 @@ writeTextFile {
                   _v="''${_v%?}"
                   ;;
               esac
-              _user_provider="$_v"
+              _cli_provider="$_v"
               ;;
             experimental_realtime_ws_base_url)
-              _user_realtime_set=1
+              _cli_realtime_set=1
               ;;
           esac
           ;;
@@ -162,62 +187,83 @@ writeTextFile {
       esac
     done
 
-    if [ -n "$_custom_origin" ]; then
-      _default_provider="custom"
-    else
-      _default_provider="cliproxyapi"
+    _file_provider=""
+    _file_realtime_set=0
+    _codex_home="''${CODEX_HOME:-}"
+    if [ -z "$_codex_home" ] && [ -n "''${HOME:-}" ]; then
+      _codex_home="$HOME/.codex"
+    fi
+    if [ -n "$_codex_home" ] && [ -r "$_codex_home/config.toml" ] && [ -s "$_codex_home/config.toml" ]; then
+      while IFS= read -r _line || [ -n "$_line" ]; do
+        _line="''${_line%$_cr}"
+        _t=$(trim_ws "$_line")
+        case "$_t" in
+          ""|"#"*)
+            continue
+            ;;
+          "["*)
+            break
+            ;;
+          *=*)
+            _k=$(trim_ws "''${_t%%=*}")
+            _v=$(trim_ws "''${_t#*=}")
+            case "$_k" in
+              model_provider)
+                _pv=$(extract_toml_quoted "$_v")
+                if [ -n "$_pv" ]; then
+                  _file_provider="$_pv"
+                fi
+                ;;
+              experimental_realtime_ws_base_url)
+                _rv=$(extract_toml_quoted "$_v")
+                if [ -n "$_rv" ]; then
+                  _file_realtime_set=1
+                fi
+                ;;
+            esac
+            ;;
+        esac
+      done < "$_codex_home/config.toml"
+    fi
+
+    _user_provider="''${_cli_provider:-$_file_provider}"
+    _user_realtime_set=0
+    if [ "$_cli_realtime_set" -eq 1 ] || [ "$_file_realtime_set" -eq 1 ]; then
+      _user_realtime_set=1
     fi
 
     if [ -n "$_user_provider" ]; then
       _effective_provider="$_user_provider"
+      _fallback_provider=""
+    elif [ -n "$_custom_origin" ]; then
+      _effective_provider="custom"
+      _fallback_provider=""
+    elif [ -n "$_cpa_origin" ]; then
+      _effective_provider="cliproxyapi"
+      _fallback_provider="cliproxyapi"
     else
-      _effective_provider="$_default_provider"
+      _effective_provider="openai"
+      _fallback_provider="openai"
     fi
 
     _orig_n=$#
 
-    if [ "$_effective_provider" = "custom" ] || [ "$_effective_provider" = "cliproxyapi" ]; then
-      if [ -z "$_user_provider" ]; then
-        set -- "$@" -c "model_provider=\"''${_default_provider}\""
-      fi
-      set -- "$@" \
-        -c 'service_tier="fast"' \
-        -c 'web_search="live"' \
-        -c 'features.standalone_web_search=true'
-      if [ "$_user_realtime_set" -eq 0 ]; then
-        if [ "$_effective_provider" = "custom" ] && [ -n "$_custom_origin" ]; then
-          set -- "$@" -c "experimental_realtime_ws_base_url=\"''${_custom_origin}/openai/backend-api/codex/realtime\""
-        elif [ "$_effective_provider" = "cliproxyapi" ] && [ -n "$_cpa_origin" ]; then
-          set -- "$@" -c "experimental_realtime_ws_base_url=\"''${_cpa_origin}/v1/realtime\""
-        fi
+    if [ -n "$_fallback_provider" ]; then
+      set -- "$@" -c "model_provider=\"''${_fallback_provider}\""
+    fi
+    if [ -n "$_custom_origin" ]; then
+      set -- "$@" -c "model_providers.custom.base_url=\"''${_custom_origin}/openai/backend-api/codex\""
+    fi
+    if [ -n "$_cpa_origin" ]; then
+      set -- "$@" -c "model_providers.cliproxyapi.base_url=\"''${_cpa_origin}/v1\""
+    fi
+    if [ "$_user_realtime_set" -eq 0 ]; then
+      if [ "$_effective_provider" = "custom" ] && [ -n "$_custom_origin" ]; then
+        set -- "$@" -c "experimental_realtime_ws_base_url=\"''${_custom_origin}/openai/backend-api/codex/realtime\""
+      elif [ "$_effective_provider" = "cliproxyapi" ] && [ -n "$_cpa_origin" ]; then
+        set -- "$@" -c "experimental_realtime_ws_base_url=\"''${_cpa_origin}/v1/realtime\""
       fi
     fi
-
-    for _p in custom cliproxyapi; do
-      case "$_p" in
-        custom)
-          _p_origin="$_custom_origin"
-          _p_path="/openai/backend-api/codex"
-          _p_env="CODEX_CUSTOM_API_KEY"
-          ;;
-        cliproxyapi)
-          _p_origin="$_cpa_origin"
-          _p_path="/v1"
-          _p_env="CLIPROXYAPI_API_KEY"
-          ;;
-      esac
-      [ -n "$_p_origin" ] || continue
-      set -- "$@" \
-        -c "model_providers.''${_p}.name=\"OpenAI\"" \
-        -c "model_providers.''${_p}.base_url=\"''${_p_origin}''${_p_path}\"" \
-        -c "model_providers.''${_p}.env_key=\"''${_p_env}\"" \
-        -c "model_providers.''${_p}.wire_api=\"responses\"" \
-        -c "model_providers.''${_p}.supports_websockets=true" \
-        -c "model_providers.''${_p}.supports_standalone_web_search=true" \
-        -c "model_providers.''${_p}.http_headers.x-openai-actor-authorization=\"''${_p}\"" \
-        -c "model_providers.''${_p}.capabilities.remote_compaction=\"v2\"" \
-        -c "model_providers.''${_p}.capabilities.external_web_access=true"
-    done
 
     _i=0
     while [ "$_i" -lt "$_orig_n" ]; do

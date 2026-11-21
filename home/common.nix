@@ -256,30 +256,17 @@ let
   };
 
   # The adapter is only an HTTP client to the launchd-owned Camofox singleton.
-  # Its argument names the calling agent, which is how the wrapper finds that
-  # agent's durable session identifier — OMP's per-terminal transcript
-  # breadcrumb, Claude Code's `CLAUDE_CODE_SESSION_ID` — so `/resume` keeps the
-  # same tab namespace. The user stays `omp` for every agent: that is the
-  # shared cookie and profile namespace the URL handler also writes into, and
-  # splitting it per agent would split the logins with it.
-  camofoxMcpServer = client: {
-    type = "stdio";
-    command = lib.getExe pkgs.camofox-mcp-session;
-    args = [ client ];
-    env = {
-      CAMOFOX_BASE_URL = "http://127.0.0.1:${toString camofoxCfg.apiPort}";
-      CAMOFOX_USER_ID = "omp";
+  # Shared stdio MCP definitions live in `lib/mcp.nix` so modules/common.nix
+  # (/etc/codex/config.toml) and Home Manager (OMP, Claude Code, agy) keep one
+  # definition per server.
+  mcpServers = import ../lib/mcp.nix { inherit lib pkgs; };
+  camofoxMcpServer =
+    client:
+    mcpServers.camofox {
+      inherit (camofoxCfg) apiPort;
+      inherit client;
     };
-  };
-
-  # OMP loads pi-codegraph from ~/.omp/plugins so its session extension can
-  # bind omitted projectPath to ctx.cwd and inject workspace status. Claude
-  # Code and Codex run the same package's stdio MCP entry point directly; all
-  # three share ~/.config/pi-codegraph and one daemon under ~/.cache/pi-codegraph/daemon.
-  codegraphMcpServer = {
-    type = "stdio";
-    command = "${pkgs.omp-plugins.plugins."@isac322/pi-codegraph"}/dist/bin/codegraph-mcp.js";
-  };
+  codegraphMcpServer = mcpServers.codegraph;
 
   # OMP reads one user-level MCP registry on every host. Remote services stay
   # here beside plugin-backed stdio servers so a switch produces the complete
@@ -321,10 +308,12 @@ let
     }
     // lib.optionalAttrs camofoxCfg.enable { camofox = camofoxMcpServer "claude"; };
 
-  # Codex runs with `codex-launcher.nix` on PATH so private proxy origins come
-  # from environment variables (or ~/.config/agents/env.sh) as runtime `-c`
-  # flags, never from /nix/store or ~/.codex/config.toml. Activation hooks below
-  # continue invoking the unwrapped `agents.codex` binary directly.
+  # Static Codex settings, provider definitions, features, and MCP servers live
+  # in `/etc/codex/config.toml` (modules/common.nix). `codex-launcher.nix`
+  # injects only runtime proxy origin URLs (`base_url` and
+  # `experimental_realtime_ws_base_url`) from environment variables (or
+  # ~/.config/agents/env.sh). Activation hooks below continue invoking the
+  # unwrapped `agents.codex` binary directly.
   codexLauncher = import ./codex-launcher.nix {
     inherit (pkgs) writeTextFile;
   } (lib.getExe agents.codex);
@@ -353,83 +342,6 @@ let
           fi
         done
         ln -s ${lib.escapeShellArg (lib.getExe codexLauncher)} "$out/bin/codex"
-      '';
-
-  codexMcpAddArgs =
-    server:
-    let
-      env = server.env or { };
-      args = server.args or [ ];
-    in
-    lib.escapeShellArgs (
-      lib.concatMap (name: [
-        "--env"
-        "${name}=${env.${name}}"
-      ]) (builtins.attrNames env)
-      ++ [
-        "--"
-        server.command
-      ]
-      ++ args
-    );
-
-  syncCodexStdioMcp =
-    {
-      name,
-      enable ? true,
-      server,
-    }:
-    let
-      escapedName = lib.escapeShellArg name;
-      command = lib.escapeShellArg server.command;
-      args = lib.escapeShellArg (builtins.toJSON (server.args or [ ]));
-      env = lib.escapeShellArg (builtins.toJSON (server.env or { }));
-    in
-    if enable then
-      ''
-        current=""
-        present=0
-        exact=0
-
-        if current=$("$codex" mcp get ${escapedName} --json 2>/dev/null); then
-          present=1
-          if printf '%s\n' "$current" | "$jq" -e \
-            --arg command ${command} \
-            --argjson args ${args} \
-            --argjson env ${env} \
-            '.enabled == true
-              and .transport.type == "stdio"
-              and .transport.command == $command
-              and (.transport.args // []) == $args
-              and (.transport.env // {}) == $env' > /dev/null; then
-            exact=1
-          fi
-        fi
-
-        if [ "$exact" -eq 1 ]; then
-          :
-        elif [ -n "$DRY_RUN_CMD" ]; then
-          if [ "$present" -eq 1 ]; then
-            echo "codex-mcp: would replace stale ${name} entry." >&2
-          else
-            echo "codex-mcp: would add ${name} entry." >&2
-          fi
-        else
-          if [ "$present" -eq 1 ]; then
-            "$codex" mcp remove ${escapedName}
-          fi
-          "$codex" mcp add ${escapedName} ${codexMcpAddArgs server}
-        fi
-      ''
-    else
-      ''
-        if "$codex" mcp get ${escapedName} --json > /dev/null 2>&1; then
-          if [ -n "$DRY_RUN_CMD" ]; then
-            echo "codex-mcp: would remove ${name} entry." >&2
-          else
-            "$codex" mcp remove ${escapedName}
-          fi
-        fi
       '';
 
   # Claude Code reads one user-level settings file on every host. Keep only the
@@ -566,43 +478,41 @@ in
     fi
   '';
 
-  # Codex owns ~/.codex/config.toml and preserves comments and unrelated
-  # tables when its MCP commands edit one server. Compare each managed stdio
-  # definition before calling those commands: exact state is a no-op, stale
-  # state replaces only that entry, and disabling an optional server removes
-  # only its entry.
-  home.activation.codexMcpRegistry = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    codex=${lib.escapeShellArg (lib.getExe agents.codex)}
-    jq=${lib.escapeShellArg (lib.getExe pkgs.jq)}
-
-    ${syncCodexStdioMcp {
-      name = "codegraph";
-      server = codegraphMcpServer;
-    }}
-
-    ${syncCodexStdioMcp {
-      name = "camofox";
-      enable = camofoxCfg.enable;
-      server = camofoxMcpServer "codex";
-    }}
-  '';
-
-  # Codex 0.158 starts a shared app-server daemon for interactive launches by
-  # installing the running CLI's package (codex-package.json, bin/, and
-  # codex-resources/) under ~/.codex/packages and updating it from there.
-  # The Nix-built CLI is a bare binary without that layout, so the TUI exits
-  # with "this CLI has no complete local package". Nix owns the Codex version,
-  # so keep the daemon off and run the app server in-process instead.
-  home.activation.codexDaemonAutoStart = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  # Codex's static defaults, provider definitions, features, and Nix-packaged
+  # MCP servers live in `/etc/codex/config.toml` (modules/common.nix). Because
+  # ~/.codex/config.toml outranks the system layer, any legacy `codegraph` or
+  # `camofox` table left behind in ~/.codex/config.toml pointing into /nix/store/
+  # would shadow future package updates; remove only those legacy store-path
+  # entries while keeping user-defined MCPs and Codex state intact.
+  home.activation.codexMigrateLegacyUserMcp = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    config="$HOME/.codex/config.toml"
     codex=${lib.escapeShellArg (lib.getExe agents.codex)}
 
-    if ! "$codex" features list 2>/dev/null \
-      | ${pkgs.gawk}/bin/awk '$1 == "daemon_auto_start" && $3 == "false" { found = 1 } END { exit !found }'; then
-      if [ -n "$DRY_RUN_CMD" ]; then
-        echo "codex-daemon-auto-start: would disable daemon_auto_start." >&2
-      else
-        "$codex" features disable daemon_auto_start
-      fi
+    if [ -r "$config" ]; then
+      legacyServers=$(${lib.getExe pkgs.python3} -c '
+import sys, tomllib
+try:
+    with open(sys.argv[1], "rb") as f:
+        data = tomllib.load(f)
+except Exception as exc:
+    print(f"codex-migrate-legacy-mcp: skipping unparseable {sys.argv[1]}: {exc}", file=sys.stderr)
+    sys.exit(0)
+mcp = data.get("mcp_servers")
+if isinstance(mcp, dict):
+    for name in ("codegraph", "camofox"):
+        entry = mcp.get(name)
+        cmd = entry.get("command") if isinstance(entry, dict) else None
+        if isinstance(cmd, str) and cmd.startswith("/nix/store/"):
+            print(name)
+' "$config")
+
+      for name in $legacyServers; do
+        if [ -n "$DRY_RUN_CMD" ]; then
+          echo "codex-migrate-legacy-mcp: would remove legacy /nix/store MCP entry $name from $config." >&2
+        else
+          CODEX_HOME="$HOME/.codex" "$codex" mcp remove "$name"
+        fi
+      done
     fi
   '';
 
@@ -861,11 +771,13 @@ in
     #
     # The environment is the one place every agent here already looks. Claude
     # Code takes `ANTHROPIC_BASE_URL` and its token from it directly; `codex`
-    # reads `CODEX_CUSTOM_ORIGIN` and `CLIPROXYAPI_ORIGIN` through
-    # `home/codex-launcher.nix` (which also falls back to sourcing this file in
-    # scrubbed launchd environments) and passes the endpoint settings with `-c`
-    # while resolving keys via `env_key`. Its absence is the normal state on a
-    # host that talks to the vendors directly.
+    # keeps static defaults and provider definitions in `/etc/codex/config.toml`,
+    # resolves keys via `env_key`, and reads `CODEX_CUSTOM_ORIGIN` and
+    # `CLIPROXYAPI_ORIGIN` through `home/codex-launcher.nix` (which also falls
+    # back to sourcing this file in scrubbed launchd environments) to pass only
+    # the proxy `base_url` and `experimental_realtime_ws_base_url` with `-c`.
+    # Its absence is the normal state on a host that talks to the vendors
+    # directly.
     #
     # `.zshenv` rather than `.zshrc`: an agent started from a script or an
     # editor gets no interactive shell, and Home Manager appends `envExtra`

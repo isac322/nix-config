@@ -840,20 +840,23 @@ open 'https://example.com'
 지운다. Orca의 Electron `chrome_crashpad_handler`는 Chrome 잔재가 아니므로
 이름만 보고 종료하거나 삭제하지 않는다.
 
-OMP, Claude Code, Codex의 `camofox` MCP 등록은 모두 Home Manager switch가 선언적으로
-관리한다. OMP는 관리되는 registry 파일을 읽고, Claude Code는 `~/.claude.json`의
-관리되는 server set을 쓰며, Codex는 고정된 Codex CLI로 `camofox` 항목만 확인하고
-필요할 때 교체한다. Codex의 다른 MCP 항목과 `~/.codex/config.toml`의 주석·다른
-table은 그대로 둔다. `local.camofox.enable = false`이면 각 registry에서 `camofox`가
-제거된다. 수동 `claude mcp add`나 `codex mcp add`는 필요 없다.
+OMP, Claude Code, Codex의 `camofox`·`codegraph` MCP 등록은 모두 Nix switch가
+선언적으로 관리한다. OMP는 관리되는 registry 파일을 읽고, Claude Code는
+`~/.claude.json`의 관리되는 server set을 쓰며, Codex는 시스템 설정 레이어인
+`/etc/codex/config.toml`(`modules/common.nix`)에 MCP와 정적 provider 설정을 함께
+선언한다. `~/.codex/config.toml`에는 Codex 상태와 사용자 오버라이드만 남기며,
+전환 시 기존 `~/.codex/config.toml`에 `/nix/store/` 경로로 등록돼 있던 구
+`codegraph`/`camofox` 항목만 정리해 `/etc/codex/config.toml`이 가려지지 않게
+한다. `local.camofox.enable = false`이면 각 registry에서 `camofox`가 제거된다.
+수동 `claude mcp add`나 `codex mcp add`는 필요 없다.
 
 Codex 0.158부터 대화형 `codex`는 공유 app-server daemon을 자동으로 띄우려고 CLI
 package(`codex-package.json`, `bin/`, `codex-resources/`)를 `~/.codex/packages`로
-설치한다. Nix로 빌드한 Codex는 이 package 구조가 없어 "this CLI has no complete
-local package" 오류로 종료한다. Home Manager switch가 `codex features disable
-daemon_auto_start`로 `~/.codex/config.toml`의 `[features]`만 고쳐 daemon 없이
-in-process로 실행하게 한다. Codex 버전은 Nix가 관리하므로 daemon의 자체 설치·업데이트는
-쓰지 않는다.
+설치한다. `/etc/codex/config.toml`의 `[features].daemon_auto_start = false`로
+daemon 없이 in-process로 실행하게 한다. Codex 버전은 Nix가 관리하므로 daemon의 자체
+설치·업데이트는 쓰지 않으며, `home/codex-launcher.nix`는 환경변수로 전달할 수 없는
+프록시 `base_url`과 `experimental_realtime_ws_base_url`만 런타임 `-c` 플래그로
+주입한다.
 
 Claude Code는 stdio MCP 자식에게 `CLAUDE_CODE_SESSION_ID`를 전달하며 resume 때도 같은
 값을 유지하므로 정확히 대화별 namespace가 된다. Codex가 thread ID를 MCP 자식 환경에
