@@ -82,6 +82,7 @@ in
     # `auto_updates true` in the cask, so Spotify also replaces itself between
     # switches; greedyCasks keeps the switch upgrade authoritative anyway.
     "spotify"
+    "t3-code"
     "telegram" # the native macOS client, not telegram-desktop
     "vorta"
     "zoom"

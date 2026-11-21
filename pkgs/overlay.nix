@@ -70,6 +70,9 @@ let
       supabase-cli = final.callPackage ./supabase-cli/package.nix {
         manifestFile = releaseManifests.supabase;
       };
+      t3code-cli = final.callPackage ./t3code-cli/package.nix {
+        manifestFile = releaseManifests.t3code;
+      };
       # nixpkgs trails Argo CD by a minor release; the upstream CLI binary
       # follows the latest stable tag.
       argocd = final.callPackage ./argocd/package.nix {

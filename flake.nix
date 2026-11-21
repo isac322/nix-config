@@ -303,6 +303,7 @@
             argocd
             omp-bin
             omo
+            t3code-cli
             tempo-cli
             cf
             ;
@@ -341,6 +342,7 @@
               "camofox-browser"
               "deskpad"
               "displayplacer"
+              "t3code-cli"
             ]
           );
         in

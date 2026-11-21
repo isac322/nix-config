@@ -260,6 +260,10 @@ in
   # already decided (0028).
   local.orca.enable = true;
 
+  # The T3 Code headless server (`t3 serve`), paired over WireGuard / LAN and
+  # kept alive across reboots in home/roles/darwin-server.nix.
+  local.t3code.enable = true;
+
   # The headful browser API and its dedicated display belong to the logged-in
   # Aqua session.
   local.camofox = {

@@ -327,6 +327,28 @@
       "prerelease": false,
       "tag_name": "v3.2.0"
     },
+    "t3code": {
+      "assets": [
+        {
+          "browser_download_url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.11/t3-0.1.11-darwin-arm64.tar.gz",
+          "digest": "sha256:4bc22e16a2e48d868ad8c4b9d6c8e031be1c566ce31c28267955c2986a70e95f",
+          "name": "t3-0.1.11-darwin-arm64.tar.gz"
+        },
+        {
+          "browser_download_url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.11/t3-0.1.11-linux-arm64.tar.gz",
+          "digest": "sha256:7d90a5af032fe0988a616403e0f51a6cb68eff7ed7a84bc40999cc3997dffd71",
+          "name": "t3-0.1.11-linux-arm64.tar.gz"
+        },
+        {
+          "browser_download_url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.11/t3-0.1.11-linux-x64.tar.gz",
+          "digest": "sha256:2b691c07f5bcb5adea4a863d5324aae7db21bd6d82280cec7787836dcaa013e1",
+          "name": "t3-0.1.11-linux-x64.tar.gz"
+        }
+      ],
+      "draft": false,
+      "prerelease": false,
+      "tag_name": "v0.1.11"
+    },
     "vercelDarwinArm64": {
       "dist": {
         "integrity": "sha512-ZRDge86Qjol98nu8ZeiAyVrxRoJmfe3WVh7dPbgY9WDtNUkzvanOFrKIkem40v/KgFu3/IQl+/a7Q5nmvUQ/uA==",

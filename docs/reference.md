@@ -14,6 +14,7 @@ modules/           시스템 레벨
   darwin.nix         모든 macOS
   nixos.nix          모든 NixOS
   orca.nix           `local.*` 옵션 선언. 광고 주소는 터널에서 읽는다
+  t3code.nix         `local.t3code.*` 옵션 선언. 서버 맥의 headless `t3 serve` 설정
   camofox.nix        Darwin Camofox LaunchAgent와 서버 맥의 DeskPad 가상 디스플레이
   camofox-linux.nix  NixOS headless Camofox systemd 서비스
   wireguard.nix      서버 맥의 터널. 앱이 아니라 wg-quick 을 도는 루트 데몬
@@ -78,6 +79,7 @@ Dock, 트랙패드, 키 반복, 데스크탑 비우기, Determinate·캐시, Hom
 | [전원 연결 중엔 뚜껑을 닫아도 안 잠](decisions/0006-clamshell-only-while-on-power.md) · 전원별 유휴 타이머 | ✖ | ✅ |
 | Rust · 언어 서버 | ✖ | ✅ |
 | [Orca 런타임을 계속 띄우는 LaunchAgent](decisions/0028-orca-runtime-on-the-server-mac.md) · 자동 로그인 | ✖ | ✅ |
+| T3 Code (앱 vs `t3 serve` 상주 서버) | Homebrew `t3-code` cask | `t3code-cli` + `t3code-serve` LaunchAgent |
 | [GPG pinentry](decisions/0030-gpg-passphrase-without-a-console.md) | pinentry-mac | 키체인 + tty |
 | [WireGuard — 앱(랩탑) 대 루트 데몬(서버)](decisions/0029-wireguard-as-a-daemon-on-the-server-mac.md) | 앱 | 데몬 |
 | Camofox API · MCP bridge | ✅ (실제 화면) | ✅ (DeskPad 화면) |
@@ -300,6 +302,11 @@ macOS의 Developer ID 서명(`Herdr Core.app` 포함)도 그대로 유지한다.
   로그인된 Aqua 세션에서 LaunchAgent(`herdr-core`)로 상시 실행하고, NixOS 서버(`home/linux.nix`,
   `modules/nixos.nix`의 `linger = true`)는 systemd 사용자 서비스(`herdr-core`)로 띄운다.
   switch 시에는 실행 중인 코어를 현재 세대 바이너리로 무중단 재시작(`hc server restart`)한다.
+- **T3 Code** — 랩탑(`modules/roles/darwin-laptop.nix`)은 Homebrew `t3-code`
+  cask(`T3 Code (Beta).app`)를 설치한다. 서버 역할의 MBP(`home/roles/darwin-server.nix`)는
+  공식 CLI 릴리스(`pkgs.t3code-cli`)를 TCC 권한 보존용 고정 경로(`~/.local/libexec/t3/t3`)에
+  복사한 뒤 `t3code-serve` LaunchAgent로 `t3 serve --port 3773 --lan --base-dir ~/.t3`를
+  상시 실행한다(`t3codeServeRefresh`가 switch 시 구버전이나 SSH 임시 서버를 전환한다).
 
 `jevify-writing`은 coding agent가 목적지별 초안의 route, claim provenance, revision,
 fan-out, BearDrive semantic boundary를 외부 쓰기 없이 검사하는 로컬 validator다.
@@ -686,6 +693,7 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `slack-cli` | GitHub release binary | nixpkgs의 동명 attribute를 갈아끼운다 |
 | `ntn` | ntn.dev release archive | Notion CLI; 상류 설치 스크립트와 같은 target별 archive·`.sha256` |
 | `supabase-cli` | GitHub release binary | nixpkgs보다 최신인 상류 릴리스를 따라간다. 바이너리 이름은 `supabase` |
+| `t3code-cli` | GitHub release binary | `pingdotgg/t3code` 최신 안정판의 `t3` CLI 및 웹 클라이언트 번들. nixpkgs Electron 앱 `t3code`와 분리 |
 | `argocd` | GitHub release binary | nixpkgs보다 최신인 Argo CD 릴리스의 공식 CLI 바이너리 |
 | `bun` | GitHub release binary override | 잠긴 nixpkgs보다 최신인 동안만 override |
 | `cf` | GitHub release source override | `cloudflare/cf`의 최신 릴리스 태그와 `pnpmDeps` 해시를 추적 |
@@ -727,7 +735,7 @@ CLI 패키징 결정과 각 패키지의 함정은
 [0031](decisions/0031-deskpad-virtual-display-on-clamshell-macos.md)에 있다.
 모든 호스트의 custom package output과 로컬에서 빌드하는
 `camofox-url-handler`는 [Cachix로 올린다](operations.md#캐시-푸시).
-`camoufox`, `camofox-browser`, `deskpad`, `displayplacer`는 고정한 상류
+`camoufox`, `camofox-browser`, `deskpad`, `displayplacer`, `t3code-cli`는 고정한 상류
 artifact를 다시 포장하므로 제외한다.
 
 ## 이 레포를 패키지 저장소로 쓰기

@@ -548,6 +548,159 @@ let
     exit 1
   '';
 
+  t3Cfg = osConfig.local.t3code;
+  t3StableDir = "${config.home.homeDirectory}/.local/libexec/t3";
+  t3StableExe = "${t3StableDir}/t3";
+  t3BaseDir = if t3Cfg.baseDir != null then t3Cfg.baseDir else "${config.home.homeDirectory}/.t3";
+
+  # Keep `t3` at a fixed path outside /nix/store so macOS TCC permissions granted
+  # to the Developer ID signed binary (T3 Tools, Inc.) survive Nix upgrades,
+  # while `/bin/sh` preserves responsible-process attribution.
+  t3StableWrapper = pkgs.runCommand "t3code-cli-launcher" { } ''
+    mkdir -p "$out/bin"
+    cat > "$out/bin/t3" <<'EOF'
+    #!/bin/sh
+    exec ${lib.escapeShellArg t3StableExe} "$@"
+    EOF
+    sed -i 's/^    //' "$out/bin/t3"
+    chmod 0755 "$out/bin/t3"
+  '';
+
+  t3codeServe = tcc.writeLaunchdScript "t3code-serve" ''
+    set -u
+
+    # A launchd agent inherits almost no PATH, and `t3 serve` shells out to
+    # coding agents and developer tools (claude, codex, omp, agy, git) from the
+    # server's own environment rather than any client's.
+    export PATH=/etc/profiles/per-user/${config.home.username}/bin:/run/current-system/sw/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
+    export SSH_AUTH_SOCK=${lib.escapeShellArg "${config.programs.gpg.homedir}/S.gpg-agent.ssh"}
+    unset SSH_CONNECTION SSH_CLIENT SSH_TTY
+
+    t3=${lib.escapeShellArg t3StableExe}
+    if [ ! -x "$t3" ]; then
+      echo "t3code-serve: $t3 is missing — retrying later." >&2
+      exit 1
+    fi
+
+    exec "$t3" serve --port ${toString t3Cfg.port} ${
+      if t3Cfg.lan then "--lan" else "--host 127.0.0.1"
+    } --base-dir ${lib.escapeShellArg t3BaseDir}
+  '';
+
+  t3codeServeRefresh = pkgs.writeShellScript "t3code-serve-refresh" ''
+    set -u
+    label=gui/$(/usr/bin/id -u)/${config.launchd.agents.t3code-serve.config.Label}
+    jq=${lib.getExe pkgs.jq}
+    curl=${lib.getExe pkgs.curl}
+    installed=${lib.escapeShellArg pkgs.t3code-cli.version}
+    expectedPort=${lib.escapeShellArg (toString t3Cfg.port)}
+    expectedLan=${lib.escapeShellArg (if t3Cfg.lan then "true" else "false")}
+    runtimeFile=${lib.escapeShellArg "${t3BaseDir}/userdata/server-runtime.json"}
+    stableExe=${lib.escapeShellArg t3StableExe}
+    sshRuntimePrefix=${lib.escapeShellArg "${t3BaseDir}/runtime/versions/"}
+
+    if ! /bin/launchctl print "$label" >/dev/null 2>&1; then
+      # Not loaded: it will start from the installed binary when loaded.
+      exit 0
+    fi
+
+    probe_ready() {
+      "$curl" -fsS --max-time 3 "http://127.0.0.1:${toString t3Cfg.port}/.well-known/t3/environment" 2>/dev/null \
+        | "$jq" -r '.serverVersion // empty' 2>/dev/null || true
+    }
+
+    runtime_pid=""
+    runtime_port=""
+    runtime_lan=""
+    runtime_comm=""
+    runtime_ppid=""
+    read_runtime() {
+      runtime_pid=""
+      runtime_port=""
+      runtime_lan=""
+      runtime_comm=""
+      runtime_ppid=""
+      [ -r "$runtimeFile" ] || return 0
+      runtime_pid=$("$jq" -r '.pid // empty' "$runtimeFile" 2>/dev/null || true)
+      runtime_port=$("$jq" -r '.port // empty' "$runtimeFile" 2>/dev/null || true)
+      runtime_lan=$("$jq" -r 'if .privateNetworkOnly == true then "true" else "false" end' "$runtimeFile" 2>/dev/null || true)
+      if [ -n "$runtime_pid" ] && /bin/kill -0 "$runtime_pid" 2>/dev/null; then
+        runtime_comm=$(/bin/ps -p "$runtime_pid" -o comm= 2>/dev/null || true)
+        runtime_ppid=$(/bin/ps -p "$runtime_pid" -o ppid= 2>/dev/null | /usr/bin/tr -d ' ' || true)
+      else
+        runtime_pid=""
+      fi
+    }
+
+    read_runtime
+    running=$(probe_ready)
+
+    if [ -n "$runtime_pid" ] && [ "$runtime_comm" = "$stableExe" ] \
+      && [ "$runtime_port" = "$expectedPort" ] && [ "$runtime_lan" = "$expectedLan" ] \
+      && [ "$running" = "$installed" ]; then
+      exit 0
+    fi
+
+    if [ -n "$runtime_pid" ]; then
+      case "$runtime_comm" in
+        "$sshRuntimePrefix"*)
+          if [ "$runtime_ppid" = "1" ]; then
+            echo "t3code-serve-refresh: stopping SSH-launched t3 server (pid $runtime_pid) before starting launchd service." >&2
+            /bin/kill -TERM "$runtime_pid" 2>/dev/null || true
+            stopped=0
+            waited_stop=0
+            while [ "$waited_stop" -lt 15 ]; do
+              if ! /bin/kill -0 "$runtime_pid" 2>/dev/null; then
+                stopped=1
+                break
+              fi
+              /bin/sleep 1
+              waited_stop=$((waited_stop + 1))
+            done
+            if [ "$stopped" -ne 1 ]; then
+              echo "t3code-serve-refresh: SSH-launched t3 server (pid $runtime_pid) did not exit within ''${waited_stop}s." >&2
+              exit 1
+            fi
+          else
+            echo "t3code-serve-refresh: another t3 server (pid $runtime_pid, $runtime_comm) owns ${t3BaseDir}; leaving it alone." >&2
+            exit 1
+          fi
+          ;;
+        "$stableExe")
+          ;;
+        *)
+          case "$runtime_comm" in
+            */t3 | */t3-*)
+              echo "t3code-serve-refresh: another t3 server (pid $runtime_pid, $runtime_comm) owns ${t3BaseDir}; leaving it alone." >&2
+              exit 1
+              ;;
+          esac
+          ;;
+      esac
+    fi
+
+    echo "t3code-serve-refresh: moving T3 Code server to $installed (port $expectedPort, lan=$expectedLan)." >&2
+    /bin/launchctl kickstart -k "$label" || exit 1
+
+    waited=0
+    while [ "$waited" -lt 60 ]; do
+      /bin/sleep 2
+      waited=$((waited + 2))
+      read_runtime
+      running=$(probe_ready)
+      if [ "$running" = "$installed" ] && [ -n "$runtime_pid" ] \
+        && [ "$runtime_comm" = "$stableExe" ] \
+        && [ "$runtime_port" = "$expectedPort" ] \
+        && [ "$runtime_lan" = "$expectedLan" ]; then
+        echo "t3code-serve-refresh: now serving $installed on port $expectedPort (lan=$expectedLan)." >&2
+        exit 0
+      fi
+    done
+
+    echo "t3code-serve-refresh: not serving $installed after ''${waited}s (last seen: ''${running:-unreachable}); see ~/Library/Logs/t3code-serve.log." >&2
+    exit 1
+  '';
+
 in
 {
   # The server Mac runs the single evolve worker. Storage is the user's
@@ -694,6 +847,61 @@ in
         run ${herdrCoreStart} || warnEcho "herdr-core server was not moved to the installed version; see ~/Library/Logs/herdr-core-start.log."
       '';
 
+  home.activation.t3codeStableBinary = lib.mkIf t3Cfg.enable (
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      src_dir="${pkgs.t3code-cli}/libexec/t3"
+      dst_dir=${lib.escapeShellArg t3StableDir}
+      dst=${lib.escapeShellArg t3StableExe}
+
+      if ! /usr/bin/cmp -s "$src_dir/t3" "$dst"; then
+        run /bin/mkdir -p "$dst_dir"
+        run /bin/cp "$src_dir/t3" "$dst.new"
+        run /bin/chmod 0755 "$dst.new"
+        run /bin/mv -f "$dst.new" "$dst"
+      fi
+
+      for entry in client node_modules resource-monitor; do
+        target="$src_dir/$entry"
+        link="$dst_dir/$entry"
+        if [ -e "$link" ] && [ ! -L "$link" ]; then
+          run /bin/rm -rf "$link"
+        fi
+        current=$(/usr/bin/readlink "$link" 2>/dev/null || true)
+        if [ "$current" != "$target" ]; then
+          run /bin/mkdir -p "$dst_dir"
+          run /bin/ln -sfn "$target" "$link"
+        fi
+      done
+    ''
+  );
+
+  launchd.agents.t3code-serve = lib.mkIf t3Cfg.enable {
+    enable = true;
+    config = {
+      ProgramArguments = [ "${t3codeServe}" ];
+      WorkingDirectory = config.home.homeDirectory;
+      RunAtLoad = true;
+      KeepAlive = true;
+      ThrottleInterval = 10;
+      ExitTimeOut = 90;
+      ProcessType = "Interactive";
+      LegacyTimers = true;
+      StandardOutPath = "${config.home.homeDirectory}/Library/Logs/t3code-serve.log";
+      StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/t3code-serve.log";
+    };
+  };
+
+  home.activation.t3codeServeRefresh = lib.mkIf t3Cfg.enable (
+    lib.hm.dag.entryAfter
+      [
+        "setupLaunchAgents"
+        "t3codeStableBinary"
+      ]
+      ''
+        run ${t3codeServeRefresh} || warnEcho "T3 Code server was not moved to the installed version; see ~/Library/Logs/t3code-serve.log."
+      ''
+  );
+
   # A pinentry that can both remember and ask.
   #
   # pinentry-mac is right on a laptop and wrong here. It draws its dialog on the
@@ -781,5 +989,6 @@ in
     cargoBuildWrapper
     goBuildWrapper
     pkgs.terraform-ls
-  ];
+  ]
+  ++ lib.optionals t3Cfg.enable [ t3StableWrapper ];
 }

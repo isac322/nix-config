@@ -70,6 +70,7 @@ in
     # Options and conditional services. Every Mac knows the shape of these
     # settings; only the server role enables either runtime.
     ./orca.nix
+    ./t3code.nix
     ./camofox.nix
 
     ./mas-apps.nix
