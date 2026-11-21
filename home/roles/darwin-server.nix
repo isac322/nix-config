@@ -597,7 +597,6 @@ let
     expectedLan=${lib.escapeShellArg (if t3Cfg.lan then "true" else "false")}
     runtimeFile=${lib.escapeShellArg "${t3BaseDir}/userdata/server-runtime.json"}
     stableExe=${lib.escapeShellArg t3StableExe}
-    sshRuntimePrefix=${lib.escapeShellArg "${t3BaseDir}/runtime/versions/"}
 
     if ! /bin/launchctl print "$label" >/dev/null 2>&1; then
       # Not loaded: it will start from the installed binary when loaded.
@@ -613,20 +612,17 @@ let
     runtime_port=""
     runtime_lan=""
     runtime_comm=""
-    runtime_ppid=""
     read_runtime() {
       runtime_pid=""
       runtime_port=""
       runtime_lan=""
       runtime_comm=""
-      runtime_ppid=""
       [ -r "$runtimeFile" ] || return 0
       runtime_pid=$("$jq" -r '.pid // empty' "$runtimeFile" 2>/dev/null || true)
       runtime_port=$("$jq" -r '.port // empty' "$runtimeFile" 2>/dev/null || true)
       runtime_lan=$("$jq" -r 'if .privateNetworkOnly == true then "true" else "false" end' "$runtimeFile" 2>/dev/null || true)
       if [ -n "$runtime_pid" ] && /bin/kill -0 "$runtime_pid" 2>/dev/null; then
         runtime_comm=$(/bin/ps -p "$runtime_pid" -o comm= 2>/dev/null || true)
-        runtime_ppid=$(/bin/ps -p "$runtime_pid" -o ppid= 2>/dev/null | /usr/bin/tr -d ' ' || true)
       else
         runtime_pid=""
       fi
@@ -641,40 +637,11 @@ let
       exit 0
     fi
 
-    if [ -n "$runtime_pid" ]; then
+    if [ -n "$runtime_pid" ] && [ "$runtime_comm" != "$stableExe" ]; then
       case "$runtime_comm" in
-        "$sshRuntimePrefix"*)
-          if [ "$runtime_ppid" = "1" ]; then
-            echo "t3code-serve-refresh: stopping SSH-launched t3 server (pid $runtime_pid) before starting launchd service." >&2
-            /bin/kill -TERM "$runtime_pid" 2>/dev/null || true
-            stopped=0
-            waited_stop=0
-            while [ "$waited_stop" -lt 15 ]; do
-              if ! /bin/kill -0 "$runtime_pid" 2>/dev/null; then
-                stopped=1
-                break
-              fi
-              /bin/sleep 1
-              waited_stop=$((waited_stop + 1))
-            done
-            if [ "$stopped" -ne 1 ]; then
-              echo "t3code-serve-refresh: SSH-launched t3 server (pid $runtime_pid) did not exit within ''${waited_stop}s." >&2
-              exit 1
-            fi
-          else
-            echo "t3code-serve-refresh: another t3 server (pid $runtime_pid, $runtime_comm) owns ${t3BaseDir}; leaving it alone." >&2
-            exit 1
-          fi
-          ;;
-        "$stableExe")
-          ;;
-        *)
-          case "$runtime_comm" in
-            */t3 | */t3-*)
-              echo "t3code-serve-refresh: another t3 server (pid $runtime_pid, $runtime_comm) owns ${t3BaseDir}; leaving it alone." >&2
-              exit 1
-              ;;
-          esac
+        */t3 | */t3-*)
+          echo "t3code-serve-refresh: another t3 server (pid $runtime_pid, $runtime_comm) owns ${t3BaseDir}; leaving it alone." >&2
+          exit 1
           ;;
       esac
     fi
