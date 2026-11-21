@@ -321,6 +321,40 @@ let
     }
     // lib.optionalAttrs camofoxCfg.enable { camofox = camofoxMcpServer "claude"; };
 
+  # Codex runs with `codex-launcher.nix` on PATH so private proxy origins come
+  # from environment variables (or ~/.config/agents/env.sh) as runtime `-c`
+  # flags, never from /nix/store or ~/.codex/config.toml. Activation hooks below
+  # continue invoking the unwrapped `agents.codex` binary directly.
+  codexLauncher = import ./codex-launcher.nix {
+    inherit (pkgs) writeTextFile;
+  } (lib.getExe agents.codex);
+
+  # Expose the wrapped `codex` alongside all sibling binaries (`logs_client`,
+  # `codex-code-mode-host`), `libexec`, and shell completions from
+  # `agents.codex`, avoiding `symlinkJoin`'s single-input directory symlink pitfall.
+  codexPackage =
+    pkgs.runCommand "codex-wrapped-${agents.codex.version or "0"}"
+      {
+        meta.mainProgram = "codex";
+      }
+      ''
+        shopt -s nullglob
+        mkdir -p "$out/bin"
+        for entry in ${agents.codex}/*; do
+          name=$(basename "$entry")
+          if [ "$name" != "bin" ]; then
+            ln -s "$entry" "$out/$name"
+          fi
+        done
+        for bin in ${agents.codex}/bin/*; do
+          name=$(basename "$bin")
+          if [ "$name" != "codex" ]; then
+            ln -s "$bin" "$out/bin/$name"
+          fi
+        done
+        ln -s ${lib.escapeShellArg (lib.getExe codexLauncher)} "$out/bin/codex"
+      '';
+
   codexMcpAddArgs =
     server:
     let
@@ -660,9 +694,10 @@ in
 
     # llm-agents tracks these upstreams daily and supplies matching cached
     # outputs for every platform this configuration manages.
-    # `antigravity-cli` is installed via `programs.antigravity-cli.package` above.
+    # `antigravity-cli` is installed via `programs.antigravity-cli.package` above;
+    # `codexPackage` wraps `agents.codex` with runtime proxy-origin injection.
     agents.claude-code
-    agents.codex
+    codexPackage
 
     # Official OMP and herdr-core standalone binaries. `nix run .#update-packages`
     # refreshes their versions, platform assets, and sha256 digests in one
@@ -825,10 +860,12 @@ in
     # with.
     #
     # The environment is the one place every agent here already looks. Claude
-    # Code takes `ANTHROPIC_BASE_URL` and its token from it directly; Codex
-    # keeps the endpoint in its own unmanaged config.toml and resolves only the
-    # key through the variable that provider's `env_key` names. Its absence is
-    # the normal state on a host that talks to the vendors directly.
+    # Code takes `ANTHROPIC_BASE_URL` and its token from it directly; `codex`
+    # reads `CODEX_CUSTOM_ORIGIN` and `CLIPROXYAPI_ORIGIN` through
+    # `home/codex-launcher.nix` (which also falls back to sourcing this file in
+    # scrubbed launchd environments) and passes the endpoint settings with `-c`
+    # while resolving keys via `env_key`. Its absence is the normal state on a
+    # host that talks to the vendors directly.
     #
     # `.zshenv` rather than `.zshrc`: an agent started from a script or an
     # editor gets no interactive shell, and Home Manager appends `envExtra`

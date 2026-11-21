@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1795258746,
-        "narHash": "sha256-8dDLnLSzPqIXzCmma6Y0coYJTVmcrTiOwPn2uc2VlDM=",
+        "lastModified": 1795265544,
+        "narHash": "sha256-lvqsxkbGibnEyT2TgYkr7lZIwyhxcA57oUU0L1InAKQ=",
         "ref": "refs/heads/main",
-        "rev": "a6512745be23a1d13d2bec3901dd31f63e2ae0a9",
+        "rev": "6d445dfd0d5ab69e606652448242ebe2066d9d4a",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -288,10 +288,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1794963576,
-        "narHash": "sha256-+CPrP74GDJ63f7bgEFC9Av4hbxc7K9WUNv1ZVRifRe8=",
+        "lastModified": 1795268568,
+        "narHash": "sha256-1RJm4DEu7YHJv94sjSY7sjqT+kHx/AUwmtUN4dtFBUo=",
         "ref": "master",
-        "rev": "2b13c9cb3aa20653e6f8ee0b7f8331a53ea9b0a9",
+        "rev": "6857c7f7c338ad181729c52071386b0d3afa24bc",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -527,10 +527,10 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1795187554,
-        "narHash": "sha256-5q5/viwCcXSA4S2cSaKdjdYrHhk64qFbjLhCMlJnyeM=",
+        "lastModified": 1795217999,
+        "narHash": "sha256-Z5mAFcY8XTAaWe+RwTchz4Fx1gwaeQ2WD8A8bKX7njY=",
         "ref": "nixpkgs-unstable",
-        "rev": "9996594bd38077de6a018ec17453ba3d99182787",
+        "rev": "680275f0bb6afce84fbac3e75fc47c5f2272400b",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
