@@ -560,6 +560,9 @@ let
     mkdir -p "$out/bin"
     cat > "$out/bin/t3" <<'EOF'
     #!/bin/sh
+    if [ -z "''${T3CODE_HOME:-}" ]; then
+      export T3CODE_HOME=${lib.escapeShellArg t3BaseDir}
+    fi
     exec ${lib.escapeShellArg t3StableExe} "$@"
     EOF
     sed -i 's/^    //' "$out/bin/t3"
@@ -582,9 +585,26 @@ let
       exit 1
     fi
 
+    base_dir=${lib.escapeShellArg t3BaseDir}
+    base_parent=$(/usr/bin/dirname "$base_dir")
+    base_dir_ready() {
+      [ -d "$base_dir" ] && [ -w "$base_dir" ] && return 0
+      [ ! -e "$base_dir" ] && [ -d "$base_parent" ] && [ -w "$base_parent" ] && return 0
+      return 1
+    }
+    waited=0
+    while [ "$waited" -lt 60 ] && ! base_dir_ready; do
+      /bin/sleep 2
+      waited=$((waited + 2))
+    done
+    if ! base_dir_ready; then
+      echo "t3code-serve: $base_dir is unavailable or not writable after ''${waited}s — retrying later." >&2
+      exit 1
+    fi
+
     exec "$t3" serve --port ${toString t3Cfg.port} ${
       if t3Cfg.lan then "--lan" else "--host 127.0.0.1"
-    } --base-dir ${lib.escapeShellArg t3BaseDir}
+    } --base-dir "$base_dir"
   '';
 
   t3codeServeRefresh = pkgs.writeShellScript "t3code-serve-refresh" ''

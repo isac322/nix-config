@@ -305,8 +305,10 @@ macOS의 Developer ID 서명(`Herdr Core.app` 포함)도 그대로 유지한다.
 - **T3 Code** — 랩탑(`modules/roles/darwin-laptop.nix`)은 Homebrew `t3-code`
   cask(`T3 Code (Beta).app`)를 설치한다. 서버 역할의 MBP(`home/roles/darwin-server.nix`)는
   공식 CLI 릴리스(`pkgs.t3code-cli`)를 TCC 권한 보존용 고정 경로(`~/.local/libexec/t3/t3`)에
-  복사한 뒤 `t3code-serve` LaunchAgent로 `t3 serve --port 3773 --lan --base-dir ~/.t3`를
-  상시 실행한다(`t3codeServeRefresh`가 switch 시 버전·설정 변경에 따라 서버를 재시작한다).
+  복사한 뒤 `t3code-serve` LaunchAgent로 `t3 serve --port 3773 --lan --base-dir <local.t3code.baseDir>`를
+  상시 실행한다(`hosts/bhyoo-macbook-pro/default.nix`는 외장 SSD `/data/data/t3code`를 지정하고,
+  `t3` CLI 래퍼는 `T3CODE_HOME` 미설정 시 같은 경로를 기본값으로 쓰며, `t3codeServeRefresh`가
+  switch 시 버전·설정 변경에 따라 서버를 재시작한다).
 
 `jevify-writing`은 coding agent가 목적지별 초안의 route, claim provenance, revision,
 fan-out, BearDrive semantic boundary를 외부 쓰기 없이 검사하는 로컬 validator다.

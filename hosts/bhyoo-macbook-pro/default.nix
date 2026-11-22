@@ -12,4 +12,9 @@
   # subset of Ente Auth entries lives in its login keychain (`totp import`),
   # and `totp code NAME` turns one into the current code.
   environment.systemPackages = [ pkgs.keychain-totp ];
+
+  # Keep T3 Code's state, SQLite DB, provider profiles, caches, scratch dirs,
+  # and worktrees on the external APFS SSD mounted at /data so they stay off
+  # the internal drive and share one APFS volume with fastWorktreeCheckout.
+  local.t3code.baseDir = "/data/data/t3code";
 }
