@@ -615,7 +615,6 @@
         "pi-codegraph-source": "pi-codegraph-source",
         "pi-google-url-context-source": "pi-google-url-context-source",
         "rust-overlay-source": "rust-overlay-source",
-        "skillclaw": "skillclaw",
         "zsh-auto-notify-source": "zsh-auto-notify-source"
       }
     },
@@ -635,23 +634,6 @@
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
-      }
-    },
-    "skillclaw": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1792554928,
-        "narHash": "sha256-5UtM8HM0/9z4Mm7+TBxKa5vXVw6MrU33DDOB9SoUa/0=",
-        "ref": "refs/heads/main",
-        "rev": "334ddf82856826b7a259470c6670fb0ef5ce2dc4",
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/AMAP-ML/SkillClaw.git"
-      },
-      "original": {
-        "shallow": true,
-        "type": "git",
-        "url": "https://github.com/AMAP-ML/SkillClaw.git"
       }
     },
     "systems": {

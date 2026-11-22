@@ -391,7 +391,6 @@ in
     ./agy.nix
     ./cloud-sql-proxy.nix
     ./github-nix-access-token.nix
-    ./skillclaw.nix
   ];
 
   # agy's main agent sees the same services as Claude Code. Camofox belongs to
@@ -406,11 +405,6 @@ in
     inherit (pkgs) writeTextFile;
     jq = lib.getExe pkgs.jq;
   } "${agents.antigravity-cli}/bin/agy";
-
-  # Every node runs a local SkillClaw client and synchronizes the shared
-  # ~/.agents/skills tree used by OMP and Codex. Claude receives a Nix-generated
-  # copy under ~/.claude/skills; only the unattended server role evolves shared skills.
-  local.skillclaw.enable = true;
 
   # Clear what would otherwise make the plugin links below fail on a machine
   # that has run omp before, or that carries an older generation of this

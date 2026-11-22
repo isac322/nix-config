@@ -162,17 +162,9 @@ in
         // lib.mapAttrs' (name: lib.nameValuePair "claude/${name}") claudeHarnessSkillSources
       );
 
-  # SkillClaw synchronizes only the shared ~/.agents/skills tree. Every
-  # Nix-managed name there is protected from pull replacement but remains
-  # eligible for push to the shared backend.
-  local.skillclaw.syncSkipPullNames = builtins.attrNames sharedSkillSources;
-  home.sessionVariables.SKILLCLAW_SYNC_SKIP_PULL = lib.concatStringsSep "," (
-    builtins.attrNames sharedSkillSources
-  );
-
-  # agy reads the live shared tree, so skills SkillClaw pulls reach it as they
-  # reach OMP. Its on-demand policies already arrive as plugin rules
-  # (home/agent-instructions.nix), so their generated skill copies are skipped.
+  # agy reads the live shared tree, as OMP does. Its on-demand policies already
+  # arrive as plugin rules (home/agent-instructions.nix), so their generated
+  # skill copies are skipped.
   home.file.".gemini/config/skills.json" = {
     force = true;
     text = builtins.toJSON {

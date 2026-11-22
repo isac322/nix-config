@@ -355,8 +355,8 @@ metadata를 넣지 않으며, workflow와 critical guard는 의미가 겹치지 
 agy는 `~/.gemini/config/plugins/nix-managed/` plugin 하나로 받는다
 (`home/agy.nix`). rule은 `rules/<순서>-<segment>.md`로 생성하고, agy가 rule 파일을
 24,000 byte에서 자르므로 이를 넘으면 평가가 실패한다. skill은
-`~/.gemini/config/skills.json`이 `~/.agents/skills`를 직접 가리키므로 SkillClaw가 받은
-skill도 OMP와 똑같이 보이고, rule로 들어간 policy skill만 `exclude`로 뺀다. MCP는
+`~/.gemini/config/skills.json`이 `~/.agents/skills`를 직접 가리키므로 OMP와 같은
+skill을 보고, rule로 들어간 policy skill만 `exclude`로 뺀다. MCP는
 Claude Code와 같은 목록에 Hindsight bridge를 더한다. Camofox는 `browser` subagent의
 frontmatter `mcpServers`에만 있어 main agent는 browser 도구를 갖지 않는다. 이
 subagent의 절차는 OMP `agents/browser.md`에서 도구 이름만 바꿔 생성한다. agy는
@@ -400,8 +400,8 @@ registry를 discovery·동기화 대상 tree와 분리하고, 이전 generation�
 이름만 교체하므로 mutable user rule과 skill은 보존된다.
 현재 배포 노드의 네 target에는 legacy in-tree registry가 없다. 따라서 관련 branch는
 live migration 경로가 아니라 과거 또는 수동 상태를 위한 defensive compatibility
-no-op이다. 해당 상태에서는 SkillClaw가 동기화하는 `~/.agents/skills` marker를 삭제
-대상 선택에 사용하지 않는다. 동기화되지 않는 OMP·Claude rule과 Claude skill
+no-op이다. 해당 상태에서는 공유 tree `~/.agents/skills`의 marker를 삭제
+대상 선택에 사용하지 않는다. 그 밖의 OMP·Claude rule과 Claude skill
 registry는 cleanup seed로 사용할 수 있으며, registry가 없던 구형 OMP
 `rsync --delete` 상태는 명시적인 마지막 구형 rule 이름 목록을 fallback으로 사용한다.
 
@@ -419,34 +419,11 @@ Nix가 SKILL frontmatter를 생성한다.
 사용자가 선택한다.
 
 모든 regular skill과 applicable policy skill은 `~/.agents/skills/<name>`과
-`~/.claude/skills/<name>`에 각각 복사된다. 전자는 OMP와 Codex가 사용하고
-SkillClaw가 동기화하며, 후자는 Claude Code의 native personal skill tree다.
+`~/.claude/skills/<name>`에 각각 복사된다. 전자는 OMP와 Codex가 사용하고,
+후자는 Claude Code의 native personal skill tree다.
 target별 managed-name registry가 이전 generation에서 제거할 Nix-owned name만
-정리하므로 사용자 소유 skill은 보존된다.
-
-Nix-managed shared skill 이름은 SkillClaw가 공유 backend로 push하지만 pull에서는
-보호한다. 그래서 cloud의 이전 복사본이 방금 switch한 Nix revision을 덮지 못한다.
-Claude tree는 같은 canonical source에서 다시 생성하는 배포본이고 SkillClaw sync
-대상이 아니다. 목록과 업데이트 절차는
+정리하므로 사용자 소유 skill은 보존된다. 목록과 업데이트 절차는
 [운영](operations.md#nix-관리-agent-지침과-skills-모든-노드)에 있다.
-
-### SkillClaw — 로컬 클라이언트 셋, 공유 백엔드는 하나
-
-`home/skillclaw.nix`가 `skillclaw` 0.4.0을 flake input의 고정한 소스에서 Python
-application으로 빌드해 모든 노드에 둔다. 각 노드는 loopback proxy와 5분 주기
-`skills sync`를 가지며, 동기화 대상은 공통 Agent Skills 위치
-`~/.agents/skills` 하나다. `~/.claude/skills`는 동기화하지 않는다.
-
-공유 저장소는 사용자가 이미 운영하는 외부 S3-compatible backend다. 이 repository는
-object-store daemon을 설치하지 않는다. 모든 client와 서버 맥의 단일 evolve worker가
-하나의 동일한 bucket과 `omp` group을 사용한다.
-
-endpoint, bucket, region과 S3 자격증명은
-`~/.config/skillclaw/shared.env`에, LLM 자격증명은 `llm.env`에 두며 둘 다 Nix store
-밖에 남는다. evolve worker는 `home/roles/darwin-server.nix`에서 서버 맥에만
-활성화한다. 파일 생성과 확인 절차는
-[운영](operations.md#skillclaw-공유-스킬-모든-노드)에 있다.
-
 
 ## 관측 CLI — 에이전트가 직접 조회하게
 

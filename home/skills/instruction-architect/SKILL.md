@@ -90,8 +90,6 @@ Use `home/skills` for personal-global skills. Nix copies regular skills to both 
 
 `onDemand` policy segments are also rendered as skills for Claude and Codex because those harnesses lack OMP's named policy-rule surface. OMP receives the same bodies as native named rules and ignores the generated policy-skill names, so it never sees duplicate capabilities.
 
-SkillClaw synchronizes only `~/.agents/skills`. Nix-managed regular and generated policy skill names are protected from pull replacement; Claude's copied tree is not a separate synchronization source.
-
 Keep Nix managed-name registries under `$XDG_STATE_HOME/nix-managed-agent` (default `~/.local/state/nix-managed-agent`), keyed by target. Never place ownership metadata inside a rule or skill tree that another tool discovers, synchronizes, or mutates.
 
 Keep long supporting material inside the skill directory under `references/`. Do not turn a critical action guard into a regular skill: delayed loading is unsafe for that class.

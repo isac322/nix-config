@@ -286,8 +286,8 @@ discovery 대상 tree 안에 두지 않고
 tree에 사용자가 추가한 rule이나 skill은 삭제하지 않는다.
 현재 배포 노드의 네 target에는 legacy in-tree registry가 없으므로, 관련 branch는
 실행 중인 migration 절차가 아니라 과거 또는 수동 상태를 방어하는 compatibility
-no-op이다. 만약 그런 상태를 만나면 SkillClaw가 동기화하는 `~/.agents/skills`의
-marker는 삭제 대상 선택에 사용하지 않고 제거만 한다. 동기화되지 않는 OMP·Claude
+no-op이다. 만약 그런 상태를 만나면 공유 tree `~/.agents/skills`의
+marker는 삭제 대상 선택에 사용하지 않고 제거만 한다. 그 밖의 OMP·Claude
 rule과 Claude skill tree는 기존 registry를 cleanup seed로 사용할 수 있고, registry
 도입 전 OMP `rsync --delete` 상태는 명시적인 마지막 구형 이름 목록을 fallback으로
 사용한다.
@@ -336,11 +336,6 @@ authority는 `flake.lock`이다. `instruction-architect`,
 `receiving-code-review`, `issue-validation`,
 `five-whys-root-cause-analysis`의 authority는 각각 이 저장소의
 `home/skills/<name>/SKILL.md`다.
-
-SkillClaw는 공통 tree `~/.agents/skills`만 동기화한다. Nix-managed regular 및
-generated policy skill 이름은 `SKILLCLAW_SYNC_SKIP_PULL`로 pull에서 보호하지만
-push에는 포함한다. `~/.claude/skills`는 Nix가 같은 canonical source에서 다시 만드는
-Claude 전용 배포본이며 별도 sync source가 아니다.
 
 ## 로컬 PR Gate 관찰 (모든 노드)
 
@@ -502,79 +497,6 @@ github-pr-wait wait "$pr_url" --until merged \
   head SHA나 test-merge SHA로 대신하지 않는다. 이미 run ID를 아는 Actions 대기는
   유한한 외부 timeout을 둔 독립 `gh run watch RUN_ID --repo OWNER/REPO --exit-status`를
   쓴다. CLI는 자동 merge나 배포를 하지 않는다.
-
-## SkillClaw 공유 스킬 (모든 노드)
-
-`skillclaw` 클라이언트와 5분 주기 동기화는 모든 노드에 설치된다. 저장소는 이
-repository가 새로 띄우지 않고 사용자가 이미 운영하는 S3-compatible backend를
-사용한다. 모든 노드에서 같은 endpoint, bucket, region과 자격증명을 다음 0600 파일에
-넣는다.
-
-```sh
-mkdir -p ~/.config/skillclaw
-cat > ~/.config/skillclaw/shared.env <<'EOF'
-SKILLCLAW_STORAGE_ENDPOINT=https://s3.example.com
-SKILLCLAW_STORAGE_BUCKET=<existing bucket>
-SKILLCLAW_STORAGE_REGION=<region>
-SKILLCLAW_STORAGE_ACCESS_KEY=<access key>
-SKILLCLAW_STORAGE_SECRET_KEY=<secret key>
-EOF
-chmod 600 ~/.config/skillclaw/shared.env
-```
-
-bucket은 미리 존재해야 하며 자격증명에는 그 bucket의 object read/write 권한이
-필요하다. endpoint와 실제 자격증명은 Nix store에 넣지 않는다.
-
-모든 노드와 evolve worker가 **같은 bucket 하나**와 group `omp`를 사용한다. 노드별
-bucket은 만들지 않는다.
-
-각 노드에서 로컬 proxy까지 쓰려면 별도로 0600인
-`~/.config/skillclaw/llm.env`를 둔다. 이 파일은 노드마다 달라도 된다.
-
-```sh
-cat > ~/.config/skillclaw/llm.env <<'EOF'
-SKILLCLAW_LLM_PROVIDER=custom
-SKILLCLAW_LLM_API_BASE=https://example.invalid/v1
-SKILLCLAW_LLM_API_KEY=<API key>
-SKILLCLAW_LLM_MODEL_ID=<model id>
-SKILLCLAW_LLM_API_MODE=responses
-# 선택: evolve worker만 다른 모델을 쓸 때
-# SKILLCLAW_EVOLVE_MODEL=<model id>
-EOF
-chmod 600 ~/.config/skillclaw/llm.env
-```
-
-`responses`를 받지 않는 OpenAI-compatible endpoint면 마지막 값을 `chat`으로 바꾼다.
-Nix store에는 어느 비밀도 들어가지 않는다. 런타임 wrapper가 두 파일을 읽어
-`~/.skillclaw/config.yaml`을 0600으로 다시 만들며, SkillClaw의 동기화 대상은
-`~/.agents/skills` 하나다. Nix가 별도로 만드는 `~/.claude/skills`는 Claude Code가
-읽기만 하며 SkillClaw가 pull, push, evolve하지 않는다.
-
-확인:
-
-```sh
-skillclaw config show
-skillclaw skills list-remote
-skillclaw-sync
-curl http://127.0.0.1:30000/healthz   # llm.env를 둔 노드
-```
-
-서버 맥은 같은 외부 S3 backend를 사용하는 evolve worker 하나만 추가로 실행한다.
-
-```sh
-launchctl print gui/$(id -u)/org.nix-community.home.skillclaw-evolve
-tail -f ~/Library/Logs/skillclaw-evolve.log
-```
-
-SkillClaw의 `auto_pull_on_start`와 원격 reload polling은 끈다. 둘은 cloud manifest에
-없는 로컬 디렉터리를 mirror 삭제하는 경로라, 다음 5분 동기화 전에 OMP가 만든 스킬을
-잃을 수 있다. 여기서는 `skills sync`의 incremental pull 뒤 push만 사용하고, proxy는
-각 요청에서 로컬 디렉터리 변경을 다시 읽는다.
-
-동기화는 upstream의 `pull` 뒤 `push` 의미를 그대로 쓴다. 서로 다른 노드에서 **같은
-이름의 스킬을 동시에 수정하면 자동 merge하지 않고 마지막 업로드가 이긴다.** 같은
-스킬을 병렬 편집하지 않는 것이 운영 규칙이다.
-
 
 ## 자동 로그인 (서버 맥)
 
