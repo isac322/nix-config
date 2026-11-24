@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1795343206,
-        "narHash": "sha256-LOU/2In5Yy1EL1HhJanmECnz+jIZal+s8jUCLcBb8PM=",
+        "lastModified": 1795478792,
+        "narHash": "sha256-PYllplpAxTVtRwfdDx/erTY7CB1sQvBrT0qQ69sXSZg=",
         "ref": "refs/heads/main",
-        "rev": "4716b3cbca158c35c3b316dbd517f54e5f240f97",
+        "rev": "8782129f0d374786191f49862a27a4aa9e92c4db",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -267,10 +267,10 @@
     "herdr-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1795378527,
-        "narHash": "sha256-BHXTyMmLw307Spe2mRuXVUKihlLbBmUFafOuWOqkvhw=",
+        "lastModified": 1795478935,
+        "narHash": "sha256-whFsqfGHVdJ9iNoa7VZfRjmicXJmyECfQvvxwjTvz0I=",
         "ref": "refs/heads/master",
-        "rev": "300a455b8cfa91f8f068b49bb9d78b94d3bd4f0e",
+        "rev": "7cb4de47164f1d65db84dfab294166994f143a15",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/herdrdev/herdr-core.git"
@@ -527,10 +527,10 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1795249095,
-        "narHash": "sha256-8JDgyVvWUZg5m9hNlL8Ge9aT647ng3Ukc8NPMiKNTPQ=",
+        "lastModified": 1795371335,
+        "narHash": "sha256-oa2P5WZer1A4wuhatl92JyHHEjrrOdIyuvTuI5LUi9Q=",
         "ref": "nixpkgs-unstable",
-        "rev": "93a9ed0a866099a230ed5146a5bb7d16fd5c9b14",
+        "rev": "619c39f6eac5d1ed6b8f073a9414baf7034b2356",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/NixOS/nixpkgs.git"
