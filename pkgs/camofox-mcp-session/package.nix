@@ -118,6 +118,9 @@ writeShellApplication {
     esac
 
     export CAMOFOX_USER_ID="''${CAMOFOX_USER_ID-omp}"
+    # `qa` is a separate cookie profile for test-account QA, so tests never sign
+    # out or reuse the operator's own sessions held under `omp`.
+    export CAMOFOX_MCP_USER_IDS="''${CAMOFOX_MCP_USER_IDS-omp,qa}"
     export CAMOFOX_SESSION_KEY="$client-$session_id"
 
     exec ${camofox-browser}/bin/camofox-browser-mcp
