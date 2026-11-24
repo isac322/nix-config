@@ -191,24 +191,24 @@
     "omo": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.82/omo-darwin-arm64",
-          "digest": "sha256:f198db023755ae823d514ad3ad41bbe61cc9d1f47628ae2b45974c7cba258062",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.83/omo-darwin-arm64",
+          "digest": "sha256:798e7c163b204c3c11fda5be318ef5cf5171f42e6749137fee3c94bf533d4bee",
           "name": "omo-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.82/omo-linux-arm64",
-          "digest": "sha256:aee0c536ba91ecdf9012e067502a8b4ae7d3fe1ef70d2f8b4a0592fd6b6b622b",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.83/omo-linux-arm64",
+          "digest": "sha256:f6c2353be4a3c2af6718a1bafd446cc0d5be5fbf5feb0fdbd617b9bd87faa2bf",
           "name": "omo-linux-arm64"
         },
         {
-          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.82/omo-linux-x64",
-          "digest": "sha256:08f101a4fafc76d81ee1ed12528ab0993e6610df4e195d82c39af156a06d7441",
+          "browser_download_url": "https://github.com/code-yeongyu/oh-my-openagent/releases/download/v5.1.83/omo-linux-x64",
+          "digest": "sha256:7529a80cb81b36576608a438819ef569d342342812ea2212adb7a55d53de5f23",
           "name": "omo-linux-x64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v5.1.82"
+      "tag_name": "v5.1.83"
     },
     "omp": {
       "assets": [

@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1795478792,
-        "narHash": "sha256-PYllplpAxTVtRwfdDx/erTY7CB1sQvBrT0qQ69sXSZg=",
+        "lastModified": 1795508355,
+        "narHash": "sha256-k11J1JRO8YFvN5If4CsaSVOZ6YDC7e4vEWTqUZANv4k=",
         "ref": "refs/heads/main",
-        "rev": "8782129f0d374786191f49862a27a4aa9e92c4db",
+        "rev": "459400e2f5a667716fa28dd830ac2682a859a095",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -267,10 +267,10 @@
     "herdr-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1795478935,
-        "narHash": "sha256-whFsqfGHVdJ9iNoa7VZfRjmicXJmyECfQvvxwjTvz0I=",
+        "lastModified": 1795521781,
+        "narHash": "sha256-sG7qQ2r07ftvIW7KsXYqxBA873wp1KuDGhxGumoW2Hw=",
         "ref": "refs/heads/master",
-        "rev": "7cb4de47164f1d65db84dfab294166994f143a15",
+        "rev": "3407043e884c15963d32d134a318d287884e48d2",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/herdrdev/herdr-core.git"
@@ -346,16 +346,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1795416666,
-        "narHash": "sha256-b1GmfrMPoZ2ANkR0we9Q9KQN6n1e+vNyDqt1p4CNEAY=",
+        "lastModified": 1795495638,
+        "narHash": "sha256-hhROWq9062PdIznKMqiQuy3L9F7l4LHwofEVrcncfZM=",
         "ref": "refs/heads/main",
-        "rev": "5330ee115c06d2b43f49e902130125eab579b22f",
+        "rev": "45e6e554481f962d4134021d3a63c96d8755f395",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "5330ee115c06d2b43f49e902130125eab579b22f",
+        "rev": "45e6e554481f962d4134021d3a63c96d8755f395",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -463,10 +463,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1795410210,
-        "narHash": "sha256-oCb2FfaupzS/TOH7Mz8Bk8yeLX6eLecMUkAJUN/P2G8=",
+        "lastModified": 1795506723,
+        "narHash": "sha256-OsrLL13SGMMWG1durrFInq1F1hcXa9wOdseA7DlS3ww=",
         "ref": "refs/heads/main",
-        "rev": "e343af4d2f7a04cd695aa3687fa10f9599e6343c",
+        "rev": "aff5636e0f9bd3baebe032f80bf1f020ad59b4c4",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
@@ -621,10 +621,10 @@
     "rust-overlay-source": {
       "flake": false,
       "locked": {
-        "lastModified": 1795429968,
-        "narHash": "sha256-MJVmTxxAm87tT7yxH5BU8EnKGza32SQ2pqYsHWpJ1H4=",
+        "lastModified": 1795522582,
+        "narHash": "sha256-2UgrrjTeYt4UMmsjdcUjhxSnCGYOlzMuGuk7dRB5Kq4=",
         "ref": "master",
-        "rev": "ea2084066e0f3fed86a76a2654658ed2eb998046",
+        "rev": "639e209cc8eecd0c307fd95c8aabc011bf047c41",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/oxalica/rust-overlay.git"
