@@ -518,35 +518,55 @@ in
   # `camofox` table left behind in ~/.codex/config.toml pointing into /nix/store/
   # would shadow future package updates; remove only those legacy store-path
   # entries while keeping user-defined MCPs and Codex state intact.
+  #
+  # The tables are deleted in place rather than with `codex mcp remove`: that
+  # command rewrites the user layer from the merged configuration, so removing
+  # one legacy entry copied the other system-layer server back in, and every
+  # switch traded `camofox` for `codegraph` and back.
   home.activation.codexMigrateLegacyUserMcp = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     config="$HOME/.codex/config.toml"
-    codex=${lib.escapeShellArg (lib.getExe agents.codex)}
 
     if [ -r "$config" ]; then
-      legacyServers=$(${lib.getExe pkgs.python3} -c '
-import sys, tomllib
-try:
-    with open(sys.argv[1], "rb") as f:
-        data = tomllib.load(f)
-except Exception as exc:
-    print(f"codex-migrate-legacy-mcp: skipping unparseable {sys.argv[1]}: {exc}", file=sys.stderr)
-    sys.exit(0)
-mcp = data.get("mcp_servers")
-if isinstance(mcp, dict):
-    for name in ("codegraph", "camofox"):
-        entry = mcp.get(name)
-        cmd = entry.get("command") if isinstance(entry, dict) else None
-        if isinstance(cmd, str) and cmd.startswith("/nix/store/"):
-            print(name)
-' "$config")
+      ${pkgs.python3.withPackages (ps: [ ps.tomlkit ])}/bin/python3 -c '
+import os, sys, tempfile
+from collections.abc import MutableMapping
+import tomlkit
 
-      for name in $legacyServers; do
-        if [ -n "$DRY_RUN_CMD" ]; then
-          echo "codex-migrate-legacy-mcp: would remove legacy /nix/store MCP entry $name from $config." >&2
-        else
-          CODEX_HOME="$HOME/.codex" "$codex" mcp remove "$name"
-        fi
-      done
+path, dry_run = sys.argv[1], sys.argv[2] != ""
+try:
+    with open(path, encoding="utf-8") as f:
+        doc = tomlkit.parse(f.read())
+except Exception as exc:
+    print(f"codex-migrate-legacy-mcp: skipping unparseable {path}: {exc}", file=sys.stderr)
+    sys.exit(0)
+servers = doc.get("mcp_servers")
+if not isinstance(servers, MutableMapping):
+    sys.exit(0)
+legacy = [
+    name for name in ("codegraph", "camofox")
+    if isinstance(servers.get(name), MutableMapping)
+    and str(servers[name].get("command", "")).startswith("/nix/store/")
+]
+if not legacy:
+    sys.exit(0)
+if dry_run:
+    print(f"codex-migrate-legacy-mcp: would remove legacy /nix/store MCP entries {legacy} from {path}.", file=sys.stderr)
+    sys.exit(0)
+for name in legacy:
+    del servers[name]
+if not servers:
+    del doc["mcp_servers"]
+fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".config.toml.")
+try:
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(tomlkit.dumps(doc))
+    os.chmod(tmp, os.stat(path).st_mode & 0o777)
+    os.replace(tmp, path)
+except BaseException:
+    os.unlink(tmp)
+    raise
+print(f"codex-migrate-legacy-mcp: removed legacy /nix/store MCP entries {legacy} from {path}.", file=sys.stderr)
+' "$config" "$DRY_RUN_CMD"
     fi
   '';
 
