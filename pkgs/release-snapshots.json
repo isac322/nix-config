@@ -7,24 +7,24 @@
     "argocd": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/argoproj/argo-cd/releases/download/v3.6.2/argocd-darwin-arm64",
-          "digest": "sha256:188d11670ba0160214d37e6df8a507f9dafd96234bf040d6e82ae1b733660a5a",
+          "browser_download_url": "https://github.com/argoproj/argo-cd/releases/download/v3.6.3/argocd-darwin-arm64",
+          "digest": "sha256:1b45f9805b54375d7b0d18fb646b64dca153b98527443716e07b0aced45ce623",
           "name": "argocd-darwin-arm64"
         },
         {
-          "browser_download_url": "https://github.com/argoproj/argo-cd/releases/download/v3.6.2/argocd-linux-arm64",
-          "digest": "sha256:578e87773bfb0fe5047250f16f914d0362fbfce0b5b2b7ed7204776925dcdff9",
+          "browser_download_url": "https://github.com/argoproj/argo-cd/releases/download/v3.6.3/argocd-linux-arm64",
+          "digest": "sha256:04a7b681d6c5eec193159705c5556114f8cba98abada4c17c3991124065e1964",
           "name": "argocd-linux-arm64"
         },
         {
-          "browser_download_url": "https://github.com/argoproj/argo-cd/releases/download/v3.6.2/argocd-linux-amd64",
-          "digest": "sha256:80cc51ce8eb39d5601d54fd14225ed15a04ccf4baa3427f5c1e72a4e342aa0b2",
+          "browser_download_url": "https://github.com/argoproj/argo-cd/releases/download/v3.6.3/argocd-linux-amd64",
+          "digest": "sha256:3750cd7ed2a2ef05c640344b86f29aa99c9783e847c8f326c81e3900ad39412b",
           "name": "argocd-linux-amd64"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v3.6.2"
+      "tag_name": "v3.6.3"
     },
     "axiom": {
       "assets": [
@@ -89,11 +89,11 @@
     },
     "cf": {
       "draft": false,
-      "hash": "sha256-nUozyfVl4yloUGMFBzN5TguM/HakqqbDnC5Xo3DrwLw=",
-      "pnpmDepsHash": "sha256-3Lboww+QZNBXRXqfIhvmRlEPYxMqvQVPgTg1+HfRJN4=",
+      "hash": "sha256-jZinvZ4A5CuAVAf1/eBmNgB9oN1H3Ae8DW9w/3rJ8ZE=",
+      "pnpmDepsHash": "sha256-wlRBLTcBLlh+tQGQyq3mWgMQh24msPrmGTC54Ty+c8I=",
       "prerelease": false,
-      "tag_name": "cf@1.0.0-rc.4",
-      "version": "1.0.0-rc.4"
+      "tag_name": "cf@1.0.0-rc.5",
+      "version": "1.0.0-rc.5"
     },
     "deskpad": {
       "assets": [
@@ -122,19 +122,19 @@
     "herdrApp": {
       "assets": [
         {
-          "browser_download_url": "https://releases.herdr.dev/app/0.1.17/herdr-app-linux-aarch64.tar.gz",
-          "digest": "sha256:a8c06bf7a3fce06a73a9a50e709250aac8f442fedcc6c49f3157b76dd8dd6d93",
+          "browser_download_url": "https://releases.herdr.dev/app/0.1.18/herdr-app-linux-aarch64.tar.gz",
+          "digest": "sha256:3bf51505cb1e7d61e63ccdc2655e8819f4b452babead9922fe4bb6fe69e91350",
           "name": "herdr-app-linux-aarch64.tar.gz"
         },
         {
-          "browser_download_url": "https://releases.herdr.dev/app/0.1.17/herdr-app-linux-x86_64.tar.gz",
-          "digest": "sha256:2188f4d7d5cf041450dbdbf2e14649244b1a6274a1080bdd97fa7bc450e65ca1",
+          "browser_download_url": "https://releases.herdr.dev/app/0.1.18/herdr-app-linux-x86_64.tar.gz",
+          "digest": "sha256:8a11edd79dd40b349f7286cf51910b62e21136daf8f03005a9fd2c4dc5830f83",
           "name": "herdr-app-linux-x86_64.tar.gz"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v0.1.17"
+      "tag_name": "v0.1.18"
     },
     "herdrCore": {
       "assets": [
@@ -308,24 +308,24 @@
     "supabase": {
       "assets": [
         {
-          "browser_download_url": "https://github.com/supabase/cli/releases/download/v3.3.0/supabase_3.3.0_darwin_arm64.tar.gz",
-          "digest": "sha256:81a3bcac6d5fe8381882930fc5c3f27ae0ad28f61d72fbcc47cd910fe0845365",
-          "name": "supabase_3.3.0_darwin_arm64.tar.gz"
+          "browser_download_url": "https://github.com/supabase/cli/releases/download/v3.4.0/supabase_3.4.0_darwin_arm64.tar.gz",
+          "digest": "sha256:630cf3f52821c33ed6023e7f395e1deaf5cc07c0a88b7e1aaf25966c1fca996d",
+          "name": "supabase_3.4.0_darwin_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/supabase/cli/releases/download/v3.3.0/supabase_3.3.0_linux_arm64.tar.gz",
-          "digest": "sha256:d98ecc5e323d59f0d1c744ff5ce779098230002d8ba1df5576809f52f47746ac",
-          "name": "supabase_3.3.0_linux_arm64.tar.gz"
+          "browser_download_url": "https://github.com/supabase/cli/releases/download/v3.4.0/supabase_3.4.0_linux_arm64.tar.gz",
+          "digest": "sha256:35f211ede3b4b6ae479cb6aaf6f323dbf56f7268dab503cf4f549b2973580402",
+          "name": "supabase_3.4.0_linux_arm64.tar.gz"
         },
         {
-          "browser_download_url": "https://github.com/supabase/cli/releases/download/v3.3.0/supabase_3.3.0_linux_amd64.tar.gz",
-          "digest": "sha256:8d12731ae522a8f263170ca719b33f163dd05f4365ae6c22b31714dfa1e92b9b",
-          "name": "supabase_3.3.0_linux_amd64.tar.gz"
+          "browser_download_url": "https://github.com/supabase/cli/releases/download/v3.4.0/supabase_3.4.0_linux_amd64.tar.gz",
+          "digest": "sha256:d82f8fc8a1611c45b9422b10378f61df614325f7e25624acda3704544513d6ac",
+          "name": "supabase_3.4.0_linux_amd64.tar.gz"
         }
       ],
       "draft": false,
       "prerelease": false,
-      "tag_name": "v3.3.0"
+      "tag_name": "v3.4.0"
     },
     "t3code": {
       "assets": [
