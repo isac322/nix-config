@@ -345,6 +345,27 @@ class GateWorkerTests(unittest.TestCase):
         self.assertEqual([thread["id"] for thread in threads], ["old"])
         self.assertNotIn("FUTURE_SECRET", packet.read_text())
 
+    def test_latest_pre_trigger_review_body_reaches_packet(self):
+        older = self.review(self.last, "2026-11-17T10:00:00Z", 1)
+        older["body"] += "\nOpen: P2 STALE_FINDING"
+        latest = self.review(self.last, "2026-11-17T11:00:00Z", 3)
+        latest["body"] += "\n## Previous findings\n- Open: P1 relay requests omit the workspace header."
+        future = self.review(self.head, "2026-11-17T12:00:01Z", 4)
+        future["body"] += "\nOpen: P0 FUTURE_SECRET"
+        self.fixture["reviews"] = [older, latest, future]
+        row = self.worker()
+        self.assertEqual(row["status"], "ok")
+        body = (Path(row["run_dir"]) / "packet" / "review-body.md").read_text()
+        self.assertIn("Open: P1 relay requests omit the workspace header.", body)
+        self.assertNotIn("STALE_FINDING", body)
+        self.assertNotIn("FUTURE_SECRET", body)
+
+    def test_first_review_has_empty_review_body(self):
+        self.fixture["reviews"] = []
+        row = self.worker()
+        self.assertEqual(row["status"], "ok")
+        self.assertEqual((Path(row["run_dir"]) / "packet" / "review-body.md").read_text(), "")
+
     def test_dedup_keys_include_pr_number(self):
         first = self.worker()
         self.assertEqual(first["status"], "ok")

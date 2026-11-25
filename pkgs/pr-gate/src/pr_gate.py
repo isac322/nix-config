@@ -202,10 +202,15 @@ def review_bound(repo: str, pr: dict, reviews: list[dict], configured: tuple[str
     return pr.get("state") == "OPEN" and not bool(pr.get("isDraft")) and (repo in configured or has_reviewer_review(reviews))
 
 
-def newest_reviewed_sha(reviews: list[dict]) -> str | None:
+def newest_review(reviews: list[dict]) -> dict | None:
     candidates = [review for review in reviews if reviewer_login(review) == REVIEWER and marker_sha(review.get("body"))]
     candidates.sort(key=lambda item: (item.get("submitted_at") or item.get("submittedAt") or "", item.get("id") or 0))
-    return marker_sha(candidates[-1].get("body")) if candidates else None
+    return candidates[-1] if candidates else None
+
+
+def newest_reviewed_sha(reviews: list[dict]) -> str | None:
+    review = newest_review(reviews)
+    return marker_sha(review.get("body")) if review else None
 
 
 def consecutive_partials(thread: dict, reviewer: str = REVIEWER) -> int:
@@ -279,10 +284,13 @@ def fetch_threads(repo: str, pr: int, before: str | None = None) -> list[dict]:
     return result
 
 
-def write_packet(run: Path, repo: str, pr: int, pr_data: dict, root: Path, head: str, last: str | None, base: str | None, delta: bytes, threads: list[dict]) -> None:
+def write_packet(run: Path, repo: str, pr: int, pr_data: dict, root: Path, head: str, last: str | None, base: str | None, delta: bytes, threads: list[dict], review_body: str) -> None:
     packet = run / "packet"
     secure_mkdir(packet)
     write_json(packet / "threads.json", threads)
+    # Findings the reviewer keeps only in its review body (for example "Open: P1 ...") have no inline thread.
+    (packet / "review-body.md").write_text(review_body, encoding="utf-8")
+    os.chmod(packet / "review-body.md", 0o600)
     (packet / "contract.md").write_text(linked_issue_contract(repo, pr_data), encoding="utf-8")
     os.chmod(packet / "contract.md", 0o600)
     (packet / "delta.patch").write_bytes(delta)
@@ -561,7 +569,8 @@ def observe_worker(args: argparse.Namespace) -> None:
             threads = fetch_threads(remote, pr_number, before=base_row["ts"])
             for thread in threads:
                 thread["consecutive_partials"] = consecutive_partials(thread)
-            write_packet(run, remote, pr_number, pr_data, root, head, last, base_ref, delta, threads)
+            latest = newest_review(reviews)
+            write_packet(run, remote, pr_number, pr_data, root, head, last, base_ref, delta, threads, str((latest or {}).get("body") or ""))
             snapshot_dir = run / "snapshot"
             snapshot(root, head, snapshot_dir)
             status, usage, wall = run_codex(run, snapshot_dir, {"repo": remote, "pr": pr_number, "head_sha": head, "last_reviewed_sha": last or "(first review)", "packet": str(run / "packet")})
