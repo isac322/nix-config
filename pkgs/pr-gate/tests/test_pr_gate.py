@@ -451,6 +451,127 @@ class GateWorkerTests(unittest.TestCase):
         dt.datetime.fromisoformat(args.trigger_ts.replace("Z", "+00:00"))
 
 
+class TriggerTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        env = patch.dict(os.environ, {"XDG_STATE_HOME": self.temp.name}, clear=False)
+        env.start()
+        self.addCleanup(env.stop)
+        os.environ.pop("PR_GATE_DISABLE", None)
+        observe = patch.object(pr_gate, "observe", return_value=0)
+        self.observe = observe.start()
+        self.addCleanup(observe.stop)
+
+    def observed(self) -> list[argparse.Namespace]:
+        return [call.args[0] for call in self.observe.call_args_list]
+
+    def run_hook(self, harness: str, payload: object) -> str:
+        stdout = io.StringIO()
+        raw = payload if isinstance(payload, str) else json.dumps(payload)
+        with patch.object(sys, "stdin", io.StringIO(raw)), contextlib.redirect_stdout(stdout):
+            self.assertEqual(pr_gate.hook(argparse.Namespace(harness=harness)), 0)
+        return stdout.getvalue()
+
+    def test_trigger_grammar(self):
+        cases = [
+            ("git push", "push"),
+            ("git -C ~/src/repo push origin main", "push"),
+            ("cd 'repo with spaces' && git push", "push"),
+            ("env FOO=1 git push", "push"),
+            ("GIT_SSH_COMMAND='ssh -i key' command git push", "push"),
+            ("git push --force-with-lease origin HEAD:branch", "push"),
+            ("git push origin main refs/heads/a:refs/heads/b", "push"),
+            ("git push origin main || true", "push"),
+            ("git push --dry-run", None),
+            ("git push -n origin main", None),
+            ("git push --help", None),
+            ("make test;git push -n", None),
+            ("make test&&git push --dry-run", None),
+            ("git push && ls -n", "push"),
+            ("gh pr create --fill && git branch -d old", "pr-create"),
+            ("git status\ngit push", "push"),
+            ("gh pr create --title change", "pr-create"),
+            ("gh pr create --draft", None),
+            ("gh pr create -d", None),
+            ("gh pr ready", "pr-ready"),
+            ("gh pr ready --undo", None),
+            ("git pushd", None),
+            ("echo 'git push'", None),
+            ("git status", None),
+        ]
+        for command, expected in cases:
+            with self.subTest(command=command):
+                parsed = pr_gate.parse_trigger(command)
+                self.assertEqual(parsed[0] if parsed else None, expected)
+
+    def test_trigger_directory_resolution(self):
+        home = str(Path.home())
+        self.assertEqual(pr_gate.parse_trigger("git -C ~/src/repo push"), ("push", "~/src/repo"))
+        self.assertEqual(pr_gate.parse_trigger("cd 'repo with spaces' && git push"), ("push", "repo with spaces"))
+        self.assertEqual(pr_gate.parse_trigger("git push; cd elsewhere"), ("push", None))
+        self.assertEqual(pr_gate.resolve_workdir("~/src/repo", "/work"), f"{home}/src/repo")
+        self.assertEqual(pr_gate.resolve_workdir("sub", "/work"), "/work/sub")
+        self.assertEqual(pr_gate.resolve_workdir(None, "/work"), "/work")
+
+    def test_claude_hook_dispatches_main_and_subagent_bash(self):
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_input": {"command": "git push origin main"}, "cwd": "/work/a"}
+        self.assertEqual(self.run_hook("claude", payload), "")
+        self.run_hook("claude", {**payload, "cwd": "/work/b", "agent_id": "a1", "agent_type": "browser"})
+        observed = self.observed()
+        self.assertEqual([(args.cwd, args.trigger) for args in observed], [("/work/a", "push"), ("/work/b", "push")])
+        self.assertEqual(os.environ["PR_GATE_HARNESS"], "claude")
+        self.assertEqual(os.environ["PR_GATE_AGENT_KIND"], "subagent")
+
+    def test_codex_hook_dispatches_string_and_argv_commands(self):
+        self.run_hook("codex", {"tool_name": "Bash", "tool_input": {"command": "gh pr create --fill"}, "cwd": "/work/a", "tool_response": "ok"})
+        self.assertEqual(os.environ["PR_GATE_AGENT_KIND"], "main")
+        self.run_hook("codex", {"tool_name": "Bash", "tool_input": {"command": ["bash", "-lc", "git push"]}, "cwd": "/work/b"})
+        self.assertEqual([(args.cwd, args.trigger) for args in self.observed()], [("/work/a", "pr-create"), ("/work/b", "push")])
+        self.assertEqual(os.environ["PR_GATE_HARNESS"], "codex")
+
+    def test_agy_hook_uses_tool_cwd_skips_failures_and_always_answers(self):
+        call = {"name": "run_command", "args": {"CommandLine": "git push", "Cwd": "/work/tool"}}
+        self.assertEqual(json.loads(self.run_hook("agy", {"toolCall": call, "cwd": "/work/agent"})), {})
+        self.assertEqual(json.loads(self.run_hook("agy", {"toolCall": {**call, "args": {"CommandLine": "gh pr ready"}}, "cwd": "/work/agent"})), {})
+        self.assertEqual(json.loads(self.run_hook("agy", {"toolCall": call, "cwd": "/work/x", "error": "exit status 1"})), {})
+        self.assertEqual(json.loads(self.run_hook("agy", {"toolCall": {**call, "args": {"CommandLine": "git push", "Cwd": "/work/ok"}}, "error": ""})), {})
+        self.assertEqual([(args.cwd, args.trigger) for args in self.observed()], [("/work/tool", "push"), ("/work/agent", "pr-ready"), ("/work/ok", "push")])
+        self.assertEqual(os.environ["PR_GATE_HARNESS"], "agy")
+
+    def test_irrelevant_or_malformed_payloads_do_nothing(self):
+        for harness, payload in [
+            ("claude", {"tool_name": "Edit", "tool_input": {"command": "git push"}, "cwd": "/w"}),
+            ("claude", {"tool_name": "Bash", "tool_input": {"command": "git status"}, "cwd": "/w"}),
+            ("codex", {"tool_name": "Bash", "tool_input": {"command": "git push"}}),
+            ("codex", "not json"),
+            ("codex", ""),
+            ("agy", {"toolCall": {"name": "view_file", "args": {"CommandLine": "git push"}}, "cwd": "/w"}),
+            ("agy", "[1, 2"),
+        ]:
+            with self.subTest(harness=harness, payload=payload):
+                output = self.run_hook(harness, payload)
+                self.assertEqual(output.strip(), "{}" if harness == "agy" else "")
+        self.assertEqual(self.observed(), [])
+
+    def test_disable_switch_and_debounce(self):
+        with patch.dict(os.environ, {"PR_GATE_DISABLE": "1"}):
+            self.assertFalse(pr_gate.dispatch("omp", "git push", "/w", "main"))
+        self.assertTrue(pr_gate.dispatch("omp", "git push", "/w", "main"))
+        self.assertFalse(pr_gate.dispatch("claude", "git push origin main", "/w", "main"))
+        self.assertTrue(pr_gate.dispatch("claude", "gh pr create", "/w", "main"))
+        self.assertTrue(pr_gate.dispatch("claude", "git push", "/other", "main"))
+        root = pr_gate.state_root()
+        self.assertFalse(pr_gate.debounced(root, "k", now=100.0))
+        self.assertTrue(pr_gate.debounced(root, "k", now=104.0))
+        self.assertFalse(pr_gate.debounced(root, "k", now=110.0))
+        self.assertEqual(len(self.observed()), 3)
+
+    def test_dispatch_marks_observation_with_harness(self):
+        pr_gate.dispatch("codex", "git push", "/w", "subagent")
+        row = pr_gate.default_observation()
+        self.assertEqual((row["harness"], row["agent_kind"]), ("codex", "subagent"))
+
 
 if __name__ == "__main__":
     unittest.main()

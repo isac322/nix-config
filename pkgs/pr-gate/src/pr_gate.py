@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import signal
 import subprocess
 import sys
@@ -30,6 +31,24 @@ DEDUP_FDS: dict[str, int] = {}
 ALLOWED_GIT = frozenset({"rev-parse", "symbolic-ref", "config", "cat-file", "diff", "patch-id", "archive"})
 MARKER_RE = re.compile(r"issue-agent(?::[^:\s>]+)+:review:([0-9a-fA-F]{7,64})")
 DOC_RE = re.compile(r"^(?:docs/|.*\.md$|.*\.mdx$|.*\.txt$|LICENSE(?:\..*)?$)", re.IGNORECASE)
+DEBOUNCE_SECONDS = 5.0
+HOOK_STDIN_LIMIT = 4 * 1024 * 1024
+COMMAND_LIMIT = 2_000
+HARNESSES = ("omp", "claude", "codex", "agy")
+
+# Shell trigger grammar shared by every agent harness. It recognizes a direct
+# `git push` or `gh pr create|ready`, optionally behind `env`, `command`, or
+# leading variable assignments; wrappers such as scripts, aliases, and nested
+# shells are deliberately out of scope.
+_TOKEN = r"""(?:"([^"]*)"|'([^']*)'|([^\s;&|]+))"""
+_PREFIX = r"""(?:env\s+)?(?:(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s;&|]+))\s+)*(?:command\s+)?"""
+GIT_PUSH_RE = re.compile(rf"(?:^|[\s;&|]){_PREFIX}git(?:\s+-C\s+{_TOKEN})?\s+push(?=\s|$|[;&|])")
+GH_PR_RE = re.compile(rf"(?:^|[\s;&|]){_PREFIX}gh\s+pr\s+(create|ready)(?=\s|$|[;&|])")
+CD_RE = re.compile(rf"(?:^|[;&|\n]\s*)cd\s+{_TOKEN}")
+HELP_RE = re.compile(r"(?:^|\s)--help(?:=|\s|$)")
+PUSH_DRY_RUN_RE = re.compile(r"(?:^|\s)(?:--dry-run(?:=|\s|$)|-n(?:\s|$))")
+PR_DRAFT_RE = re.compile(r"(?:^|\s)(?:--draft(?:=|\s|$)|-d(?:\s|$))")
+PR_UNDO_RE = re.compile(r"(?:^|\s)--undo(?:=|\s|$)")
 
 
 def utc_now() -> str:
@@ -77,6 +96,7 @@ def default_observation(**changes: object) -> dict:
         "input_tokens": None, "cached_input_tokens": None, "output_tokens": None,
         "run_dir": None, "gate_version": None, "model": DEFAULT_MODEL, "effort": DEFAULT_EFFORT,
         "would_block": False, "would_escalate": False, "agent_kind": os.environ.get("PR_GATE_AGENT_KIND") or "unknown",
+        "harness": os.environ.get("PR_GATE_HARNESS") or "unknown",
     }
     row.update(changes)
     return row
@@ -355,7 +375,8 @@ def run_codex(run: Path, snapshot_dir: Path, prompt_data: dict[str, object]) -> 
     with open(events_path, "w", encoding="utf-8") as events, open(stderr_path, "w", encoding="utf-8") as stderr:
         os.chmod(events_path, 0o600)
         os.chmod(stderr_path, 0o600)
-        process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=events, stderr=stderr, text=True, start_new_session=True)
+        # The gate's own Codex run loads the system hooks too; keep it from observing itself.
+        process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=events, stderr=stderr, text=True, start_new_session=True, env={**os.environ, "PR_GATE_DISABLE": "1"})
         try:
             process.communicate(prompt, timeout=remaining_deadline())
         except subprocess.TimeoutExpired:
@@ -571,6 +592,147 @@ def shutil_which(name: str) -> str | None:
     return None
 
 
+def _token(match: re.Match[str], first: int) -> str | None:
+    for group in (first, first + 1, first + 2):
+        if match.group(group) is not None:
+            return match.group(group)
+    return None
+
+
+def _segment(command: str, index: int) -> str:
+    # A flag belongs to the trigger only up to the next command separator. Skip the
+    # separator the match may have consumed so it does not end the segment at once.
+    rest = command[index + 1:]
+    end = re.search(r"[;&|\n]", rest)
+    return command[index:index + 1] + (rest if end is None else rest[:end.start()])
+
+
+def parse_trigger(command: str) -> tuple[str, str | None] | None:
+    """Return the first review-bound trigger in a shell command and its directory hint."""
+    candidates: list[tuple[int, str, str | None]] = []
+    for match in GIT_PUSH_RE.finditer(command):
+        segment = _segment(command, match.start())
+        if HELP_RE.search(segment) or PUSH_DRY_RUN_RE.search(segment):
+            continue
+        candidates.append((match.start(), "push", _token(match, 1)))
+    for match in GH_PR_RE.finditer(command):
+        segment = _segment(command, match.start())
+        if HELP_RE.search(segment) or PR_DRAFT_RE.search(segment):
+            continue
+        if match.group(1) == "ready" and PR_UNDO_RE.search(segment):
+            continue
+        candidates.append((match.start(), "pr-create" if match.group(1) == "create" else "pr-ready", None))
+    if not candidates:
+        return None
+    index, trigger, dir_token = min(candidates, key=lambda candidate: candidate[0])
+    last_cd = None
+    for match in CD_RE.finditer(command):
+        if match.start() >= index:
+            break
+        last_cd = _token(match, 1)
+    return trigger, last_cd if last_cd is not None else dir_token
+
+
+def resolve_workdir(dir_token: str | None, cwd: str) -> str:
+    if not dir_token:
+        return os.path.abspath(cwd)
+    if dir_token == "~" or dir_token.startswith("~/"):
+        dir_token = str(Path.home()) + dir_token[1:]
+    return os.path.normpath(os.path.join(cwd, dir_token))
+
+
+def debounced(root: Path, key: str, now: float | None = None) -> bool:
+    """Record `key` and report whether it already fired within the debounce window."""
+    now = time.time() if now is None else now
+    path = root / "debounce.json"
+    with open(root / "debounce.lock", "a", encoding="utf-8") as lock:
+        os.chmod(lock.fileno(), 0o600)
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        try:
+            recent = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(recent, dict):
+                recent = {}
+        except (OSError, ValueError):
+            recent = {}
+        recent = {name: at for name, at in recent.items() if isinstance(at, (int, float)) and now - at < DEBOUNCE_SECONDS}
+        hit = key in recent
+        if not hit:
+            recent[key] = now
+            write_json(path, recent)
+        return hit
+
+
+def dispatch(harness: str, command: str, cwd: str, agent_kind: str) -> bool:
+    """Start an observation when `command` is a trigger; return whether one started."""
+    if os.environ.get("PR_GATE_DISABLE") == "1":
+        return False
+    parsed = parse_trigger(command)
+    if parsed is None:
+        return False
+    trigger, dir_token = parsed
+    workdir = resolve_workdir(dir_token, cwd)
+    if debounced(state_root(), f"{workdir}\0{trigger}"):
+        return False
+    os.environ["PR_GATE_HARNESS"] = harness
+    os.environ["PR_GATE_AGENT_KIND"] = agent_kind
+    os.environ["PR_GATE_TRIGGER_TS"] = dt.datetime.now(dt.timezone.utc).isoformat()
+    observe(argparse.Namespace(cwd=workdir, trigger=trigger, git_dir_hint=None, command=command[:COMMAND_LIMIT]))
+    return True
+
+
+def hook_event(harness: str, payload: object) -> tuple[str, str, str] | None:
+    """Normalize one harness's post-tool hook payload to (command, cwd, agent_kind)."""
+    if not isinstance(payload, dict):
+        return None
+    if harness in ("claude", "codex"):
+        # Claude Code fires PostToolUse only for successful calls; Codex also fires
+        # after a nonzero exit, which the worker later records as push_not_observed.
+        tool_input = payload.get("tool_input")
+        if payload.get("tool_name") != "Bash" or not isinstance(tool_input, dict):
+            return None
+        command = tool_input.get("command")
+        if isinstance(command, list) and all(isinstance(part, str) for part in command):
+            # An argv such as ["bash", "-lc", script] carries the shell text last.
+            command = command[-1] if len(command) >= 3 and command[-2] in ("-c", "-lc") else shlex.join(command)
+        agent_kind = "subagent" if payload.get("agent_id") else "main"
+        cwd = payload.get("cwd")
+    elif harness == "agy":
+        call = payload.get("toolCall")
+        if payload.get("error") or not isinstance(call, dict) or call.get("name") != "run_command":
+            return None
+        args = call.get("args") if isinstance(call.get("args"), dict) else {}
+        command = args.get("CommandLine")
+        cwd = args.get("Cwd") or payload.get("cwd")
+        # agy hook payloads do not say whether a subagent made the call.
+        agent_kind = "unknown"
+    else:
+        return None
+    if not isinstance(command, str) or not command or not isinstance(cwd, str) or not cwd:
+        return None
+    return command, cwd, agent_kind
+
+
+def hook(args: argparse.Namespace) -> int:
+    # A hook must never fail or block the agent's tool call, whatever it receives.
+    try:
+        event = hook_event(args.harness, json.loads(sys.stdin.read(HOOK_STDIN_LIMIT) or "null"))
+        if event is not None:
+            dispatch(args.harness, *event)
+    except Exception as error:
+        print(f"pr-gate hook: {error}", file=sys.stderr)
+    if args.harness == "agy":
+        print("{}")
+    return 0
+
+
+def trigger_command(args: argparse.Namespace) -> int:
+    try:
+        dispatch(args.harness, args.command, args.cwd, args.agent_kind)
+    except Exception as error:
+        print(f"pr-gate trigger: {error}", file=sys.stderr)
+    return 0
+
+
 def observe(args: argparse.Namespace) -> int:
     trigger_ts = os.environ.get("PR_GATE_TRIGGER_TS", "")
     try:
@@ -698,6 +860,15 @@ def parser() -> argparse.ArgumentParser:
     report_parser.set_defaults(handler=report)
     status_parser = commands.add_parser("status")
     status_parser.set_defaults(handler=status)
+    trigger_parser = commands.add_parser("trigger", help="observe a shell command an agent just ran")
+    trigger_parser.add_argument("--harness", choices=HARNESSES, required=True)
+    trigger_parser.add_argument("--cwd", required=True)
+    trigger_parser.add_argument("--command", required=True)
+    trigger_parser.add_argument("--agent-kind", default="unknown")
+    trigger_parser.set_defaults(handler=trigger_command)
+    hook_parser = commands.add_parser("hook", help="observe an agent harness post-tool hook payload on stdin")
+    hook_parser.add_argument("--harness", choices=("claude", "codex", "agy"), required=True)
+    hook_parser.set_defaults(handler=hook)
     return root
 
 

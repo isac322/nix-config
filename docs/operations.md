@@ -349,9 +349,22 @@ pr-gate status
 pr-gate report --since 2026-11-17  # YYYY-MM-DD (UTC)
 ```
 
-확장 소스는 `home/files/omp-pr-gate-observer.ts`이고
-`home/agent-instructions.nix`가 `~/.omp/agent/extensions/pr-gate-observer.ts`로
-배포한다. 상태는 `${XDG_STATE_HOME:-~/.local/state}/pr-gate/` 아래에 저장된다.
+네 하네스가 모두 같은 trigger 규칙을 쓴다. trigger 파싱, 5초 debounce,
+`PR_GATE_DISABLE`은 `pr-gate` 한 곳에 있고, 각 하네스는 성공한 명령을 넘기기만 한다.
+
+| 하네스 | 연결 | 선언 위치 |
+| --- | --- | --- |
+| OMP | 확장이 bash·eval 결과를 `pr-gate trigger --harness omp`로 전달 | `home/files/omp-pr-gate-observer.ts` → `~/.omp/agent/extensions/pr-gate-observer.ts` |
+| Claude Code | `PostToolUse`(Bash) hook이 `pr-gate hook --harness claude` 실행 | `home/common.nix`의 `claudeSettings.hooks` → `~/.claude/settings.json` |
+| Codex | 시스템 layer `PostToolUse`(Bash) hook이 `pr-gate hook --harness codex` 실행 | `modules/common.nix`의 `codexSystemConfig.hooks` → `/etc/codex/config.toml` |
+| agy | 플러그인 `PostToolUse`(run_command) hook이 `pr-gate hook --harness agy` 실행 | `home/agy.nix`의 `hooksConfig` → `~/.gemini/config/plugins/nix-managed/hooks.json` |
+
+Claude Code와 agy는 실패한 명령에는 hook을 넘기지 않는다. Codex는 실패한 명령에도
+hook을 실행하고 종료 코드를 주지 않으므로, 실패한 push는 worker가 최대 120초 기다린 뒤
+`push_not_observed`로 기록한다. 각 observation row의 `harness`와 `agent_kind`가
+어느 하네스와 agent에서 왔는지 나타낸다.
+
+상태는 `${XDG_STATE_HOME:-~/.local/state}/pr-gate/` 아래에 저장된다.
 `observations.jsonl`에는 trigger별 요약이, `runs/<owner>__<repo>/<pr>/<head_sha>/`
 아래에는 packet·events·result·stderr가 기록된다. `pr-gate report`는 이 기록과
 같은 SHA의 `haechibot` review를 결합한다. 이 도구는 GitHub에 write하지 않는다.
@@ -364,10 +377,10 @@ blind adjudication에서 `haechibot`도 같은 mechanism을 지적한 run이 num
 
 다음 경로는 현재 범위 밖이므로 자동 관찰하지 않는다: `gh api`를 통한 push,
 `git push`를 감싼 Makefile·script, git alias, 다른 프로그램 내부의 nested shell,
-eval prelude의 host call. `eval` tool 자체의 code text는 위 trigger 규칙으로
+OMP eval prelude의 host call. OMP `eval` tool 자체의 code text는 위 trigger 규칙으로
 regex-scan한다.
 
-관찰을 끄려면 OMP를 시작하는 환경에 다음을 지정한다.
+관찰을 끄려면 하네스를 시작하는 환경에 다음을 지정한다.
 
 ```sh
 export PR_GATE_DISABLE=1
