@@ -19,38 +19,10 @@
   lib,
   gws,
   writeShellApplication,
-  runCommandCC,
+  keychain-unlocked,
   coreutils,
 }:
 
-let
-  # Reports whether the login keychain is unlocked without ever prompting.
-  # Reading an item from a locked keychain draws an unlock dialog, and so does
-  # `security show-keychain-info`; SecKeychainGetStatus does not.
-  keychainUnlocked = runCommandCC "keychain-unlocked" { } ''
-    mkdir -p $out/bin
-    cat > main.c <<'EOF'
-    #include <Security/Security.h>
-    #include <stdio.h>
-
-    int main(int argc, char **argv) {
-      SecKeychainRef keychain = NULL;
-      SecKeychainStatus status = 0;
-      if (argc != 2) {
-        fprintf(stderr, "usage: keychain-unlocked KEYCHAIN\n");
-        return 2;
-      }
-      if (SecKeychainOpen(argv[1], &keychain) != errSecSuccess) return 2;
-      OSStatus rc = SecKeychainGetStatus(keychain, &status);
-      CFRelease(keychain);
-      if (rc != errSecSuccess) return 2;
-      return (status & kSecUnlockStateStatus) ? 0 : 1;
-    }
-    EOF
-    $CC -Wno-deprecated-declarations -framework Security -framework CoreFoundation \
-      -o $out/bin/keychain-unlocked main.c
-  '';
-in
 writeShellApplication {
   name = "gws";
   runtimeInputs = [ coreutils ];
@@ -141,7 +113,7 @@ writeShellApplication {
     fi
 
     unlocked=0
-    ${keychainUnlocked}/bin/keychain-unlocked "$keychain" || unlocked=$?
+    ${lib.getExe keychain-unlocked} "$keychain" || unlocked=$?
     case $unlocked in
       0) ;;
       1) die "the login keychain is locked; unlock it and retry" ;;

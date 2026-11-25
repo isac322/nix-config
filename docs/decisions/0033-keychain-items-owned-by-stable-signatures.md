@@ -10,6 +10,13 @@
   하나로 고정한다. macOS 의 `gws` 는 래퍼다(`pkgs/gws/package.nix`). 래퍼가
   `/usr/bin/security` 로 키를 읽어 FIFO 로 넘기고, gws 는 파일 백엔드로 그 FIFO 를
   읽을 뿐 키체인을 직접 부르지 않는다. 모든 맥에서 같다.
+- `supabase`: 같은 방식이다. 상류 릴리스 바이너리가 ad-hoc 서명이라 릴리스마다
+  cdhash 가 바뀐다. macOS 의 `supabase` 는 래퍼다(`pkgs/supabase-cli/keychain.nix`).
+  CLI 는 항상 `SUPABASE_NO_KEYRING=1` 로 돌고, 래퍼가 `/usr/bin/security` 로 읽은
+  토큰을 `SUPABASE_ACCESS_TOKEN` 으로 넘긴다. `login` 은 CLI 가 파일에 쓴 토큰을
+  키체인 항목(`Supabase CLI`, 계정 = 프로필 이름)으로 옮기고 파일을 지운다. `logout`
+  은 CLI 의 확인·파일 삭제 뒤 같은 항목을 지운다. 기본 제공 프로필만 계정 이름을
+  알 수 있어 YAML 프로필 파일에는 토큰을 넣지 않는다.
 - `ntn`: 그대로 둔다. Developer ID(`LBQJ96FQ8D`) 로 서명돼 있어 버전이 바뀌어도
   같은 바이너리로 인정된다.
 
@@ -23,6 +30,14 @@ displaying keychain prompt for /nix/store/5gpq…-git-2.56.0/…/git-credential-
   ACL: /usr/bin/security, …-git-2.55.0/…/git-credential-osxkeychain [cdhash H"7276…"], …
 displaying keychain prompt for /nix/store/d7dv…-gws-0.22.5/bin/gws
   ACL: /nix/store/f057…-gws-0.22.5/bin/gws [cdhash H"3b37…"]
+```
+
+supabase 3.3.0 도 같은 로그를 남겼다. 항목은 이미 `/usr/bin/security` 를 믿었지만,
+CLI 가 스스로 읽으므로 그 믿음이 쓰이지 않았다:
+
+```
+displaying keychain prompt for /nix/store/4nvs…-supabase-cli-3.3.0/bin/supabase
+  ACL: /usr/bin/security, …-supabase-cli-3.2.0/bin/supabase [cdhash H"8011…"]
 ```
 
 ## 관문이 둘이다
@@ -67,7 +82,9 @@ gws 는 키를 스스로 Security.framework 로 읽으므로 래퍼를 둔다:
    읽은 뒤 이 경로를 지우고, 링크가 없을 때 파일 모드 gws 는 새 키를 만들어
    기존 자격증명을 못 쓰게 만든다.
 5. 키체인이 잠겨 있으면 읽기 자체가 잠금 해제 창을 띄운다. 그래서 먼저
-   `SecKeychainGetStatus` 로 잠금 여부만 보고, 잠겼으면 창 없이 실패한다.
+   `keychain-unlocked`(`pkgs/keychain-unlocked`, `SecKeychainGetStatus`) 로 잠금
+   여부만 보고, 잠겼으면 창 없이 실패한다. supabase 래퍼는 토큰 없이 실행만 하고
+   알린다.
    `security show-keychain-info` 는 잠긴 키체인에서 창을 띄우므로 쓰지 않는다.
    `gws auth logout` 은 키를 읽지 않으므로 이 확인 없이 바로 넘긴다. 항목이 없거나
    키체인이 잠겨 있어도 로그아웃은 된다.
@@ -89,8 +106,10 @@ gws 는 키를 스스로 Security.framework 로 읽으므로 래퍼를 둔다:
 
 ## 한계
 
-- 래퍼를 거치지 않은 gws(스토어 경로를 직접 실행) 는 여전히 키체인을 직접 읽어
-  창을 띄울 수 있다. PATH 의 `gws` 는 래퍼다.
+- 래퍼를 거치지 않은 gws·supabase(스토어 경로를 직접 실행) 는 여전히 키체인을 직접
+  읽어 창을 띄울 수 있다. PATH 의 `gws`·`supabase` 는 래퍼다.
+- supabase 의 `unlink` 는 키체인을 보지 않으므로, 옛 Go CLI 가 프로젝트별로 남긴
+  `Supabase CLI` 항목이 있다면 지우지 않는다. `logout` 은 지운다.
 - 키체인 항목이 다른 32바이트 키로 바뀌면 래퍼는 알아채지 못하고, gws 가 복호화에
   실패해 `credentials.enc` 를 지운다. 래퍼는 항목이 없을 때 키를 만들지 않으므로
   사람이 항목을 지우거나 바꾸지 않는 한 생기지 않는다.

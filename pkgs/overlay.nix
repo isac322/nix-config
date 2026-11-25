@@ -67,9 +67,19 @@ let
       herdr-app = final.callPackage ./herdr-app/package.nix {
         manifestFile = releaseManifests.herdrApp;
       };
-      supabase-cli = final.callPackage ./supabase-cli/package.nix {
-        manifestFile = releaseManifests.supabase;
-      };
+      # On macOS supabase reads its keychain token only through Apple-signed
+      # /usr/bin/security, so a new release never draws a keychain dialog
+      # (docs/decisions/0033). Linux keeps the upstream binary.
+      supabase-cli =
+        let
+          unwrapped = final.callPackage ./supabase-cli/package.nix {
+            manifestFile = releaseManifests.supabase;
+          };
+        in
+        if final.stdenv.hostPlatform.isDarwin then
+          final.callPackage ./supabase-cli/keychain.nix { supabase-cli = unwrapped; }
+        else
+          unwrapped;
       t3code-cli = final.callPackage ./t3code-cli/package.nix {
         manifestFile = releaseManifests.t3code;
       };
@@ -111,6 +121,7 @@ let
       # repository's programs live.
       pinentry-keychain = final.callPackage ./pinentry-keychain/package.nix { };
       keychain-totp = final.callPackage ./keychain-totp/package.nix { };
+      keychain-unlocked = final.callPackage ./keychain-unlocked/package.nix { };
 
       # Backport Vim 9.2.1170's GTK2 image fix only across its affected releases.
       # vim-full's native overrideAttrs also rebinds Home Manager's .customize.

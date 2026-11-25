@@ -671,7 +671,7 @@ attribute를 한곳에 모은다. 따라서 모듈은 이 디렉터리의 경로
 | `sentry` | GitHub release binary | getsentry/cli의 현재 platform binary |
 | `slack-cli` | GitHub release binary | nixpkgs의 동명 attribute를 갈아끼운다 |
 | `ntn` | ntn.dev release archive | Notion CLI; 상류 설치 스크립트와 같은 target별 archive·`.sha256` |
-| `supabase-cli` | GitHub release binary | nixpkgs보다 최신인 상류 릴리스를 따라간다. 바이너리 이름은 `supabase` |
+| `supabase-cli` | GitHub release binary | nixpkgs보다 최신인 상류 릴리스를 따라간다. 바이너리 이름은 `supabase`. macOS에서는 토큰을 `/usr/bin/security`로만 읽는 래퍼다(ADR 0033) |
 | `t3code-cli` | GitHub release binary | `pingdotgg/t3code` 최신 안정판의 `t3` CLI 및 웹 클라이언트 번들. nixpkgs Electron 앱 `t3code`와 분리 |
 | `argocd` | GitHub release binary | nixpkgs보다 최신인 Argo CD 릴리스의 공식 CLI 바이너리 |
 | `bun` | GitHub release binary override | 잠긴 nixpkgs보다 최신인 동안만 override |
