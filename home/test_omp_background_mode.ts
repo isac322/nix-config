@@ -5,10 +5,7 @@ import { dirname, join } from "node:path";
 
 mock.module("@oh-my-pi/pi-coding-agent", () => ({}));
 mock.module("@oh-my-pi/pi-coding-agent/config/registry", () => ({ lookup: () => undefined }));
-mock.module("@oh-my-pi/pi-tui", () => ({ Container: class {}, Markdown: class {}, Spacer: class {} }));
-mock.module("@oh-my-pi/pi-tui/theme", () => ({ getMarkdownTheme: () => ({}) }));
-mock.module("@oh-my-pi/pi-tui/tools/ask", () => ({ askToolRenderer: {} }));
-mock.module("@oh-my-pi/pi-tui/tools/wait", () => ({ waitToolRenderer: {} }));
+mock.module("@oh-my-pi/pi-tui", () => ({ jsx: () => ({}) }));
 
 const mod = await import("./files/omp-background-mode.ts");
 const { checkRepoUnswitched, defaultOmpRulesPath, parseManifestSegments } = mod;

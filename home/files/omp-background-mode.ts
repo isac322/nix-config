@@ -16,10 +16,7 @@ import { homedir } from "node:os";
 import { isAbsolute, join, posix } from "node:path";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { lookup } from "@oh-my-pi/pi-coding-agent/config/registry";
-import { type Component, Container, Markdown, Spacer } from "@oh-my-pi/pi-tui";
-import { getMarkdownTheme } from "@oh-my-pi/pi-tui/theme";
-import { askToolRenderer } from "@oh-my-pi/pi-tui/tools/ask";
-import { waitToolRenderer } from "@oh-my-pi/pi-tui/tools/wait";
+import { type JSXNode, jsx } from "@oh-my-pi/pi-tui";
 
 type Profile = {
 	label: string;
@@ -35,8 +32,11 @@ const GROK = "xai-oauth/grok-4.7-build-fast";
 const SONNET = "anthropic/claude-sonnet-5-5";
 const ASTRA = "openai-codex/gpt-6.2-astra";
 const PROC_STREAMS_PATH_RE = /^proc:\/\/[^/]+\/streams(?:\/.*)?$/;
+// Native `wait` idle-window footers (`elapsedReport` in OMP's `tools/wait.ts`) that only ask the
+// agent to wait again or end its turn. A footer naming an agent blocked on the caller is not a
+// poll: looping on it would park both sides.
 const WAIT_POLL_TIMEOUT_RE =
-	/(?:^|\n\n)(?:No job finished|No reply|No service finished) within (?:\d+(?:\.\d+)?s|\d+m); a back-to-back wait allows up to (?:\d+(?:\.\d+)?s|\d+m)\.(?: Read proc:\/\/ for status\.)?$/;
+	/(?:^|\n\n)(?:No job finished|No reply|No message from `[^`\n]+`|No service finished) within [^\n]+?\. Nothing else left\? (?:Call `wait` again right away: it then blocks up to [^\n]+?\.|End your turn: results and messages start your next one\.)(?: Read proc:\/\/ for status\.)?$/;
 const BUILTIN_OMP_TOOLS: Record<string, true> = {
 	read: true,
 	bash: true,
@@ -1038,10 +1038,6 @@ function visibleText(content: unknown): string {
 
 export default function (pi: ExtensionAPI) {
 	const scope = pi.pi.settings;
-	const completeScrollback = lookup("tui.completeScrollback");
-	if (completeScrollback) {
-		completeScrollback.override(scope, true);
-	}
 
 	function applyProfileOverrides(
 		nextMode: string | undefined,
@@ -1415,11 +1411,6 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	const z = pi.zod;
-	type ToolDescription = Record<string, unknown> & { body?: unknown[] };
-	const askRendererWithDescribe = askToolRenderer as typeof askToolRenderer & {
-		describeCall?: (args: unknown, options?: unknown) => ToolDescription;
-		describeResult?: (result: unknown, options?: unknown, args?: unknown) => ToolDescription;
-	};
 	function extractUnsuppressedBrief(args: unknown): string {
 		const brief =
 			args && typeof args === "object" && "brief" in args && typeof args.brief === "string"
@@ -1478,30 +1469,38 @@ export default function (pi: ExtensionAPI) {
 		}
 		return record;
 	}
-	function describeAskWithBrief(base: ToolDescription, args: unknown): ToolDescription {
+	// OMP renders extension tools through `renderCall`/`renderResult` hooks only; the native ask
+	// presenter is not importable. The call shows the brief above the ask panel, and the merged
+	// result keeps the brief over each question and its answer.
+	function renderAskBrief(args: unknown): JSXNode | undefined {
 		const brief = extractUnsuppressedBrief(args);
-		if (!brief) {
-			return base;
-		}
-		const prevBody = Array.isArray(base.body) ? base.body : [];
-		return {
-			...base,
-			inline: false,
-			open: true,
-			preview: "none",
-			body: [{ k: "md", p: { text: brief } }, ...prevBody],
-		};
+		return brief ? jsx("md", { text: brief }) : undefined;
 	}
-	function renderAskWithBrief(card: Component, args: unknown): Component {
-		const brief = extractUnsuppressedBrief(args);
-		if (!brief) {
-			return card;
+	function askResultMarkdown(result: unknown): string {
+		if (!result || typeof result !== "object") return "";
+		const r = result as {
+			details?: { answers?: unknown; timedOut?: unknown };
+			content?: Array<{ type?: string; text?: string }>;
+		};
+		const lines: string[] = [];
+		for (const entry of Array.isArray(r.details?.answers) ? r.details.answers : []) {
+			if (!entry || typeof entry !== "object") continue;
+			const { question, answer } = entry as { question?: unknown; answer?: unknown };
+			const shown = Array.isArray(answer)
+				? answer.map(String).join(", ")
+				: answer === undefined || answer === null || answer === ""
+					? "(no answer)"
+					: String(answer);
+			lines.push(`- **${String(question ?? "")}**: ${shown}`);
 		}
-		const container = new Container();
-		container.addChild(new Markdown(brief, 1, 0, getMarkdownTheme()));
-		container.addChild(new Spacer(1));
-		container.addChild(card);
-		return container;
+		if (lines.length === 0) {
+			const text = r.content?.find((block) => block?.type === "text" && typeof block.text === "string")?.text;
+			return text?.trim() ?? "";
+		}
+		if (r.details?.timedOut === true) {
+			lines.push("", "_auto-selected after timeout — not a user choice_");
+		}
+		return lines.join("\n");
 	}
 	pi.registerTool({
 		name: "ask",
@@ -1538,100 +1537,24 @@ export default function (pi: ExtensionAPI) {
 				)
 				.min(1),
 		}),
-		describeCall(args: unknown, options: unknown) {
-			return askRendererWithDescribe.describeCall?.(withAskFormHtml(args), options) ?? {};
+		renderCall(args) {
+			return renderAskBrief(args);
 		},
-		describeResult(result: unknown, options: unknown, args: unknown) {
-			const normalizedArgs = withAskFormHtml(args);
-			const base = askRendererWithDescribe.describeResult?.(result, options, normalizedArgs) ?? {};
-			return describeAskWithBrief(base, normalizedArgs);
-		},
-		renderCall(args, options, theme) {
-			const normalizedArgs = withAskFormHtml(args);
-			return askToolRenderer.renderCall(
-				normalizedArgs as Parameters<typeof askToolRenderer.renderCall>[0],
-				options,
-				theme,
-			);
-		},
-		renderResult(result, options, theme, args) {
-			const normalizedArgs = withAskFormHtml(args);
-			const card = askToolRenderer.renderResult(
-				result as Parameters<typeof askToolRenderer.renderResult>[0],
-				options,
-				theme,
-				normalizedArgs as Parameters<typeof askToolRenderer.renderResult>[3],
-			);
-			return renderAskWithBrief(card, normalizedArgs);
+		renderResult(result, _options, _theme, args) {
+			const nodes: JSXNode[] = [];
+			const brief = renderAskBrief(args);
+			if (brief) nodes.push(brief);
+			const answers = askResultMarkdown(result);
+			if (answers) nodes.push(jsx("md", { text: answers }));
+			return nodes.length > 0 ? jsx("col", { gap: "sm", children: nodes }) : undefined;
 		},
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
-			type ScrollbackChatContainer = {
-				children: Component[];
-				insertChildAt: (comp: Component, idx: number) => void;
-				peekFlushBatch: (cols: number) => unknown;
-				peekFinalizedBatch?: (cols: number, maxLiveRows: number) => unknown;
-			};
-			let patchedChat: ScrollbackChatContainer | undefined;
-			const brief = extractUnsuppressedBrief(params);
-			if (brief && ctx.hasUI && typeof ctx.ui?.custom === "function") {
-				await ctx.ui.custom((tui, _theme, _kb, done) => {
-					const tuiObj: unknown = tui;
-					const children =
-						tuiObj && typeof tuiObj === "object" && "children" in tuiObj && Array.isArray(tuiObj.children)
-							? tuiObj.children
-							: undefined;
-					const chat = children?.find(
-						(c): c is ScrollbackChatContainer =>
-							Boolean(
-								c &&
-									typeof c === "object" &&
-									"children" in c &&
-									Array.isArray(c.children) &&
-									"insertChildAt" in c &&
-									typeof c.insertChildAt === "function" &&
-									"peekFlushBatch" in c &&
-									typeof c.peekFlushBatch === "function",
-							),
-					);
-					if (chat) {
-						suppressedBriefs.add(brief);
-						const md = new Markdown(brief, 1, 0, getMarkdownTheme());
-						const unfinIdx = chat.children.findIndex((c: unknown) =>
-							Boolean(
-								c &&
-									typeof c === "object" &&
-									"isTranscriptBlockFinalized" in c &&
-									typeof c.isTranscriptBlockFinalized === "function" &&
-									c.isTranscriptBlockFinalized() === false,
-							),
-						);
-						const askIdx = unfinIdx >= 0 ? unfinIdx : Math.max(0, chat.children.length - 1);
-						chat.insertChildAt(md, askIdx);
-						patchedChat = chat;
-						chat.peekFinalizedBatch = (cols: number) => chat.peekFlushBatch(cols);
-						for (const child of chat.children) {
-							child.invalidate?.();
-						}
-						if (tuiObj && typeof tuiObj === "object" && "requestRender" in tuiObj && typeof tuiObj.requestRender === "function") {
-							tuiObj.requestRender();
-						}
-					}
-					done(undefined);
-					return new Container();
-				});
-			}
 			const { brief: _brief, ...restParams } = params as Record<string, unknown>;
 			const nativeParams = withAskFormHtml(restParams);
-			try {
-				if (typeof ctx.invokeTool === "function") {
-					return await ctx.invokeTool(nativeParams, { signal, onUpdate });
-				}
+			if (typeof ctx.invokeTool !== "function") {
 				throw new Error("Native ask tool is unavailable in this context");
-			} finally {
-				if (patchedChat) {
-					delete patchedChat.peekFinalizedBatch;
-				}
 			}
+			return await ctx.invokeTool(nativeParams, { signal, onUpdate });
 		},
 	} as Parameters<typeof pi.registerTool>[0]);
 
@@ -1702,10 +1625,7 @@ export default function (pi: ExtensionAPI) {
 		parameters: z.object({
 			i: z.string().optional().describe("Capitalized 2-6 word present-participle intent"),
 		}),
-		...waitToolRenderer,
-		describeResult(result, options) {
-			return waitToolRenderer.describeResult(result, options) ?? {};
-		},
+		// No render hooks: OMP draws its generic card for an extension tool that shadows `wait`.
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
 			if (typeof ctx.invokeTool !== "function") {
 				throw new Error("Native wait tool is unavailable in this context");
