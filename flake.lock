@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1795627309,
-        "narHash": "sha256-E1MCZWwToDknWHGz8hmUm8ZEnIFDnOZJcz0TI3mYtTw=",
+        "lastModified": 1795643555,
+        "narHash": "sha256-El9DXXzj24qZMscXE7qyK1efofq/GRzZM1cvnwnzKx8=",
         "ref": "refs/heads/main",
-        "rev": "34ff8b9cc74e390baacf52985425f510b82a9da4",
+        "rev": "50151955a82926fc62c95190cd5c5a7fb4b855f6",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -346,16 +346,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1795618549,
-        "narHash": "sha256-irsXSZxVVCEUqmL9lV+XeliXPcafj+U1rsckYP4lg0M=",
+        "lastModified": 1795646831,
+        "narHash": "sha256-mflJ5QNbjclR5FP3VhdH7FJApb6Y4e6r7vp6z4jQ34w=",
         "ref": "refs/heads/main",
-        "rev": "0ce72a431c555e4db17520ce8ba70bb07a5747e1",
+        "rev": "9e9dbfefcc517757fe34bc82904e347a5ddbc6c8",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "0ce72a431c555e4db17520ce8ba70bb07a5747e1",
+        "rev": "9e9dbfefcc517757fe34bc82904e347a5ddbc6c8",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
