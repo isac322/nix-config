@@ -19,7 +19,11 @@ let
     enable = false;
     apiPort = 9377;
   } config;
-  toCodexStdioMcp = server: builtins.removeAttrs server [ "type" ];
+  # Codex asks before every MCP tool call by default, and a non-interactive run
+  # or a background subagent cannot answer, so the call fails. Every other
+  # harness here runs these tools without a prompt; Codex does too.
+  toCodexStdioMcp =
+    server: builtins.removeAttrs server [ "type" ] // { default_tools_approval_mode = "approve"; };
 
   # Static machine-wide Codex configuration in /etc/codex/config.toml (Codex's
   # `system` layer, lower precedence than ~/.codex/config.toml `user` overrides
