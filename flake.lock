@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1795604171,
-        "narHash": "sha256-ZllIS9i+ogdb37u67Wm7g0IcM1PmJWkzodGOqea4g2I=",
+        "lastModified": 1795609294,
+        "narHash": "sha256-Nwo44UFjfEfBXiMgAqqXgBbFx0iDBh/C6N/2cA6eSn4=",
         "ref": "refs/heads/main",
-        "rev": "f30d7a3e8c4e28a4519bc91c05af8e8debb124c6",
+        "rev": "a8604532fd64eb19de50bbbd500f491d1d674d3a",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
