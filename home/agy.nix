@@ -130,12 +130,16 @@ let
     channel = "message";
     askMain = "ask `Main`, the agent that invoked you, through `send_message`";
   };
+  # `flash` keeps the browser workflow on a fast model, as in the other harnesses;
+  # agy 1.5.13 and later resolve it to Gemini 4 Hydrogen (High) rather than the
+  # calling agent's heavier model that `inherit` would use.
   browserAgent =
     server:
     pkgs.writeText "agy-browser-agent.md" ''
       ---
       name: browser
       description: ${browserAgentSource.description}
+      model: flash
       subagent: true
       mainAgent: false
       inheritMcp: false
