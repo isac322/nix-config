@@ -93,22 +93,6 @@ let
           }
         ];
       };
-      # Tool events need a matcher group; the local PR gate observes successful
-      # pushes and PR transitions and `pr-gate hook` prints the `{}` agy expects.
-      pr-gate = {
-        PostToolUse = [
-          {
-            matcher = "run_command";
-            hooks = [
-              {
-                type = "command";
-                command = "${lib.getExe pkgs.pr-gate} hook --harness agy";
-                timeout = 10;
-              }
-            ];
-          }
-        ];
-      };
     }
   );
 
@@ -116,7 +100,7 @@ let
     builtins.toJSON {
       name = pluginName;
       displayName = "Nix-managed agent harness";
-      description = "Rules, skills, MCP servers, Hindsight memory, the local PR gate and the Camofox browser subagent from /etc/nix-darwin.";
+      description = "Rules, skills, MCP servers, Hindsight memory and the Camofox browser subagent from /etc/nix-darwin.";
     }
   );
 

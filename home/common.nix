@@ -345,8 +345,8 @@ let
       '';
 
   # Claude Code reads one user-level settings file on every host. Keep only the
-  # explicitly shared UI, safety, and observation controls here: machine-local
-  # hooks, credentials, marketplaces and model selection remain outside this file.
+  # explicitly shared UI and safety controls here: machine-local hooks,
+  # credentials, marketplaces and model selection remain outside this file.
   claudeSettings = {
     "$schema" = "https://json.schemastore.org/claude-code-settings.json";
     statusLine = {
@@ -364,21 +364,6 @@ let
     tui = "fullscreen";
     skipDangerousModePermissionPrompt = true;
     permissions.defaultMode = "bypassPermissions";
-    # The local PR gate observes successful pushes and PR transitions from every
-    # agent harness; `pr-gate hook` returns at once and never blocks the call.
-    hooks.PostToolUse = [
-      {
-        matcher = "Bash";
-        hooks = [
-          {
-            type = "command";
-            command = "${lib.getExe pkgs.pr-gate} hook --harness claude";
-            timeout = 10;
-            async = true;
-          }
-        ];
-      }
-    ];
   };
 
   # The package exposes versions from each flake-locked upstream manifest, so
@@ -712,9 +697,6 @@ print(f"codex-migrate-legacy-mcp: removed legacy /nix/store MCP entries {legacy}
 
     # Read-only, deadline-bounded GitHub PR waits shared by all agent harnesses.
     pkgs.github-pr-wait
-
-    # Observe-only local review gate; it never blocks or mutates the triggering tool.
-    pkgs.pr-gate
 
     # BearDrive's CLI is useful on every node, but joining a project is mutable
     # per-user state: `bdrive init` selects a folder and hub, authenticates, and

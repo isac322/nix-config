@@ -295,12 +295,6 @@ in
     force = true;
   };
 
-  # Observe review-bound pushes and PR transitions without blocking the agent.
-  home.file.".omp/agent/extensions/pr-gate-observer.ts" = {
-    source = ./files/omp-pr-gate-observer.ts;
-    force = true;
-  };
-
   # OMP reads this dotenv itself, so the Vertex settings reach OMP without
   # entering every shell. Vertex serves only the Gemini models the GCP project
   # holds Provisioned Throughput for (`google-vertex/...` in the config above);

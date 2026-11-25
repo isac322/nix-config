@@ -288,7 +288,6 @@
             beardrive
             jevify-writing
             github-pr-wait
-            pr-gate
             ntn
             herdr-core
             slack-cli

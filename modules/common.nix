@@ -93,23 +93,6 @@ let
         }
       );
     };
-
-    # The system layer's hooks count as managed, so Codex runs them without a
-    # per-hook trust review and combines them with ~/.codex/hooks.json. The local
-    # PR gate observes pushes and PR transitions; `pr-gate hook` returns at once.
-    hooks.PostToolUse = [
-      {
-        matcher = "^Bash$";
-        hooks = [
-          {
-            type = "command";
-            command = "${lib.getExe pkgs.pr-gate} hook --harness codex";
-            timeout = 10;
-            async = true;
-          }
-        ];
-      }
-    ];
   };
 in
 {
