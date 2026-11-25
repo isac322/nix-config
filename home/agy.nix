@@ -123,26 +123,19 @@ let
   # The OMP browser agent's procedure, with its tool names translated. In agy
   # the Camofox tools keep their MCP names, `run_command` replaces `bash`, and
   # the invoking agent is reached with `send_message`.
-  ompBrowserAgent = builtins.readFile ./files/agent-instructions/agents/browser.md;
-  browserProcedure =
-    lib.replaceStrings
-      [
-        "mcp__camofox_"
-        "`bash`"
-        "ask `Main` through `hub` with `await: true` and `timeoutMs: 120000`"
-      ]
-      [
-        "camofox_"
-        "`run_command`"
-        "ask `Main`, the agent that invoked you, through `send_message`"
-      ]
-      (lib.concatStringsSep "\n---\n" (lib.drop 1 (lib.splitString "\n---\n" ompBrowserAgent)));
+  browserAgentSource = import ../lib/browser-agent.nix { inherit lib; };
+  browserProcedure = browserAgentSource.procedure {
+    camofoxPrefix = "camofox_";
+    shell = "`run_command`";
+    channel = "message";
+    askMain = "ask `Main`, the agent that invoked you, through `send_message`";
+  };
   browserAgent =
     server:
     pkgs.writeText "agy-browser-agent.md" ''
       ---
       name: browser
-      description: Complete interactive Camofox web workflows end to end; use for dynamic sites, UI interaction, and grounded extraction, not ordinary informational web search.
+      description: ${browserAgentSource.description}
       subagent: true
       mainAgent: false
       inheritMcp: false
@@ -154,7 +147,7 @@ let
           env: ${builtins.toJSON (server.env or { })}
       ---
       # browser
-      ${lib.removePrefix "\n" browserProcedure}'';
+      ${browserProcedure}'';
 
   pluginFiles =
     cfg.pluginFiles

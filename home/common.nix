@@ -398,6 +398,8 @@ let
     }) ompPlugins;
     settings = { };
   };
+
+  browserAgentSource = import ../lib/browser-agent.nix { inherit lib; };
 in
 {
   imports = [
@@ -1000,6 +1002,47 @@ if isinstance(mcp, dict):
     # decides what is *not* installed — a plugin dropped from the set above
     # leaves omp on the next switch rather than lingering.
     ".omp/plugins/omp-plugins.lock.json".text = builtins.toJSON ompPluginsLock;
+  }
+  # Claude Code and Codex reach Camofox from the main agent too, but delegate
+  # browser workflows to these subagents on a faster model, the way OMP and agy
+  # do. Both carry the OMP procedure with its tool names translated.
+  // lib.optionalAttrs camofoxCfg.enable {
+    ".claude/agents/browser.md" = {
+      text = ''
+        ---
+        name: browser
+        description: ${browserAgentSource.description}
+        model: sonnet
+        effort: medium
+        tools: ${
+          lib.concatStringsSep ", " (
+            [ "Bash" ] ++ map (tool: "mcp__camofox__${tool}") browserAgentSource.camofoxTools
+          )
+        }
+        ---
+        ${browserAgentSource.procedure {
+          camofoxPrefix = "mcp__camofox__camofox_";
+          shell = "`Bash`";
+          channel = "resume";
+        }}'';
+      force = true;
+    };
+
+    ".codex/agents/browser.toml" = {
+      source = tomlFormat.generate "codex-browser-agent.toml" {
+        name = "browser";
+        inherit (browserAgentSource) description;
+        # Terra is the Codex model built for visual understanding and computer use.
+        model = "gpt-6.1-terra";
+        model_reasoning_effort = "low";
+        developer_instructions = browserAgentSource.procedure {
+          camofoxPrefix = "camofox_";
+          shell = "the shell";
+          channel = "resume";
+        };
+      };
+      force = true;
+    };
   }
   // builtins.listToAttrs (
     map (name: {
