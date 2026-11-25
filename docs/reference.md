@@ -359,8 +359,23 @@ agy는 `~/.gemini/config/plugins/nix-managed/` plugin 하나로 받는다
 skill을 보고, rule로 들어간 policy skill만 `exclude`로 뺀다. MCP는
 Claude Code와 같은 목록에 Hindsight bridge를 더한다. Camofox는 `browser` subagent의
 frontmatter `mcpServers`에만 있어 main agent는 browser 도구를 갖지 않는다. 이
-subagent의 절차는 OMP `agents/browser.md`에서 도구 이름만 바꿔 생성한다. agy는
+subagent는 `model: flash`(agy 1.5.13 이후 Gemini 4 Hydrogen High)로 실행한다. agy는
 plugin 밖을 가리키는 symlink를 거부하므로 activation이 tree를 복사한다.
+
+`browser` subagent는 네 하네스 모두에 있다. 절차는 OMP `agents/browser.md` 하나에서
+`lib/browser-agent.nix`가 하네스별 도구 이름과 부모 연락 방식만 바꿔 생성한다.
+
+| 하네스 | 위치 | 모델 |
+| --- | --- | --- |
+| OMP | `~/.omp/agent/agents/browser.md` | `@browser` 역할(Sonnet 5.5 medium, 대체 Terra 6.1 low) |
+| Claude Code | `~/.claude/agents/browser.md` | `sonnet`, effort `medium` |
+| Codex | `~/.codex/agents/browser.toml` | `gpt-6.1-terra`, effort `low` |
+| agy | plugin `agents/browser/agent.md` | `flash` |
+
+Codex는 agent 파일을 `O_NOFOLLOW`로 열어 symlink면 "agent type is currently not
+available"로 실패하므로, `codexBrowserAgent` activation이 표식 줄을 단 복사본을 설치한다.
+Claude Code와 Codex의 main agent는 Camofox MCP를 직접 갖지만, 지침이 browser 작업을
+이 subagent에 맡기게 한다.
 
 CLI 사용자 설정(`~/.gemini/antigravity-cli/settings.json`)은 `home/agy.nix`에서
 Home Manager의 `programs.antigravity-cli`(`mutableSettings = true`)로 병합 관리한다.
