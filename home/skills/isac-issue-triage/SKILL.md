@@ -12,7 +12,7 @@ description: Use when judging GitHub issues end to end — for defects, deduplic
 - 재현·판정 분류·세 코드 상태 비교·수정 출처·증거 등급: `issue-validation` 스킬을 단계로 호출한다. 규칙을 여기서 다시 쓰지 않는다.
 - 인과 그래프·반사실 검증·extent-of-condition sweep: `five-whys-root-cause-analysis` 스킬.
 - 독립 조사·상호 반박·합의·판정 어휘: `isac-multi-agent-consensus` 스킬.
-- 사용자에게 묻는 형식: `isac-decision-brief` 스킬.
+- 사용자 승인 요청은 전역 가드가 소유한다.
 - 모든 GitHub 쓰기(게시/초안 모드 판별, 영어·문체, 위생 처리, 실행 확인과 추론 구분, 댓글 제자리 수정 vs 새 댓글, 게시 전 중복 확인, 라벨 조회·생성 메커닉, 게시 주체): `isac-github-publishing` 스킬.
 - 인계: `isac-live-qa`가 등록한 이슈를 받는다. `isac-issue-to-pr`로 넘기는 조건은 우리 코드 결함(TRI-22) ∧ 열린 PR 처리(TRI-42) ∧ `triage:fix-direction-decided`(또는 사용자 직접 지시)이거나, 사용자가 승인한 제안(TRI-54)이다. 머지로 인한 이슈 종결과 머지 후 상태 댓글은 `isac-issue-to-pr` 소관이다.
 - 전역 가드 `task-intent-boundary`, `application-code-change-approval`, `destructive-operations`, `verification`, `guardrails`가 우선한다.
@@ -46,7 +46,7 @@ description: Use when judging GitHub issues end to end — for defects, deduplic
 - **TRI-09** [U] 재현이 안 되면 멈춘다. 시도한 버전·환경·절차와 관찰을 댓글로 남기고 `repro:not-reproduced`(조건이 없어 결론이 안 나면 `repro:blocked`)를 붙인다. 원인 단정이나 수정 방향은 쓰지 않는다. "버그 아님"이나 제보자 반증으로 쓰지 않고 이슈를 열어 둔다.
 - **TRI-43** 재현이 안 된 이슈에는 제보자에게 관찰 대상 상태를 바꾸지 않는 읽기 전용 진단 명령을 요청하고 `triage:needs-info`를 붙인다.
 - **TRI-10** 이미 실행된 증거(CI 실패 로그, 기록된 재현 실행)는 재실행 없이 증거로 쓴다. 제보자의 글·로그·스택 트레이스, 이슈 본문의 file:line 용의자, 이전 에이전트의 주장은 검증할 가설일 뿐이다. 제보자의 후속 댓글은 그가 실제로 실행한 범위만큼만 해석한다.
-- **TRI-11** [U] 운영·배포 환경 로그가 증거일 때 주 로그에 흔적이 없어도 추측으로 메우지 않고 `isac-decision-brief`의 대체 경로·자격증명 블로커 절차(DBR-18)를 따른다.
+- **TRI-11** [U] 운영·배포 환경 로그가 증거일 때 주 로그에 흔적이 없어도 추측으로 메우지 않고, 대체 경로를 먼저 쓰고 그래도 막히면 시도한 자격증명 위치와 필요한 접근을 적어 요청한다.
 
 ## 3. 판정
 
@@ -71,7 +71,7 @@ description: Use when judging GitHub issues end to end — for defects, deduplic
 
 - **TRI-24** [U] 분석 댓글에는 증상 패치가 아닌 근본 수정 방향을 적는다.
 - **TRI-44** 수정 방향의 기본 구성: 입증된 불변식을 복구하는 가장 작은 안전한 시스템적 변경, 누락된 회귀 테스트가 단언해야 할 관찰 가능한 동작, 검토 후 기각한 대안과 이유 한 줄. 제안 범위는 입증된 공통 메커니즘에 맞춘다.
-- **TRI-25** [U] 근본 수정이 구조 변경(`references/design-research.md`의 정의)을 요구하면 `triage:needs-structural-change`를 붙이고, `references/design-research.md` 절차로 선택지를 조사한 뒤 `isac-decision-brief` 형식의 brief를 최종 보고(TRI-52)에 넣어 승인을 받는다(실행 중 멈춰 묻지 않고, 교체는 사용자 답 이후). 승인되면 `references/labels.md`의 ⑤→④ 전이(라벨 교체 + 분석 댓글의 방향 절 제자리 수정)를 한다. 사용자에게 대상 저장소의 maintain·admin 권한이 없으면(`gh api repos/<o>/<r> --jq .permissions`) 사용자 선택은 결정이 아니라 권고다: ⑤를 유지하고 댓글의 `Recommended:` 줄로만 반영한다. 승인이 필요 없는 부분 집합은 그것만으로 완전한 수정일 때만 먼저 방향 확정으로 넘긴다.
+- **TRI-25** [U] 근본 수정이 구조 변경(`references/design-research.md`의 정의)을 요구하면 `triage:needs-structural-change`를 붙이고, `references/design-research.md` 절차로 선택지를 조사한 뒤 최종 보고(TRI-52)에 승인 요청을 넣어 승인을 받는다(실행 중 멈춰 묻지 않고, 교체는 사용자 답 이후). 승인되면 `references/labels.md`의 ⑤→④ 전이(라벨 교체 + 분석 댓글의 방향 절 제자리 수정)를 한다. 사용자에게 대상 저장소의 maintain·admin 권한이 없으면(`gh api repos/<o>/<r> --jq .permissions`) 사용자 선택은 결정이 아니라 권고다: ⑤를 유지하고 댓글의 `Recommended:` 줄로만 반영한다. 승인이 필요 없는 부분 집합은 그것만으로 완전한 수정일 때만 먼저 방향 확정으로 넘긴다.
 - **TRI-47** [U] 구조 변경 방향 조사는 추측으로 세우지 않는다. 실측할 수 있는 것은 실측하고 API 스펙·공식 문서를 조사하며, 비교 대상 프로젝트들이 같은 문제를 어떻게 모델링했는지도 조사한다. 결과 표기(제품 표면 이름)는 `references/design-research.md`.
 - **TRI-48** [U] 호환성·마이그레이션 평가("기존 N개를 새 구조가 다룰 수 있나")는 항목마다 분석 에이전트를 둔다.
 - **TRI-49** 다른 OSS 코드는 작은 순수 함수만 파일 단위로 복사하고 attribution(NOTICE)을 남긴다. fork하거나 아키텍처·컨트롤러를 통째로 복사하지 않는다.
@@ -80,7 +80,7 @@ description: Use when judging GitHub issues end to end — for defects, deduplic
 
 ### 제안 트랙(지목된 기능 요청)
 
-- **TRI-54** [U] 사용자가 지목한 기능 요청·제안·enabler 이슈(판정 FEATURE_REQUEST 포함)는 재현·근본 원인 대신 이 순서로 다룬다: (1) 현재 계약이 그 능력을 약속하지 않는지 확인한다(약속했는데 동작하지 않으면 결함 트랙으로 돌린다) (2) TRI-35 항목을 정리한다 (3) 실현 가능성을 `references/design-research.md` 절차로 조사한다(TRI-47) (4) 방향과 기각한 대안을 `isac-decision-brief` brief로 최종 보고(TRI-52)에 넣어 승인을 받는다. 라벨은 `enhancement`이고 ①·② 축은 쓰지 않는다. 구조 변경을 요구하면 TRI-25대로 ⑤를 붙이고, 사용자가 방향을 승인하면 ④를 붙인다(권한 규칙은 TRI-25와 같다). 댓글은 `references/comment-template.md`의 제안 평가 댓글이다. 승인된 제안은 `isac-issue-to-pr`로 넘긴다.
+- **TRI-54** [U] 사용자가 지목한 기능 요청·제안·enabler 이슈(판정 FEATURE_REQUEST 포함)는 재현·근본 원인 대신 이 순서로 다룬다: (1) 현재 계약이 그 능력을 약속하지 않는지 확인한다(약속했는데 동작하지 않으면 결함 트랙으로 돌린다) (2) TRI-35 항목을 정리한다 (3) 실현 가능성을 `references/design-research.md` 절차로 조사한다(TRI-47) (4) 방향과 기각한 대안을 최종 보고(TRI-52)에 넣어 승인을 받는다. 라벨은 `enhancement`이고 ①·② 축은 쓰지 않는다. 구조 변경을 요구하면 TRI-25대로 ⑤를 붙이고, 사용자가 방향을 승인하면 ④를 붙인다(권한 규칙은 TRI-25와 같다). 댓글은 `references/comment-template.md`의 제안 평가 댓글이다. 승인된 제안은 `isac-issue-to-pr`로 넘긴다.
 - **TRI-35** 기능·enabler 이슈에 대해 물으면 이 순서로 답한다: 도입하는 기능, 장점, 해소되는 블로커, 그 자체가 enabler인지, 핵심 난점·불확실성, 현재 수정 범위에 드는지. 실현 가능성이 입증되지 않았으면 바로 고치자고 하지 않고 feasibility 조사를 먼저 권한다.
 
 ## 6. 라벨

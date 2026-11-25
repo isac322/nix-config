@@ -135,4 +135,4 @@ outputSchema에 맞는 JSON만 반환한다. 산문 설명을 붙이지 않는�
 - `proposal`: `SKILL.md`의 제안 형식(SKC-15)으로 사용자에게 보인다.
 - `already-fixed`: 고쳐진 커밋·문구 요지와 "아직 배포되지 않았을 수 있음(머지 후 switch 필요)"을 보고한다.
 - `out-of-family`: 소유 자산과 instruction-architect 경로를 안내하고 끝낸다.
-- `insufficient-evidence`: 부족한 정보만 한 번 묻는다(질문 형식은 `isac-decision-brief`).
+- `insufficient-evidence`: 부족한 정보만 한 번 묻는다.

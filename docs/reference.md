@@ -288,9 +288,10 @@ macOS의 Developer ID 서명(`Herdr Core.app` 포함)도 그대로 유지한다.
 갱신한다. aarch64-darwin과 x86_64-linux·aarch64-linux를 지원한다.
 
 `home/files/omp-background-mode.ts`는 하위 에이전트의 부모 세션 질문·메시지를
-허용하고, 전달·깨우기 정책은 OMP 내장 동작에 맡긴다. OMP 19.2부터 확장은 내장
-renderer를 가져올 수 없으므로, `ask`는 `renderCall`/`renderResult`가 결정 브리프와
-답변을 pi-tui 노드로 그리고 `wait`는 확장 도구용 기본 카드로 표시된다. 기존 idle 알림
+허용하고, 전달·깨우기 정책은 OMP 내장 동작에 맡긴다. 결정 브리프를 받는 `ask` 교체는
+GPT `/bg` 프로필이 켜진 세션에만 등록하고, 다른 세션은 OMP 기본 `ask`를 쓴다. OMP 19.2부터
+확장은 내장 renderer를 가져올 수 없으므로, 교체한 `ask`는 `renderCall`/`renderResult`가
+결정 브리프와 답변을 pi-tui 노드로 그리고 `wait`는 확장 도구용 기본 카드로 표시된다. 기존 idle 알림
 억제와 비동기 작업·결과 전달 대기 중 `/goal` 자동 재개·완료 차단은 유지한다. GitHub
 대기용 shared observer도 그대로 사용한다.
 

@@ -21,7 +21,6 @@ promo-readiness 계열(E2R·POS·BRD·SITE·DSC·MED)이 쓰는 도구·CLI·라
 | omp `judge` / `judge_batch` / `completion` (eval 커널, "jevify") | `xd://eval/judge` | 고정 루브릭으로 대량 분류한다. 문서 섹션 배치, 과장 주장·계획 기능 노출, AI 문체 흔적, code==docs 동등성, 헤드라인 채점. 판정 결과는 힌트로만 쓰고 사람이 확인한다 | yes | Y | 모델 호출 비용 | E2R, POS, SITE, DSC |
 | subagents: `task`·`scout`·`browser`·`reviewer` | harness | 병렬 조사, 관점별 토론, 빌더, 리뷰(GREEN/BLOCKING) | yes | Y | — | E2R |
 | `isac-multi-agent-consensus` 스킬 | `skill://isac-multi-agent-consensus` | 여러 관점 토론 → 반박 → 합의(consensus.md) | yes | Y | — | E2R |
-| `isac-decision-brief` 스킬 + ask 도구 | `skill://isac-decision-brief` | 선택지와 권고안을 붙여 owner 질문을 묶어서 묻는다 | yes | P | — | E2R |
 | `gh` CLI (REST·GraphQL) | https://cli.github.com | `repo view --json`, 검색 카운트, stargazers, traffic, Pages, PR/CI | yes | Y | MIT, 무료(rate limit) | 전체 |
 | `rg` 금지 패턴 grep | https://github.com/BurntSushi/ripgrep | 변경 서사·세션 흔적·내부 경로·수치 누출 검사 | yes | Y | MIT/Unlicense | DSC, SITE |
 | Python `http.server` / `bunx serve` | stdlib / https://github.com/vercel/serve | owner 미리보기와 steering report 페이지를 LAN 또는 VPN 사설 IP로 서빙한다. 공개 인터넷에는 노출하지 않는다 | yes | Y | 무료 | E2R, SITE, BRD |

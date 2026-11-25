@@ -13,7 +13,7 @@
 - plan/apply 전에 중단 조건을 정하고, drift가 있으면 전체 apply 대신 범위를 좁힌다. 사용자가 알려 준 provider 노이즈는 승인 후 진행한다. 근거 01a095f6 efc2065b.
 - "무관한 drift"라고 주장할 때는 구체적으로 명명하고 다시 검증한다. 근거 01a095f6 ASK@2026-09-16T13:36.
 - plan 결과는 최신 artifact로 확인하고 stale 데이터로 결론 내리지 않는다(사용자 교정). 근거 01a095f6 c4219d73.
-- 시크릿이 필요한 apply의 실행 주체와 권한 문서화는 `isac-decision-brief`가 이미 소유한다. 근거 01a095f6 ASK@2026-09-15T12:13.
+- 시크릿이 필요한 apply의 실행 주체와 권한 문서화는 전역 core credential-request rule을 따른다. 근거 01a095f6 ASK@2026-09-15T12:13.
 
 ## 3. 새 저장소 기본값
 

@@ -32,7 +32,6 @@ description: Use when the user says a skill in this family (isac-* skills) or on
 | `isac-skill-correction` | SKC | 패밀리 | 교정 워크플로, 레지스트리, 학습 규약, 세션 탐색, backlog |
 | `isac-multi-agent-consensus` | MAC | 공유 | 독립 조사 → 상호 반박 → 합의·중재, GREEN 리뷰 루프, 판정 어휘, 규모 게이트 |
 | `isac-github-publishing` | GHP | 공유 | GitHub 쓰기 공통: 영어·위생·중복 확인·댓글 수정 vs 신규·라벨 메커닉·부모만 게시 |
-| `isac-decision-brief` | DBR | 공유 | 사용자에게 묻는 형식과 묻지 않을 것 |
 | `issue-validation` | — | 의존 | 주장 분해, 실행 재현, 판정, fix provenance |
 | `five-whys-root-cause-analysis` | — | 의존 | 증거 기반 인과 그래프 RCA, 교정 조치 적합성 |
 | `receiving-code-review` | — | 의존 | 받은 리뷰의 평가·대응 기법 |
@@ -44,7 +43,7 @@ description: Use when the user says a skill in this family (isac-* skills) or on
 ## 1. 발동과 즉시 반영
 
 - **SKC-01** [U] 발동: 사용자가 레지스트리 스킬의 동작을 지적하며 고치라고 하거나("스킬 고쳐", "스킬에 반영해", "이 지침 때문에…"), 과거 세션·사례를 지목해 스킬 개선을 요청할 때다. 지적만 하고 고치라는 요청이 없으면 발동하지 않는다. 그 경우는 해당 스킬의 교정 루프가 최종 보고에 한 줄로 안내한다.
-- **SKC-02** [U] 발동하면 현재 세션에서 받은 교정을 즉시 현재 작업의 standing constraint로 삼아, 같은 종류의 질문·실수를 반복하지 않는다. 실행 중인 서브에이전트 전파는 `isac-multi-agent-consensus`, 이미 답한 것을 다시 묻지 않는 기준은 `isac-decision-brief`를 따른다. 영속화는 이 스킬의 제안·승인 경로로 한다.
+- **SKC-02** [U] 발동하면 현재 세션에서 받은 교정을 즉시 현재 작업의 standing constraint로 삼아, 같은 종류의 질문·실수를 반복하지 않는다. 실행 중인 서브에이전트 전파는 `isac-multi-agent-consensus`가 맡고, 이미 답한 항목은 현재 세션의 standing constraint로 적용해 다시 묻지 않는다. 영속화는 이 스킬의 제안·승인 경로로 한다.
 - **SKC-35** 교정 절차가 원래 작업을 막지 않게 한다. 분석 서브에이전트는 백그라운드로 돌리고, SKC-15 제안은 원래 작업의 다음 사용자 보고 지점이나 최종 보고에 붙인다. 사용자가 스킬 교정을 요청했거나 교정을 먼저 하라고 했으면 분석이 끝나는 즉시 보인다.
 - **SKC-03** [U] 교정 대상은 레지스트리 표의 스킬뿐이다. 원인이 전역 policy segment, instruction-architect, 기타 스킬이면 고치지 않는다. `out-of-family: <소유 자산>`으로 보고하고 instruction-architect 경로를 안내한다. 의존 스킬 변경안에는 "패밀리 밖 사용처에도 영향"을 부작용으로 적는다.
 
@@ -63,7 +62,7 @@ description: Use when the user says a skill in this family (isac-* skills) or on
 - **SKC-10** 규칙 부재가 원인이면 가장 가까운 단계 스킬에 추가하는 안을 낸다. 새 스킬이 필요하면 제안에서 명시적으로 묻는다.
 - **SKC-11** [U] 반영 위치를 분류해 제안에 넣는다. 위에서부터 먼저 맞는 것을 고른다. 분석 위임문(`references/analysis-brief.md` 7단계)도 이 목록과 순서를 그대로 쓴다. 반영 위치와 케이스 `일반화` 값의 대응은 `references/cases-format.md`에 있다.
   - `memory`: 특정 저장소·대상에만 적용되는 사용자의 작업 방식 선호(예: 한 저장소의 머지·승인 방식). 레지스트리 규칙이 다루는 행동이라도 그 저장소 한정 예외면 여기다. memory에만 두고, 커밋되는 어떤 파일에도 넣지 않는다.
-  - `skill`: 레지스트리 스킬 규칙이 다루는 행동을 저장소와 무관하게 바꾸는 교정(질문·승인 방식이라도 `isac-decision-brief` 등 레지스트리 규칙이 다루면 여기), 또는 저장소와 무관하게 이 패밀리 작업에 적용할 새 행동 규칙 → owner 스킬 정본(nix-config PR). 사용자가 레지스트리 스킬을 고치라고 한 저장소 무관 교정은 memory로 낮추지 않는다.
+  - `skill`: 레지스트리 스킬 규칙이 다루는 행동을 저장소와 무관하게 바꾸는 교정, 또는 저장소와 무관하게 이 패밀리 작업에 적용할 새 행동 규칙 → owner 스킬 정본(nix-config PR). 사용자가 레지스트리 스킬을 고치라고 한 저장소 무관 교정은 memory로 낮추지 않는다.
   - `out-of-family`: 레지스트리 규칙이 다루지 않는 전역 정책 의미(승인·머지·검증 등)나 레지스트리 밖 스킬 → instruction-architect 경로 안내.
   - `repo-harness`: 그 저장소에서 일하는 모든 에이전트가 따라야 할 공유 규칙·암묵지, 비공개 저장소의 사실 → 그 저장소의 자체 지침(AGENTS.md, `.agents/`). nix-config에는 쓰지 않고, 이 스킬은 그 저장소를 수정하지 않고 안내만 한다.
   - `project-reference`: 공개 저장소 자체의 사실·기본값(명령, 경로, 라벨 매핑 등) → owner 스킬 `references/projects/<owner>__<repo>.md`(nix-config PR).
@@ -73,7 +72,7 @@ description: Use when the user says a skill in this family (isac-* skills) or on
 ## 4. 제안과 승인 게이트
 
 - **SKC-14** [U] 사용자가 "스킬 고쳐"라고 했더라도 이 스킬은 제안이 승인되기 전에 어떤 쓰기도 하지 않는다(브랜치, 커밋, memory, GitHub 포함). 전역 `task-intent-boundary`보다 엄격한 이 스킬의 자체 게이트이며, 가드는 그대로 적용된다.
-- **SKC-15** [U] 제안은 `isac-decision-brief` 형식의 한국어 글이다. 짧게 쓰되 현상, 원인 규칙, 변경안, 적용 조건을 빠짐없이 담는다(약 10줄은 기본값). diff 원문은 요청할 때만 보인다.
+- **SKC-15** [U] 제안은 한국어 글이다. 짧게 쓰되 현상, 원인 규칙, 변경안, 적용 조건을 빠짐없이 담는다(약 10줄은 기본값). diff 원문은 요청할 때만 보인다.
 
   ```text
   이해한 문제: <사용자에게 보인 현상, 기대 vs 실제>

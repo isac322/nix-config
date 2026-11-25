@@ -18,7 +18,7 @@ IaC notes (generalized from sessions):
 - Provider quirks happen (e.g. one Pages provider version unset `cname` when `https_enforced` changed in a separate request). After apply, read the live state back; re-apply must report "No changes".
 - Custom-domain order: DNS record (DNS-only, not proxied, for Pages certificate issuance) → Pages `cname` → wait for certificate → `https_enforced` → verify `http→https` 301 and 200 on `/`.
 - Token scopes: extend an existing fine-grained token in place when a permission (e.g. Pages RW) is missing; document each scope in the variable description (DSC-04).
-- The user runs applies that need secrets the agent lacks (`isac-decision-brief` DBR-17).
+- The user runs applies that need secrets the agent lacks; follow the global credential-request rule.
 
 ## 2. README template (evaluator-first)
 

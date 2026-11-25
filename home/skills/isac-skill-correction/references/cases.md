@@ -40,10 +40,10 @@
 - 사용자 기대: 교정은 즉시 현재 작업의 standing constraint가 되고, 사용자가 반영을 요청하면 `isac-skill-correction` 경로(스킬 PR 또는 memory)로 영속화되어 같은 질문·실수가 반복되지 않는다.
 - 실제 행동: 같은 세션에서 이미 승인한 것과 같은 종류의 질문을 반복했다.
 - 원인 분류: missing / 규칙: SKC-02
-- 변경: 신규 → 지적 즉시 현재 작업에 반영하고 교정 절차가 원 작업을 막지 않게 함(전파는 `isac-multi-agent-consensus`, 재질문 기준은 `isac-decision-brief`)
+- 변경: 신규 → 지적 즉시 현재 작업에 반영하고 교정 절차가 원 작업을 막지 않게 함(전파는 `isac-multi-agent-consensus`, 재질문 기준은 현재 세션의 standing constraint)
 - 일반화: global
 - 재발 확인 기준: 교정 뒤 같은 세션과 이후 위임에서 같은 종류의 질문이 나오지 않는다.
-- 비고: 질문 여부 기준 자체는 `isac-decision-brief`가 소유한다. 여기서는 교정을 영속화하지 않은 점만 다룬다.
+- 비고: 현재 세션의 교정은 standing constraint로 적용하며, 여기서는 교정을 영속화하지 않은 점만 다룬다.
 
 ### CASE-20260917-loose-evidence-rule
 - 상태: applied

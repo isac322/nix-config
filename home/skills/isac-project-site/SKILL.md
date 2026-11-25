@@ -9,7 +9,7 @@ description: Use when building, rebuilding, or hardening an open-source project'
 - 태그라인·카테고리 전제·셀링 포인트·anti-claims·키워드·검색 의도 지도·성숙도 문구와 "주장은 `file:line` 근거, 수치는 증거이지 셀링 포인트가 아니다" 정직 규칙 → `isac-positioning`(POS). 단일 원본은 `positioning.yml`(저장소의 기존 규약 경로가 있으면 그것)이다. 사이트는 이를 읽기만 하고 새 주장을 만들지 않는다.
 - 로고·팔레트·favicon·web manifest 아이콘·OG 이미지·브랜드 킷 → `isac-brand-identity`(BRD). 사이트는 킷을 배선만 한다.
 - 스크린샷·녹화·포스터 → `isac-demo-media`(MED). README·GitHub About·레지스트리·code==docs==site parity 규칙 → `isac-discovery-surfaces`(DSC).
-- 소유자 프리뷰·승인 게이트, steering report 페이지, 단계 순서 → `isac-e2e-promo-readiness`(E2R). 질문 형식 → `isac-decision-brief`. 토론 → `isac-multi-agent-consensus`. 공개 텍스트 언어·sanitize → `isac-github-publishing`. 문체 → `writing-clearly-and-concisely`, `humanizer`.
+- 소유자 프리뷰·승인 게이트, steering report 페이지, 단계 순서 → `isac-e2e-promo-readiness`(E2R). 토론 → `isac-multi-agent-consensus`. 공개 텍스트 언어·sanitize → `isac-github-publishing`. 문체 → `writing-clearly-and-concisely`, `humanizer`.
 - 홍보 글쓰기·게시(런치 포스트, 채널 카피, 프레스킷, fact sheet, 아웃리치, 일정)는 범위 밖이다. 이 스킬은 그런 산출물을 만들지 않는다.
 
 `[U]` = 사용자 지시·교정·승인에서 온 규칙(사용자 승인 없이 완화·삭제 불가). 태그 없음 = 바꿀 수 있는 기본값. SEO 세부는 `references/seo-checklist.md`, QA 세부는 `references/site-qa.md`에 있다.
@@ -88,7 +88,7 @@ description: Use when building, rebuilding, or hardening an open-source project'
 - **SITE-44** [U] 프로젝트마다 자기 브랜드 subdomain을 준다. 사용자 계정의 기본 Pages 도메인 경로(`<user>.github.io/<repo>` 또는 그 위의 개인 도메인)를 상속하지 않는다. 도메인은 소유자의 기존 IaC 저장소에서 기존 프로젝트 패턴을 따라 관리한다.
 - **SITE-45** [U] 저장소 Pages 설정·DNS·검증 레코드는 UI 클릭이 아니라 IaC로 한다: repository pages 리소스(`build_type = workflow`, `cname`), 보호 브랜치 전용 `github-pages` environment, `homepage_url`, `<owner>.github.io`로 가는 CNAME(CDN 프록시 끔), Search Console TXT. 기존 리소스는 import하고 `prevent_destroy`를 건다. plan의 import/add/change/destroy 수를 보고하고 독립 리뷰어가 검토한다.
 - **SITE-46** HTTPS 순서: DNS·도메인 검증 apply → 계정·조직 수준 verified domain(takeover 방지) → 사이트 배포 → `cname`이 인증서를 받은 뒤 `https_enforced` → http→https 301 확인. 일부 provider 버전은 `cname`과 `https_enforced`를 따로 설정하면 서로를 해제하므로 한 요청에 함께 설정하고 apply 뒤 Pages API로 두 값을 다시 읽는다. IaC가 관리하지 못한 값은 남은 위험으로 보고한다.
-- **SITE-47** [U] 에이전트가 자기 도구(브라우저 포함)로 할 수 있는 설정은 소유자에게 넘기지 않는다. 예: 기존 fine-grained token에 필요한 권한(Pages, Administration 등)을 브라우저에서 제자리 추가하고 그 범위를 IaC 변수 설명에 적는다. 2차 인증은 소유자가 지정한 방식을 따른다. 비밀값 처리는 `isac-decision-brief`의 DBR-15~18.
+- **SITE-47** [U] 에이전트가 자기 도구(브라우저 포함)로 할 수 있는 설정은 소유자에게 넘기지 않는다. 예: 기존 fine-grained token에 필요한 권한(Pages, Administration 등)을 브라우저에서 제자리 추가하고 그 범위를 IaC 변수 설명에 적는다. 2차 인증은 소유자가 지정한 방식을 따른다. 비밀값 처리는 전역 core credential-request rule을 따른다.
 - **SITE-48** Pages 워크플로: PR에서 타입 검사·빌드, 기본 브랜치에서만 배포, action은 SHA 고정, 최소 권한, `pull_request_target` 금지, path filter는 사이트가 import하는 문서·샘플 디렉터리까지 포함. 빌드 타임 외부 fetch(star 수 등)는 timeout과 선택적 토큰을 두고 실패해도 빌드가 깨지지 않는다.
 
 ## 9. 분석과 Search Console

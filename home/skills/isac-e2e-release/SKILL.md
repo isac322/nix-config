@@ -17,7 +17,7 @@ description: Use when the user wants a versioned release driven end to end and g
   - 커버리지 분모, 제한된 탐색 캠페인, 병렬 케이스, 계약 기록, 격리된 릴리스 전 산출물, 설치 경로 검증: `isac-live-qa` LQA-04, 20, 21, 23, 36, 37. 인용만 하고 LQA run으로 부르지 않는다.
   - 재현, 판정 분류, 태그 대 기본 브랜치 비교, 수정 출처 표현: `issue-validation`의 "Build a minimal, representative reproducer", "Compare three code states and trace provenance", "Verify fixes bidirectionally" 절.
   - 같은 케이스 재실행 + 제한된 탐색의 형태(패턴만): `isac-e2e-qa-to-fix` E2Q-09, E2Q-10.
-  - 질문 형식·묶음·답 재사용: `isac-decision-brief` DBR-01, 04, 06, 12.
+  - 질문과 승인 시점은 전역 task-intent 및 머지 가드를 따른다.
   - 공개 글(PR 본문, 릴리스 노트, 댓글)의 언어와 위생: `isac-github-publishing`(GHP).
   - 사고의 원인 분석: `five-whys-root-cause-analysis`. 선택적 리뷰 지적 처리: `receiving-code-review`.
 - **E2V-50** 서브에이전트 brief와 구현·리뷰 handoff는 `references/briefs.md`에서 역할에 맞는 틀을 복사해 모든 칸을 채워 보낸다. 칸을 채울 수 없으면 보내지 않는다. "읽을 스킬" 칸에는 owner 스킬 이름과 규칙 ID(ID가 없으면 절 제목)만 적고 절차를 옮겨 적지 않는다. "쓰기 경계" 칸에는 요청의 쓰기 경계를 그대로 적는다(전역 task-intent 가드). 채운 brief는 scratch 파일로 남기고 경로를 ledger에 적는다.
@@ -145,7 +145,7 @@ F 수정 분기: 카탈로그(미검증) → 고정 프로토콜 → MAC 판정 
 ## 판정 주체
 
 - **E2V-46** [U] 버전 근거, 각 NO-GO blocker, GO 결정 입력, 수정 판정, 재QA 차이 분류, 릴리스 노트 적합성, 게시 후 공백 분류, 필수 run 실패의 flake 여부, 단계 밖에서 늦게 나온 관찰(실제 문제인지와 분류)은 각각 MAC 아래 여러 에이전트가 정하고 메인 혼자 정하지 않는다. 방법은 MAC-01, 02가, 호출자 책임은 MAC-08이 정한다. 수정 판정은 MAC-05 대량 구성을 따른다. 판정 중에 나온 규약·적용 범위·계약 설계 같은 하위 쟁점과 challenger가 새로 낸 finding도 그 FIX 판정의 일부로 같은 구성으로 다룬다. 2라운드 응답자와 분류 판정 기본 구성은 MAC-05를 따른다. 사용자 기준(E2V-47) 밖의 제품 방향이면 arbiter 대신 NEEDS-USER로 올린다(MAC-12, E2V-24). arbiter 판정이 절차상 흠결이 있으면(잘못된 근거, 판정 주체 수 부족, 합의된 항목 개입) 그 판정을 되돌리지 않고 잘못된 근거를 뺀 채 같은 구성으로 다시 판정한다. NEEDS-USER는 사용자 기준(E2V-47) 밖 결정에만 올린다(MAC-12).
-- **E2V-49** [U] 서브에이전트가 rate limit 같은 일시 장애로 뜨지 않으면 `references/defaults.md`의 상한까지 watcher로 기다린다. 판정 역할은 read-only 에이전트가 맡아도 되며 MAC-05 구성은 그대로 지키고, 그 반환문은 손대지 않고 파일로 저장해 머리에 `작성: <agent id>`를 단다. 구현·커밋 같은 쓰기 역할은 메인이나 read-only 에이전트가 대신하지 않는다(MAC-02). 상한을 넘으면 `BLOCKED(서브에이전트: <원인>)`로 멈추고, 더 기다릴지·다른 방식을 허락할지·멈출지를 `isac-decision-brief`로 묻는다.
+- **E2V-49** [U] 서브에이전트가 rate limit 같은 일시 장애로 뜨지 않으면 `references/defaults.md`의 상한까지 watcher로 기다린다. 판정 역할은 read-only 에이전트가 맡아도 되며 MAC-05 구성은 그대로 지키고, 그 반환문은 손대지 않고 파일로 저장해 머리에 `작성: <agent id>`를 단다. 구현·커밋 같은 쓰기 역할은 메인이나 read-only 에이전트가 대신하지 않는다(MAC-02). 상한을 넘으면 `BLOCKED(서브에이전트: <원인>)`로 멈추고, 더 기다릴지·다른 방식을 허락할지·멈출지를 사용자에게 묻는다.
 
 | 판정 지점 | 구성(MAC-05) |
 |---|---|

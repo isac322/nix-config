@@ -15,7 +15,7 @@ description: Use when reviewing a GitHub pull request as the reviewer, including
 - 게시 모드 판단, 영어 문체·공개 위생, 기존 코멘트 수정 vs 새 코멘트, 승인 초안 대조, 게시 주체, 라벨 조회·생성 메커닉, 자기 산출물 추적과 "제거 요청은 close"는 `isac-github-publishing`이 소유한다.
 - 머지 여부를 실행마다 확인하는 일과 머지 직전 변경 범위(테스트 전용 vs 런타임) 보고는 `isac-issue-to-pr`가 소유한다. 그 스킬이 머지 전 독립 리뷰 게이트로 이 스킬을 호출한다.
 - 받은 리뷰에 대응하는 일은 `receiving-code-review`와 전역 `pull-request-review-handling`이 소유한다. `runbear-bot` 요청·대기·head 무효화는 전역 `pull-request-review-guard`, 머지·관리자 우회·브랜치 삭제는 전역 `pull-request-merge-authorization`과 `pull-request-merge`가 소유한다.
-- 배포 환경에서만 확인할 수 있는 주장은 `isac-live-qa`를 참조한다. 사용자에게 선택을 물을 때는 `isac-decision-brief` 형식을 쓴다.
+- 배포 환경에서만 확인할 수 있는 주장은 `isac-live-qa`를 참조한다. 사용자 선택 요청은 전역 가드를 따른다.
 
 ## 0. 프로젝트 훅
 

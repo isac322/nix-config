@@ -57,7 +57,7 @@
 
 ## 전이
 
-- ⑤ → ④: 구조 변경 방향이 `isac-decision-brief` 형식의 승인으로 확정되면 `triage:needs-structural-change`를 떼고 `triage:fix-direction-decided`를 붙이며, 같은 편집에서 분석 댓글의 `## Fix direction (needs a maintainer decision)` 절을 승인된 방향 변형(`comment-template.md`)으로 제자리 수정한다(`isac-github-publishing`의 제자리 수정 규칙). 사용자에게 대상 저장소의 maintain·admin 권한이 없으면 전이하지 않는다(TRI-25).
+- ⑤ → ④: 구조 변경 방향이 사용자 승인으로 확정되면 `triage:needs-structural-change`를 떼고 `triage:fix-direction-decided`를 붙이며, 같은 편집에서 분석 댓글의 `## Fix direction (needs a maintainer decision)` 절을 승인된 방향 변형(`comment-template.md`)으로 제자리 수정한다(`isac-github-publishing`의 제자리 수정 규칙). 사용자에게 대상 저장소의 maintain·admin 권한이 없으면 전이하지 않는다(TRI-25).
 - ③ 제거: 제보자가 요청한 정보를 주면 떼고, 받은 정보로 재현을 다시 시도한다.
 - ① 교체: 재시도 결과가 바뀌면 같은 그룹의 이전 값을 떼고 새 값을 붙인다(한 번의 편집으로).
 - `bug` → `enhancement`: 판정이 의도된 동작 + 개선 후보로 바뀌면 교체한다.

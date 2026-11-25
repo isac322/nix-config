@@ -5,7 +5,7 @@ description: Use when preparing an open-source GitHub project end to end so it i
 
 # E2E Promo Readiness
 
-오픈소스 GitHub 프로젝트를 "홍보하고 발견될 준비가 된 상태"로 만드는 오케스트레이터. 이 스킬은 킥오프 계약, 정체성 질문, 병렬 리서치, 토론→합의, 스티어링 리포트 페이지, 단계 순서, 오너 프리뷰·승인 게이트, 머지 후 외부 사본 교체, 최종 라이브 감사, ledger와 최종 보고를 소유한다. 영역별 작업은 이름으로 위임한다: 포지셔닝·키워드·정직성 `isac-positioning`(POS), 로고·브랜드 킷 `isac-brand-identity`(BRD), 랜딩·문서 사이트·기술 SEO `isac-project-site`(SITE), README·repo 표면·레지스트리 메타데이터·일관성 게이트 `isac-discovery-surfaces`(DSC), 스크린샷·영상 `isac-demo-media`(MED). 토론 절차는 `isac-multi-agent-consensus`, 오너에게 묻는 형식은 `isac-decision-brief`, GitHub 공개 텍스트는 `isac-github-publishing`, 모든 디자인·UI/UX는 `impeccable`(BRD·SITE 규칙 경유)이 소유한다. PR 생성·머지·파괴적 작업·검증 보고의 승인 기준은 전역 가드가 소유하고 이 스킬은 완화하지 않는다.
+오픈소스 GitHub 프로젝트를 "홍보하고 발견될 준비가 된 상태"로 만드는 오케스트레이터. 이 스킬은 킥오프 계약, 정체성 질문, 병렬 리서치, 토론→합의, 스티어링 리포트 페이지, 단계 순서, 오너 프리뷰·승인 게이트, 머지 후 외부 사본 교체, 최종 라이브 감사, ledger와 최종 보고를 소유한다. 영역별 작업은 이름으로 위임한다: 포지셔닝·키워드·정직성 `isac-positioning`(POS), 로고·브랜드 킷 `isac-brand-identity`(BRD), 랜딩·문서 사이트·기술 SEO `isac-project-site`(SITE), README·repo 표면·레지스트리 메타데이터·일관성 게이트 `isac-discovery-surfaces`(DSC), 스크린샷·영상 `isac-demo-media`(MED). 토론 절차는 `isac-multi-agent-consensus`, GitHub 공개 텍스트는 `isac-github-publishing`, 모든 디자인·UI/UX는 `impeccable`(BRD·SITE 규칙 경유)이 소유한다. PR 생성·머지·파괴적 작업·검증 보고의 승인 기준은 전역 가드가 소유하고 이 스킬은 완화하지 않는다.
 
 `[U]` = 사용자 지시·교정·승인에서 온 규칙(사용자 승인 없이 완화·삭제 불가). 태그 없음 = 바꿀 수 있는 기본값. 단계별 입력·산출물·의존성은 `references/phases.md`, 리포트 페이지 사양은 `references/report-page.md`, 도구 목록은 `references/tools.md`, 조사한 외부 스킬과 흡수한 아이디어는 `references/external-skills.md`에 있다.
 
@@ -23,7 +23,7 @@ description: Use when preparing an open-source GitHub project end to end so it i
 
 ## 2. 정체성 질문
 
-- **E2R-07** [U] 리서치 결과가 나오기 전에, 정체성 질문을 한 번에 묶어 묻는다(`isac-decision-brief` DBR-12): 브랜드 이름과 repo·패키지 이름의 관계, 도메인·서브도메인, 주 청중과 우선순위, 공개 언어, 사이트 호스팅과 소스 위치(같은 repo `site/` + Pages 또는 별도), 고정된 브랜드 요소와 확장 가능한 요소, 기존(레거시) 페이지 처리, 배포·머지 범위, 외부 설정을 누가 어떤 경로(IaC, 브라우저)로 적용하는지, 비용 한도, 오너가 실제로 쓰고 있는지(성숙도 표현의 근거). 질문 템플릿은 `references/phases.md` §Intake.
+- **E2R-07** [U] 리서치 결과가 나오기 전에, 정체성 질문을 한 번에 묶어 묻는다: 브랜드 이름과 repo·패키지 이름의 관계, 도메인·서브도메인, 주 청중과 우선순위, 공개 언어, 사이트 호스팅과 소스 위치(같은 repo `site/` + Pages 또는 별도), 고정된 브랜드 요소와 확장 가능한 요소, 기존(레거시) 페이지 처리, 배포·머지 범위, 외부 설정을 누가 어떤 경로(IaC, 브라우저)로 적용하는지, 비용 한도, 오너가 실제로 쓰고 있는지(성숙도 표현의 근거). 질문 템플릿은 `references/phases.md` §Intake.
 - **E2R-08** [U] 브리프와 저장소가 모순되면(도메인 오타, 다른 프로젝트 이름, 이미 존재하는 설정) 추측하지 않고 묻는다. 답은 binding이며, 실행 중인 모든 scout·owner 에이전트에 즉시 전파한다(MAC-07).
 - **E2R-09** [U] 사이트 스택 기본값은 Astro + Starlight + Bun(node/npm/npx 없음)이다. 묻지 않고 계약에 적는다. 오너가 다른 스택을 지시할 때만 바꾼다.
 - **E2R-10** 저장소·도구·라이브 조회로 답할 수 있는 것(현재 About·topics·homepage, 레지스트리 등록 여부, 라이선스 감지 결과, DNS)은 묻지 않고 확인해 질문의 전제로 넣는다.
@@ -63,11 +63,11 @@ description: Use when preparing an open-source GitHub project end to end so it i
 
 ## 7. 작업 방식
 
-- **E2R-32** [U] 에이전트가 자기 도구로 할 수 있는 일을 오너에게 넘기지 않는다: 브라우저 자동화로 가능한 설정 변경, 기존 토큰에 권한 추가(재발급 없이, 범위는 IaC 변수 설명에 기록), 업로드, API 호출. 로그인은 비밀번호 인증 경로를 쓰고 모바일 2FA를 전제하지 않는다. 시크릿 값 요청·저장은 `isac-decision-brief` §4.
+- **E2R-32** [U] 에이전트가 자기 도구로 할 수 있는 일을 오너에게 넘기지 않는다: 브라우저 자동화로 가능한 설정 변경, 기존 토큰에 권한 추가(재발급 없이, 범위는 IaC 변수 설명에 기록), 업로드, API 호출. 로그인은 비밀번호 인증 경로를 쓰고 모바일 2FA를 전제하지 않는다. 시크릿 값 요청·저장은 전역 credential-request rule을 따른다.
 - **E2R-33** 로그인 벽이 있는 표면(스토어, 레지스트리 콘솔)은 읽기 전용 세션 확인부터 한다. 자격증명을 추측하지 않는다. 막히면 에셋과 문구를 준비해 둔 채 "blocked" 목록에 올리고, 통제 브라우저에서 로그인 페이지를 열어 오너에게 넘긴 뒤, 변경은 서비스 API로 다시 읽어 확인한다.
 - **E2R-34** [U] 오너가 repo·DNS·Pages 설정을 IaC로 관리하면 그 설정은 IaC로만 바꾼다(UI 클릭 금지). IaC가 없는 설정만 API·브라우저로 적용하고 URL과 before/after로 보고한다. 코드 변경은 PR로 하고, 그 외 설정은 직접 적용한 뒤 무엇을 어디서 바꿨는지 URL과 함께 보고한다.
 - **E2R-35** [U] 긴 작업과 실험은 시간 상한(기본 15–20분)을 두고 단계별 시간을 잰다. 실패하면 변형을 계속 바꿔 재시도하지 않고 멈춰서 측정값과 함께 보고한다. 최적화는 재촬영·재빌드 전에 먼저 한다(MED).
-- **E2R-36** [U] 진행 상황을 투명하게 알린다: 오너가 물으면 현재 단계, 경과 시간, 남은 단계, 막힌 이유를 수치로 답한다. "기다리는 중" 같은 거의 같은 보고를 반복하지 않는다. 대기 중에는 독립 작업을 계속하고, 할 일이 없으면 남은 결정을 한 번에 묶은 decision brief 하나로 턴을 끝낸다.
+- **E2R-36** [U] 진행 상황을 투명하게 알린다: 오너가 물으면 현재 단계, 경과 시간, 남은 단계, 막힌 이유를 수치로 답한다. "기다리는 중" 같은 거의 같은 보고를 반복하지 않는다. 대기 중에는 독립 작업을 계속하고, 할 일이 없으면 남은 결정을 한 번에 묶은 질문 하나로 턴을 끝낸다.
 - **E2R-37** [U] 다른 세션이 같은 코드를 고치고 있을 수 있는 앱 버그는 직접 고치지 않고 이슈로만 남긴다(`isac-github-publishing`, 재현 절차와 pinned SHA 포함).
 - **E2R-38** [U] 공개 repo 위생: 리뷰 스크린샷, 로컬 덤프, `/tmp` 경로, 세션 산출물, 리포트·ledger, 마케팅 상태, 시크릿을 커밋하지 않는다. scratch는 repo 밖에 두고, 도구가 repo 안에 만드는 리뷰 산출물은 `.gitignore`에 넣는다. 코드 리뷰가 위생 위반을 BLOCKING으로 판정하면 GREEN까지 머지하지 않는다.
 - **E2R-39** 사용자의 새 규칙·교정은 실행 중인 owner에 즉시 전파하고 ledger의 결정 로그에 원문과 함께 남긴다.

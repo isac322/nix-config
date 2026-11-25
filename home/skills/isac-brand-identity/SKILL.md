@@ -5,7 +5,7 @@ description: Use when preparing an open-source project's visual identity for pro
 
 # Brand Identity
 
-오픈소스 프로젝트의 시각 정체성을 홍보 가능한 상태로 준비한다: 이름 clearance, 로고·워드마크·아이콘·마스코트·팔레트, SVG-first 브랜드 킷과 생성기, 파생 이미지 전부, 리브랜드 시 전 표면 동기화. 디자인 판단은 전부 `impeccable` 스킬에 위임한다(BRD-09). 입력인 positioning source(태그라인, 메커니즘, 청중, never-say)는 `isac-positioning`이, 사이트 head 태그·manifest 연결·공개 브랜드 페이지 빌드는 `isac-project-site`가, 소셜 프리뷰 업로드·레지스트리 등록·네임스페이스 claim은 `isac-discovery-surfaces`가, 스크린샷·영상은 `isac-demo-media`가, 오너 preview·승인 게이트와 steering report page는 `isac-e2e-promo-readiness`가 소유한다. 사용자 질문은 `isac-decision-brief`, 다관점 토론은 `isac-multi-agent-consensus`를 따른다. 홍보 글·게시·계정 생성은 이 스킬 범위 밖이다.
+오픈소스 프로젝트의 시각 정체성을 홍보 가능한 상태로 준비한다: 이름 clearance, 로고·워드마크·아이콘·마스코트·팔레트, SVG-first 브랜드 킷과 생성기, 파생 이미지 전부, 리브랜드 시 전 표면 동기화. 디자인 판단은 전부 `impeccable` 스킬에 위임한다(BRD-09). 입력인 positioning source(태그라인, 메커니즘, 청중, never-say)는 `isac-positioning`이, 사이트 head 태그·manifest 연결·공개 브랜드 페이지 빌드는 `isac-project-site`가, 소셜 프리뷰 업로드·레지스트리 등록·네임스페이스 claim은 `isac-discovery-surfaces`가, 스크린샷·영상은 `isac-demo-media`가, 오너 preview·승인 게이트와 steering report page는 `isac-e2e-promo-readiness`가 소유한다. 다관점 토론은 `isac-multi-agent-consensus`를 따른다. 홍보 글·게시·계정 생성은 이 스킬 범위 밖이다.
 
 `[U]` = 사용자 지시·교정·승인에서 온 규칙(사용자 승인 없이 완화·삭제 불가). 태그 없음 = 바꿀 수 있는 기본값. 평가 rubric은 `references/logo-critique.md`, 킷 구조·생성기·파일/크기 매트릭스·리브랜드 표면 목록은 `references/brand-kit.md`에 있다.
 
@@ -16,7 +16,7 @@ description: Use when preparing an open-source project's visual identity for pro
 ## 1. 입력과 첫 질문
 
 - **BRD-01** 시작 전에 positioning source(`positioning.yml`, 스키마와 위치 규약은 `isac-positioning` 소유, 없으면 그 스킬을 먼저 돌린다)와 기존 브랜드 자산(커밋된 SVG, 소셜 카드, 레거시 페이지)을 읽는다. 이미 출하된 브랜드가 있으면 토큰·형상은 **출하된 SVG 원본에서 추출**하고 다시 만들어내지 않는다. 레거시 자산은 salvage/avoid 목록(가져갈 개념, 버릴 색·모노그램·폰트·이모지)으로 정리한다.
-- **BRD-02** [U] 그리기 전에 한 번에 묶어 묻는다(`isac-decision-brief` DBR-12): 어떤 브랜드 요소가 고정이고 어떤 것이 확장 가능한지, 원하는 스타일 계열(다중 선택 + 자유 입력: 미니멀 기하 심볼 / 워드마크 중심 / 생태계풍 컬러 아이콘 / 일러스트·마스코트 등), 이름을 얼마나 문자 그대로 그려도 되는지(literalness), 레거시 자산 처리. 각 선택지에 비슷한 프로젝트 선례를 붙인다.
+- **BRD-02** [U] 그리기 전에 한 번에 묶어 묻는다: 어떤 브랜드 요소가 고정이고 어떤 것이 확장 가능한지, 원하는 스타일 계열(다중 선택 + 자유 입력: 미니멀 기하 심볼 / 워드마크 중심 / 생태계풍 컬러 아이콘 / 일러스트·마스코트 등), 이름을 얼마나 문자 그대로 그려도 되는지(literalness), 레거시 자산 처리. 각 선택지에 비슷한 프로젝트 선례를 붙인다.
 - **BRD-03** [U] 에이전트가 스스로 만든 제약(예: "이름 속 사물을 그대로 그리지 않기", "글자 모노그램 금지")을 오너 의도보다 우선하지 않는다. 오너가 "이름에 맞는 그래픽"을 원하면 그 제약을 즉시 풀고 brief를 고친다.
 - **BRD-04** 오너가 확정한 디자인 절차 선호(스킬 의무, 요구사항만으로 재빌드, 선택한 팔레트 이름)는 long-term memory에 남겨 다음 프로젝트가 거기서 시작하게 한다. 프로젝트별 값(색, 이름)은 스킬에 굽지 않는다.
 

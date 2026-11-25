@@ -74,7 +74,7 @@ materialize 순서: 게시된 아티팩트 > release asset > tag에서 rebuild(d
 |---|---|---|
 | `available` | baseline이 있고 materialize됨 | 모든 lane을 돈다. A/B 차등 QA와 old suite × 후보를 실행한다 |
 | `none` | 이 unit의 직전 release가 없음(첫 release) | A/B와 old suite × 후보는 2단계와 G-REQA 모두에서 `not_applicable`. QA는 단일 아티팩트 "새 표면" 방법(§6.4 끝)으로 바꾼다. `regression` 분류는 쓰지 않고 `new-bug`로 적는다. 다른 게이트의 대체 산출물은 아래 표 |
-| `blocked` | baseline은 있지만 materialize 불가(yank, rebuild drift, registry 소실 등) | `isac-decision-brief` 형식으로 사용자에게 묻는다. 답이 올 때까지 `BLOCKED(baseline)`. 자동으로 GO하거나 `none` 방법으로 낮추지 않는다 |
+| `blocked` | baseline은 있지만 materialize 불가(yank, rebuild drift, registry 소실 등) | 전역 가드에 따라 사용자에게 묻는다. 답이 올 때까지 `BLOCKED(baseline)`. 자동으로 GO하거나 `none` 방법으로 낮추지 않는다 |
 
 baseline `none`일 때 baseline을 기준으로 삼는 게이트는 다음 산출물로 대신한다. 저장소 선언으로 정해지지 않는 선택만 묻는다(E2V-05와 같은 원칙).
 

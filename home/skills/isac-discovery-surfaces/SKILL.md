@@ -18,7 +18,7 @@ description: Use when preparing an open-source project's discovery surfaces for 
 - **DSC-01** [U] 이미 있는 곳만 고치지 않는다. 브랜드·SEO 요소가 들어가야 할 위치를 저장소 안팎에서 샅샅이 찾는다. 저장소 안: 추적 파일 전체를 사전에 고정한 rubric(`must_change` / `should_review` / `irrelevant` × 자산 종류: 앱 아이콘, 워드마크 배너, social 이미지, 스크린샷, 브랜드 색·문구)으로 bulk 분류하고 플래그된 파일만 사람이 읽는다. 전형적 대상: README, 패키지 매니페스트(`go.mod`, `pyproject.toml`, `package.json`, `Cargo.toml`, `Chart.yaml`, `*.metainfo.xml`, `.desktop`, spec/PKGBUILD/`debian/control`), About 대화상자, docs index.
 - **DSC-02** 저장소 밖: 읽기 전용 scout가 각 외부 표면(GitHub About·social preview, 사이트, 레지스트리·스토어 페이지, 배포 채널 페이지)의 현재 상태, 필드, 이미지 규격, 쓰기 방법(API / CLI / IaC / 브라우저 전용), 필요한 자격증명의 **존재 여부**(값은 출력하지 않음)를 표로 남기고 P1~P4 우선순위를 매긴다. 생태계별 대상은 `references/registries.md` §0.
 - **DSC-03** 모든 공개 표면을 코드와 대조하는 첫 감사를 한다: 설치 경로가 실제 배포 산출물인지, homepage URL이 살아 있고 공개 대상인지, 링크 대상 파일이 있는지, topics·social 이미지가 미출시 기능을 광고하지 않는지, 모듈 경로·패키지 이름이 저장소 URL과 맞는지. 결과는 파일:라인 근거가 있는 결함 목록이다.
-- **DSC-04** [U] 에이전트가 자기 도구(브라우저 포함)로 할 수 있는 작업은 owner에게 넘기지 않는다. 토큰 권한이 부족하면 기존 fine-grained 토큰에 필요한 권한만 제자리에서 추가하고(재발급하지 않음) IaC 변수 설명에 새 scope를 적는다. 자격증명 요청 방법은 `isac-decision-brief` DBR-15~18.
+- **DSC-04** [U] 에이전트가 자기 도구(브라우저 포함)로 할 수 있는 작업은 owner에게 넘기지 않는다. 토큰 권한이 부족하면 기존 fine-grained 토큰에 필요한 권한만 제자리에서 추가하고(재발급하지 않음) IaC 변수 설명에 새 scope를 적는다. 자격증명은 전역 credential-request rule을 따른다.
 - **DSC-05** 로그인이 필요한 표면은 먼저 세션을 읽기 전용으로 확인한다. 자격증명은 추측하지 않는다. 막힌 표면은 넣을 자산·문구·필드값을 모두 준비한 "blocked, assets ready" 목록으로 보고하고, owner가 로그인할 수 있게 통제 브라우저에 로그인 페이지를 열어 둔 뒤, 반영 후에는 서비스 API나 렌더된 페이지로 확인한다.
 
 ## 2. README
@@ -44,7 +44,7 @@ description: Use when preparing an open-source project's discovery surfaces for 
 - **DSC-21** Discussions를 켜고 카테고리(Q&A, Show and tell, Ideas, Announcements)를 둔다. 이슈는 issue forms(YAML)로 받는다: bug(재현 단계·버전·환경 필수), feature, "tried it"(성공 / N단계에서 실패, 환경, 버전). 모든 form에 "어디서 알게 됐나" 선택형 필드를 넣고 `config.yml`에서 blank issue를 끄고 Discussions·보안 신고로 안내한다.
 - **DSC-22** 기여자 입구: CONTRIBUTING에 dev setup quickstart, 라벨 체계(`good first issue`, `help wanted`), 파일 경로와 완료 기준이 적힌 실제 작업 3~8개를 `good first issue`로 준비한다(생성 여부는 owner 확인).
 - **DSC-23** 공개 저장소 위생: 리뷰 스크린샷, `/tmp` 경로, 세션 산출물, 마케팅 상태·초안·지표는 커밋하지 않는다(필요하면 비공개 저장소). 사이트·표면 리뷰에서 발견하면 머지를 막는다.
-- **DSC-24** 저장소 identity(개인 계정 vs 조직, 모듈 경로, 패키지 이름)는 레지스트리·배지 URL에 굳기 전에 확정한다. owner 결정이며 `isac-decision-brief` DBR-02로 묻는다.
+- **DSC-24** 저장소 identity(개인 계정 vs 조직, 모듈 경로, 패키지 이름)는 레지스트리·배지 URL에 굳기 전에 확정한다. owner 결정이며 owner에게 묻는다.
 
 ## 4. 커뮤니티 파일과 신뢰 신호
 
@@ -77,7 +77,7 @@ description: Use when preparing an open-source project's discovery surfaces for 
 - **DSC-45** positioning source(`isac-positioning` 산출물, 기본 저장소 루트 `positioning.yml`, 기존 규약 경로가 있으면 그것)의 `category.one_liner`·`about_description`·`registry_description`, `keywords.topics`·`registry_keywords`, `identity.homepage`·`license`, 코드에서 계산한 카운트·버전을 README, About, 사이트 메타, 패키지 매니페스트, 플러그인·마켓 매니페스트로 **생성하거나 동기화**하는 스크립트를 두고, `--check` 모드를 CI에서 돌려 drift가 있으면 실패시킨다. 한 줄 정의는 모든 표면에서 같게 하고, 긴 설명은 표면 형식에 맞게 따로 쓰되 같은 문단을 복붙하지 않는다.
 - **DSC-46** 기계적 게이트 범위: 버전(매니페스트 전부), 카운트(도구 수 등 코드에서 계산), 키워드·description 길이, 금지 문구(미출시 기능, 헤징, 변경 서사, checkout 설치), 링크, 브랜드 자산 참조. 사이트 빌드 시 docs sync는 `isac-project-site`가 소유하고 여기서는 그 결과를 검사 대상에 포함한다.
 - **DSC-47** [U] 사용자에게 보이는 동작이 바뀌면 머지 전에 저장소의 문서·미디어·metainfo·레지스트리 문구를 옛 용어로 grep해 모두 고친다(미디어 재촬영은 `isac-demo-media`).
-- **DSC-48** 큰 변경 뒤에는 현재 코드 사실 목록(F1…Fn)을 먼저 고정하고, docs·chart·landing·listing 블록 전체를 그 목록에 대해 bulk 판정한 뒤 플래그된 블록을 사람이 전부 읽는다. 기존에 있던 불일치도 고친다. 판정이 애매한 코드↔문서 차이는 버그인지 의도인지 테스트로 결론 내고, 결정이 필요하면 선택지와 권장안으로 묻는다(`isac-decision-brief`). 공개 변경에 "의도인지 확실하지 않음" 같은 헤징을 남기지 않는다.
+- **DSC-48** 큰 변경 뒤에는 현재 코드 사실 목록(F1…Fn)을 먼저 고정하고, docs·chart·landing·listing 블록 전체를 그 목록에 대해 bulk 판정한 뒤 플래그된 블록을 사람이 전부 읽는다. 기존에 있던 불일치도 고친다. 판정이 애매한 코드↔문서 차이는 버그인지 의도인지 테스트로 결론 내고, 결정이 필요하면 선택지와 권장안으로 묻는다. 공개 변경에 "의도인지 확실하지 않음" 같은 헤징을 남기지 않는다.
 - **DSC-49** 패키징·메타데이터 validator(DSC-36의 validator, `rpmspec` parse, `twine check`, `helm lint`, `cffconvert`, `actionlint`, 저장소 자체 docs-SEO 검사)는 브랜드·표면 PR 전에 깨끗한 컨테이너에서 돌린다.
 - **DSC-50** 공개 텍스트(README, About, listing 설명, 커뮤니티 파일)는 저장소 언어 규약을 따르고 없으면 영어로 쓰며 `writing-clearly-and-concisely`와 `humanizer`를 적용한다(`isac-github-publishing` GHP-02/03). 모든 사실 주장의 근거 규칙은 `isac-positioning` 소유.
 

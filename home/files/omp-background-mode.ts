@@ -58,7 +58,7 @@ const BUILTIN_OMP_TOOLS: Record<string, true> = {
 // - `openai/codex` (`6c0cee502d215e5df2dd9a303cf2e252229c9e12`) `codex-rs/models-manager/models.json` (`slug: "gpt-6.2-sol"`, identical for `gpt-6.2-astra`; `instructions_template`: first two paragraphs of `# When to ask the user for permission`, `# Autonomy and persistence`, `## Writing style`, `## Final answer`, `# Rules for getting work done`, `# Coding Style`, and the last two `# Other instructions:` bullets)
 // - `openai/codex` (`970111f6cb62cc02fe36a82ea7d71b37a2889c97`) `codex-rs/core/gpt_5_1_prompt.md` (`## Validating your work`)
 // - `multica-ai/andrej-karpathy-skills` (`2c606141936f1eeef17fa3043a72095b4765b9c2`) `CLAUDE.md` (`1. Think Before Coding`, `2. Simplicity First`, `3. Surgical Changes`)
-// - `home/skills/isac-decision-brief/SKILL.md` (`DBR-01`..`DBR-12`) and `references/examples.md`
+// - the former `isac-decision-brief` skill (`DBR-01`..`DBR-12`, now kept only here for GPT `/bg`)
 const SURGICAL_SCOPE = [
 	"# When to ask the user for permission",
 	"",
@@ -1149,6 +1149,7 @@ export default function (pi: ExtensionAPI) {
 		if (needsSync) {
 			applyProfileOverrides(inferred.mode, desiredRoles, desiredAgents);
 		}
+		if (isNonOpusMainProfile(active)) registerBriefAsk();
 		updateGoalContinuationOverride(scope, Boolean(describePendingAsyncWork(ctx)));
 		updateStatusLineBadge(ctx, inferred, forceDiskCheck);
 
@@ -1502,61 +1503,69 @@ export default function (pi: ExtensionAPI) {
 		}
 		return lines.join("\n");
 	}
-	pi.registerTool({
-		name: "ask",
-		label: "Ask",
-		approval: "read",
-		concurrency: "exclusive",
-		loadMode: "discoverable",
-		mergeCallAndResult: true,
-		description:
-			"Ask the user for a decision when materially different tradeoffs or required approvals exist. Supply the full user-facing decision brief (**진행 상황**, **현상**, **원인 / 배경**, **선택지 비교** markdown table, **권장 이유**) in `brief` so it renders in the chat transcript above the 4-line popup.",
-		parameters: z.object({
-			i: z.string().optional().describe("Capitalized 2-6 word present-participle intent"),
-			brief: z
-				.string()
-				.describe(
-					"Self-contained decision brief in Markdown (**진행 상황**, **현상**, **원인 / 배경**, **선택지 비교** markdown table, **권장 이유**) rendered in the chat transcript above the question popup.",
-				),
-			questions: z
-				.array(
-					z.object({
-						id: z.string(),
-						question: z.string().describe("Concise 1-2 line question for the 4-line popup header"),
-						header: z.string().optional().describe("Short display chip"),
-						multi: z.boolean().optional(),
-						recommended: z.number().optional().describe("0-based default index"),
-						options: z.array(
-							z.object({
-								label: z.string(),
-								description: z.string().optional(),
-								preview: z.string().optional(),
-							}),
-						),
-					}),
-				)
-				.min(1),
-		}),
-		renderCall(args) {
-			return renderAskBrief(args);
-		},
-		renderResult(result, _options, _theme, args) {
-			const nodes: JSXNode[] = [];
-			const brief = renderAskBrief(args);
-			if (brief) nodes.push(brief);
-			const answers = askResultMarkdown(result);
-			if (answers) nodes.push(jsx("md", { text: answers }));
-			return nodes.length > 0 ? jsx("col", { gap: "sm", children: nodes }) : undefined;
-		},
-		async execute(_toolCallId, params, signal, onUpdate, ctx) {
-			const { brief: _brief, ...restParams } = params as Record<string, unknown>;
-			const nativeParams = withAskFormHtml(restParams);
-			if (typeof ctx.invokeTool !== "function") {
-				throw new Error("Native ask tool is unavailable in this context");
-			}
-			return await ctx.invokeTool(nativeParams, { signal, onUpdate });
-		},
-	} as Parameters<typeof pi.registerTool>[0]);
+	// Mount the brief-carrying `ask` only after a GPT `/bg` profile becomes active, so every
+	// other session keeps OMP's native `ask`. OMP has no unregisterTool, so once mounted it
+	// stays until the process restarts.
+	let briefAskRegistered = false;
+	function registerBriefAsk(): void {
+		if (briefAskRegistered) return;
+		briefAskRegistered = true;
+		pi.registerTool({
+			name: "ask",
+			label: "Ask",
+			approval: "read",
+			concurrency: "exclusive",
+			loadMode: "discoverable",
+			mergeCallAndResult: true,
+			description:
+				"Ask the user for a decision when materially different tradeoffs or required approvals exist. Supply the full user-facing decision brief (**진행 상황**, **현상**, **원인 / 배경**, **선택지 비교** markdown table, **권장 이유**) in `brief` so it renders in the chat transcript above the 4-line popup.",
+			parameters: z.object({
+				i: z.string().optional().describe("Capitalized 2-6 word present-participle intent"),
+				brief: z
+					.string()
+					.describe(
+						"Self-contained decision brief in Markdown (**진행 상황**, **현상**, **원인 / 배경**, **선택지 비교** markdown table, **권장 이유**) rendered in the chat transcript above the question popup.",
+					),
+				questions: z
+					.array(
+						z.object({
+							id: z.string(),
+							question: z.string().describe("Concise 1-2 line question for the 4-line popup header"),
+							header: z.string().optional().describe("Short display chip"),
+							multi: z.boolean().optional(),
+							recommended: z.number().optional().describe("0-based default index"),
+							options: z.array(
+								z.object({
+									label: z.string(),
+									description: z.string().optional(),
+									preview: z.string().optional(),
+								}),
+							),
+						}),
+					)
+					.min(1),
+			}),
+			renderCall(args) {
+				return renderAskBrief(args);
+			},
+			renderResult(result, _options, _theme, args) {
+				const nodes: JSXNode[] = [];
+				const brief = renderAskBrief(args);
+				if (brief) nodes.push(brief);
+				const answers = askResultMarkdown(result);
+				if (answers) nodes.push(jsx("md", { text: answers }));
+				return nodes.length > 0 ? jsx("col", { gap: "sm", children: nodes }) : undefined;
+			},
+			async execute(_toolCallId, params, signal, onUpdate, ctx) {
+				const { brief: _brief, ...restParams } = params as Record<string, unknown>;
+				const nativeParams = withAskFormHtml(restParams);
+				if (typeof ctx.invokeTool !== "function") {
+					throw new Error("Native ask tool is unavailable in this context");
+				}
+				return await ctx.invokeTool(nativeParams, { signal, onUpdate });
+			},
+		} as Parameters<typeof pi.registerTool>[0]);
+	}
 
 	function isWaitPollTimeoutResult(result: unknown): boolean {
 		if (!result || typeof result !== "object") return false;

@@ -13,7 +13,7 @@ description: Use when taking a set of open pull requests (external contributions
 
 - PR 한 건의 감사·판정·리뷰 이벤트·닫기 코멘트·superseded 증명: `isac-pr-review`(PRR, 절차는 그 스킬의 외부·오래된 PR 감사 참조). 판정 어휘와 결정 단위 묶음도 그 스킬 것을 쓴다(PRR-24, PRR-31).
 - PR 브랜치에 넣을 수정: `isac-issue-to-pr`의 QA list·TDD·회귀 증명(I2P-22–I2P-28), CI(I2P-46–I2P-47), 머지 게이트(I2P-52), 여러 PR 순차 머지(I2P-54). 남은 main 결함의 판정: `isac-issue-triage`. 남은 결함을 끝까지 고치기: `isac-e2e-issue-resolution`.
-- 독립 조사·교차 검증·리뷰-GREEN 루프: `isac-multi-agent-consensus`. GitHub 게시: `isac-github-publishing`. 사용자 질문 형식: `isac-decision-brief`.
+- 독립 조사·교차 검증·리뷰-GREEN 루프: `isac-multi-agent-consensus`. GitHub 게시: `isac-github-publishing`.
 - 전역 가드(task-intent, application-code 승인, PR 머지 승인, PR 리뷰 가드, destructive, verification)는 이름으로만 따른다. 가드와 충돌하면 이 스킬이 진다.
 - 릴리스는 범위 밖이다. 사용자가 끝에 릴리스를 지시하면 그 지시를 따르되 절차를 여기 쓰지 않는다.
 
@@ -23,8 +23,8 @@ description: Use when taking a set of open pull requests (external contributions
 
 ## 1. Intake와 권한
 
-- **E2P-01** [U] 대상 PR과 이번 실행에서 허용된 종착 행동(판정 코멘트만 / 수정 push / 최신화 / 머지 / close)은 이번 실행의 사용자 지시에서 정한다. 머지는 I2P-53과 전역 머지 가드, close는 PRR-02에 따른다. 지시가 주는 우선순위·카테고리(예: 특정 봇 PR 먼저)는 그 실행에만 적용하고 일반 정책으로 넓히지 않는다. 대상·권한이 정말 불명확할 때만 `isac-decision-brief`로 한 번에 묻고, 증거로 정할 수 있는 범위 판단은 묻지 않는다(DBR-01, DBR-03).
-- **E2P-02** [U] 머지 방식(관리자 우회 포함)은 전역 머지 가드를 따른다. 그 가드의 기본값이 적용되는 PR은 PR마다 우회 승인을 묻지 않는다. 그 밖의 우회는 가드대로 새 승인을 받고, PR 한 건의 우회 승인을 다른 PR로 넓히지 않는다(DBR-04). PR마다 머지 방식과 근거(가드 기본값 / 이번 승인)를 ledger에 적는다.
+- **E2P-01** [U] 대상 PR과 이번 실행에서 허용된 종착 행동(판정 코멘트만 / 수정 push / 최신화 / 머지 / close)은 이번 실행의 사용자 지시에서 정한다. 머지는 I2P-53과 전역 머지 가드, close는 PRR-02에 따른다. 지시가 주는 우선순위·카테고리(예: 특정 봇 PR 먼저)는 그 실행에만 적용하고 일반 정책으로 넓히지 않는다. 대상·권한이 정말 불명확할 때만 한 번에 묻고, 증거로 정할 수 있는 범위 판단은 묻지 않는다.
+- **E2P-02** [U] 머지 방식(관리자 우회 포함)은 전역 머지 가드를 따른다. 그 가드의 기본값이 적용되는 PR은 PR마다 우회 승인을 묻지 않는다. 그 밖의 우회는 가드대로 새 승인을 받고, PR 한 건의 우회 승인을 다른 PR로 넓히지 않는다. PR마다 머지 방식과 근거(가드 기본값 / 이번 승인)를 ledger에 적는다.
 - **E2P-03** 대상 목록과 시작·끝 재대조는 `isac-pr-review` 외부·오래된 PR 감사 절차를 쓴다. 실행 중 새로 열린 PR은 범위 밖으로 기록하고 보고한다.
 
 ## 2. PR 상태 기계
@@ -61,7 +61,7 @@ description: Use when taking a set of open pull requests (external contributions
 - **E2P-06** [U] 이미 검증돼 머지만 남은 PR들이 같은 문제를 겹쳐 겨냥하면 문제 범위가 더 작은 subset PR을 먼저 머지한다. 그 뒤 superset PR을 최신 main으로 올리고, 이미 머지된 내용을 그 PR에서 빼 남은 범위만 다시 리뷰한 다음 머지한다. 빼고 나서 남는 것이 없으면 superseded 판정으로 기록하고, 닫기는 E2P-12를 따른다.
 - **E2P-07** [U] 순차 머지와 형제 머지 후 재검증은 I2P-54, 머지 후보 판정은 PRR-24 `PR-ready`를 따른다. 여기서 더하는 것: 머지할 때마다 main CI를 확인한다. 깨지면 남은 머지를 모두 멈추고 원인을 진단해 보고하며, 수정은 E2P-14 경로로 넘긴다. main CI가 다시 green이면 남은 PR을 `updating`부터 재개한다. PR CI 실패는 PR 브랜치에서 진짜 원인을 고친다(I2P-47, PRR-03).
 - **E2P-08** 형제 PR이 머지되면 남은 PR을 `updating`으로 되돌리고 겹침(E2P-05)을 다시 기록한다(I2P-54, MAC-20, PRR-37). head가 바뀌면 전역 리뷰 가드대로 리뷰를 다시 받는다.
-- **E2P-09** [U] 최신화나 rebase 후 PR diff나 적용 계획(IaC plan 등)에 그 PR과 무관한 변경이 섞이면 적용·머지하지 않는다. 다시 최신화해 PR 고유 변경만 남았는지 증거로 확인하고, 사용자가 조건부 진행("X만 보이면 끝까지")을 줬으면 DBR-13대로 평가한다. 무관한 변경의 출처(다른 PR 머지, provider 계산 노이즈)를 구분해 적는다(DBR-21).
+- **E2P-09** [U] 최신화나 rebase 후 PR diff나 적용 계획(IaC plan 등)에 그 PR과 무관한 변경이 섞이면 적용·머지하지 않는다. 다시 최신화해 PR 고유 변경만 남았는지 증거로 확인하고, 사용자가 조건부 진행("X만 보이면 끝까지")을 줬으면 task-intent-boundary의 조건부 지시 규칙대로 평가한다. 무관한 변경의 출처(다른 PR 머지, provider 계산 노이즈)를 구분해 적는다.
 - **E2P-10** [U] 의존성 업데이트 봇 PR은 봇의 rebase가 끝난 head에서 CI와 앱 동작 확인(설치·실행 경로)을 마친 뒤 머지한다. 사용자가 봇 rebase를 요청해 뒀으면 완료를 기다린다.
 - **E2P-11** 수정이 필요한 PR은 승인 범위 안에서 PR 브랜치에 push한다(PRR-03). 수정 자체는 경계에 적은 `isac-issue-to-pr` 단계를 따르고 리뷰-GREEN 루프(MAC-16)를 거친다. fork 권한이 없거나 GitHub 설정상 필요한 승인이 없으면 외부 blocker로 `left-open` 처리하고 보고한다(PRR-28, I2P-50).
 - **E2P-12** `closed` 전이 조건은 PRR-02(닫기 지시), PRR-33–PRR-35(증명·재검증·닫기 코멘트·사용할 버전·예외), GHP-12("제거"는 close)를 따른다.
