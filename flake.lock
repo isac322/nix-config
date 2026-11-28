@@ -38,16 +38,16 @@
     "brew-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1793000687,
-        "narHash": "sha256-8mCor0DDjNhi+0e+FllfqiMABujBl+/RxYW+wgMpcto=",
+        "lastModified": 1795051546,
+        "narHash": "sha256-8qp8StbMuOtXNqnfLa2ABjB+pIdHJBax5LJCs2eMhKQ=",
         "ref": "refs/heads/main",
-        "rev": "c6069d2a943b71b0a90d91fc1ac93cb9c1634dcc",
+        "rev": "3e47189a707c739ee1278a28a3b845f5834574e6",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Homebrew/brew.git"
       },
       "original": {
-        "rev": "c6069d2a943b71b0a90d91fc1ac93cb9c1634dcc",
+        "rev": "3e47189a707c739ee1278a28a3b845f5834574e6",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Homebrew/brew.git"
@@ -228,10 +228,10 @@
     "gentle-ai": {
       "flake": false,
       "locked": {
-        "lastModified": 1795695068,
-        "narHash": "sha256-J2dL6I9gOstqyyfLA9ONE8vF7ats5WHvnDF5PP+TYq0=",
+        "lastModified": 1795766591,
+        "narHash": "sha256-XZ2MonVony0lBLeNpg0Jky013Uq82CnHXqgUFfdU2d4=",
         "ref": "refs/heads/main",
-        "rev": "423d90abe6f59fbda184043c578c30866a6e9d44",
+        "rev": "d64b1c1baa22cf34d3a8da29050d57103a07cf6a",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/Gentleman-Programming/gentle-ai.git"
@@ -267,10 +267,10 @@
     "herdr-core": {
       "flake": false,
       "locked": {
-        "lastModified": 1795524606,
-        "narHash": "sha256-G7jTLB2ijzY6kxQfdbNI48VKva/bBrMDCFa7gSvrEKY=",
+        "lastModified": 1795813021,
+        "narHash": "sha256-44AdyrkquhWIrxo2HLvL7qQt5J3J86eyhxcHkhXwrgI=",
         "ref": "refs/heads/master",
-        "rev": "329cb66ebce5eca3d917fcf7364a099046979b49",
+        "rev": "c0a21b938794657b4a1a02325d220c349630ef8d",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/herdrdev/herdr-core.git"
@@ -288,10 +288,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1795699347,
-        "narHash": "sha256-9VbfnntwEYRAyfLpxchf1+EI7efzM7hMVfPDwIBqEKg=",
+        "lastModified": 1795827905,
+        "narHash": "sha256-Udjs2j0EkvK+qGXKHRIQwXWRgzNBIl4oXSUktuOzbmQ=",
         "ref": "master",
-        "rev": "a3a080dad466c6352a869b48bd6d4860dab3ce94",
+        "rev": "5f5abf5eb8de62d954232f3797b5bf4505656b91",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-community/home-manager.git"
@@ -346,16 +346,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1795663188,
-        "narHash": "sha256-j1S8p6N1lAu0Ab4csCu3JmSDS1xzPc5nlUqFUcjMNBg=",
+        "lastModified": 1795831089,
+        "narHash": "sha256-cwO9VHA37d4DCJOCBOHL0eFNVL6jCjLCNcREc7S8N+g=",
         "ref": "refs/heads/main",
-        "rev": "a8e2ca87ef6a622821d175555d320e196cac2d34",
+        "rev": "512d27e2882c99d80648a121b88de0c4b0426119",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
       },
       "original": {
-        "rev": "a8e2ca87ef6a622821d175555d320e196cac2d34",
+        "rev": "512d27e2882c99d80648a121b88de0c4b0426119",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix.git"
@@ -390,10 +390,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1795373241,
-        "narHash": "sha256-Gd1+Oaj8nS+p1qLpKk4MGv/qGh62+lTkX4262e2UDgc=",
+        "lastModified": 1795747999,
+        "narHash": "sha256-VTPsIOYem/zQCO1QF3cpa4pLg2EoexjX5R1u3fs3L4k=",
         "ref": "master",
-        "rev": "663d8b962a11cda261b6e9f14e03911fac94baf0",
+        "rev": "594c680c429be020d7130cc2b17d43c4760d17c7",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/nix-darwin/nix-darwin.git"
@@ -410,16 +410,16 @@
         "brew-src": "brew-src"
       },
       "locked": {
-        "lastModified": 1793543863,
-        "narHash": "sha256-oDYLVD8KGT/M57c8HziYSSj0le4wCyA+jZ7+/qUS91M=",
+        "lastModified": 1795755327,
+        "narHash": "sha256-qpfNQ5tFivEE9t7CsQcir3FTCr6zYji53YS9pm3AzyA=",
         "ref": "refs/heads/main",
-        "rev": "52bc87da3f30c2261a6d1cfef3c892097b53daeb",
+        "rev": "b279e781fbfede43b2b20e7278cf3c5312ca3301",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/zhaofengli/nix-homebrew.git"
       },
       "original": {
-        "rev": "52bc87da3f30c2261a6d1cfef3c892097b53daeb",
+        "rev": "b279e781fbfede43b2b20e7278cf3c5312ca3301",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/zhaofengli/nix-homebrew.git"
@@ -463,10 +463,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1795673814,
-        "narHash": "sha256-GEntp8uv1f71DVxO2PysqpNeNQ5Dt/UDOKUQFZMdW/Y=",
+        "lastModified": 1795844873,
+        "narHash": "sha256-6Jf5OeMa7yOVwumEBiulW6/5jYZNwKIsm0S1hX7zyts=",
         "ref": "refs/heads/main",
-        "rev": "4b7af1f8038b795de8d9d3d518e96aa9bb5a32f6",
+        "rev": "7c19767228841e6c74ba349296b07fc061ebd482",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/bandithedoge/nixpkgs-firefox-darwin.git"
